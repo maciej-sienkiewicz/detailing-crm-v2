@@ -156,7 +156,7 @@ const WidthBtn = styled.button<{ $active: boolean }>`
     padding: 0 10px;
     border-radius: 8px;
     border: 1.5px solid ${p => p.$active ? '#8EBBD5' : 'rgba(255,255,255,0.18)'};
-    background: ${p => p.$active ? 'rgba(56,189,248,0.15)' : 'rgba(255,255,255,0.06)'};
+    background: ${p => p.$active ? 'rgba(142,187,213,0.18)' : 'rgba(255,255,255,0.06)'};
     color: #fff;
     cursor: pointer;
 `;

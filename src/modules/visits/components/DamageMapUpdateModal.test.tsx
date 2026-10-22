@@ -69,6 +69,7 @@ vi.mock('../hooks/useDamageMapMobileSession', () => ({
         isStarting: false,
         error: null,
         phoneSeen: phoneSeen.value,
+        phoneDone: false,
         start: vi.fn(),
     }),
 }));

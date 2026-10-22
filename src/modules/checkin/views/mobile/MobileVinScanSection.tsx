@@ -1,6 +1,7 @@
 // src/modules/checkin/views/mobile/MobileVinScanSection.tsx
 //
-// Telefon w sesji VIN_SCAN („VIN telefonem" w oknie wpisu zlecenia zbiorczego): jedno
+// Telefon w sesji VIN_SCAN („VIN telefonem" przy polu VIN - przyjęcie, pojazd, wpis
+// zlecenia zbiorczego): jedno
 // zdjęcie tabliczki VIN albo dowodu rejestracyjnego. Serwer odczytuje numer i oddaje go
 // oknu na komputerze; tutaj pokazujemy wynik, żeby operator przy aucie wiedział, czy
 // może iść dalej, czy powtórzyć zdjęcie.
@@ -12,6 +13,7 @@ import { useState } from 'react';
 import { checkinApi } from '../../api/checkinApi';
 import { prepareImageForVin, prepareImageOrExplain } from '../../services/imageUploadPrep';
 import { describeUploadError, isSessionGoneError } from './uploadErrors';
+import { ui } from '@/common/components/ui/tokens';
 import {
     AllDoneCard,
     CameraBtn,
@@ -20,6 +22,7 @@ import {
     GalleryBtn,
     HiddenInput,
     InfoCard,
+    OfflineBanner,
     PreparingLabel,
     Spinner,
 } from './MobilePhotoUpload.styles';
@@ -33,10 +36,16 @@ type ScanState =
 
 interface Props {
     token: string;
+    /**
+     * Okno odczytu na komputerze jest zamknięte. Sesja zostaje (kolejne auto bez nowego
+     * skanowania), ale numer nie miałby teraz dokąd trafić - zamiast obietnicy, że „sam
+     * się wpisze", mówimy, co zrobić.
+     */
+    paused?: boolean;
     onSessionGone: () => void;
 }
 
-export const MobileVinScanSection = ({ token, onSessionGone }: Props) => {
+export const MobileVinScanSection = ({ token, paused = false, onSessionGone }: Props) => {
     const [state, setState] = useState<ScanState>({ kind: 'idle' });
 
     const handleFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -65,15 +74,29 @@ export const MobileVinScanSection = ({ token, onSessionGone }: Props) => {
     const reading = state.kind === 'reading';
     const again = state.kind !== 'idle' && !reading;
 
+    if (paused) {
+        return (
+            <>
+                <OfflineBanner $visible role="status">
+                    Okno odczytu VIN na komputerze jest zamknięte.
+                </OfflineBanner>
+                <InfoCard>
+                    Otwórz je ponownie przy polu VIN („Telefonem (kod QR)"). Ta strona zadziała
+                    dalej, bez skanowania kodu od nowa. Jeśli skończyłeś, możesz ją zamknąć.
+                </InfoCard>
+            </>
+        );
+    }
+
     return (
         <>
             {state.kind === 'read' ? (
                 <AllDoneCard role="status">
                     ✓ Odczytano VIN
-                    <div style={{ marginTop: 8, fontFamily: 'monospace', fontSize: 18, letterSpacing: '0.06em', color: '#ffffff' }}>
+                    <div style={{ marginTop: 8, fontFamily: ui.mono, fontSize: 18, letterSpacing: '0.06em', color: ui.ink }}>
                         {state.vin}
                     </div>
-                    <div style={{ marginTop: 8, fontSize: 13, color: 'rgba(255,255,255,0.7)' }}>
+                    <div style={{ marginTop: 8, fontSize: 13, color: ui.textSecondary, fontWeight: 400 }}>
                         Numer jest już w oknie na komputerze. Przy kolejnym aucie zrób następne zdjęcie.
                     </div>
                 </AllDoneCard>

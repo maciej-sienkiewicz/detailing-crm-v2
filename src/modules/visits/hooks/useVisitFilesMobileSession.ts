@@ -3,13 +3,16 @@
 // „Dodaj plik" → kod QR: zdjęcia do otwartej wizyty z telefonu, także takiego, który
 // nie jest zalogowany do aplikacji.
 //
-// Sesja mieszka w widoku wizyty, nie w oknie z kodem: operator skanuje kod, zamyka
-// okno i idzie do samochodu - a zdjęcia mają dalej pojawiać się w galerii. Serwer
-// dopisuje je do wizyty sam; tutaj tylko odświeżamy listę, gdy telefon da znać.
+// Sesja kończy się razem z oknem: „Gotowe" albo zamknięcie okna (i wyjście z wizyty)
+// kończy ją także na telefonie, który pokazuje wtedy „Zakończono na komputerze"
+// zamiast przyjmować zdjęcia, na które nikt już nie czeka. Serwer dopisuje zdjęcia
+// do wizyty sam; tutaj odświeżamy listę, gdy telefon da znać.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useCheckinSocket } from '@/modules/checkin/hooks/useCheckinSocket';
+import { usePhoneSessionDone } from '@/modules/checkin/hooks/usePhoneSessionStatus';
+import { checkinApi } from '@/modules/checkin/api/checkinApi';
 import { visitApi } from '../api/visitApi';
 import { visitPhotosQueryKey } from './index';
 
@@ -22,8 +25,12 @@ export interface VisitFilesMobileSession {
     error: string | null;
     /** Ile zdjęć przyszło z telefonu w tej sesji okna. */
     received: number;
+    /** Telefon kliknął „Gotowe". */
+    phoneDone: boolean;
     /** Otwiera sesję; `rotate` unieważnia poprzedni kod. */
     start: (rotate: boolean) => Promise<void>;
+    /** Kończy sesję także na telefonie. Następne otwarcie okna da nowy kod. */
+    end: () => void;
 }
 
 export const useVisitFilesMobileSession = (visitId: string | undefined): VisitFilesMobileSession => {
@@ -51,7 +58,24 @@ export const useVisitFilesMobileSession = (visitId: string | undefined): VisitFi
         }
     }, [visitId]);
 
+    const end = useCallback(() => {
+        if (token) void checkinApi.endMobileSession(token, 'FINISHED').catch(() => {});
+        setToken(null);
+        setSessionId(null);
+        setSecondsLeft(0);
+        setReceived(0);
+        setError(null);
+    }, [token]);
+
+    // Wyjście z wizyty też kończy sesję - inaczej telefon zostałby z otwartą stroną.
+    const tokenRef = useRef(token);
+    useEffect(() => { tokenRef.current = token; }, [token]);
+    useEffect(() => () => {
+        if (tokenRef.current) void checkinApi.endMobileSession(tokenRef.current, 'FINISHED').catch(() => {});
+    }, []);
+
     const hasSession = secondsLeft > 0;
+    const phoneDone = usePhoneSessionDone(token, hasSession);
     useEffect(() => {
         if (!hasSession) return;
         const id = setInterval(() => setSecondsLeft(prev => Math.max(0, prev - 1)), 1000);
@@ -82,6 +106,8 @@ export const useVisitFilesMobileSession = (visitId: string | undefined): VisitFi
         isStarting,
         error,
         received,
+        phoneDone,
         start,
+        end,
     };
 };

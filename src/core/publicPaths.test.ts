@@ -9,6 +9,12 @@ describe('isPublicAppPath', () => {
         expect(isPublicAppPath(path)).toBe(true);
     });
 
+    // Strony telefonu z kodu QR działają bez logowania. Wygasły kod skanera nie może
+    // wyrzucać telefonu na ekran logowania do CRM-a.
+    it.each(['/m/upload', '/m/scan', '/m/contacts', '/m/voice'])('strona telefonu %s jest publiczna', path => {
+        expect(isPublicAppPath(path)).toBe(true);
+    });
+
     it('strony aplikacji nie są publiczne', () => {
         expect(isPublicAppPath('/dashboard')).toBe(false);
         expect(isPublicAppPath('/customers')).toBe(false);

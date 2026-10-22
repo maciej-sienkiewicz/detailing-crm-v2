@@ -14,6 +14,7 @@ import type { AdjustmentType, PriceAdjustment } from '@/common/utils/priceAdjust
 import { MAX_2_DECIMALS, handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import { useModalViewport } from '@/common/hooks';
 import { shouldAutoFocusInput } from '@/common/utils';
+import { formatCurrency } from '@/common/utils/formatters';
 import * as S from './styles';
 
 const TYPE_LABELS: Record<AdjustmentType, string> = {
@@ -46,7 +47,8 @@ export interface ServiceDiscountModalProps {
     onClose: () => void;
 }
 
-const fmt = (cents: number) => `${(cents / 100).toFixed(2)} zł`;
+// Ten sam zapis kwot co w całej aplikacji: „548,00 zł”, nie „548.00 zł”.
+const fmt = (cents: number) => formatCurrency(cents / 100);
 
 export const ServiceDiscountModal = ({
     serviceName,

@@ -1,11 +1,16 @@
 // src/modules/checkin/views/MobilePhotoUploadView.tsx
+//
+// Strona telefonu otwierana z kodu QR: zdjęcia przyjęcia, mapa uszkodzeń, pliki wizyty,
+// VIN. Każda kończy się jasnym ekranem: „Gotowe" na telefonie, koniec ustalony na
+// komputerze (wizyta zapisana, zakończono, przerwano, nowy kod) albo nieważny link.
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import {
     MobileContainer,
     Header,
     Logo,
     Title,
+    Subject,
     TabBar,
     Tab,
     TabBadge,
@@ -26,19 +31,83 @@ import {
     LockedText,
     GotowFooter,
     GotowBtn,
+    GotowHint,
     CofnijBtn,
 } from './mobile/MobilePhotoUpload.styles';
-import { useMobilePhotoUploadLogic } from './mobile/useMobilePhotoUploadLogic';
+import { useMobilePhotoUploadLogic, type DesktopEndReason } from './mobile/useMobilePhotoUploadLogic';
 import { useMobileDamageLogic } from './mobile/useMobileDamageLogic';
 import { MobilePhotoSection } from './mobile/MobilePhotoSection';
 import { MobileDamageSection } from './mobile/MobileDamageSection';
 import { MobileVinScanSection } from './mobile/MobileVinScanSection';
+import { pluralPl } from '@/common/utils/plural';
+import type { MobileCheckinContext } from '../types';
 
 type ActiveTab = 'photos' | 'damage';
 
 interface Props {
     token: string;
 }
+
+const CheckIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
+        <polyline points="22 4 12 14.01 9 11.01" />
+    </svg>
+);
+
+const StopIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="8" y1="12" x2="16" y2="12" />
+    </svg>
+);
+
+const AlertIcon = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+        <circle cx="12" cy="12" r="10" />
+        <line x1="12" y1="8" x2="12" y2="12" />
+        <line x1="12" y1="16" x2="12.01" y2="16" />
+    </svg>
+);
+
+/** Ekran końcowy ustalony na komputerze. */
+const ENDINGS: Record<DesktopEndReason, { tone: 'ok' | 'neutral'; title: string; text: string }> = {
+    FINISHED: {
+        tone: 'ok',
+        title: 'Zakończono na komputerze',
+        text: 'Wszystko, co zdążyło się wysłać, jest już w CRM. Możesz zamknąć tę stronę.',
+    },
+    CANCELLED: {
+        tone: 'neutral',
+        title: 'Przyjęcie przerwane',
+        text: 'Przyjęcie pojazdu zostało przerwane na komputerze. Tu nic więcej nie zrobisz - możesz zamknąć tę stronę.',
+    },
+    REPLACED: {
+        tone: 'neutral',
+        title: 'Ten kod został zastąpiony',
+        text: 'Na komputerze wygenerowano nowy kod QR. Zeskanuj go, żeby wysyłać dalej.',
+    },
+};
+
+const titleFor = (purpose: MobileCheckinContext['purpose']) => {
+    switch (purpose) {
+        case 'DAMAGE_MAP': return 'Mapa uszkodzeń';
+        case 'VISIT_FILES': return 'Zdjęcia do wizyty';
+        case 'VIN_SCAN': return 'Numer VIN';
+        default: return 'Dokumentacja pojazdu';
+    }
+};
+
+/** Studio, tytuł i auto: od pierwszego spojrzenia wiadomo, do czego trafią zdjęcia. */
+const PageHeader = ({ context, title }: { context: MobileCheckinContext | null; title: string }) => (
+    <Header>
+        <Logo>{context?.studioName || 'DetailBoost'}</Logo>
+        <Title>{title}</Title>
+        {context?.subject && <Subject>{context.subject}</Subject>}
+    </Header>
+);
+
+const EndScreen = ({ children }: { children: ReactNode }) => <MobileContainer>{children}</MobileContainer>;
 
 export const MobilePhotoUploadView = ({ token }: Props) => {
     const [activeTab, setActiveTab] = useState<ActiveTab>('photos');
@@ -59,12 +128,27 @@ export const MobilePhotoUploadView = ({ token }: Props) => {
 
     if (photoLogic.sessionState === 'loading') {
         return (
-            <MobileContainer>
-                <LoadingWrap>
+            <EndScreen>
+                <LoadingWrap role="status">
                     <Spinner />
-                    <p style={{ color: 'rgba(255,255,255,0.6)', margin: 0 }}>Sprawdzanie linku…</p>
+                    Sprawdzanie linku…
                 </LoadingWrap>
-            </MobileContainer>
+            </EndScreen>
+        );
+    }
+
+    // ─── Ended on the desktop ─────────────────────────────────────────────────
+
+    if (photoLogic.sessionState === 'ended' && photoLogic.endReason) {
+        const ending = ENDINGS[photoLogic.endReason];
+        return (
+            <EndScreen>
+                <LockedScreen role="status">
+                    <LockedIcon $tone={ending.tone}>{ending.tone === 'ok' ? <CheckIcon /> : <StopIcon />}</LockedIcon>
+                    <LockedTitle>{ending.title}</LockedTitle>
+                    <LockedText>{ending.text}</LockedText>
+                </LockedScreen>
+            </EndScreen>
         );
     }
 
@@ -72,21 +156,15 @@ export const MobilePhotoUploadView = ({ token }: Props) => {
 
     if (photoLogic.sessionState === 'expired' || vinSessionGone) {
         return (
-            <MobileContainer>
-                <ExpiredScreen>
-                    <ExpiredIcon>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <circle cx="12" cy="12" r="10" />
-                            <line x1="12" y1="8" x2="12" y2="12" />
-                            <line x1="12" y1="16" x2="12.01" y2="16" />
-                        </svg>
-                    </ExpiredIcon>
+            <EndScreen>
+                <ExpiredScreen role="status">
+                    <ExpiredIcon><AlertIcon /></ExpiredIcon>
                     <ExpiredTitle>Link wygasł</ExpiredTitle>
                     <ExpiredText>
                         Poproś o nowy kod QR na komputerze w studiu.
                     </ExpiredText>
                 </ExpiredScreen>
-            </MobileContainer>
+            </EndScreen>
         );
     }
 
@@ -94,72 +172,62 @@ export const MobilePhotoUploadView = ({ token }: Props) => {
 
     if (photoLogic.sessionState === 'visit_created') {
         return (
-            <MobileContainer>
-                <LockedScreen>
-                    <LockedIcon>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
-                            <path d="M7 11V7a5 5 0 0 1 10 0v4" />
-                        </svg>
-                    </LockedIcon>
+            <EndScreen>
+                <LockedScreen role="status">
+                    <LockedIcon $tone="ok"><CheckIcon /></LockedIcon>
                     <LockedTitle>Wizyta utworzona</LockedTitle>
                     <LockedText>
-                        Wizyta jest już założona, tu nic więcej nie zmienisz.
+                        Zdjęcia i oznaczenia są już w wizycie. Możesz zamknąć tę stronę.
                     </LockedText>
                 </LockedScreen>
-            </MobileContainer>
+            </EndScreen>
         );
     }
 
     // ─── User clicked "Gotowe" ────────────────────────────────────────────────
 
     if (photoLogic.sessionState === 'done') {
+        const sent = photoLogic.doneCount;
         return (
-            <MobileContainer>
-                <DoneScreen>
-                    <DoneIcon>
-                        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                            <polyline points="22 4 12 14.01 9 11.01" />
-                        </svg>
-                    </DoneIcon>
-                    <DoneTitle>Gotowe!</DoneTitle>
+            <EndScreen>
+                <DoneScreen role="status">
+                    <DoneIcon><CheckIcon /></DoneIcon>
+                    <DoneTitle>Gotowe</DoneTitle>
                     <DoneText>
-                        Wysłane. Możesz zamknąć tę stronę albo wrócić i coś poprawić.
+                        {sent > 0
+                            ? `Wysłano ${sent} ${pluralPl(sent, 'zdjęcie', 'zdjęcia', 'zdjęć')}. `
+                            : 'Wysłane. '}
+                        Komputer w studiu już to widzi. Możesz zamknąć tę stronę albo wrócić i coś poprawić.
                     </DoneText>
                     <DoneActions>
                         <CofnijBtn onClick={photoLogic.handleUndoDone}>
-                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                                 <polyline points="15 18 9 12 15 6" />
                             </svg>
                             Cofnij i edytuj
                         </CofnijBtn>
                     </DoneActions>
                 </DoneScreen>
-            </MobileContainer>
+            </EndScreen>
         );
     }
 
     // ─── Active session ───────────────────────────────────────────────────────
 
-    const { context, totalCount, hasPending } = photoLogic;
+    const { context, totalCount, doneCount, hasPending } = photoLogic;
+    const title = titleFor(context?.purpose);
 
-    // „VIN telefonem" z okna wpisu zlecenia zbiorczego: samo zdjęcie VIN, bez zakładek
-    // i bez „Gotowe" - wynik od razu trafia do okna na komputerze.
+    // „VIN telefonem": samo zdjęcie VIN, bez zakładek i bez „Gotowe" - wynik od razu
+    // trafia do okna na komputerze, a sesja służy kolejnym autom.
     if (context?.purpose === 'VIN_SCAN') {
         return (
             <MobileContainer>
-                <Header>
-                    <Logo>
-                        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                            <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                            <circle cx="12" cy="13" r="4" />
-                        </svg>
-                        Zlecenia zbiorcze
-                    </Logo>
-                    <Title>Numer VIN</Title>
-                </Header>
-                <MobileVinScanSection token={token} onSessionGone={() => setVinSessionGone(true)} />
+                <PageHeader context={context} title={title} />
+                <MobileVinScanSection
+                    token={token}
+                    paused={photoLogic.paused}
+                    onSessionGone={() => setVinSessionGone(true)}
+                />
             </MobileContainer>
         );
     }
@@ -181,33 +249,35 @@ export const MobilePhotoUploadView = ({ token }: Props) => {
      */
     const photosOnly = context?.purpose === 'VISIT_FILES';
     const currentTab: ActiveTab = damageOnly ? 'damage' : photosOnly ? 'photos' : activeTab;
-    const title = damageOnly ? 'Mapa uszkodzeń' : photosOnly ? 'Zdjęcia do wizyty' : 'Dokumentacja pojazdu';
+    // Przy plikach wizyty „Gotowe" bez żadnego zdjęcia nic by nie znaczyło.
+    const nothingSent = photosOnly && doneCount === 0;
 
     return (
         <MobileContainer>
-            <Header>
-                <Logo>
-                    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
-                        <circle cx="12" cy="13" r="4" />
-                    </svg>
-                    {title}
-                </Logo>
-                <Title>{title}</Title>
-            </Header>
+            <PageHeader context={context} title={title} />
 
             {/* Tab navigation */}
-            {!damageOnly && !photosOnly && <TabBar>
-                <Tab $active={activeTab === 'photos'} onClick={() => setActiveTab('photos')}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+            {!damageOnly && !photosOnly && <TabBar role="tablist">
+                <Tab
+                    role="tab"
+                    aria-selected={activeTab === 'photos'}
+                    $active={activeTab === 'photos'}
+                    onClick={() => setActiveTab('photos')}
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                         <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
                         <circle cx="12" cy="13" r="4" />
                     </svg>
                     Zdjęcia
                     {totalCount > 0 && <TabBadge>{totalCount}</TabBadge>}
                 </Tab>
-                <Tab $active={activeTab === 'damage'} onClick={() => setActiveTab('damage')}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                <Tab
+                    role="tab"
+                    aria-selected={activeTab === 'damage'}
+                    $active={activeTab === 'damage'}
+                    onClick={() => setActiveTab('damage')}
+                >
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
                         <circle cx="12" cy="12" r="10" />
                         <line x1="12" y1="8" x2="12" y2="16" />
                         <line x1="8" y1="12" x2="16" y2="12" />
@@ -223,13 +293,11 @@ export const MobilePhotoUploadView = ({ token }: Props) => {
 
             {/* Gotowe button */}
             <GotowFooter>
-                <GotowBtn onClick={photoLogic.handleMarkDone} disabled={hasPending}>
-                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
-                        <path d="M22 11.08V12a10 10 0 1 1-5.93-9.14" />
-                        <polyline points="22 4 12 14.01 9 11.01" />
-                    </svg>
+                <GotowBtn onClick={photoLogic.handleMarkDone} disabled={hasPending || nothingSent}>
+                    <CheckIcon />
                     {hasPending ? 'Wysyłanie…' : 'Gotowe'}
                 </GotowBtn>
+                {nothingSent && !hasPending && <GotowHint>Dodaj przynajmniej jedno zdjęcie.</GotowHint>}
             </GotowFooter>
         </MobileContainer>
     );

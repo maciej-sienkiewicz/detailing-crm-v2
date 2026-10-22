@@ -1,24 +1,26 @@
 // src/modules/voice-commands/views/mobile/VoiceCommands.styles.ts
 
 import styled, { keyframes, css } from 'styled-components';
+import { ui } from '@/common/components/ui/tokens';
 
 // ─── Design tokens ────────────────────────────────────────────────────────────
+// Te same kolory co aplikacja i pozostałe strony telefonu (ui), bez własnej palety.
 
 const c = {
-    bg:           '#F8FAFC',
-    surface:      '#FFFFFF',
-    border:       '#E2E8F0',
-    borderStrong: '#CBD5E1',
-    text:         '#0F172A',
-    textSub:      '#64748B',
-    textMuted:    '#94A3B8',
-    accent:       '#075985',
-    accentLight:  '#E6F0F6',
+    bg:           ui.bg,
+    surface:      ui.surface,
+    border:       ui.line,
+    borderStrong: '#cbd5e1',
+    text:         ui.ink,
+    textSub:      ui.textMuted,
+    textMuted:    ui.textFaint,
+    accent:       ui.brand,
+    accentLight:  ui.brandTintHover,
     accentRing:   'rgba(3, 105, 161, 0.22)',
-    success:      '#059669',
-    successLight: '#ECFDF5',
-    error:        '#DC2626',
-    errorLight:   '#FEF2F2',
+    success:      ui.okInk,
+    successLight: ui.okTint,
+    error:        ui.dangerInk,
+    errorLight:   ui.dangerTint,
 } as const;
 
 // ─── Animations ───────────────────────────────────────────────────────────────
@@ -88,7 +90,7 @@ export const Spinner = styled.div`
 export const SpinnerSm = styled.div`
     width: 18px;
     height: 18px;
-    border: 2px solid rgba(2, 132, 199, 0.25);
+    border: 2px solid rgba(3, 105, 161, 0.25);
     border-top-color: ${c.accent};
     border-radius: 50%;
     animation: ${spin} 0.75s linear infinite;
@@ -211,8 +213,8 @@ export const ModeBadge = styled.span<{ $mode: 'lead' | 'note' }>`
         color: ${c.accent};
     `}
     ${p => p.$mode === 'note' && css`
-        background: #F3F0FF;
-        color: #7C3AED;
+        background: ${ui.surfaceAlt};
+        color: ${ui.inkSoft};
     `}
 `;
 
@@ -223,8 +225,39 @@ export const FloatLayout = styled.div`
     display: flex;
     flex-direction: column;
     gap: 14px;
-    padding: max(24px, env(safe-area-inset-top, 24px)) 20px max(24px, env(safe-area-inset-bottom, 24px));
-    background: #ECEAE6;
+    padding: max(16px, env(safe-area-inset-top, 16px)) 16px max(24px, env(safe-area-inset-bottom, 24px));
+    background: ${c.bg};
+`;
+
+/** Nagłówek ekranu startowego: kto jest zalogowany skrótem i co tu zrobić. */
+export const HomeHeader = styled.header`
+    padding: 8px 4px 2px;
+
+    small {
+        display: block;
+        margin-bottom: 6px;
+        font-size: 12px;
+        font-weight: 700;
+        letter-spacing: 0.06em;
+        text-transform: uppercase;
+        color: ${ui.textMuted};
+    }
+
+    h1 {
+        margin: 0;
+        font-size: 24px;
+        line-height: 1.2;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: ${ui.ink};
+    }
+
+    p {
+        margin: 6px 0 0;
+        font-size: 15px;
+        line-height: 1.5;
+        color: ${ui.textSecondary};
+    }
 `;
 
 export const FloatCard = styled.button<{ $accent: 'blue' | 'violet' }>`
@@ -234,9 +267,9 @@ export const FloatCard = styled.button<{ $accent: 'blue' | 'violet' }>`
     align-items: center;
     justify-content: center;
     gap: 20px;
-    background: #FFFFFF;
-    border: none;
-    border-radius: 28px;
+    background: ${c.surface};
+    border: 1px solid ${c.border};
+    border-radius: 20px;
     cursor: pointer;
     font-family: inherit;
     box-shadow:
@@ -269,12 +302,12 @@ export const FloatIcon = styled.div<{ $accent: 'blue' | 'violet' }>`
     svg { width: 36px; height: 36px; }
 
     ${p => p.$accent === 'blue' && css`
-        background: #EFF8FF;
-        color: #0369A1;
+        background: ${ui.brandTintHover};
+        color: ${ui.brand};
     `}
     ${p => p.$accent === 'violet' && css`
-        background: #F5F3FF;
-        color: #6D28D9;
+        background: ${ui.surfaceAlt};
+        color: ${ui.inkSoft};
     `}
 `;
 
@@ -282,7 +315,7 @@ export const FloatLabel = styled.span`
     font-size: 22px;
     font-weight: 700;
     letter-spacing: -0.4px;
-    color: #0F172A;
+    color: ${c.text};
 `;
 
 // ─── Screen title (phone / edit screens) ──────────────────────────────────────
@@ -448,7 +481,7 @@ export const PrimaryBtn = styled.button`
     font-weight: 700;
     letter-spacing: 0.02em;
     cursor: pointer;
-    box-shadow: 0 2px 10px rgba(2, 132, 199, 0.28);
+    box-shadow: 0 2px 10px rgba(3, 105, 161, 0.28);
     transition: opacity 0.15s, transform 0.12s, box-shadow 0.15s;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
@@ -456,7 +489,7 @@ export const PrimaryBtn = styled.button`
 
     &:active:not(:disabled) {
         transform: scale(0.97);
-        box-shadow: 0 1px 4px rgba(2, 132, 199, 0.20);
+        box-shadow: 0 1px 4px rgba(3, 105, 161, 0.20);
     }
     &:disabled {
         opacity: 0.40;

@@ -21,7 +21,8 @@ const ToastStack = styled.div`
     @media (max-width: ${props => props.theme.breakpoints.sm}) {
         left: 16px;
         right: 16px;
-        bottom: 16px;
+        /* Nad dolnym paskiem nawigacji, gdy jest widoczny (ustawia go BottomNav). */
+        bottom: calc(16px + var(--bottom-nav-space, 0px));
         align-items: stretch;
     }
 `;

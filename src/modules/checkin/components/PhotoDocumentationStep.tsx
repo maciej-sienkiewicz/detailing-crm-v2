@@ -76,6 +76,7 @@ const SectionLabel = styled.h3`
     display: flex;
     align-items: center;
     gap: 7px;
+    min-width: 0;
 
     svg {
         width: 17px;
@@ -371,6 +372,19 @@ const AddTagBtn = styled.button`
     }
 `;
 
+/** Tytuł sekcji obok ikony: zawija się w swojej kolumnie, zamiast wjeżdżać pod przełącznik. */
+const LabelText = styled.span`
+    min-width: 0;
+`;
+
+/** „(opcjonalna)" przy tytule sekcji - zawija się w całości, nie wjeżdża pod przełącznik. */
+const OptionalTag = styled.span`
+    font-size: 12px;
+    font-weight: 400;
+    color: ${st.textMuted};
+    white-space: nowrap;
+`;
+
 // ─── Helper ───────────────────────────────────────────────────────────────────
 
 const isMobileDevice = () => /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent);
@@ -403,6 +417,12 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
     const fileInputRef = useRef<HTMLInputElement>(null);
     const cameraInputRef = useRef<HTMLInputElement>(null);
     const isMobile = isMobileDevice();
+    /*
+     * Przyjęcie robione na samym telefonie: kod QR „zeskanuj telefonem" nie ma sensu,
+     * a „dysk" to galeria zdjęć. Na tablecie (szerszy ekran) kod zostaje - tam drugi
+     * telefon przy aucie nadal się przydaje.
+     */
+    const onPhone = isMobile && typeof window !== 'undefined' && window.matchMedia?.('(max-width: 767px)').matches === true;
 
     // Tag support
     const { data: suggestions = [] } = useTagSuggestions();
@@ -494,8 +514,7 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                             </svg>
-                            Dokumentacja zdjęciowa
-                            <span style={{ fontSize: '12px', fontWeight: 400, color: st.textMuted }}>(opcjonalna)</span>
+                            <LabelText>Dokumentacja zdjęciowa <OptionalTag>(opcjonalna)</OptionalTag></LabelText>
                             {uploadedPhotos.length > 0 && (
                                 <CountChip>{uploadedPhotos.length}</CountChip>
                             )}
@@ -510,8 +529,10 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
                             </svg>
                         </UploadIcon>
                         <div>
-                            <UploadTitle>Prześlij zdjęcia pojazdu</UploadTitle>
-                            <UploadSubtitle>lub zeskanuj kod QR, aby użyć telefonu</UploadSubtitle>
+                            <UploadTitle>{onPhone ? 'Zdjęcia pojazdu' : 'Prześlij zdjęcia pojazdu'}</UploadTitle>
+                            <UploadSubtitle>
+                                {onPhone ? 'Zrób zdjęcia aparatem albo wybierz je z galerii' : 'lub zeskanuj kod QR, aby użyć telefonu'}
+                            </UploadSubtitle>
                         </div>
 
                         <UploadActions>
@@ -524,7 +545,7 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
                                     <polyline points="17 8 12 3 7 8" />
                                     <line x1="12" y1="3" x2="12" y2="15" />
                                 </svg>
-                                Wybierz z dysku
+                                {onPhone ? 'Z galerii' : 'Wybierz z dysku'}
                             </PrimaryUploadBtn>
 
                             {isMobile && (
@@ -561,14 +582,16 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
                     </UploadZone>
 
                     {/* QR code generator; also listens for mobile damage updates */}
-                    <div style={{ marginTop: 16 }}>
-                        <CheckinQRGenerator
-                            appointmentId={qrCheckinId}
-                            vehicleType={damageVehicleType}
-                            onDamageUpdated={handleDamagePointsChange}
-                            onPhotosChange={setPhonePhotos}
-                        />
-                    </div>
+                    {!onPhone && (
+                        <div style={{ marginTop: 16 }}>
+                            <CheckinQRGenerator
+                                appointmentId={qrCheckinId}
+                                vehicleType={damageVehicleType}
+                                onDamageUpdated={handleDamagePointsChange}
+                                onPhotosChange={setPhonePhotos}
+                            />
+                        </div>
+                    )}
 
                     {/* Photo grid */}
                     {uploadedPhotos.length > 0 && (
@@ -651,8 +674,7 @@ export const PhotoDocumentationStep = ({ formData, reservationId, qrCheckinId, o
                             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M10.29 3.86L1.82 18a2 2 0 001.71 3h16.94a2 2 0 001.71-3L13.71 3.86a2 2 0 00-3.42 0z" />
                             </svg>
-                            Dokumentacja uszkodzeń
-                            <span style={{ fontSize: '12px', fontWeight: 400, color: st.textMuted }}>(opcjonalna)</span>
+                            <LabelText>Dokumentacja uszkodzeń <OptionalTag>(opcjonalna)</OptionalTag></LabelText>
                             {(formData.damagePoints?.length ?? 0) > 0 && (
                                 <CountChip>{formData.damagePoints!.length}</CountChip>
                             )}

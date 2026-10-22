@@ -4,8 +4,8 @@
 // ten sam formularz co przy przyjęciu pojazdu (`/m/upload?t=…`), tylko w trybie samych
 // zdjęć. Telefon nie musi być zalogowany do aplikacji.
 //
-// Okno wyłącznie POKAZUJE sesję - trzyma ją [useVisitFilesMobileSession] w widoku
-// wizyty, żeby zdjęcia dalej wpadały do galerii po zamknięciu tego okna.
+// Okno pokazuje sesję trzymaną przez [useVisitFilesMobileSession]. „Gotowe" i zamknięcie
+// okna kończą ją także na telefonie, a gdy telefon kliknie „Gotowe", okno to mówi.
 
 import { useEffect, useRef } from 'react';
 import styled from 'styled-components';
@@ -94,7 +94,7 @@ interface Props {
 }
 
 export const VisitFilesQrModal = ({ isOpen, onClose, session }: Props) => {
-    const { qrUrl, secondsLeft, isExpired, isStarting, error, received, start } = session;
+    const { qrUrl, secondsLeft, isExpired, isStarting, error, received, phoneDone, start, end } = session;
 
     /*
      * Kod zamawiamy przy pierwszym otwarciu okna, nie przy wejściu na wizytę: większość
@@ -103,19 +103,25 @@ export const VisitFilesQrModal = ({ isOpen, onClose, session }: Props) => {
      */
     const requested = useRef(false);
     useEffect(() => {
-        if (!isOpen || requested.current || qrUrl) return;
+        if (!isOpen) { requested.current = false; return; }
+        if (requested.current || qrUrl) return;
         requested.current = true;
         void start(false);
     }, [isOpen, start, qrUrl]);
 
+    const finish = () => {
+        end();
+        onClose();
+    };
+
     return (
-        <ModalShell isOpen={isOpen} onClose={onClose} size="sm">
+        <ModalShell isOpen={isOpen} onClose={finish} size="sm">
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Zdjęcia z telefonu</ModalTitle>
                     <ModalSubtitle>Telefon nie musi być zalogowany do DetailBoost</ModalSubtitle>
                 </ModalTitleGroup>
-                <ModalCloseButton type="button" onClick={onClose} aria-label="Zamknij">
+                <ModalCloseButton type="button" onClick={finish} aria-label="Zamknij">
                     <X />
                 </ModalCloseButton>
             </ModalHeader>
@@ -131,10 +137,12 @@ export const VisitFilesQrModal = ({ isOpen, onClose, session }: Props) => {
                     </QrBox>
                     <Hint>
                         Zeskanuj kod aparatem telefonu. Możesz zrobić zdjęcia albo wybrać je z galerii -
-                        trafią do tej wizyty od razu, także po zamknięciu tego okna.
+                        trafią do tej wizyty od razu. „Gotowe" kończy pracę także na telefonie.
                     </Hint>
-                    <Status $live={received > 0} role="status">
-                        {received > 0
+                    <Status $live={received > 0 || phoneDone} role="status">
+                        {phoneDone
+                            ? `Telefon zakończył${received > 0 ? `, odebrano ${photosPhrase(received)}` : ''}`
+                            : received > 0
                             ? `Odebrano ${photosPhrase(received)}`
                             : !isExpired && secondsLeft > 0
                                 ? `Czekam na zdjęcia, kod ważny ${formatCountdown(secondsLeft)}`
@@ -147,7 +155,7 @@ export const VisitFilesQrModal = ({ isOpen, onClose, session }: Props) => {
                 <SharedButton type="button" $variant="secondary" onClick={() => void start(true)} disabled={isStarting}>
                     {isExpired ? 'Wygeneruj nowy kod' : 'Wygeneruj nowy kod (unieważnia poprzedni)'}
                 </SharedButton>
-                <SharedButton type="button" $variant="primary" onClick={onClose}>
+                <SharedButton type="button" $variant="primary" onClick={finish}>
                     Gotowe
                 </SharedButton>
             </ModalFooter>

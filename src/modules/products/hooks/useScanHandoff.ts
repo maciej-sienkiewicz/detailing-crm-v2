@@ -43,6 +43,14 @@ export function useScanHandoff() {
     const [starting, setStarting] = useState(false);
     const pollRef = useRef<number | null>(null);
     const unsubRef = useRef<(() => void) | null>(null);
+    /*
+     * Sesja do zamknięcia i numer „pokolenia" otwarcia. Panel woła reset() przy
+     * odmontowaniu z domknięcia pierwszego renderu - wtedy `session` było jeszcze null
+     * i sesja nigdy się nie zamykała, a telefon skanował dalej do nikąd. Ref zawsze zna
+     * aktualną sesję, a pokolenie łapie sesję otwartą już PO zamknięciu okna.
+     */
+    const sessionIdRef = useRef<string | null>(null);
+    const generationRef = useRef(0);
 
     const mergeCodes = useCallback((incoming: string[]) => {
         setCodes(prev => {
@@ -58,9 +66,16 @@ export function useScanHandoff() {
     }, []);
 
     const start = useCallback(async () => {
+        const generation = ++generationRef.current;
         setStarting(true);
         try {
             const s = await productsApi.openScanSession();
+            if (generation !== generationRef.current) {
+                // Okno zamknięte (albo otwarte od nowa), zanim serwer odpowiedział.
+                productsApi.closeScanSession(s.sessionId).catch(() => {});
+                return s;
+            }
+            sessionIdRef.current = s.sessionId;
             setSession(s);
             setCodes(toCodeStrings(s.scannedCodes));
 
@@ -93,11 +108,15 @@ export function useScanHandoff() {
     }, [user?.studioId, mergeCodes, stop]);
 
     const reset = useCallback(() => {
+        generationRef.current += 1;
         stop();
-        if (session) productsApi.closeScanSession(session.sessionId).catch(() => {});
+        const sessionId = sessionIdRef.current;
+        sessionIdRef.current = null;
+        // Zamknięta sesja = telefon w kilka sekund pokazuje „Zakończono na komputerze".
+        if (sessionId) productsApi.closeScanSession(sessionId).catch(() => {});
         setSession(null);
         setCodes([]);
-    }, [session, stop]);
+    }, [stop]);
 
     useEffect(() => () => stop(), [stop]);
 

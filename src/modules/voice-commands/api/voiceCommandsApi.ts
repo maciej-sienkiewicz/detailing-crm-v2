@@ -18,8 +18,10 @@ function getFilename(mimeType: string): string {
 
 export const voiceCommandsApi = {
     getContext: async (token: string): Promise<VoiceContext> => {
+        // Ekran „Link nieaktywny" mówi wszystko - bez tostów „nieoczekiwany błąd" pod nim.
         const response = await apiClient.get(`${BASE}/context`, {
             params: { token },
+            skipErrorToast: true,
         });
         return response.data;
     },
@@ -33,7 +35,7 @@ export const voiceCommandsApi = {
             { type: payload.mimeType },
         ));
         if (payload.phoneNumber) form.append('phoneNumber', payload.phoneNumber);
-        const response = await apiClient.post(`${BASE}/lead`, form);
+        const response = await apiClient.post(`${BASE}/lead`, form, { skipErrorToast: true });
         return response.data;
     },
 
@@ -45,7 +47,7 @@ export const voiceCommandsApi = {
             getFilename(payload.mimeType),
             { type: payload.mimeType },
         ));
-        const response = await apiClient.post(`${BASE}/note`, form);
+        const response = await apiClient.post(`${BASE}/note`, form, { skipErrorToast: true });
         return response.data;
     },
 };

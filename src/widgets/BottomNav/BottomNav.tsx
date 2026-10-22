@@ -1,3 +1,4 @@
+import { useEffect } from 'react';
 import { Calendar, CalendarOff, Clock, FileText, Inbox, Menu } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
@@ -10,7 +11,7 @@ import { useNewLeadsCount, useUnreadMailCount } from '@/modules/comms';
 import { usePiiAccess } from '@/common/pii';
 import { useMobileChromeHidden } from '@/common/context/MobileChromeContext';
 import { useVirtualKeyboard } from '@/common/hooks';
-import { BOTTOM_NAV_HEIGHT } from './constants';
+import { BOTTOM_NAV_HEIGHT, BOTTOM_NAV_SPACE } from './constants';
 
 // Dolny pasek nawigacji – wyłącznie mobile. Zamiast hamburgera przyklejonego
 // do lewego górnego rogu: skróty do najczęstszych widoków w zasięgu kciuka
@@ -153,10 +154,22 @@ export const BottomNav = () => {
             ...(user?.employeeId ? [{ path: '/me/leave', label: 'Urlop', icon: CalendarOff }] : []),
         ];
     const shortcuts = allShortcuts.filter(s => !s.requires || can(s.requires));
+    const isHidden = isMobileOpen || chromeHidden || keyboardOpen;
+
+    /*
+     * Tosty stoją na dole ekranu i zasłaniały pasek („Wizyta rozpoczęta" na przyciskach
+     * nawigacji). Pasek mówi stronie, ile miejsca zajmuje - stos tostów staje nad nim.
+     * Szerokość desktopowa pasek chowa CSS-em, więc zmienna działa tylko na telefonie.
+     */
+    useEffect(() => {
+        const root = document.documentElement;
+        root.style.setProperty('--bottom-nav-space', isHidden ? '0px' : BOTTOM_NAV_SPACE);
+        return () => { root.style.removeProperty('--bottom-nav-space'); };
+    }, [isHidden]);
 
     return (
         <Bar
-            $isHidden={isMobileOpen || chromeHidden || keyboardOpen}
+            $isHidden={isHidden}
             aria-hidden={keyboardOpen || undefined}
             aria-label="Nawigacja główna"
         >

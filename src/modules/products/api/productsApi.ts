@@ -157,11 +157,11 @@ export const visitProductsApi = {
 // ── Publiczna trasa telefonu (bez logowania, po tokenie handoffu) ──
 export const mobileScanApi = {
     context: async (token: string): Promise<{ status: string; scannedCount: number; expiresAt: string }> => {
-        const { data } = await apiClient.get(`/mobile/products/scan/${token}`, { skipAuthRedirect: true });
+        const { data } = await apiClient.get(`/mobile/products/scan/${token}`, { skipAuthRedirect: true, skipErrorToast: true });
         return data;
     },
     submit: async (token: string, codes: string[]): Promise<{ status: string; scannedCount: number; expiresAt: string }> => {
-        const { data } = await apiClient.post(`/mobile/products/scan/${token}`, { codes }, { skipAuthRedirect: true });
+        const { data } = await apiClient.post(`/mobile/products/scan/${token}`, { codes }, { skipAuthRedirect: true, skipErrorToast: true });
         return data;
     },
     /** Zapas: zdjęcie kodu → model wizyjny czyta cyfry → kod trafia do sesji jak przy skanie na żywo. */

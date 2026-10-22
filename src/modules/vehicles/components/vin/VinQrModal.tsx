@@ -7,6 +7,10 @@
 //
 // Wynik odpytujemy co 2 s zamiast słuchać WebSocketu: okno jest otwarte tylko na
 // czas jednego zdjęcia, a odczyt przez AI i tak trwa kilka sekund.
+//
+// Zamknięcie okna WSTRZYMUJE sesję telefonu (nie kończy jej): telefon mówi, że okno
+// jest zamknięte, zamiast obiecywać, że numer „sam się wpisze", a po ponownym otwarciu
+// okna ten sam kod działa dalej - przy kolejnym aucie bez skanowania od nowa.
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
@@ -24,6 +28,7 @@ import {
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
 import { SUBMODAL_Z_INDEX } from '@/common/styles/sharedModalStyles';
+import { checkinApi } from '@/modules/checkin/api/checkinApi';
 import type { VinApi, VinScanSession } from './vinApi';
 
 const POLL_MS = 2000;
@@ -112,6 +117,12 @@ export const VinQrModal = ({ api, onVin, onClose }: Props) => {
         requested.current = true;
         void start(false);
     }, [start]);
+
+    const tokenRef = useRef<string | null>(null);
+    useEffect(() => { tokenRef.current = session?.token ?? null; }, [session]);
+    useEffect(() => () => {
+        if (tokenRef.current) void checkinApi.pauseMobileSession(tokenRef.current).catch(() => {});
+    }, []);
 
     useEffect(() => {
         if (!session) return;

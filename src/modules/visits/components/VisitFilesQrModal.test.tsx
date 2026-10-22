@@ -17,14 +17,16 @@ const session = (over: Partial<VisitFilesMobileSession> = {}): VisitFilesMobileS
     isStarting: false,
     error: null,
     received: 0,
+    phoneDone: false,
     start: vi.fn().mockResolvedValue(undefined),
+    end: vi.fn(),
     ...over,
 });
 
-const renderModal = (s: VisitFilesMobileSession, isOpen = true) =>
+const renderModal = (s: VisitFilesMobileSession, isOpen = true, onClose = vi.fn()) =>
     render(
         <ThemeProvider theme={theme}>
-            <VisitFilesQrModal isOpen={isOpen} onClose={vi.fn()} session={s} />
+            <VisitFilesQrModal isOpen={isOpen} onClose={onClose} session={s} />
         </ThemeProvider>
     );
 
@@ -51,5 +53,19 @@ describe('VisitFilesQrModal', () => {
         renderModal(s);
         await userEvent.click(screen.getByRole('button', { name: 'Wygeneruj nowy kod (unieważnia poprzedni)' }));
         expect(s.start).toHaveBeenCalledWith(true);
+    });
+
+    it('„Gotowe" kończy sesję także na telefonie i zamyka okno', async () => {
+        const s = session();
+        const onClose = vi.fn();
+        renderModal(s, true, onClose);
+        await userEvent.click(screen.getByRole('button', { name: 'Gotowe' }));
+        expect(s.end).toHaveBeenCalled();
+        expect(onClose).toHaveBeenCalled();
+    });
+
+    it('pokazuje, że telefon kliknął „Gotowe"', () => {
+        renderModal(session({ phoneDone: true, received: 2 }));
+        expect(screen.getByRole('status')).toHaveTextContent('Telefon zakończył, odebrano 2 zdjęcia');
     });
 });

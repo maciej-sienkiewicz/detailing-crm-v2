@@ -6,7 +6,7 @@ import {
     LoadingWrap, Spinner, SpinnerSm, LoadingText,
     ErrorWrap, ErrorIconWrap, ErrorTitle, ErrorMessage,
     ScreenBody, ScreenContent, ScreenHeader, BackBtn, ModeBadge,
-    FloatLayout, FloatCard, FloatIcon, FloatLabel,
+    FloatLayout, FloatCard, FloatIcon, FloatLabel, HomeHeader,
     ScreenTitle,
     FormLabel, FormField, PhoneInput,
     MicArea, MicRingWrap, MicRing, MicRingOuter, MicCircle, MicStatus,
@@ -71,6 +71,11 @@ export const MobileVoiceCommandsView = ({ token }: Props) => {
             {/* ── Screen 1: Home ──────────────────────────────────────────── */}
             {screen === 'home' && (
                 <FloatLayout>
+                    <HomeHeader>
+                        <small>DetailBoost</small>
+                        <h1>{logic.firstName ? `Cześć, ${logic.firstName}` : 'Skróty'}</h1>
+                        <p>Nagraj nowe zapytanie albo notatkę - trafią prosto do CRM-a.</p>
+                    </HomeHeader>
                     <FloatCard $accent="blue" onClick={logic.goToLead} type="button" aria-label="Nowy lead">
                         <FloatIcon $accent="blue" aria-hidden="true">
                             <svg viewBox="0 0 24 24" fill="currentColor">

@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { BookOpen, MoreHorizontal, Pencil, Tag, Trash2 } from 'lucide-react';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
+import { formatCurrency } from '@/common/utils/formatters';
 import { isCatalogServiceId } from '@/common/utils/catalogServiceId';
 import {
     applyAdjustment, distributeAdjustment, netToGross, resolveBaseGross, resolveBaseNet, withVatRate,
@@ -444,7 +445,7 @@ export const ServicesTable = ({ services, onChange, onSaveService, scope = PRICE
                                         type="button"
                                         onClick={() => openDiscountModal(service)}
                                         title={`Zmień cenę ${scope.here}`}
-                                        aria-label={`Zmień cenę ${scope.here}: ${service.serviceName}, ${finalGross.toFixed(2)} zł brutto`}
+                                        aria-label={`Zmień cenę ${scope.here}: ${service.serviceName}, ${formatCurrency(finalGross)} brutto`}
                                     >
                                         <Pencil aria-hidden="true" />
                                         <S.PriceCellAmounts>
@@ -528,15 +529,15 @@ export const ServicesTable = ({ services, onChange, onSaveService, scope = PRICE
                     <S.SummaryTotals>
                         <S.SummaryItem>
                             <S.SummaryLabel>Netto</S.SummaryLabel>
-                            <S.SummaryValue>{totalNet.toFixed(2)} zł</S.SummaryValue>
+                            <S.SummaryValue>{formatCurrency(totalNet)}</S.SummaryValue>
                         </S.SummaryItem>
                         <S.SummaryItem>
                             <S.SummaryLabel>VAT</S.SummaryLabel>
-                            <S.SummaryValue>{totalVat.toFixed(2)} zł</S.SummaryValue>
+                            <S.SummaryValue>{formatCurrency(totalVat)}</S.SummaryValue>
                         </S.SummaryItem>
                         <S.SummaryItem>
                             <S.SummaryLabel>Łącznie</S.SummaryLabel>
-                            <S.SummaryValue $isTotal>{totalGross.toFixed(2)} zł</S.SummaryValue>
+                            <S.SummaryValue $isTotal>{formatCurrency(totalGross)}</S.SummaryValue>
                         </S.SummaryItem>
                     </S.SummaryTotals>
                 </S.SummarySection>
@@ -647,11 +648,11 @@ export const ServicesTable = ({ services, onChange, onSaveService, scope = PRICE
                                 <S.DiscountFromBoxLabel>Łącznie przed rabatem</S.DiscountFromBoxLabel>
                                 <S.DiscountFromPrices>
                                     <S.DiscountFromPrice>
-                                        <S.DiscountFromPriceValue>{bulkBaseNet.toFixed(2)} zł</S.DiscountFromPriceValue>
+                                        <S.DiscountFromPriceValue>{formatCurrency(bulkBaseNet)}</S.DiscountFromPriceValue>
                                         <S.DiscountFromPriceLabel>Netto</S.DiscountFromPriceLabel>
                                     </S.DiscountFromPrice>
                                     <S.DiscountFromPrice>
-                                        <S.DiscountFromPriceValue>{bulkBaseGross.toFixed(2)} zł</S.DiscountFromPriceValue>
+                                        <S.DiscountFromPriceValue>{formatCurrency(bulkBaseGross)}</S.DiscountFromPriceValue>
                                         <S.DiscountFromPriceLabel>Brutto</S.DiscountFromPriceLabel>
                                     </S.DiscountFromPrice>
                                 </S.DiscountFromPrices>

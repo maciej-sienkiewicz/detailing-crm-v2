@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { useMutation, useQuery } from '@tanstack/react-query';
 import { QRCodeSVG } from 'qrcode.react';
@@ -250,6 +250,20 @@ export const ImportContactsModal = ({ onClose, onImported }: ImportContactsModal
         refetchInterval: query => (query.state.data?.status === 'READY' ? false : 2000),
     });
 
+    /*
+     * Zamknięte okno (komponent montowany tylko przy otwartym) kończy sesję telefonu:
+     * telefon, który jeszcze nic nie wysłał, pokazuje „okno zamknięte" zamiast wysyłać
+     * kontakty, których nikt nie przejrzy. Zaimportowanej sesji nie ruszamy.
+     */
+    const openSessionRef = useRef<string | null>(null);
+    useEffect(() => { openSessionRef.current = handoffSession?.sessionId ?? null; });
+    const committedRef = useRef(false);
+    useEffect(() => () => {
+        if (openSessionRef.current && !committedRef.current) {
+            void customerImportApi.cancel(openSessionRef.current).catch(() => {});
+        }
+    }, []);
+
     const mobileUrl = handoffSession
         ? `${window.location.origin}/m/contacts?s=${handoffSession.handoffToken}`
         : null;
@@ -302,6 +316,7 @@ export const ImportContactsModal = ({ onClose, onImported }: ImportContactsModal
             return customerImportApi.commit(preview.sessionId, [...selected]);
         },
         onSuccess: result => {
+            committedRef.current = true;
             if (result.imported === 0) {
                 showError('Nie zaimportowano żadnego kontaktu', 'Wszyscy zaznaczeni są już w bazie.');
             } else {
@@ -394,7 +409,15 @@ export const ImportContactsModal = ({ onClose, onImported }: ImportContactsModal
                             <Footer>
                                 <span />
                                 <Actions>
-                                    <GhostBtn onClick={() => setMode('source')} type="button">
+                                    <GhostBtn
+                                        onClick={() => {
+                                            // Powrót do wyboru źródła kończy ten kod - telefon to zobaczy.
+                                            if (handoffSession) void customerImportApi.cancel(handoffSession.sessionId).catch(() => {});
+                                            handoff.reset();
+                                            setMode('source');
+                                        }}
+                                        type="button"
+                                    >
                                         Wróć
                                     </GhostBtn>
                                 </Actions>

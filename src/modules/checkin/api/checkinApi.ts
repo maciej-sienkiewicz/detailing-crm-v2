@@ -173,7 +173,7 @@ export const checkinApi = {
      */
     getMobileCheckinContext: async (token: string): Promise<MobileCheckinContext> => {
         const response = await apiClient.get(`${MOBILE_BASE_PATH}/context`, {
-            headers: { 'X-Upload-Token': token },
+            headers: { 'X-Upload-Token': token }, skipErrorToast: true,
         });
         return response.data;
     },
@@ -197,6 +197,8 @@ export const checkinApi = {
                     'X-Upload-Token': token,
                     // Content-Type is set automatically by axios for FormData
                 },
+                // Błąd pokazuje karta zdjęcia - bez dodatkowego tosta na telefonie.
+                skipErrorToast: true,
             }
         );
         return response.data;
@@ -210,7 +212,7 @@ export const checkinApi = {
         const formData = new FormData();
         formData.append('photo', file, file.name);
         const response = await apiClient.post<{ vin: string | null }>(`${MOBILE_BASE_PATH}/vin`, formData, {
-            headers: { 'X-Upload-Token': token },
+            headers: { 'X-Upload-Token': token }, skipErrorToast: true,
         });
         return response.data.vin;
     },
@@ -242,7 +244,7 @@ export const checkinApi = {
         const response = await apiClient.put(
             `${MOBILE_BASE_PATH}/damage-points`,
             payload,
-            { headers: { 'X-Upload-Token': token } },
+            { headers: { 'X-Upload-Token': token }, skipErrorToast: true },
         );
         return response.data;
     },
@@ -254,7 +256,7 @@ export const checkinApi = {
     getMobileDamagePoints: async (token: string): Promise<MobileDamagePointsResponse> => {
         const response = await apiClient.get(
             `${MOBILE_BASE_PATH}/damage-points`,
-            { headers: { 'X-Upload-Token': token } },
+            { headers: { 'X-Upload-Token': token }, skipErrorToast: true },
         );
         return response.data;
     },
@@ -282,7 +284,16 @@ export const checkinApi = {
         await apiClient.post(
             `${MOBILE_BASE_PATH}/done`,
             null,
-            { headers: { 'X-Upload-Token': token } },
+            { headers: { 'X-Upload-Token': token }, skipErrorToast: true },
+        );
+    },
+
+    /** „Cofnij i edytuj" po „Gotowe" - komputer znowu czeka na telefon. */
+    undoMobileDone: async (token: string): Promise<void> => {
+        await apiClient.post(
+            `${MOBILE_BASE_PATH}/undo-done`,
+            null,
+            { headers: { 'X-Upload-Token': token }, skipErrorToast: true },
         );
     },
 
@@ -293,8 +304,29 @@ export const checkinApi = {
     getMobileStatus: async (token: string): Promise<MobileSessionStatus> => {
         const response = await apiClient.get(
             `${MOBILE_BASE_PATH}/status`,
-            { headers: { 'X-Upload-Token': token } },
+            { headers: { 'X-Upload-Token': token }, skipErrorToast: true },
         );
         return response.data;
+    },
+    /**
+     * Komputer kończy sesję telefonu („Gotowe", zamknięte okno, przerwane przyjęcie).
+     * Telefon przy najbliższym sprawdzeniu stanu pokazuje ekran końcowy. Błąd nie
+     * zatrzymuje zamykania okna - sesja i tak wygaśnie sama.
+     */
+    endMobileSession: async (token: string, reason: 'FINISHED' | 'CANCELLED' = 'FINISHED'): Promise<void> => {
+        await apiClient.post('/mobile-sessions/end', { token, reason }, { skipErrorToast: true });
+    },
+
+    /**
+     * Przyjęcie przerwane albo porzucone - kończy sesję telefonu wskazaną przyjęciem
+     * (kreator nie trzyma tokenu, trzyma go panel z kodem QR).
+     */
+    endCheckinMobileSession: async (checkinId: string): Promise<void> => {
+        await apiClient.post(`/checkin/${checkinId}/upload-session/end`, null, { skipErrorToast: true });
+    },
+
+    /** Okno VIN zamknięte: ten sam kod ma zadziałać po ponownym otwarciu okna. */
+    pauseMobileSession: async (token: string): Promise<void> => {
+        await apiClient.post('/mobile-sessions/pause', { token }, { skipErrorToast: true });
     },
 };

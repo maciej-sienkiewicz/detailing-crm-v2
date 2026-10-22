@@ -147,6 +147,14 @@ export const PrimaryActionGroup = styled.div`
     display: flex;
     gap: ${props => props.theme.spacing.sm};
     justify-content: flex-end;
+
+    /* Na telefonie dwa przyciski obok siebie nie mieszczą się w 390 px - pierwszy
+       wychodził za lewą krawędź okna. Jeden pod drugim, główny na górze. */
+    @media (max-width: 520px) {
+        flex-direction: column-reverse;
+
+        > button { justify-content: center; width: 100%; }
+    }
 `;
 
 export const CancelBtn = styled.button`
@@ -190,12 +198,12 @@ export const ConfirmBtn = styled.button`
     cursor: pointer;
     transition: all ${st.transition};
     white-space: nowrap;
-    box-shadow: 0 1px 4px rgba(37, 99, 235, 0.25);
+    box-shadow: 0 1px 4px rgba(3, 105, 161, 0.25);
 
     &:hover:not(:disabled) {
-        background: #0369A1;
+        background: #075985;
         transform: translateY(-1px);
-        box-shadow: 0 4px 14px rgba(37, 99, 235, 0.35);
+        box-shadow: 0 4px 14px rgba(3, 105, 161, 0.35);
     }
 
     &:disabled {

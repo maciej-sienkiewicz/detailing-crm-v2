@@ -6,6 +6,7 @@ import { QRCodeSVG } from 'qrcode.react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useCheckinQRToken } from '../hooks/useCheckinQRToken';
 import { useCheckinSocket } from '../hooks/useCheckinSocket';
+import { usePhoneSessionDone } from '../hooks/usePhoneSessionStatus';
 import { checkinApi } from '../api/checkinApi';
 import { AnnotationOverlay } from './DamagePhotoAnnotator';
 import type { CheckinPhotoUploadedEvent, CheckinDamageUpdatedEvent, DamagePoint, AnnotationStroke, PhotoSlot } from '../types';
@@ -88,6 +89,21 @@ const Countdown = styled.div<{ $warn: boolean }>`
     border: 1px solid ${props => props.$warn
         ? 'rgba(234, 179, 8, 0.30)'
         : 'rgba(5, 150, 105, 0.25)'};
+    width: fit-content;
+`;
+
+/** Telefon kliknął „Gotowe" - operator wie, że może iść dalej. */
+const PhoneDoneBadge = styled.div`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 10px;
+    border-radius: ${st.radiusFull};
+    font-size: 12px;
+    font-weight: 600;
+    background: #f0fdf4;
+    color: #15803d;
+    border: 1px solid #86efac;
     width: fit-content;
 `;
 
@@ -399,6 +415,7 @@ export const CheckinQRGenerator = ({ appointmentId, vehicleType, onDamageUpdated
     };
 
     const warnCountdown = secondsLeft > 0 && secondsLeft < 5 * 60; // warn at < 5 min
+    const phoneDone = usePhoneSessionDone(tokenData?.token ?? null, !isExpired);
 
     return (
         <Wrap>
@@ -428,6 +445,15 @@ export const CheckinQRGenerator = ({ appointmentId, vehicleType, onDamageUpdated
                             </svg>
                             Ważny jeszcze {formatCountdown(secondsLeft)}
                         </Countdown>
+                    )}
+
+                    {phoneDone && (
+                        <PhoneDoneBadge role="status">
+                            <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5">
+                                <polyline points="20 6 9 17 4 12" />
+                            </svg>
+                            Telefon zakończył - możesz utworzyć wizytę
+                        </PhoneDoneBadge>
                     )}
 
                     {isExpired && (

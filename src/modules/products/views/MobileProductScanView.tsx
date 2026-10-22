@@ -10,36 +10,34 @@
 // z ręki": wtedy ZDJĘCIE. Zdjęcie najpierw czytamy tu, w przeglądarce (za darmo), a gdy
 // i to zawiedzie — wysyłamy je do modelu wizyjnego, który czyta cyfry pod kreskami
 // (dokładnie jak odczyt VIN ze zdjęcia). Pola tekstowego na telefonie świadomie nie ma.
+//
+// Koniec jest zawsze jasny: „Zakończ skanowanie" tutaj albo zamknięte okno na komputerze
+// (telefon sprawdza to co kilka sekund i wyłącza aparat), albo nieważny link.
 
 import { useCallback, useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
+import { isAxiosError } from 'axios';
+import {
+    PhonePage, PhoneHeader, PhoneCard, PhoneNote, PhonePrimaryButton, PhoneSecondaryButton,
+    PhoneEndScreen, PhoneLoading,
+} from '@/common/components/PhonePage';
+import { ui } from '@/common/components/ui/tokens';
 import { mobileScanApi } from '../api/productsApi';
 import { useBarcodeScanner } from '../hooks/useBarcodeScanner';
 import { normalizeGtin } from '../utils/gtin';
 import { fileToCanvas, canvasToJpegFile } from '../utils/imageTools';
+import { pluralPl } from '@/common/utils/plural';
 
-const Page = styled.main`
-    min-height: 100vh; background: #0f172a; color: #e2e8f0;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    padding: 24px; text-align: center; gap: 18px;
-`;
-const Card = styled.section`
-    width: 100%; max-width: 440px;
-    background: rgba(255,255,255,0.04); border: 1px solid rgba(255,255,255,0.1);
-    border-radius: 16px; padding: 24px 20px;
-    display: flex; flex-direction: column; gap: 16px;
-`;
-const Title = styled.h1` margin: 0; font-size: 20px; font-weight: 700; `;
-const Sub = styled.p` margin: 0; font-size: 14px; line-height: 1.5; color: #94a3b8; `;
+/** Co ile telefon sprawdza, czy okno na komputerze jest jeszcze otwarte. */
+const SESSION_POLL_MS = 5_000;
 
 // Kadr aparatu z ramką celowniczą pośrodku — czytelny sygnał „tu ustaw kod".
 const Viewport = styled.div`
     position: relative; width: 100%; aspect-ratio: 3/4; max-height: 52vh;
-    border-radius: 14px; overflow: hidden; background: #000;
-    border: 1px solid rgba(255,255,255,0.1);
+    border-radius: 14px; overflow: hidden; background: #0f172a;
 `;
-const Video = styled.video` width: 100%; height: 100%; object-fit: cover; `;
+const Video = styled.video` width: 100%; height: 100%; object-fit: cover; display: block; `;
 const Reticle = styled.div`
     position: absolute; inset: 18% 12%;
     border: 2px solid rgba(255,255,255,0.9); border-radius: 12px;
@@ -48,38 +46,55 @@ const Reticle = styled.div`
 `;
 const Overlay = styled.div`
     position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
-    font-size: 14px; color: #cbd5e1; background: rgba(15,23,42,0.6);
-`;
-// Zapas „zrób zdjęcie" — akcja drugorzędna: obwódka i tło, bez wypełnienia.
-const PhotoBtn = styled.button`
-    padding: 13px 18px; font-family: inherit; font-size: 15px; font-weight: 700;
-    border-radius: 12px; cursor: pointer;
-    border: 1px solid rgba(255,255,255,0.22); background: rgba(255,255,255,0.08); color: #fff;
-    &:disabled { opacity: 0.5; cursor: default; }
+    font-size: 14px; color: #e2e8f0; background: rgba(15,23,42,0.6);
 `;
 const HiddenFile = styled.input` display: none; `;
-const Counter = styled.div` font-size: 14px; font-weight: 600; color: #34d399; `;
-const Toast = styled.div` font-size: 13px; color: #fca5a5; min-height: 18px; `;
-const Ok = styled.div` font-size: 13px; color: #34d399; min-height: 18px; `;
+const Counter = styled.div`
+    font-size: 14px; font-weight: 600; color: ${ui.textSecondary}; text-align: center;
+`;
+
+type Phase = 'loading' | 'active' | 'finished' | 'closed' | 'expired';
+
+/** Odpowiedź serwera (sesja zamknięta, link nieważny) - w odróżnieniu od braku sieci. */
+const isServerAnswer = (err: unknown) => isAxiosError(err) && !!err.response;
 
 export function MobileProductScanView() {
     const [params] = useSearchParams();
     const token = params.get('s') ?? '';
     const { videoRef, active, error, startContinuous, stop, decodeImageFile } = useBarcodeScanner();
+    const [phase, setPhase] = useState<Phase>('loading');
     const [count, setCount] = useState(0);
-    const [expired, setExpired] = useState(false);
     const [lastCode, setLastCode] = useState('');
     const [msg, setMsg] = useState('');
     const [photoBusy, setPhotoBusy] = useState(false);
     const sendingRef = useRef(false);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
-    useEffect(() => {
-        if (!token) { setExpired(true); return; }
-        mobileScanApi.context(token)
-            .then(ctx => { setCount(ctx.scannedCount); if (ctx.status !== 'OPEN') setExpired(true); })
-            .catch(() => setExpired(true));
+    /** Stan sesji z serwera: otwarta, zamknięta na komputerze albo nieważna. */
+    const checkSession = useCallback(async () => {
+        try {
+            const ctx = await mobileScanApi.context(token);
+            setCount(ctx.scannedCount);
+            setPhase(ctx.status === 'OPEN' ? 'active' : 'closed');
+        } catch (err) {
+            // Brak sieci w warsztacie nie unieważnia linku - sprawdzimy przy następnym razie.
+            if (isServerAnswer(err)) setPhase('expired');
+            else setPhase(prev => (prev === 'loading' ? 'expired' : prev));
+        }
     }, [token]);
+
+    useEffect(() => {
+        if (!token) { setPhase('expired'); return; }
+        void checkSession();
+    }, [token, checkSession]);
+
+    // Okno na komputerze zamknięte = koniec. Telefon ma to zobaczyć sam, nie dopiero
+    // przy następnym zeskanowanym kodzie.
+    useEffect(() => {
+        if (phase !== 'active') return;
+        const id = window.setInterval(() => { void checkSession(); }, SESSION_POLL_MS);
+        return () => window.clearInterval(id);
+    }, [phase, checkSession]);
 
     const submitCode = useCallback(async (raw: string) => {
         const normalized = normalizeGtin(raw);
@@ -91,20 +106,20 @@ export function MobileProductScanView() {
             const ctx = await mobileScanApi.submit(token, [normalized]);
             setCount(ctx.scannedCount);
             setLastCode(normalized);
-        } catch {
-            setMsg('Nie udało się wysłać. Link mógł wygasnąć.');
-            setExpired(true);
+        } catch (err) {
+            if (isServerAnswer(err)) await checkSession();
+            else setMsg('Brak połączenia. Spróbuj jeszcze raz za chwilę.');
         } finally {
             sendingRef.current = false;
         }
-    }, [token]);
+    }, [token, checkSession]);
 
-    // Auto-start skanu ciągłego, gdy sesja żyje.
+    // Skan ciągły tylko w otwartej sesji - po końcu aparat gaśnie.
     useEffect(() => {
-        if (!token || expired) return;
+        if (!token || phase !== 'active') return;
         startContinuous(submitCode);
         return () => stop();
-    }, [token, expired, startContinuous, submitCode, stop]);
+    }, [token, phase, startContinuous, submitCode, stop]);
 
     // Zapas: zdjęcie → najpierw dekoder w przeglądarce, potem model wizyjny na serwerze.
     const onPhotoFile = async (e: ChangeEvent<HTMLInputElement>) => {
@@ -124,50 +139,79 @@ export function MobileProductScanView() {
             } else {
                 setMsg('Nie udało się odczytać kodu ze zdjęcia. Zrób je z bliska, ostro i w dobrym świetle.');
             }
-        } catch {
-            setMsg('Nie udało się wysłać zdjęcia. Link mógł wygasnąć.');
+        } catch (err) {
+            if (isServerAnswer(err)) await checkSession();
+            else setMsg('Nie udało się wysłać zdjęcia. Sprawdź połączenie.');
         } finally {
             setPhotoBusy(false);
         }
     };
 
-    if (expired) {
+    const codes = `${count} ${pluralPl(count, 'kod', 'kody', 'kodów')}`;
+
+    if (phase === 'loading') {
+        return <PhonePage><PhoneLoading>Sprawdzanie linku…</PhoneLoading></PhonePage>;
+    }
+    if (phase === 'expired') {
         return (
-            <Page>
-                <Card>
-                    <Title>Link do skanowania wygasł</Title>
-                    <Sub>Wróć do komputera i kliknij „Zeskanuj telefonem”, żeby dostać nowy kod QR.</Sub>
-                </Card>
-            </Page>
+            <PhonePage>
+                <PhoneEndScreen tone="danger" title="Link wygasł">
+                    Wróć do komputera i kliknij „Zeskanuj telefonem”, żeby dostać nowy kod QR.
+                </PhoneEndScreen>
+            </PhonePage>
+        );
+    }
+    if (phase === 'closed') {
+        return (
+            <PhonePage>
+                <PhoneEndScreen tone="ok" title="Zakończono na komputerze">
+                    {count > 0 ? `Okno dodawania produktu jest zamknięte, przesłano ${codes}. ` : 'Okno dodawania produktu jest zamknięte. '}
+                    Możesz zamknąć tę stronę.
+                </PhoneEndScreen>
+            </PhonePage>
+        );
+    }
+    if (phase === 'finished') {
+        return (
+            <PhonePage>
+                <PhoneEndScreen
+                    tone="ok"
+                    title="Gotowe"
+                    actions={<PhoneSecondaryButton type="button" onClick={() => setPhase('active')}>Skanuj dalej</PhoneSecondaryButton>}
+                >
+                    {count > 0 ? `Przesłano ${codes} - są już w oknie na komputerze. ` : ''}
+                    Możesz zamknąć tę stronę.
+                </PhoneEndScreen>
+            </PhonePage>
         );
     }
 
     return (
-        <Page>
-            <Card>
-                <Title>Skanuj produkt</Title>
-                {error ? (
-                    <Sub>{error}</Sub>
-                ) : (
-                    <>
-                        <Sub>Skieruj aparat na kod kreskowy — złapiemy go automatycznie.</Sub>
-                        <Viewport>
-                            <Video ref={videoRef} playsInline muted />
-                            <Reticle />
-                            {!active && <Overlay>Uruchamiam aparat…</Overlay>}
-                        </Viewport>
-                    </>
+        <PhonePage>
+            <PhoneHeader title="Skanuj produkt">
+                {error ? 'Aparat się nie uruchomił. Zrób zdjęcie kodu.' : 'Skieruj aparat na kod kreskowy — złapiemy go automatycznie.'}
+            </PhoneHeader>
+            <PhoneCard>
+                {!error && (
+                    <Viewport>
+                        <Video ref={videoRef} playsInline muted />
+                        <Reticle />
+                        {!active && <Overlay>Uruchamiam aparat…</Overlay>}
+                    </Viewport>
                 )}
 
-                <PhotoBtn type="button" disabled={photoBusy} onClick={() => fileInputRef.current?.click()}>
+                <PhoneSecondaryButton type="button" disabled={photoBusy} onClick={() => fileInputRef.current?.click()}>
                     {photoBusy ? 'Odczytuję zdjęcie…' : error ? 'Zrób zdjęcie kodu' : 'Nie łapie? Zrób zdjęcie kodu'}
-                </PhotoBtn>
+                </PhoneSecondaryButton>
                 <HiddenFile ref={fileInputRef} type="file" accept="image/*" capture="environment" onChange={onPhotoFile} />
 
-                {msg && <Toast>{msg}</Toast>}
-                {lastCode && !msg && <Ok>Wysłano ✓ — ostatni kod: {lastCode}</Ok>}
-                {count > 0 && <Counter>Wysłano kodów: {count}</Counter>}
-            </Card>
-        </Page>
+                {msg && <PhoneNote $tone="danger" role="alert">{msg}</PhoneNote>}
+                {lastCode && !msg && <PhoneNote $tone="ok" role="status">Wysłano ✓ — ostatni kod: {lastCode}</PhoneNote>}
+                {count > 1 && <Counter>Przesłano {codes}</Counter>}
+            </PhoneCard>
+            <PhonePrimaryButton type="button" onClick={() => { stop(); setPhase('finished'); }}>
+                Zakończ skanowanie
+            </PhonePrimaryButton>
+        </PhonePage>
     );
 }

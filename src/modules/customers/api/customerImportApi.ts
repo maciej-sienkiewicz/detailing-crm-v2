@@ -40,6 +40,14 @@ export const customerImportApi = {
         return response.data;
     },
 
+    /**
+     * Okno importu zamknięte - telefon, który jeszcze nic nie wysłał, zobaczy, że okno
+     * jest zamknięte, zamiast wysyłać kontakty do nikąd.
+     */
+    cancel: async (sessionId: string): Promise<void> => {
+        await apiClient.delete(`${BASE_PATH}/sessions/${sessionId}`, { skipErrorToast: true });
+    },
+
     /** Zapisuje zaznaczone wiersze jako klientów. */
     commit: async (sessionId: string, selectedIndexes: number[]): Promise<ImportCommitResult> => {
         const response = await apiClient.post(`${BASE_PATH}/sessions/${sessionId}/commit`, {
@@ -67,7 +75,8 @@ export const mobileContactImportApi = {
 
     /** Czy kod jest jeszcze ważny i do jakiego studia prowadzi. */
     getContext: async (handoffToken: string): Promise<MobileImportContext> => {
-        const response = await apiClient.get(`/mobile/contacts/${handoffToken}`);
+        // Błędy pokazuje sam ekran telefonu - bez tosta z tym samym zdaniem.
+        const response = await apiClient.get(`/mobile/contacts/${handoffToken}`, { skipErrorToast: true });
         return response.data;
     },
 
@@ -79,7 +88,7 @@ export const mobileContactImportApi = {
         const response = await apiClient.post(`/mobile/contacts/${handoffToken}`, {
             contacts,
             deviceLabel,
-        });
+        }, { skipErrorToast: true });
         return response.data;
     },
 };

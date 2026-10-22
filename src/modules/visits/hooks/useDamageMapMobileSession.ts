@@ -16,9 +16,14 @@
 //    przenoszenie równolegle, co dawało dwa wiersze zdjęcia wizyty (zdjęcie widoczne
 //    PODWÓJNIE na liście „Istniejące") i tłumaczenie czytające pustą jeszcze tablicę
 //    mapowań (zdjęcie WYPADAŁO z punktu). Teraz tłumaczy serwer, idempotentnie.
+//
+// Zamknięcie okna kończy sesję także na telefonie: zmiany po tej chwili nie miałyby
+// komu trafić, więc telefon pokazuje „Zakończono na komputerze" zamiast „Wysłane".
 
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { useCheckinSocket } from '@/modules/checkin/hooks/useCheckinSocket';
+import { usePhoneSessionDone } from '@/modules/checkin/hooks/usePhoneSessionStatus';
+import { checkinApi } from '@/modules/checkin/api/checkinApi';
 import type { DamagePoint } from '@/modules/checkin/types';
 import { visitApi } from '../api/visitApi';
 
@@ -31,6 +36,8 @@ export interface DamageMapMobileSession {
     error: string | null;
     /** Telefon dał znak życia (wysłał zdjęcie albo zapisał punkty). */
     phoneSeen: boolean;
+    /** Telefon kliknął „Gotowe". */
+    phoneDone: boolean;
     /** Otwiera sesję; `rotate` unieważnia poprzedni kod. */
     start: (rotate: boolean) => Promise<void>;
 }
@@ -155,6 +162,15 @@ export const useDamageMapMobileSession = ({
         enabled: !!checkinId && hasSession,
     });
 
+    // Okno montowane warunkowo: odmontowanie = zamknięte okno = koniec pracy telefonu.
+    const tokenRef = useRef(token);
+    useEffect(() => { tokenRef.current = token; }, [token]);
+    useEffect(() => () => {
+        if (tokenRef.current) void checkinApi.endMobileSession(tokenRef.current, 'FINISHED').catch(() => {});
+    }, []);
+
+    const phoneDone = usePhoneSessionDone(token, hasSession);
+
     return {
         qrUrl: token ? `${window.location.origin}/m/upload?t=${token}` : null,
         secondsLeft,
@@ -162,6 +178,7 @@ export const useDamageMapMobileSession = ({
         isStarting,
         error,
         phoneSeen,
+        phoneDone,
         start,
     };
 };

@@ -7,7 +7,7 @@ import { LEGAL_DOCUMENTS, legalPath } from '@/modules/legal/documents';
 
 const PUBLIC_PATHS = [
     '/login', '/signup', '/forgot-password', '/reset-password', '/confirm-password',
-    '/m/upload', '/m/voice', '/m/contacts',
+    '/m/upload', '/m/voice', '/m/contacts', '/m/scan',
     // Regulamin, polityka itd. - linkowane z Google, Mety i Przelewy24, czytane bez konta.
     ...LEGAL_DOCUMENTS.map(doc => legalPath(doc.slug)),
 ];

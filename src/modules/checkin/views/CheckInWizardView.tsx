@@ -1,10 +1,12 @@
 // src/modules/checkin/views/CheckInWizardView.tsx
 
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { useToast } from '@/common/components/Toast';
 import { StickyFormFooter, FooterPrimaryButton, FooterSecondaryButton } from '@/common/components/StickyFormFooter';
+import { LeaveGuard } from '@/common/components/LeaveGuard';
+import { checkinApi } from '../api/checkinApi';
 import { useCheckInWizard } from '../hooks/useCheckInWizard';
 import { useCheckInValidation } from '../hooks/useCheckInValidation';
 import { VerificationStep } from '../components/VerificationStep';
@@ -349,6 +351,36 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
      */
     const [revisingVisit, setRevisingVisit] = useState<{ visitId: string; visitNumber: string } | null>(null);
 
+    /*
+     * Telefon z kodu QR ma wiedzieć, że przyjęcie się nie odbędzie: przerwanie w oknie
+     * dokumentów i porzucenie kreatora kończą jego sesję („Przyjęcie przerwane").
+     * Udane przyjęcie kończy ją samo - serwer zamyka sesję przy zapisie wizyty.
+     */
+    const finishedRef = useRef(false);
+    const [finished, setFinished] = useState(false);
+    const markFinished = useCallback(() => {
+        finishedRef.current = true;
+        setFinished(true);
+    }, []);
+    const visitExists = !!signingModalState.visitId || !!revisingVisit;
+    const visitExistsRef = useRef(visitExists);
+    const qrCheckinIdRef = useRef(qrCheckinId);
+    useEffect(() => {
+        visitExistsRef.current = visitExists;
+        qrCheckinIdRef.current = qrCheckinId;
+    });
+
+    const endPhoneSession = useCallback(() => {
+        const id = qrCheckinIdRef.current;
+        if (id) void checkinApi.endCheckinMobileSession(id).catch(() => {});
+    }, []);
+
+    useEffect(() => () => {
+        // Odmontowanie bez zakończenia = porzucone przyjęcie. Wizyta, która już powstała
+        // (szkic do dokończenia), nie jest porzuceniem - jej telefon i tak jest zamknięty.
+        if (!finishedRef.current && !visitExistsRef.current) endPhoneSession();
+    }, [endPhoneSession]);
+
     /** Pytanie o datę przyjęcia rezerwacji z minionego dnia - raz, przy wejściu w kreator. */
     const [askArrivalDate, setAskArrivalDate] = useState(
         () => !!reservationId && needsArrivalDateDecision(plannedStartAt, new Date()),
@@ -429,6 +461,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
 
     const handleSigningModalConfirm = () => {
         if (signingModalState.visitId) {
+            markFinished();
             showSuccess('Wizyta rozpoczęta');
             setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [], hasPhotos: false, hasDamageMap: false });
             onComplete(signingModalState.visitId);
@@ -444,6 +477,8 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
      * w wypełnionym kreatorze sugerowałoby, że przyjęcie trwa dalej.
      */
     const handleSigningModalCancel = () => {
+        markFinished();
+        endPhoneSession();
         setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [], hasPhotos: false, hasDamageMap: false });
         navigate('/calendar');
     };
@@ -463,6 +498,11 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
     };
 
     const isFirstStep = currentStep === 'verification';
+    // Rezerwacja przychodzi z wypełnionym klientem i autem, więc liczy się dopiero
+    // przejście dalej; przyjęcie bez rezerwacji - już pierwsze wpisane dane.
+    const hasProgress = !isFirstStep || completedSteps.length > 0 || (!reservationId && (
+        formData.services.length > 0 || !!formData.vehicleData || !!formData.customerData.lastName.trim()
+    ));
     const isLastStep = currentStep === 'photos';
     // Przy poprawianiu szkicu zdjęcia już są w wizycie - zapis idzie od razu z formularza,
     // a krok zdjęć i uszkodzeń zostaje pod osobnym przyciskiem.
@@ -631,6 +671,17 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                 </StickyFormFooter>
             </PageWrap>
 
+            {/* Wyjście menu albo „wstecz" z rozpoczętego przyjęcia: bez szkicu dane by
+                przepadły po cichu, a telefon dalej przyjmowałby zdjęcia. */}
+            <LeaveGuard
+                when={!finished && !visitExists && hasProgress}
+                title="Przerwać przyjęcie pojazdu?"
+                message="Wpisane dane nie zostaną zapisane, a telefon, który zeskanował kod QR, przestanie przyjmować zdjęcia."
+                confirmText="Przerwij przyjęcie"
+                cancelText="Wróć do przyjęcia"
+                onLeave={() => { markFinished(); endPhoneSession(); }}
+            />
+
             {signingModalState.isOpen && (
                 <SigningRequirementModal
                     isOpen={signingModalState.isOpen}
@@ -672,11 +723,14 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
                 <ResumeCheckInModal
                     draft={resumeDraft}
                     onConfirmed={visitId => {
+                        markFinished();
                         setResumeDraft(null);
                         showSuccess('Wizyta rozpoczęta');
                         onComplete(visitId);
                     }}
                     onCancelled={() => {
+                        markFinished();
+                        endPhoneSession();
                         setResumeDraft(null);
                         navigate('/calendar');
                     }}

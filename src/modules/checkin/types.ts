@@ -404,6 +404,10 @@ export interface MobileCheckinContext {
     tenantId: string;
     /** Brak = starszy token sprzed wprowadzenia pola; traktujemy jak przyjęcie. */
     purpose?: UploadSessionPurpose;
+    /** Nazwa studia do nagłówka strony telefonu. */
+    studioName?: string | null;
+    /** Auto, którego dotyczy sesja („BMW X3 · WJ79814"); brak przy przyjęciu i VIN. */
+    subject?: string | null;
 }
 
 // ─── Mobile Damage Points ─────────────────────────────────────────────────────
@@ -432,10 +436,17 @@ export interface CheckinDamageUpdatedEvent {
 
 // ─── Mobile Session Status ────────────────────────────────────────────────────
 
+/** Dlaczego sesja telefonu się skończyła (ustala komputer albo serwer). */
+export type MobileSessionEndReason = 'VISIT_CREATED' | 'FINISHED' | 'CANCELLED' | 'REPLACED';
+
 export interface MobileSessionStatus {
     sessionActive: boolean;
     visitCreated: boolean;
     userDone: boolean;
+    /** null, dopóki sesja trwa; starszy serwer pola nie wysyła. */
+    endReason?: MobileSessionEndReason | null;
+    /** Sesja żyje, ale okno na komputerze jest zamknięte (VIN). */
+    paused?: boolean;
 }
 
 // ─── Mobile Photo Upload Response ─────────────────────────────────────────────

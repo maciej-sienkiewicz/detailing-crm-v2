@@ -832,9 +832,13 @@ export const DamageMapUpdateModal = ({
                                             </svg>
                                         </PhoneLinkDot>
                                         <PhoneLinkTexts>
-                                            <PhoneLinkTitle>Połączono z telefonem</PhoneLinkTitle>
+                                            <PhoneLinkTitle>
+                                                {mobileSession.phoneDone ? 'Telefon zakończył' : 'Połączono z telefonem'}
+                                            </PhoneLinkTitle>
                                             <PhoneLinkHint>
-                                                Oznaczenia i zdjęcia z telefonu pojawiają się tu na bieżąco.
+                                                {mobileSession.phoneDone
+                                                    ? 'Oznaczenia z telefonu są poniżej. Zapisz mapę, a telefon zobaczy, że skończyliście.'
+                                                    : 'Oznaczenia i zdjęcia z telefonu pojawiają się tu na bieżąco.'}
                                             </PhoneLinkHint>
                                         </PhoneLinkTexts>
                                         <PhoneLinkChevron

@@ -17,6 +17,7 @@ import {
     DamageMapperWrap,
     DiagramCard,
     DiagramHint,
+    DiagramCanvas,
     VehicleImage,
     OverlayLayer,
     DamageMarker,
@@ -30,7 +31,6 @@ import {
     DamageDeleteBtn,
     DamageNoteInput,
     EmptyDamageState,
-    SectionTitle,
     SectionSubtitle,
     VehicleTypeSelectorRow,
     VehicleTypeLabel,
@@ -192,7 +192,7 @@ export const MobileDamageSection = ({ logic }: Props) => {
 
     return (
         <DamageMapperWrap>
-            <SectionTitle>Mapa uszkodzeń</SectionTitle>
+            {/* Tytuł strony albo zakładka już mówi „uszkodzenia" - tu wystarczy instrukcja. */}
             <SectionSubtitle>
                 Dotknij schematu, opisz uszkodzenie i dodaj zdjęcie.
             </SectionSubtitle>
@@ -217,31 +217,33 @@ export const MobileDamageSection = ({ logic }: Props) => {
 
             {/* Vehicle diagram */}
             <DiagramCard>
-                <VehicleImage
-                    ref={imageRef}
-                    src={vehicleSchematicImageUrl(vehicleType)}
-                    alt={`Schemat pojazdu: ${vehicleSchematicLabel(vehicleType)}`}
-                    draggable={false}
-                    onContextMenu={e => e.preventDefault()}
-                />
-                <OverlayLayer
-                    onTouchStart={handleOverlayTouchStart}
-                    onTouchEnd={handleOverlayTouchEnd}
-                    onClick={handleOverlayClick}
-                >
-                    {damagePoints.map((point, index) => (
-                        <DamageMarker
-                            key={point.id}
-                            style={{ left: `${point.x}%`, top: `${point.y}%` }}
-                            $isLast={index === damagePoints.length - 1}
-                            $isActive={activePointId === point.id}
-                            onTouchEnd={e => handleMarkerTap(e, point.id)}
-                            onClick={e => handleMarkerTap(e, point.id)}
-                        >
-                            {getNumber(point.id)}
-                        </DamageMarker>
-                    ))}
-                </OverlayLayer>
+                <DiagramCanvas>
+                    <VehicleImage
+                        ref={imageRef}
+                        src={vehicleSchematicImageUrl(vehicleType)}
+                        alt={`Schemat pojazdu: ${vehicleSchematicLabel(vehicleType)}`}
+                        draggable={false}
+                        onContextMenu={e => e.preventDefault()}
+                    />
+                    <OverlayLayer
+                        onTouchStart={handleOverlayTouchStart}
+                        onTouchEnd={handleOverlayTouchEnd}
+                        onClick={handleOverlayClick}
+                    >
+                        {damagePoints.map((point, index) => (
+                            <DamageMarker
+                                key={point.id}
+                                style={{ left: `${point.x}%`, top: `${point.y}%` }}
+                                $isLast={index === damagePoints.length - 1}
+                                $isActive={activePointId === point.id}
+                                onTouchEnd={e => handleMarkerTap(e, point.id)}
+                                onClick={e => handleMarkerTap(e, point.id)}
+                            >
+                                {getNumber(point.id)}
+                            </DamageMarker>
+                        ))}
+                    </OverlayLayer>
+                </DiagramCanvas>
                 <DiagramHint>
                     {damagePoints.length === 0
                         ? 'Dotknij pojazdu, aby dodać oznaczenie'

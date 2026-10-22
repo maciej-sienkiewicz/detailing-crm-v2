@@ -5,10 +5,14 @@ import { checkinApi } from '../../api/checkinApi';
 import { offlinePhotoDb } from '../../services/offlinePhotoDb';
 import { prepareImageOrExplain } from '../../services/imageUploadPrep';
 import { describeUploadError, isSessionGoneError } from './uploadErrors';
-import type { MobileCheckinContext, PendingPhoto } from '../../types';
+import type { MobileCheckinContext, MobileSessionEndReason, MobileSessionStatus, PendingPhoto } from '../../types';
 
 const RETRY_INTERVAL_MS = 30_000;
-const STATUS_POLL_INTERVAL_MS = 15_000;
+/**
+ * Co ile telefon pyta o stan sesji. Krótko, bo od tego zależy, jak szybko człowiek
+ * z telefonem zobaczy, że komputer skończył - a zapytanie to jeden klucz w Redisie.
+ */
+export const STATUS_POLL_INTERVAL_MS = 5_000;
 
 export interface LocalPhoto {
     id: string;
@@ -18,11 +22,24 @@ export interface LocalPhoto {
     error?: string;
 }
 
-export type SessionState = 'loading' | 'expired' | 'active' | 'done' | 'visit_created';
+/**
+ * - `ended` - komputer zakończył sesję (powód w `endReason`): „Gotowe", zamknięte okno,
+ *   przerwane przyjęcie albo nowy kod. Strona nic już nie wysyła.
+ * - `visit_created` - wizyta z przyjęcia zapisana; strona dalej słucha, bo przyjęcie
+ *   można jeszcze przerwać w oknie dokumentów.
+ */
+export type SessionState = 'loading' | 'expired' | 'active' | 'done' | 'visit_created' | 'ended';
+
+/** Powody, po których komputer zamknął sesję - bez zapisania wizyty. */
+export type DesktopEndReason = Exclude<MobileSessionEndReason, 'VISIT_CREATED'>;
 
 export interface MobilePhotoUploadLogic {
     context: MobileCheckinContext | null;
     sessionState: SessionState;
+    /** Ustawione w stanie `ended`. */
+    endReason: DesktopEndReason | null;
+    /** Sesja żyje, ale okno na komputerze jest zamknięte (VIN). */
+    paused: boolean;
     isOnline: boolean;
     photos: LocalPhoto[];
     doneCount: number;
@@ -41,6 +58,8 @@ export interface MobilePhotoUploadLogic {
 export function useMobilePhotoUploadLogic(token: string): MobilePhotoUploadLogic {
     const [context, setContext] = useState<MobileCheckinContext | null>(null);
     const [sessionState, setSessionState] = useState<SessionState>('loading');
+    const [endReason, setEndReason] = useState<DesktopEndReason | null>(null);
+    const [paused, setPaused] = useState(false);
     const [isOnline, setIsOnline] = useState(navigator.onLine);
     const [photos, setPhotos] = useState<LocalPhoto[]>([]);
     const [preparingCount, setPreparingCount] = useState(0);
@@ -62,6 +81,30 @@ export function useMobilePhotoUploadLogic(token: string): MobilePhotoUploadLogic
             window.removeEventListener('offline', setOffline);
         };
     }, []);
+
+    // ─── Session status ───────────────────────────────────────────────────────
+
+    /**
+     * Przekłada stan z serwera na ekran. Zwraca true, gdy sesja jest skończona albo
+     * nieważna - wtedy nie ma po co dalej wysyłać zdjęć.
+     */
+    const applyStatus = useCallback((status: MobileSessionStatus): boolean => {
+        const reason = status.endReason ?? (status.visitCreated ? 'VISIT_CREATED' : null);
+        if (reason === 'VISIT_CREATED') { setSessionState('visit_created'); return true; }
+        if (reason) { setEndReason(reason); setSessionState('ended'); return true; }
+        if (!status.sessionActive) { setSessionState('expired'); return true; }
+        setPaused(status.paused === true);
+        return false;
+    }, []);
+
+    /** Sprawdza stan po nieudanej operacji: „wygasł" czy „zakończono na komputerze". */
+    const explainSessionGone = useCallback(async () => {
+        try {
+            if (!applyStatus(await checkinApi.getMobileStatus(token))) setSessionState('expired');
+        } catch {
+            setSessionState('expired');
+        }
+    }, [token, applyStatus]);
 
     // ─── Init: verify token & restore pending photos ──────────────────────────
 
@@ -85,9 +128,11 @@ export function useMobilePhotoUploadLogic(token: string): MobilePhotoUploadLogic
             photosRef.current.forEach(p => URL.revokeObjectURL(p.previewUrl));
             setPhotos(restored);
         } catch {
-            setSessionState('expired');
+            // Ponowne otwarcie linku po zakończeniu na komputerze ma powiedzieć, że
+            // zakończono, a nie że link wygasł.
+            await explainSessionGone();
         }
-    }, [token]);
+    }, [token, explainSessionGone]);
 
     useEffect(() => {
         initSession();
@@ -111,7 +156,7 @@ export function useMobilePhotoUploadLogic(token: string): MobilePhotoUploadLogic
         } catch (err) {
             const msg = describeUploadError(err);
             if (isSessionGoneError(err)) {
-                setSessionState('expired');
+                void explainSessionGone();
             }
             await offlinePhotoDb.updateStatus(pending.id, 'failed', { error: msg });
             setPhotos(prev => prev.map(p =>
@@ -119,7 +164,7 @@ export function useMobilePhotoUploadLogic(token: string): MobilePhotoUploadLogic
             ));
             throw err;
         }
-    }, [token]);
+    }, [token, explainSessionGone]);
 
     // ─── Sync all pending ─────────────────────────────────────────────────────
 
@@ -146,17 +191,24 @@ export function useMobilePhotoUploadLogic(token: string): MobilePhotoUploadLogic
         if (isOnline && sessionState === 'active') syncPending();
     }, [isOnline]); // eslint-disable-line react-hooks/exhaustive-deps
 
-    // ─── Status polling: detect when desktop saves the visit ─────────────────
+    // ─── Status polling: detect when the desktop ends the session ────────────
+    //
+    // Wizyta zapisana, „Gotowe" albo zamknięte okno na komputerze, przerwane przyjęcie,
+    // nowy kod - telefon ma to zobaczyć w kilka sekund, a nie dalej przyjmować zdjęcia
+    // do okna, którego już nie ma. Po zapisaniu wizyty słuchamy dalej: przyjęcie można
+    // jeszcze przerwać w oknie dokumentów.
 
     useEffect(() => {
-        if (sessionState !== 'active' && sessionState !== 'done') return;
+        if (sessionState !== 'active' && sessionState !== 'done' && sessionState !== 'visit_created') return;
 
         const poll = async () => {
             try {
                 const status = await checkinApi.getMobileStatus(token);
-                if (status.visitCreated) {
-                    setSessionState('visit_created');
+                if (sessionState === 'visit_created') {
+                    if (status.endReason === 'CANCELLED') applyStatus(status);
+                    return;
                 }
+                applyStatus(status);
             } catch {
                 // network error: ignore, will retry next cycle
             }
@@ -164,7 +216,7 @@ export function useMobilePhotoUploadLogic(token: string): MobilePhotoUploadLogic
 
         const timer = setInterval(poll, STATUS_POLL_INTERVAL_MS);
         return () => clearInterval(timer);
-    }, [sessionState, token]);
+    }, [sessionState, token, applyStatus]);
 
     // ─── Re-check the session when the page comes back to the foreground ──────
     //
@@ -174,14 +226,13 @@ export function useMobilePhotoUploadLogic(token: string): MobilePhotoUploadLogic
     // queue when the session is still alive.
 
     useEffect(() => {
-        if (sessionState === 'loading' || sessionState === 'visit_created') return;
+        if (sessionState === 'loading' || sessionState === 'visit_created' || sessionState === 'ended') return;
 
         const revalidate = async () => {
             if (typeof document !== 'undefined' && document.visibilityState !== 'visible') return;
             try {
                 const status = await checkinApi.getMobileStatus(token);
-                if (status.visitCreated) { setSessionState('visit_created'); return; }
-                if (!status.sessionActive) { setSessionState('expired'); return; }
+                if (applyStatus(status)) return;
                 if (sessionState === 'expired') {
                     // Session is alive again (the earlier failure was a network blip) -
                     // rebuild context and queue before letting the user upload again
@@ -200,7 +251,7 @@ export function useMobilePhotoUploadLogic(token: string): MobilePhotoUploadLogic
             document.removeEventListener('visibilitychange', revalidate);
             window.removeEventListener('pageshow', revalidate);
         };
-    }, [token, sessionState, syncPending, initSession]);
+    }, [token, sessionState, syncPending, initSession, applyStatus]);
 
     // ─── Gotowe / Cofnij ──────────────────────────────────────────────────────
 
@@ -215,7 +266,10 @@ export function useMobilePhotoUploadLogic(token: string): MobilePhotoUploadLogic
 
     const handleUndoDone = useCallback(() => {
         setSessionState('active');
-    }, []);
+        checkinApi.undoMobileDone(token).catch(() => {
+            // sesja mogła się właśnie skończyć - pokaże to najbliższe sprawdzenie stanu
+        });
+    }, [token]);
 
     // ─── File selection ───────────────────────────────────────────────────────
 
@@ -293,11 +347,15 @@ export function useMobilePhotoUploadLogic(token: string): MobilePhotoUploadLogic
     const doneCount = photos.filter(p => p.status === 'done').length;
     const totalCount = photos.length;
     const progressPct = totalCount > 0 ? Math.round((doneCount / totalCount) * 100) : 0;
-    const hasPending = photos.some(p => p.status === 'pending' || p.status === 'failed');
+    // Tylko zdjęcia w drodze blokują „Gotowe". Nieudane nie: można je ponowić albo
+    // usunąć, ale nie mogą zamknąć drogi do zakończenia.
+    const hasPending = photos.some(p => p.status === 'pending' || p.status === 'uploading');
 
     return {
         context,
         sessionState,
+        endReason,
+        paused,
         isOnline,
         photos,
         doneCount,
