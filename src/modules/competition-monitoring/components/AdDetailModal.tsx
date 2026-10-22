@@ -1026,7 +1026,7 @@ const AdCreative: React.FC<{
             <Missing>
                 {creative?.status === 'OK' && creative.media.length > 0
                     ? 'Grafika i film wyświetlają się wprost z serwerów Meta - gdy reklamodawca je usunie, znikną też tutaj.'
-                    : creativeLoading || creative?.status === 'BUSY'
+                    : creativeLoading
                         ? 'Grafikę pobieramy ze strony reklamy w Bibliotece reklam Meta.'
                         : creative?.status === 'UNAVAILABLE' || creative?.status === 'EMPTY'
                             ? 'Meta udostępnia tylko tekst reklamy. Zdjęcia i wideo zobaczysz w oryginale.'

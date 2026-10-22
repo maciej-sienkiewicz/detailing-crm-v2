@@ -83,7 +83,7 @@ interface Props {
 export const AdCreativeMediaView: React.FC<Props> = ({ creative, loading }) => {
     const [broken, setBroken] = useState<ReadonlySet<string>>(new Set());
 
-    if (loading || creative?.status === 'BUSY') {
+    if (loading) {
         return <Loading role="status">Wczytuję grafikę reklamy…</Loading>;
     }
     const media = (creative?.status === 'OK' ? creative.media : []).filter(item => !broken.has(item.url));
