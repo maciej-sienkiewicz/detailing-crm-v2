@@ -27,7 +27,7 @@ import { useNavigate, useSearchParams, type Location } from 'react-router-dom';
 import styled from 'styled-components';
 import {
     Banknote, Building2, ChevronLeft, ChevronRight, Crown, FileSignature, Filter, HelpCircle, IdCard, Keyboard,
-    ListChecks, MessageSquare, Receipt, Search, ShieldCheck, TabletSmartphone, Tag, UserCog, Wallet,
+    ListChecks, MessageSquare, Plug, Receipt, Search, ShieldCheck, TabletSmartphone, Tag, UserCog, Wallet,
 } from 'lucide-react';
 import { PageContainer } from '@/common/components/PageContainer';
 import { PageChromeProvider } from '@/common/components/PageChrome';
@@ -52,6 +52,7 @@ import { VisitCardSection } from '../components/VisitCardSection';
 import { LeadsSettingsSection } from '../components/LeadsSettingsSection';
 import { ShortcutsSection } from '../components/ShortcutsSection';
 import { SecuritySection } from '../components/SecuritySection';
+import { IntegrationsSection } from '../components/IntegrationsSection';
 import { HelpModal } from '../components/shared/SettingsLayout';
 import type { HelpContent } from '../components/shared/SettingsLayout';
 import { useSmsCreditBalance } from '../hooks/useSmsCredits';
@@ -71,7 +72,7 @@ type SectionId =
     | 'templates' | 'documents'
     | 'mobile-devices' | 'visit-card' | 'leads'
     | 'shortcuts'
-    | 'plan' | 'credits' | 'finance' | 'invoices' | 'security';
+    | 'plan' | 'credits' | 'finance' | 'invoices' | 'integrations' | 'security';
 
 interface SectionDef {
     id: SectionId;
@@ -190,6 +191,13 @@ const GROUPS: SectionGroup[] = [
                 keywords: 'faktury e-faktury ksef księgowość księgowa biuro rachunkowe',
             },
             {
+                // Ścieżkę „Ustawienia → Integracje → Odłącz" podaje strona /usuwanie-danych
+                // (instrukcja usunięcia danych w panelu Meta) - nazwy i miejsca nie zmieniać.
+                id: 'integrations', label: 'Integracje', summary: 'Instagram i wizytówka Google', icon: <Plug />,
+                description: 'Konta studia połączone z CRM. Tu je odłączysz.',
+                keywords: 'instagram facebook meta google wizytówka połączenie odłącz rozłącz usuwanie danych',
+            },
+            {
                 id: 'security', label: 'Bezpieczeństwo', summary: 'PIN, hasło, blokada ekranu', icon: <ShieldCheck />,
                 description: 'PIN, hasło i automatyczna blokada ekranu.',
                 keywords: 'pin hasło blokada wyczyść konto',
@@ -255,6 +263,8 @@ const SECTION_REQUIREMENTS: Partial<Record<SectionId, AccessRequirement>> = {
     // jest @RequiresOwner.
     finance: 'OWNER_ONLY',
     invoices: 'OWNER_ONLY',
+    // Łączy i odłącza tylko właściciel - tak samo sprawdza backend.
+    integrations: 'OWNER_ONLY',
 };
 
 // Pakiet i kredyty to sprzedaż: zakup pakietu, modułów i kredytów SMS. W aplikacji ze
@@ -640,6 +650,8 @@ export function SettingsView() {
         content = <FinanceSection />;
     } else if (section === 'invoices') {
         content = <InvoicesSection />;
+    } else if (section === 'integrations') {
+        content = <IntegrationsSection />;
     } else {
         content = <SecuritySection />;
     }
