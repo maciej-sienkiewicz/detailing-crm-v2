@@ -10,7 +10,6 @@ import { AppErrorBoundary } from '@/core/errors';
 import { AuthProvider } from '@/core/context/AuthContext';
 import { ToastProvider } from '@/common/components/Toast';
 import { PaywallListener } from '@/modules/subscription/components/PaywallListener';
-import { vehicleMetadataQuery } from '@/modules/vehicles/hooks/useVehicleMetadata';
 
 /**
  * Do raportu trafia tylko to, czego nikt się nie spodziewał: brak odpowiedzi, 5xx albo
@@ -47,9 +46,6 @@ const queryClient = new QueryClient({
         },
     },
 });
-
-// Prefetch vehicle metadata once on app start to enable instant filtering
-queryClient.prefetchQuery(vehicleMetadataQuery('CAR'));
 
 const App = () => {
     return (

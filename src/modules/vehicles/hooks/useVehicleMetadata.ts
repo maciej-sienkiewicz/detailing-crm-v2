@@ -5,13 +5,16 @@ import type { VehicleKind, VehicleKindFilter } from '../vehicleKind';
 
 export const vehicleMetadataQueryKey = (kind: VehicleKind) => ['vehicleMetadata', kind] as const;
 
-/** Katalog to plik w paczce backendu - zmienia się tylko z wdrożeniem. */
-const CATALOG_STALE_TIME = 60 * 60 * 1000;
-
+/**
+ * Katalog to plik w paczce backendu - zmienia się tylko z wdrożeniem. W pamięci trzymamy go
+ * przez całą sesję (dawniej znikał po 5 minutach i formularz pobierał 70 KB od nowa), a między
+ * wejściami do aplikacji serwuje go cache przeglądarki (ETag i max-age z backendu).
+ */
 export const vehicleMetadataQuery = (kind: VehicleKind) => ({
   queryKey: vehicleMetadataQueryKey(kind),
   queryFn: () => vehicleMetadataApi.getAll(kind),
-  staleTime: CATALOG_STALE_TIME,
+  staleTime: Infinity,
+  gcTime: Infinity,
 });
 
 /**

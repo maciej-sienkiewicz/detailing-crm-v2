@@ -81,7 +81,7 @@ const BRAND_SLUG_MAP: Record<string, string> = {
     'porsche':           'porsche',
     // R
     'ram':               'ram',
-    'range rover':       'range-rover',
+    'range rover':       'land-rover',
     'renault':           'renault',
     'rolls-royce':       'rolls-royce',
     'rolls royce':       'rolls-royce',
@@ -111,27 +111,76 @@ const BRAND_SLUG_MAP: Record<string, string> = {
     'byd':               'byd',
     'ds':                'ds',
     'fisker':            'fisker',
-    'gac':               'gac',
+    'gac':               'gac-group',
     'geely':             'geely',
     'great wall':        'great-wall',
     'haval':             'haval',
     'lada':              'lada',
     'lucid':             'lucid',
-    'lynk & co':         'lynk-co',
+    'lynk & co':         'lynk-and-co',
     'nio':               'nio',
     'polestar':          'polestar',
     'rivian':            'rivian',
     'scion':             'scion',
-    'srt':               'srt',
-    'svt':               'svt',
     'tata':              'tata',
-    'trabant':           'trabant',
     'triumph':           'triumph',
     'tvr':               'tvr',
     'vauxhall':          'vauxhall',
     'vinfast':           'vinfast',
     'wartburg':          'wartburg',
     'zastava':           'zastava',
+    // Marki z katalogu marek (db/marki_modele_*.json) zapisane tam inaczej niż powyżej
+    // albo wcześniej trafiane tylko przez zgadywany adres - każdy slug sprawdzony w zbiorze.
+    'aiways':            'aiways',
+    'aixam':             'aixam',
+    'alfa-romeo':        'alfa-romeo',
+    'alpina':            'alpina',
+    'apollo':            'apollo',
+    'arcfox':            'arcfox',
+    'artega':            'artega',
+    'aston-martin':      'aston-martin',
+    'austin':            'austin',
+    'autobianchi':       'autobianchi',
+    'bestune':           'bestune',
+    'brilliance':        'brilliance',
+    'caterham':          'caterham',
+    'changan':           'changan',
+    'chery':             'chery',
+    'cupra':             'cupra',
+    'dkw':               'dkw',
+    'dongfeng':          'dongfeng',
+    'faw':               'faw',
+    'foton':             'foton',
+    'gaz':               'gaz',
+    'hiphi':             'hiphi',
+    'hongqi':            'hongqi',
+    'iveco':             'iveco',
+    'jac':               'jac',
+    'jawa':              'jawa',
+    'jetour':            'jetour',
+    'ktm':               'ktm',
+    'land-rover':        'land-rover',
+    'leapmotor':         'leapmotor',
+    'levc':              'levc',
+    'li-auto':           'li-auto',
+    'lifan':             'lifan',
+    'ligier':            'ligier',
+    'lotus':             'lotus',
+    'lynk-and-co':       'lynk-and-co',
+    'man':               'man',
+    'maxus':             'maxus',
+    'mercury':           'mercury',
+    'microcar':          'microcar',
+    'morgan':            'morgan',
+    'oldsmobile':        'oldsmobile',
+    'omoda':             'omoda',
+    'plymouth':          'plymouth',
+    'rover':             'rover',
+    'simca':             'simca',
+    'uaz':               'uaz',
+    'wey':               'wey',
+    'xpeng':             'xpeng',
+    'zeekr':             'zeekr',
 };
 
 function normaliseBrand(brand: string): string {
@@ -142,20 +191,16 @@ function normaliseBrand(brand: string): string {
         .replace(/[̀-ͯ]/g, '');
 }
 
-/** Returns the jsDelivr CDN thumbnail URL for a given car brand, or null if unknown. */
+/**
+ * Returns the jsDelivr CDN thumbnail URL for a given car brand, or null if unknown.
+ *
+ * Tylko marki z mapy - dawniej marka spoza niej dostawała zgadywany adres, a większość
+ * takich zgadnięć (głównie motocykle) kończyła się 404, dwa razy: dla <img> i dla
+ * przycinania. Bez logo widok pokazuje inicjał.
+ */
 export function getCarLogoUrl(brand: string | null | undefined): string | null {
     if (!brand) return null;
-
-    const key = normaliseBrand(brand);
-    const slug = BRAND_SLUG_MAP[key];
-
-    if (slug) return `${CDN_BASE}/${slug}.png`;
-
-    // Generic fallback: try a hyphenated slug directly (covers brands not in the map
-    // that still follow the dataset naming convention).
-    const generatedSlug = key.replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-    if (generatedSlug) return `${CDN_BASE}/${generatedSlug}.png`;
-
-    return null;
+    const slug = BRAND_SLUG_MAP[normaliseBrand(brand)];
+    return slug ? `${CDN_BASE}/${slug}.png` : null;
 }
 

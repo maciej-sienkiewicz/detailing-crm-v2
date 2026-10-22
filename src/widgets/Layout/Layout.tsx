@@ -1,6 +1,8 @@
 import { useEffect } from 'react';
 import styled, { createGlobalStyle, keyframes } from 'styled-components';
 import { useLocation } from 'react-router-dom';
+import { useQueryClient } from '@tanstack/react-query';
+import { vehicleMetadataQuery } from '@/modules/vehicles/hooks/useVehicleMetadata';
 import { Sidebar } from '@/widgets/Sidebar';
 import { BottomNav, BOTTOM_NAV_SPACE } from '@/widgets/BottomNav';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
@@ -108,6 +110,13 @@ export const Layout = ({ children }: LayoutProps) => {
     useEffect(() => {
         window.scrollTo(0, 0);
     }, [viewKey]);
+
+    // Katalog marek dla formularzy pojazdu - dopiero w zalogowanej aplikacji, nie na każdej
+    // stronie (dawniej App.tsx pobierał 70 KB także na logowaniu i stronach z linku klienta).
+    const queryClient = useQueryClient();
+    useEffect(() => {
+        void queryClient.prefetchQuery(vehicleMetadataQuery('CAR'));
+    }, [queryClient]);
 
     return (
         <IdleTimeoutProvider>

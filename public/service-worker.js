@@ -53,7 +53,8 @@
 // Powiadomienia shows, so "does this phone have the fix yet?" has an answer.
 const SW_VERSION = '2026-10-22.1';
 
-const CACHE_VERSION = 'v1';
+// v2: tylko odpowiedzi OK (CORS) - stary cache mógł trzymać nieprzezroczyste 404.
+const CACHE_VERSION = 'v2';
 const CACHE_NAME    = `car-logos-${CACHE_VERSION}`;
 
 // Zakotwiczony od początku adresu: bez ^ cache-first łapało każde żądanie, którego adres
@@ -94,29 +95,35 @@ self.addEventListener('message', event => {
 
 self.addEventListener('fetch', event => {
     if (!LOGO_URL_PATTERN.test(event.request.url)) return;
-    if (event.request.destination !== 'image') return;
-    // Żądanie CORS pochodzi z przycinania logo (vehicles/services/logoTrim.ts), które czyta
-    // piksele. Z tego cache'u poszłaby mu nieprzezroczysta (opaque) odpowiedź zapisana dla
-    // <img>, a z niej przeglądarka pikseli nie odda - takie żądanie obsługuje zwykły cache HTTP.
-    if (event.request.mode === 'cors') return;
-
-    event.respondWith(cacheFirst(event.request));
+    // Tylko obrazki: <img> i przycinanie logo (vehicles/services/logoTrim.ts), które pyta
+    // fetch-em w trybie CORS o ten sam plik - obie prośby obsługuje ta sama kopia w cache.
+    if (event.request.destination !== 'image' && event.request.mode !== 'cors') return;
+    event.respondWith(cacheFirst(event.request.url));
 });
 
-async function cacheFirst(request) {
-    const cache    = await caches.open(CACHE_NAME);
-    const cached   = await cache.match(request);
-
+/**
+ * Logo pobieramy zawsze w trybie CORS (jsDelivr odpowiada Access-Control-Allow-Origin: *),
+ * także gdy prosi o nie <img> bez CORS. Dzięki temu:
+ *  - widać status, więc do cache trafia tylko udana odpowiedź - dawniej nieprzezroczysta
+ *    (opaque) odpowiedź <img>, także 404, zostawała w cache na zawsze;
+ *  - ta sama kopia obsługuje przycinanie logo (vehicles/services/logoTrim.ts), które czyta
+ *    piksele - wcześniej szło po nie drugim, osobnym żądaniem.
+ * Klucz to sam adres: <img> i przycinanie pytają o ten sam plik.
+ */
+async function cacheFirst(url) {
+    const cache  = await caches.open(CACHE_NAME);
+    const cached = await cache.match(url);
     if (cached) return cached;
 
-    const response = await fetch(request);
-
-    // Only cache successful, opaque-safe responses.
-    if (response.ok || response.type === 'opaque') {
-        cache.put(request, response.clone());
+    try {
+        const response = await fetch(url, { mode: 'cors', credentials: 'omit' });
+        if (response.ok) await cache.put(url, response.clone());
+        return response;
+    } catch {
+        // Offline albo zablokowany CDN: obrazek się nie pokaże (widok ma inicjał), ale bez
+        // „Uncaught (in promise) TypeError: Failed to fetch" przy każdym logo.
+        return Response.error();
     }
-
-    return response;
 }
 
 // ─── Web Push: icons, sound, vibration ────────────────────────────────────────
