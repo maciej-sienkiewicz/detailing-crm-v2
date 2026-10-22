@@ -122,13 +122,22 @@ export const BrandWordmark = styled.img`
 /**
  * Nazwa studia pod logo: drobniej i ciszej niż logo, do dwóch linii na środku. Jedna
  * linia z wielokropkiem ucinała nazwy z rejestru w pół słowa.
+ *
+ * Pismo idzie za logotypem: rozstrzelone wersaliki w jego ciepłej bieli (#F2F1EE),
+ * przygaszonej do 60%. Zwykłe małe litery w zimnej, niebieskawej szarości paska
+ * wyglądały pod znakiem jak doklejony podpis, a nie część jednego nagłówka.
  */
 export const LogoCaption = styled.span`
-    color: #94a3b8;
-    font-size: 12px;
+    color: rgba(242, 241, 238, 0.6);
+    font-size: 10px;
     font-weight: 500;
-    line-height: 1.3;
+    letter-spacing: 0.2em;
+    text-transform: uppercase;
+    line-height: 1.6;
     text-align: center;
+    /* Odstęp liter dokłada się też za ostatnią literą wiersza - bez wyrównania
+       wyśrodkowana nazwa stałaby o 2 px w lewo od osi logo. */
+    padding-left: 0.2em;
     max-width: 100%;
     display: -webkit-box;
     -webkit-line-clamp: 2;
