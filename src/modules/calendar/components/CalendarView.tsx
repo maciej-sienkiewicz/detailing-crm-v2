@@ -1983,6 +1983,22 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     }, []);
 
     /**
+     * Dni urlopu wskazane na siatce. Klik w siatkę należy do urlopu przez CAŁY
+     * przebieg (jest draft), a nie tylko w trybie zaznaczania.
+     *
+     * Zgłoszenie: Urlop → pracownik → klik w jeden dzień otwierał szybką rezerwację,
+     * a pod nią potwierdzenie urlopu. Jedno kliknięcie myszą FullCalendar zgłasza
+     * dwa razy - `select` i `dateClick`, z dwóch osobnych nasłuchów `mouseup` - a
+     * React przerenderowuje między nimi. Pierwsze ustawiało zakres, przez co
+     * `leaveMode` (liczony z BRAKU zakresu) gasł, i drugie szło już zwykłą ścieżką
+     * do QuickEventModal. Przeciągnięcie po kilku dniach daje samo `select`, dlatego
+     * błąd był tylko przy jednym dniu. Pierwszy zakres wygrywa.
+     */
+    const pickLeaveDays = useCallback((startDate: string, endDate: string) => {
+        setLeaveDraftRange(prev => prev ?? { startDate, endDate });
+    }, []);
+
+    /**
      * Menu zamyka się kliknięciem obok i Escape - jak każde menu rozwijane w aplikacji.
      *
      * Szukamy po atrybucie, a nie po ref: nagłówek telefonu i nagłówek pulpitu SIEDZĄ W DRZEWIE
@@ -2350,8 +2366,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
         const start = info.date;
         const end = new Date(start.getTime() + 60 * 60 * 1000);
-        if (leaveMode) {
-            setLeaveDraftRange({ startDate: toIsoDate(start), endDate: toIsoDate(start) });
+        if (leaveDraft) {
+            pickLeaveDays(toIsoDate(start), toIsoDate(start));
             return;
         }
         if (eventMode) {
@@ -2366,7 +2382,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         // nim stoi - nowa rezerwacja czeka w stopce listy. Dzień bez przepełnienia widać
         // w całości w komórce, więc tam dotknięcie dalej od razu zakłada rezerwację.
         openDayOrQuickEvent({ start, end, allDay: Boolean(info.allDay) }, info.view.type);
-    }, [eventMode, leaveMode, selectionMode, onRangeSelected, openDayOrQuickEvent]);
+    }, [eventMode, leaveDraft, pickLeaveDays, selectionMode, onRangeSelected, openDayOrQuickEvent]);
 
     /**
      * „+N" na telefonie otwiera tę samą listę dnia zamiast okienka FullCalendara.
@@ -2405,9 +2421,9 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
         // Zaznaczenie kończy się na początku kolejnego dnia - użytkownik wskazał
         // ostatni dzień, nie pierwszy wolny po nim.
-        if (leaveMode) {
+        if (leaveDraft) {
             const lastDay = new Date(range.end.getTime() - 1);
-            setLeaveDraftRange({ startDate: toIsoDate(range.start), endDate: toIsoDate(lastDay) });
+            pickLeaveDays(toIsoDate(range.start), toIsoDate(lastDay));
             return;
         }
         if (eventMode) {
@@ -2420,7 +2436,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
             return;
         }
         openDayOrQuickEvent(range, selectInfo.view.type);
-    }, [eventMode, leaveMode, selectionMode, onRangeSelected, openDayOrQuickEvent]);
+    }, [eventMode, leaveDraft, pickLeaveDays, selectionMode, onRangeSelected, openDayOrQuickEvent]);
 
     /**
      * Handle event click - Show popover with event summary
