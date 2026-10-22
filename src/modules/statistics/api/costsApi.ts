@@ -52,15 +52,15 @@ export const costsApi = {
 
     listExpenseItems: async (dateFrom?: string, dateTo?: string): Promise<CostExpenseItem[]> => {
         const params: Record<string, string> = { pageSize: '2000' };
-        if (dateFrom) params.dateFrom = dateFrom;
-        if (dateTo)   params.dateTo   = dateTo;
+        if (dateFrom) params.from = dateFrom;
+        if (dateTo)   params.to   = dateTo;
         const res = await apiClient.get<{ items: CostExpenseItem[] }>(`${BASE}/expense-items`, { params });
         return res.data.items;
     },
 
     getBreakdown: async (granularity: string, startDate: string, endDate: string): Promise<CostBreakdown> => {
         const res = await apiClient.get<CostBreakdown>(`${BASE}/breakdown`, {
-            params: { granularity, startDate, endDate },
+            params: { granularity, from: startDate, to: endDate },
         });
         return res.data;
     },

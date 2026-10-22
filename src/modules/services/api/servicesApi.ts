@@ -60,12 +60,13 @@ export const servicesApi = {
         if (!isCatalogServiceId(data.originalServiceId)) {
             throw new Error(`Usługa ${data.originalServiceId} nie jest zapisana w cenniku - nie można jej zaktualizować`);
         }
-        const response = await apiClient.post<ServiceDto>(`${BASE_PATH}/update`, data);
+        const { originalServiceId, ...version } = data;
+        const response = await apiClient.post<ServiceDto>(`${BASE_PATH}/${originalServiceId}/versions`, version);
         return toService(response.data);
     },
 
     archiveService: async (serviceId: string): Promise<void> => {
-        await apiClient.patch(`${BASE_PATH}/${serviceId}/archive`);
+        await apiClient.post(`${BASE_PATH}/${serviceId}/archive`);
     },
 
     createPackage: async (data: CreatePackageRequest): Promise<Service> => {
@@ -74,7 +75,8 @@ export const servicesApi = {
     },
 
     updatePackage: async (data: UpdatePackageRequest): Promise<Service> => {
-        const response = await apiClient.post<ServiceDto>(`${BASE_PATH}/packages/update`, data);
+        const { originalPackageId, ...version } = data;
+        const response = await apiClient.post<ServiceDto>(`${BASE_PATH}/packages/${originalPackageId}/versions`, version);
         return toService(response.data);
     },
 

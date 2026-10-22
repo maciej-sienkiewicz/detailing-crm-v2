@@ -23,8 +23,8 @@ export const incomeDocumentsApi = {
     });
     if (filters.documentType)  params.append('documentType',  filters.documentType);
     if (filters.paymentStatus) params.append('paymentStatus', filters.paymentStatus);
-    if (filters.dateFrom)      params.append('dateFrom',      filters.dateFrom);
-    if (filters.dateTo)        params.append('dateTo',        filters.dateTo);
+    if (filters.dateFrom)      params.append('from',      filters.dateFrom);
+    if (filters.dateTo)        params.append('to',        filters.dateTo);
     if (filters.search)        params.append('search',        filters.search);
     if (filters.onlyKsef)        params.append('onlyKsef',        'true');
     if (filters.includeExcluded) params.append('includeExcluded', 'true');
@@ -40,12 +40,12 @@ export const incomeDocumentsApi = {
    * ledger KSeF z dokumentami modułu finansowego.
    */
   exclude: async (sourceKind: IncomeSourceKind, id: string): Promise<void> => {
-    await apiClient.patch(`${BASE}/${sourceKind}/${id}/exclude`);
+    await apiClient.post(`${BASE}/${sourceKind}/${id}/exclude`);
   },
 
   /** Przywraca ukryty wcześniej dokument do statystyk i domyślnej listy. */
   restore: async (sourceKind: IncomeSourceKind, id: string): Promise<void> => {
-    await apiClient.patch(`${BASE}/${sourceKind}/${id}/restore`);
+    await apiClient.post(`${BASE}/${sourceKind}/${id}/restore`);
   },
 
   /**

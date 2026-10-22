@@ -197,7 +197,7 @@ export const vehicleApi = {
 
     getDeletedVisits: async (vehicleId: string): Promise<{ visits: Array<{ id: string; title?: string | null; description: string; date: string; customerName: string; status: string; totalCost: { grossAmount: number; currency: string } | null; deletedAt?: string | null }> }> => {
         const response = await apiClient.get(`${BASE_PATH}/${vehicleId}/visits`, {
-            params: { includeDeleted: true },
+            params: { deleted: 'only' },
         });
         return response.data;
     },

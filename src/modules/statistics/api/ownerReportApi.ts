@@ -58,7 +58,7 @@ export const ownerReportApi = {
     },
 
     downloadPdf: async (length: ReportLength, from: string, compare: ReportComparison): Promise<Blob> => {
-        const response = await apiClient.get(`${BASE}/pdf`, {
+        const response = await apiClient.get(`${BASE}/file`, {
             params: { length, from, compare },
             responseType: 'blob',
             // Błąd pokazujemy w oknie raportu, a nie drugi raz w toaście.

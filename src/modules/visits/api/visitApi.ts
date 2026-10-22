@@ -184,7 +184,7 @@ export const visitApi = {
         payload: ServicesChangesPayload
     ): Promise<void> => {
         await apiClient.patch(
-            `${BASE_PATH}/${visitId}/services/`,
+            `${BASE_PATH}/${visitId}/services`,
             payload
         );
     },
@@ -242,7 +242,7 @@ export const visitApi = {
      * w kalendarzu. Starszy backend odpowiadał 204 bez treści - wtedy jak dawniej.
      */
     cancelDraftVisit: async (visitId: string): Promise<{ reservationKept: boolean }> => {
-        const response = await apiClient.delete<{ reservationKept?: boolean } | ''>(`${BASE_PATH}/${visitId}/cancel`);
+        const response = await apiClient.post<{ reservationKept?: boolean } | ''>(`${BASE_PATH}/${visitId}/cancel`);
         const data = response.data;
         return { reservationKept: typeof data === 'object' && data !== null ? data.reservationKept !== false : true };
     },

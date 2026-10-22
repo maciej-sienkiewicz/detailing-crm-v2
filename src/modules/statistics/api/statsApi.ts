@@ -12,7 +12,7 @@ export const statsApi = {
     ): Promise<BreakdownStats> => {
         const response = await apiClient.get<BreakdownStats>(
             `${BASE_PATH}/breakdown`,
-            { params: { granularity, startDate, endDate } }
+            { params: { granularity, from: startDate, to: endDate } }
         );
         return response.data;
     },
@@ -25,7 +25,7 @@ export const statsApi = {
     ): Promise<CategoryStats> => {
         const response = await apiClient.get<CategoryStats>(
             `${BASE_PATH}/categories/${categoryId}`,
-            { params: { granularity, startDate, endDate } }
+            { params: { granularity, from: startDate, to: endDate } }
         );
         return response.data;
     },

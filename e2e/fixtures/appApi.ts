@@ -95,14 +95,14 @@ const responses = (options: Required<AppApiOptions>): Array<[RegExp, unknown]> =
         currentMonth: { grossAmount: 0, currency: 'PLN' }, previousMonth: { grossAmount: 0, currency: 'PLN' },
         deltaPercentage: 0, buckets: [],
     }],
-    [/^\/v1\/dashboard\/reservation-summary$/, { currentMonth: { count: 0 }, previousMonth: { count: 0 }, deltaPercentage: 0, buckets: [] }],
+    [/^\/v1\/dashboard\/appointment-summary$/, { currentMonth: { count: 0 }, previousMonth: { count: 0 }, deltaPercentage: 0, buckets: [] }],
     [/^\/v1\/dashboard\/hints$/, { hints: [] }],
     [/^\/v1\/tasks\/archive$/, { items: [], pagination: { total: 0, page: 1, pageSize: 20, totalPages: 1 } }],
     [/^\/v1\/tasks$/, []],
 
     // Kalendarz.
     [/^\/v1\/calendar\/events$/, { appointments: [], visits: [] }],
-    [/^\/v1\/calendar\/events-custom$/, []],
+    [/^\/v1\/calendar\/custom-events$/, []],
     [/^\/v1\/calendar\/door-to-door$/, []],
     [/^\/v1\/employees\/leaves\/calendar$/, []],
     [/^\/v1\/appointment-colors$/, { colors: [], pagination: { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: 100 } }],

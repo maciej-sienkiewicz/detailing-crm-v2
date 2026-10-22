@@ -52,6 +52,6 @@ export async function uploadSenderNameAuthDoc(file: File): Promise<SmsSenderName
 }
 
 export async function fetchSenderNameDocumentUrl(): Promise<string> {
-  const { data } = await apiClient.get<{ url: string }>('/v1/sms-campaigns/sender-name/document-url');
+  const { data } = await apiClient.get<{ url: string }>('/v1/sms-campaigns/sender-name/document/download-url');
   return data.url;
 }

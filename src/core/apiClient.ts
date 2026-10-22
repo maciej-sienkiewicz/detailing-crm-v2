@@ -76,8 +76,9 @@ apiClient.interceptors.response.use(
             const requestUrl = error.config?.url ?? '';
             // Public token-based pages must never bounce to /login
             const isPublicPath = isPublicAppPath(currentPath);
-            // PIN verification endpoints return 401 for wrong PIN; caller handles retries, don't bounce to /login
-            const isPinEndpoint = requestUrl.includes('/v1/pin');
+            // PIN verification endpoints return 401 for wrong PIN (switching) or wrong password
+            // (setting the own PIN); caller handles retries, don't bounce to /login
+            const isPinEndpoint = requestUrl.includes('/v1/pin') || requestUrl.includes('/v1/me/pin');
             // Background calls the user never made must not eject them from the app.
             const isBackgroundCall = error.config?.skipAuthRedirect === true;
 

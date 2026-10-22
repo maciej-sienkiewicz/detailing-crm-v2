@@ -71,6 +71,9 @@ for (const [path, budget] of Object.entries(COLD_LOAD_BUDGET)) {
         const calls = withoutAuthCheck(api.calls);
         expect(calls.length, describe(calls).join('\n')).toBeLessThanOrEqual(budget);
         expect(describe(api.calls.filter(call => !call.path.startsWith('/v1/'))), 'zapytanie spoza /api/v1').toEqual([]);
+        // Zakres dat to from/to, fraza to search, usunięte to deleted=only (P2-17).
+        const legacyParams = /[?&](dateFrom|dateTo|startDate|endDate|query|includeDeleted)=/;
+        expect(describe(api.calls.filter(call => legacyParams.test(call.search))), 'stara nazwa parametru').toEqual([]);
         // Liczniki menu to jedno GET /v1/me/badges - nie pięć osobnych zapytań.
         const counters = /\/(attention-count|pending-count|attendance-sheets)$/;
         expect(describe(calls.filter(call => counters.test(call.path)))).toEqual([]);

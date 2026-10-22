@@ -119,7 +119,7 @@ export async function stubVisitDetailApi(
                     subscriptionEndsAt: iso(30), trialEndsAt: null, trialUsed: true,
                 });
             }
-            if (path === '/v1/subscription/my-plan') {
+            if (path === '/v1/me/plan') {
                 return json(route, {
                     billingStatus: 'ACTIVE',
                     plan: { key: 'FULL', name: 'Pełny', monthlyPriceGrossCents: 29900 },
@@ -132,12 +132,10 @@ export async function stubVisitDetailApi(
                 return json(route, { features: [], addOns: [], billingStatus: 'ACTIVE' });
             }
 
-            // `visitApi` woła `/visits/...` (bez `/v1`), reszta modułów `/v1/...` -
-            // prefiks jest więc opcjonalny w dopasowaniu.
-            if (path === `/visits/${VISIT_ID}`) return json(route, { visit });
-            if (path === `/visits/${VISIT_ID}/documents`) return json(route, []);
-            if (path === `/visits/${VISIT_ID}/photos`) return json(route, { photos: [] });
-            if (path === `/visits/${VISIT_ID}/damage-map`) {
+            if (path === `/v1/visits/${VISIT_ID}`) return json(route, { visit });
+            if (path === `/v1/visits/${VISIT_ID}/documents`) return json(route, []);
+            if (path === `/v1/visits/${VISIT_ID}/photos`) return json(route, { photos: [] });
+            if (path === `/v1/visits/${VISIT_ID}/damage-map`) {
                 return json(route, { visitId: VISIT_ID, damageMap: null, updatedAt: null });
             }
             /*
@@ -147,7 +145,7 @@ export async function stubVisitDetailApi(
              */
             if (path.endsWith('/comments')) return json(route, []);
             if (path.endsWith('/communication')) return json(route, { visitId: VISIT_ID, entries: [] });
-            if (path.endsWith('/sms-reminder')) return json(route, []);
+            if (path.endsWith('/sms-reminders')) return json(route, []);
             if (path.endsWith('/products')) return json(route, []);
             // Licznik list obecności w menu (useAttendanceSheets) - bez tablicy
             // `sheets.filter is not a function` wywracał cały widok.

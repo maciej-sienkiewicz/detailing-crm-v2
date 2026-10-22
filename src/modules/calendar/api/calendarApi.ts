@@ -16,12 +16,6 @@ import type {
     DoorToDoorCalendarDay,
 } from '../types';
 
-/**
- * When true: single GET /v1/calendar/events request (new backend endpoint).
- * When false: legacy N-requests-per-status pattern.
- * Flip to true once the backend deploys the unified endpoint.
- */
-const USE_UNIFIED_CALENDAR_API = true;
 
 // ---------------------------------------------------------------------------
 // Helpers
@@ -210,8 +204,8 @@ const fetchUnified = async (
     signal?: AbortSignal,
 ): Promise<CalendarEventsResponse> => {
     const params: Record<string, string> = {
-        startDate: dateRange.start,
-        endDate: dateRange.end,
+        from: dateRange.start,
+        to: dateRange.end,
     };
 
     if (appointmentStatuses.length > 0) {
@@ -226,41 +220,6 @@ const fetchUnified = async (
 
     const response = await apiClient.get<CalendarEventsResponse>('/v1/calendar/events', { params, signal });
     return response.data;
-};
-
-/**
- * Legacy strategy: one request per status value.
- * Kept as fallback during backend migration.
- */
-const fetchLegacy = async (
-    dateRange: DateRange,
-    appointmentStatuses: AppointmentStatus[],
-    visitStatuses: VisitStatus[],
-    signal?: AbortSignal,
-): Promise<{ appointments: AppointmentResponse[]; visits: VisitResponse[] }> => {
-    const appointmentRequests = appointmentStatuses.map(status =>
-        apiClient.get<{ appointments: AppointmentResponse[] }>('/v1/appointments', {
-            params: { startDate: dateRange.start, endDate: dateRange.end, status },
-            signal,
-        })
-    );
-
-    const visitRequests = visitStatuses.map(status =>
-        apiClient.get<{ visits: VisitResponse[] }>('/v1/visits', {
-            params: { startDate: dateRange.start, endDate: dateRange.end, status },
-            signal,
-        })
-    );
-
-    const [appointmentResponses, visitResponses] = await Promise.all([
-        Promise.all(appointmentRequests),
-        Promise.all(visitRequests).catch(() => []),
-    ]);
-
-    return {
-        appointments: appointmentResponses.flatMap(r => r.data.appointments || []),
-        visits: (visitResponses as Awaited<(typeof visitRequests)[number]>[]).flatMap(r => r.data.visits || []),
-    };
 };
 
 // ---------------------------------------------------------------------------
@@ -283,9 +242,7 @@ export const calendarApi = {
             return [];
         }
 
-        const { appointments, visits } = USE_UNIFIED_CALENDAR_API
-            ? await fetchUnified(dateRange, appointmentStatuses, visitStatuses, colorIds, signal)
-            : await fetchLegacy(dateRange, appointmentStatuses, visitStatuses, signal);
+        const { appointments, visits } = await fetchUnified(dateRange, appointmentStatuses, visitStatuses, colorIds, signal);
 
         return [
             ...appointments.map(transformAppointment),

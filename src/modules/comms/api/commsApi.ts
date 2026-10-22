@@ -62,7 +62,7 @@ export const commsApi = {
         if (filters.onlyUnread) params.set('onlyUnread', 'true');
         if (filters.onlyLeads) params.set('onlyLeads', 'true');
         if (filters.folder) params.set('folder', filters.folder);
-        if (filters.query) params.set('query', filters.query);
+        if (filters.query) params.set('search', filters.query);
         params.set('page', String(filters.page ?? 0));
         params.set('pageSize', String(filters.pageSize ?? 30));
         const { data } = await apiClient.get(`/v1/comms/threads?${params}`, { signal });
@@ -165,7 +165,7 @@ export const commsApi = {
     },
 
     setThreadArchived: async (threadId: string, archived: boolean): Promise<void> => {
-        await apiClient.put(`/v1/comms/threads/${threadId}/archive`, { archived });
+        await apiClient.post(`/v1/comms/threads/${threadId}/${archived ? 'archive' : 'restore'}`);
     },
 
 

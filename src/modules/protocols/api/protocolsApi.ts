@@ -147,9 +147,7 @@ class ProtocolsApi {
   }
 
   async generateVisitProtocols(visitId: string, stage: 'CHECK_IN' | 'CHECK_OUT' = 'CHECK_IN'): Promise<VisitProtocol[]> {
-    const response = await apiClient.post<VisitProtocol[]>(
-      `/v1/visits/${visitId}/protocols/generate?stage=${stage}`
-    );
+    const response = await apiClient.post<VisitProtocol[]>(`/v1/visits/${visitId}/protocols`, { stage });
     return response.data;
   }
 }

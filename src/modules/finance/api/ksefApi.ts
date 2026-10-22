@@ -99,8 +99,8 @@ export const ksefApi = {
     if (filters.source)          params.append('source',          filters.source);
     if (filters.paymentStatus)   params.append('paymentStatus',   filters.paymentStatus);
     if (filters.documentKind)    params.append('documentKind',    filters.documentKind);
-    if (filters.dateFrom)        params.append('dateFrom',        filters.dateFrom);
-    if (filters.dateTo)          params.append('dateTo',          filters.dateTo);
+    if (filters.dateFrom)        params.append('from',        filters.dateFrom);
+    if (filters.dateTo)          params.append('to',          filters.dateTo);
     if (filters.includeExcluded) params.append('includeExcluded', 'true');
     if (filters.onlyExcluded)    params.append('onlyExcluded',    'true');
     if (filters.search)          params.append('search',          filters.search);
@@ -129,11 +129,11 @@ export const ksefApi = {
   },
 
   excludeExpense: async (id: string): Promise<void> => {
-    await apiClient.patch(`${BASE}/expenses/${id}/exclude`);
+    await apiClient.post(`${BASE}/expenses/${id}/exclude`);
   },
 
   restoreExpense: async (id: string): Promise<void> => {
-    await apiClient.patch(`${BASE}/expenses/${id}/restore`);
+    await apiClient.post(`${BASE}/expenses/${id}/restore`);
   },
 
   updateExpensePaymentStatus: async (

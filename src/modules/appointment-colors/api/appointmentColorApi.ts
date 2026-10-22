@@ -66,9 +66,8 @@ export const appointmentColorApi = {
 
     /** Archiwalny kolor znika z list wyboru, ale wizyty zachowują swoje oznaczenie. */
     setArchived: async (id: string, archived: boolean): Promise<AppointmentColor> => {
-        const response = await apiClient.put<AppointmentColor>(
-            `/v1/appointment-colors/${id}/archived`,
-            { archived }
+        const response = await apiClient.post<AppointmentColor>(
+            `/v1/appointment-colors/${id}/${archived ? 'archive' : 'restore'}`
         );
         return response.data;
     },

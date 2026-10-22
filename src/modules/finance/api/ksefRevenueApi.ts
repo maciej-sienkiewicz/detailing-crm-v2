@@ -55,8 +55,8 @@ export const ksefRevenueApi = {
     if (filters.source)          params.append('source',          filters.source);
     if (filters.ksefStatus)      params.append('ksefStatus',      filters.ksefStatus);
     if (filters.duplicateStatus) params.append('duplicateStatus', filters.duplicateStatus);
-    if (filters.dateFrom)        params.append('dateFrom',        filters.dateFrom);
-    if (filters.dateTo)          params.append('dateTo',          filters.dateTo);
+    if (filters.dateFrom)        params.append('from',        filters.dateFrom);
+    if (filters.dateTo)          params.append('to',          filters.dateTo);
     const response = await apiClient.get(`${BASE}/invoices?${params}`);
     return response.data;
   },
@@ -83,7 +83,7 @@ export const ksefRevenueApi = {
   openInvoicePdf: async (id: string): Promise<void> => {
     const tab = window.open('', '_blank');
     try {
-      const response = await apiClient.get(`${BASE}/invoices/${id}/pdf`, { responseType: 'blob' });
+      const response = await apiClient.get(`${BASE}/invoices/${id}/file`, { responseType: 'blob' });
       const blobUrl = URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
       if (tab) tab.location.href = blobUrl;
       else window.open(blobUrl, '_blank');

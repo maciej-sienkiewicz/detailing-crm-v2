@@ -9,7 +9,7 @@ export interface SendLinkResult {
     expiresAt: string;
 }
 
-const BASE = '/v1/profile';
+const BASE = '/v1/me';
 
 export const profileApi = {
     getSignature: async (): Promise<SignatureStatus> => {

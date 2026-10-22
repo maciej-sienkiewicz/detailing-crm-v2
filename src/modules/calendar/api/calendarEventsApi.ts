@@ -6,7 +6,7 @@
 import { apiClient } from '@/core';
 import type { StudioCalendarEvent, StudioCalendarEventPayload } from '../types';
 
-const BASE_PATH = '/v1/calendar/events-custom';
+const BASE_PATH = '/v1/calendar/custom-events';
 
 export const calendarEventsApi = {
     /** Wydarzenia zahaczające o zakres - także te zaczęte przed jego początkiem. */

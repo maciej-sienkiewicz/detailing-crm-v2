@@ -1,7 +1,7 @@
 import { apiClient } from '@/core/apiClient';
 import type { BackgroundRequestConfig } from '@/core/backgroundRequest';
 
-const BASE_PATH = '/v1/my/tasks';
+const BASE_PATH = '/v1/me/tasks';
 
 /** Task visible to the authenticated user, with a per-user unread flag. */
 export interface MyTask {
@@ -39,11 +39,11 @@ export const myTasksApi = {
     },
 
     markAllRead: async (): Promise<MyTasksSummary> => {
-        const { data } = await apiClient.post<MyTasksSummary>(`${BASE_PATH}/mark-read`);
+        const { data } = await apiClient.post<MyTasksSummary>(`${BASE_PATH}/read`);
         return data;
     },
 
     setDone: async (taskId: string, done: boolean): Promise<void> => {
-        await apiClient.patch(`${BASE_PATH}/${taskId}/done`, { done });
+        await apiClient.post(`${BASE_PATH}/${taskId}/${done ? 'complete' : 'reopen'}`);
     },
 };

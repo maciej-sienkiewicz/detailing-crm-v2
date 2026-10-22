@@ -43,7 +43,7 @@ export const checkinApi = {
         payload: ReservationToVisitPayload
     ): Promise<CreateVisitFromReservationResponse> => {
         const response = await apiClient.post(
-            `${BASE_PATH}/reservation-to-visit`,
+            `${BASE_PATH}/appointment-to-visit`,
             { ...payload, damagePoints: toDamagePointsPayload(payload.damagePoints) }
         );
         return response.data;

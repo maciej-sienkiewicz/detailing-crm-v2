@@ -59,6 +59,6 @@ export const rolesApi = {
     },
 
     assignRole: async (userId: string, roleId: string | null): Promise<void> => {
-        await apiClient.put(`${BASE}/assign/${userId}`, { roleId });
+        await apiClient.put(`/v1/users/${userId}/role`, { roleId });
     },
 };

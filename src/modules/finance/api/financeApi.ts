@@ -65,8 +65,8 @@ export const financeApi = {
     filters: CashHistoryFilters = {},
   ): Promise<CashHistoryResponse> => {
     const params = new URLSearchParams({ page: String(page), size: String(pageSize) });
-    if (filters.dateFrom)  params.append('dateFrom',  filters.dateFrom);
-    if (filters.dateTo)    params.append('dateTo',    filters.dateTo);
+    if (filters.dateFrom)  params.append('from',  filters.dateFrom);
+    if (filters.dateTo)    params.append('to',    filters.dateTo);
     if (filters.direction) params.append('direction', filters.direction);
     const response = await apiClient.get(`${BASE}/cash/history?${params}`);
     return response.data;
@@ -81,8 +81,8 @@ export const financeApi = {
 
   getSummary: async (dateFrom?: string, dateTo?: string): Promise<FinanceSummary> => {
     const params = new URLSearchParams();
-    if (dateFrom) params.append('dateFrom', dateFrom);
-    if (dateTo)   params.append('dateTo',   dateTo);
+    if (dateFrom) params.append('from', dateFrom);
+    if (dateTo)   params.append('to',   dateTo);
     const qs = params.toString();
     const response = await apiClient.get(`${BASE}/summary${qs ? '?' + qs : ''}`);
     return response.data;
@@ -92,8 +92,8 @@ export const financeApi = {
 
   getPaymentMethodReport: async (params: PaymentMethodReportParams): Promise<PaymentMethodReport> => {
     const p = new URLSearchParams({ granularity: params.granularity });
-    if (params.dateFrom)     p.append('dateFrom',     params.dateFrom);
-    if (params.dateTo)       p.append('dateTo',       params.dateTo);
+    if (params.dateFrom)     p.append('from',     params.dateFrom);
+    if (params.dateTo)       p.append('to',       params.dateTo);
     if (params.documentType) p.append('documentType', params.documentType);
     const response = await apiClient.get(`${BASE}/payment-method-report?${p}`);
     return response.data;

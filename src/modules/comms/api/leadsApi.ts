@@ -42,7 +42,7 @@ export const leadsApi = {
         const params = new URLSearchParams();
         const statuses = filters.status === undefined ? [] : ([] as LeadStatus[]).concat(filters.status);
         if (statuses.length) params.set('status', statuses.join(','));
-        if (filters.query) params.set('query', filters.query);
+        if (filters.query) params.set('search', filters.query);
         if (filters.awaitingReply) params.set('awaitingReply', 'true');
         if (filters.sortDirection) params.set('sortDirection', filters.sortDirection);
         params.set('page', String(filters.page ?? 0));
@@ -151,7 +151,7 @@ export const leadsApi = {
         leadId: string,
         request: { status: LeadStatus; lostReasonCode?: string; lostNote?: string }
     ): Promise<Lead> => {
-        const { data } = await apiClient.put(`/v1/leads/${leadId}/status`, request, {
+        const { data } = await apiClient.patch(`/v1/leads/${leadId}/status`, request, {
             skipErrorToast: true,
         });
         return data;

@@ -120,7 +120,7 @@ export const customerDetailApi = {
                 params: {
                     customerId,
                     visitStatuses: 'IN_PROGRESS,READY_FOR_PICKUP,COMPLETED,REJECTED,ARCHIVED',
-                    includeDeleted: true,
+                    deleted: 'only',
                 },
             }
         );

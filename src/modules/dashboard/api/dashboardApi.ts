@@ -30,7 +30,7 @@ export const dashboardApi = {
 
   getReservationSummary: async (months = 12): Promise<DashboardReservationSummary> => {
     const response = await apiClient.get<DashboardReservationSummary>(
-      '/v1/dashboard/reservation-summary',
+      '/v1/dashboard/appointment-summary',
       { params: { months } },
     );
     return response.data;
@@ -50,8 +50,8 @@ export const dashboardApi = {
       '/v1/calendar/events',
       {
         params: {
-          startDate,
-          endDate,
+          from: startDate,
+          to: endDate,
           appointmentStatuses: 'CREATED',
           visitStatuses: 'IN_PROGRESS,READY_FOR_PICKUP',
           // Najbliższe N z wizyt i rezerwacji razem - serwer tnie przed dociąganiem klientów.

@@ -6,12 +6,12 @@ const BASE = '/v1/pin';
 
 export const pinApi = {
     getMyStatus: async (): Promise<PinStatusResponse> => {
-        const res = await apiClient.get<PinStatusResponse>(`${BASE}/my-status`);
+        const res = await apiClient.get<PinStatusResponse>('/v1/me/pin');
         return res.data;
     },
 
     setPin: async (data: SetPinRequest): Promise<void> => {
-        await apiClient.post(`${BASE}/set`, data);
+        await apiClient.put('/v1/me/pin', data);
     },
 
     getStudioProfiles: async (): Promise<StudioProfile[]> => {

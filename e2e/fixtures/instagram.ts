@@ -56,7 +56,7 @@ export async function stubInstagramApi(context: BrowserContext): Promise<void> {
                     subscriptionEndsAt: iso(30), trialEndsAt: null, trialUsed: true,
                 });
             }
-            if (path === '/v1/subscription/my-plan') {
+            if (path === '/v1/me/plan') {
                 return json(route, {
                     billingStatus: 'ACTIVE',
                     plan: { key: 'FULL', name: 'Pełny', monthlyPriceGrossCents: 29900 },

@@ -26,16 +26,17 @@ describe('servicesApi.updateService - tylko usługi z cennika', () => {
         expect(post).not.toHaveBeenCalled();
     });
 
-    it('usługa z cennika idzie do /update z dokładną parą netto/brutto', async () => {
+    it('usługa z cennika idzie do /{id}/versions z dokładną parą netto/brutto', async () => {
         post.mockResolvedValue({ data: { id: 'new-id' } });
         const id = '3f2b8c1e-9a4d-4e7b-b0de-1c2d3e4f5a6b';
 
         await servicesApi.updateService(request(id));
 
-        expect(post).toHaveBeenCalledWith('/v1/services/update', expect.objectContaining({
-            originalServiceId: id,
+        expect(post).toHaveBeenCalledWith(`/v1/services/${id}/versions`, expect.objectContaining({
             basePriceNet: 73_171,
             basePriceGross: 90_000,
         }));
+        // Usługę wskazuje ścieżka - identyfikator nie jest powtarzany w treści.
+        expect(post.mock.calls[0][1]).not.toHaveProperty('originalServiceId');
     });
 });

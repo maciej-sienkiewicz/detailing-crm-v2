@@ -201,17 +201,18 @@ const mapVisitToOperation = (visit: VisitResponse): Operation => {
 
 export const operationApi = {
     getOperations: async (filters: OperationFilters, signal?: AbortSignal): Promise<OperationListResponse> => {
-        // Usunięte wizyty - osobny endpoint
+        // Usunięte wizyty - ta sama lista wizyt z filtrem `deleted=only`
         if (filters.deleted) {
             const params = new URLSearchParams({
                 page: filters.page.toString(),
                 size: filters.limit.toString(),
+                deleted: 'only',
             });
             if (filters.search) params.append('search', filters.search);
             if (filters.scheduledDate) params.append('scheduledDate', filters.scheduledDate);
 
             const response = await apiClient.get<VisitsListResponse>(
-                `/v1/visits/deleted?${params.toString()}`
+                `/v1/visits?${params.toString()}`
             );
 
             const p = response.data.pagination as any;
@@ -240,8 +241,8 @@ export const operationApi = {
             if (filters.status) params.append('status', filters.status);
             if (filters.search?.trim()) params.append('search', filters.search.trim());
             if (filters.scheduledDate) params.append('scheduledDate', filters.scheduledDate);
-            if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
-            if (filters.dateTo) params.append('dateTo', filters.dateTo);
+            if (filters.dateFrom) params.append('from', filters.dateFrom);
+            if (filters.dateTo) params.append('to', filters.dateTo);
             if (filters.minAmount != null) params.append('minAmount', filters.minAmount.toString());
             if (filters.maxAmount != null) params.append('maxAmount', filters.maxAmount.toString());
             if (filters.serviceCountMin != null) params.append('serviceCountMin', filters.serviceCountMin.toString());
@@ -317,8 +318,8 @@ export const operationApi = {
         if (filters.status) params.append('visitStatus', filters.status);
         if (filters.search?.trim()) params.append('search', filters.search.trim());
         if (filters.scheduledDate) params.append('scheduledDate', filters.scheduledDate);
-        if (filters.dateFrom) params.append('dateFrom', filters.dateFrom);
-        if (filters.dateTo) params.append('dateTo', filters.dateTo);
+        if (filters.dateFrom) params.append('from', filters.dateFrom);
+        if (filters.dateTo) params.append('to', filters.dateTo);
         if (filters.minAmount != null) params.append('minAmount', filters.minAmount.toString());
         if (filters.maxAmount != null) params.append('maxAmount', filters.maxAmount.toString());
         if (filters.serviceCountMin != null) params.append('serviceCountMin', filters.serviceCountMin.toString());

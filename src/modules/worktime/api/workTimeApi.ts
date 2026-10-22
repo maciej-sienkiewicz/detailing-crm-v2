@@ -1,7 +1,7 @@
 import { apiClient } from '@/core';
 import type { PeriodDetail, PeriodSummary, WorkTimeEntry, UpsertEntryRequest } from '../types';
 
-const BASE = '/v1/my/worktime';
+const BASE = '/v1/me/worktime';
 
 export const workTimeApi = {
     listPeriods: async (): Promise<PeriodSummary[]> => {

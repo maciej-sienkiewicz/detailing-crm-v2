@@ -3,7 +3,7 @@
 // Wnioski urlopowe. Kontrakt: docs/api-leave-requests.md - nazwy pól 1:1.
 //
 // Dwie strony tego samego dokumentu:
-//   - samoobsługa pracownika (`/v1/my/leave-requests`) - pracownik ustalany z sesji,
+//   - samoobsługa pracownika (`/v1/me/leave-requests`) - pracownik ustalany z sesji,
 //     w ścieżce nie ma employeeId, więc nie da się złożyć wniosku za kogoś;
 //   - rozpatrywanie (`/v1/leave-requests`) - właściciel albo EMPLOYEES_LEAVES_APPROVE.
 //     Tu mieszka też urlop dodany przez administratora (v2, `origin: ON_BEHALF`):
@@ -31,7 +31,7 @@ import type {
     SubmitLeaveRequestPayload,
 } from '../types';
 
-const MY = '/v1/my/leave-requests';
+const MY = '/v1/me/leave-requests';
 const QUEUE = '/v1/leave-requests';
 
 /** Dokładne bajty PDF do podpisu i ich skrót z nagłówka (WYSIWYS). */

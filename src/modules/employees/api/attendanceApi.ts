@@ -76,7 +76,7 @@ export const attendanceApi = {
      */
     generateAttendanceSheet: async (period: string, employeeIds: string[]): Promise<AttendanceSheet> => {
         const response = await apiClient.post<AttendanceSheet>(
-            `${BASE}/attendance-sheet`,
+            `${BASE}/attendance-sheets`,
             { period, employeeIds },
             { skipErrorToast: true },
         );
@@ -90,7 +90,7 @@ export const attendanceApi = {
      */
     approveAttendanceSheet: async (sheetId: string, signatureImage: string | null): Promise<AttendanceSheet> => {
         const response = await apiClient.post<AttendanceSheet>(
-            `${BASE}/attendance-sheet/${sheetId}/approve`,
+            `${BASE}/attendance-sheets/${sheetId}/approve`,
             { signatureImage },
         );
         return response.data;
@@ -98,7 +98,7 @@ export const attendanceApi = {
 
     /** Czym można poprosić o podpis: sparowane tablety studia i własny numer (zamaskowany). */
     getSigningOptions: async (): Promise<AttendanceSigningOptions> => {
-        const response = await apiClient.get<AttendanceSigningOptions>(`${BASE}/attendance-sheet/signing-options`);
+        const response = await apiClient.get<AttendanceSigningOptions>(`${BASE}/attendance-sheets/signing-options`);
         return response.data;
     },
 
@@ -113,7 +113,7 @@ export const attendanceApi = {
         tabletId?: string,
     ): Promise<AttendanceSignatureRequest> => {
         const response = await apiClient.post<AttendanceSignatureRequest>(
-            `${BASE}/attendance-sheet/${sheetId}/signature-requests`,
+            `${BASE}/attendance-sheets/${sheetId}/signature-requests`,
             { channel, tabletId: tabletId ?? null },
             { skipErrorToast: true },
         );
@@ -123,23 +123,23 @@ export const attendanceApi = {
     /** Najnowsza prośba o podpis tej listy (także zakończona); null, gdy nie było żadnej. */
     getLatestRemoteSignature: async (sheetId: string, config?: BackgroundRequestConfig): Promise<AttendanceSignatureRequest | null> => {
         const response = await apiClient.get<AttendanceSignatureRequest>(
-            `${BASE}/attendance-sheet/${sheetId}/signature-request`,
+            `${BASE}/attendance-sheets/${sheetId}/signature-requests/latest`,
             config,
         );
         return response.status === 204 ? null : response.data;
     },
 
     cancelRemoteSignature: async (sheetId: string): Promise<void> => {
-        await apiClient.delete(`${BASE}/attendance-sheet/${sheetId}/signature-request`);
+        await apiClient.post(`${BASE}/attendance-sheets/${sheetId}/signature-requests/cancel`);
     },
 
     deleteAttendanceSheet: async (sheetId: string): Promise<void> => {
-        await apiClient.delete(`${BASE}/attendance-sheet/${sheetId}`);
+        await apiClient.delete(`${BASE}/attendance-sheets/${sheetId}`);
     },
 
     /** Plik arkusza - podpisany, jeśli podpis już złożono. */
     downloadAttendanceSheet: async (sheetId: string): Promise<Blob> => {
-        const response = await apiClient.get(`${BASE}/attendance-sheet/${sheetId}/file`, {
+        const response = await apiClient.get(`${BASE}/attendance-sheets/${sheetId}/file`, {
             responseType: 'blob',
             skipErrorToast: true,
         });

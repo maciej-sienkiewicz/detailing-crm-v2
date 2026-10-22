@@ -28,7 +28,7 @@ export const newSubscriptionApi = {
 
     // ── My plan ─────────────────────────────────────────────────────────────────
     getMyPlan: async (): Promise<MyPlanResponse> => {
-        const res = await apiClient.get<MyPlanResponse>(`${BASE}/my-plan`);
+        const res = await apiClient.get<MyPlanResponse>('/v1/me/plan');
         return res.data;
     },
 
