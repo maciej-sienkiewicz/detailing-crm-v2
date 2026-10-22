@@ -214,22 +214,30 @@ function collectAllTags(photos: NormalisedPhoto[]): string[] {
 /**
  * Co pobrać w tle, gdy otwarte jest zdjęcie [index]: sąsiedzi, do których prowadzi
  * strzałka. Najpierw miniatury (małe, a siatka z loading="lazy" mogła ich jeszcze nie
- * pobrać, gdy jest zwinięta), potem oryginały - następne przed poprzednim, bo
+ * pobrać, gdy jest zwinięta), potem podglądy - następny przed poprzednim, bo
  * przegląda się zwykle do przodu.
+ *
+ * Podglądy, nie oryginały: dwa oryginały sąsiadów (po kilka MB) pobierane w tle
+ * dzieliły łącze z otwartym zdjęciem, a każda kolejna strzałka dokładała następne
+ * do kolejki - przeglądanie zwalniało tym bardziej, im szybciej się klikało.
  */
 function neighbourUrls(photos: NormalisedPhoto[], index: number | null): string[] {
     if (index === null) return [];
     const neighbours = [photos[index + 1], photos[index - 1]].filter(
         (p): p is NormalisedPhoto => p !== undefined,
     );
-    return [...neighbours.map(p => p.fileUrl), ...neighbours.map(p => p.fullSizeUrl)];
+    return [...neighbours.map(p => p.fileUrl), ...neighbours.map(p => p.previewUrl)];
 }
 
 // Normalised shape used only inside this component
 interface NormalisedPhoto {
     id: string;
     fileName: string;
+    /** Miniatura do siatki. */
     fileUrl: string;
+    /** To, co pokazuje okno podglądu. */
+    previewUrl: string;
+    /** Oryginał - tylko do pobrania. */
     fullSizeUrl: string;
     uploadedAt: string;
     description?: string;
@@ -297,6 +305,7 @@ export const DocumentGallery = ({
             id: vp.id,
             fileName: vp.fileName,
             fileUrl: vp.thumbnailUrl,
+            previewUrl: vp.previewUrl ?? vp.fullSizeUrl,
             fullSizeUrl: vp.fullSizeUrl,
             uploadedAt: vp.uploadedAt,
             description: vp.description,
@@ -307,6 +316,7 @@ export const DocumentGallery = ({
             id: p.id,
             fileName: p.fileName,
             fileUrl: p.fileUrl,
+            previewUrl: p.fileUrl,
             fullSizeUrl: p.fileUrl,
             uploadedAt: p.uploadedAt,
             description: undefined,
@@ -539,7 +549,7 @@ export const DocumentGallery = ({
             {/* Photo viewer */}
             {selectedPhoto && (
                 <ImageViewerModal
-                    imageUrl={selectedPhoto.fullSizeUrl}
+                    imageUrl={selectedPhoto.previewUrl}
                     imageName={selectedPhoto.fileName}
                     isOpen={selectedPhotoIndex !== null}
                     onClose={handleCloseModal}

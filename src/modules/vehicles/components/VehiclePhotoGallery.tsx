@@ -7,6 +7,10 @@
 // nie da się tu usunąć (należy do wizyty), a jej numer stoi w podpisie przeglądarki. Kliknięcie
 // otwiera przeglądarkę z poprzednim i następnym zdjęciem zamiast nowej karty
 // przeglądarki, a usunięcie pyta oknem potwierdzenia, nie systemowym `confirm`.
+//
+// Przeglądarka jest ta sama co w wizycie: po strzałce od razu miniatura, na nią podgląd
+// (~2048 px), a sąsiedzi pobierają się w tle. Wcześniej stało tu okno z modułu klientów,
+// które ładowało oryginał z aparatu (3-10 MB) i do jego pobrania pokazywało poprzednie zdjęcie.
 
 import { useState } from 'react';
 import styled from 'styled-components';
@@ -14,7 +18,7 @@ import { ChevronLeft, ChevronRight, ChevronUp, Download, ImagePlus, Trash2 } fro
 import type { VehiclePhoto } from '../types';
 import { useVehiclePhotoGallery, useDeleteVehiclePhoto } from '../hooks';
 import { UploadPhotoModal } from './UploadPhotoModal';
-import { ImageViewerModal } from '@/modules/customers/components/ImageViewerModal';
+import { ImageViewerModal } from '@/modules/visits/components/ImageViewerModal';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useContainerWidth } from '@/common/hooks';
 import { Button, Panel, PanelActions, PanelBody, PanelHead, SectionTitle, ui } from '@/common/components/ui';
@@ -124,6 +128,19 @@ const photosWord = (n: number) => {
     return u >= 2 && u <= 4 && (t < 12 || t > 14) ? 'zdjęcia' : 'zdjęć';
 };
 
+/** Co pokazuje okno podglądu: podgląd, a bez niego (starszy serwer) oryginał. */
+const viewerUrl = (photo: VehiclePhoto) => photo.previewUrl || photo.fullSizeUrl || photo.photoUrl;
+
+/**
+ * Co pobrać w tle przy otwartym zdjęciu [index]: najpierw miniatury sąsiadów, potem ich
+ * podglądy - następne przed poprzednim. Nigdy oryginały: kilka MB każdy dzieliłoby łącze
+ * z otwartym zdjęciem (patrz `neighbourUrls` w galerii wizyty).
+ */
+const neighbourUrls = (photos: VehiclePhoto[], index: number): string[] => {
+    const neighbours = [photos[index + 1], photos[index - 1]].filter((p): p is VehiclePhoto => p !== undefined);
+    return [...neighbours.map(p => p.thumbnailUrl), ...neighbours.map(viewerUrl)];
+};
+
 interface Props {
     vehicleId: string;
     readOnly?: boolean;
@@ -224,7 +241,10 @@ export const VehiclePhotoGallery = ({ vehicleId, readOnly, id }: Props) => {
                 <ImageViewerModal
                     isOpen
                     onClose={() => setViewerIndex(null)}
-                    imageUrl={current.fullSizeUrl || current.photoUrl}
+                    imageUrl={viewerUrl(current)}
+                    previewUrl={current.thumbnailUrl}
+                    preloadUrls={neighbourUrls(photos, viewerIndex!)}
+                    position={{ index: viewerIndex! + 1, total: photos.length }}
                     imageName={[current.visitNumber ? `Wizyta ${current.visitNumber}` : null, current.description || current.fileName].filter(Boolean).join(': ')}
                     hasNext={viewerIndex! < photos.length - 1}
                     hasPrev={viewerIndex! > 0}

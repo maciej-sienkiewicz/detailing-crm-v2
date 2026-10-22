@@ -192,6 +192,13 @@ export interface VehiclePhoto {
     fileName: string;
     photoUrl: string;
     thumbnailUrl: string;
+    /**
+     * Podgląd (~2048 px, kilkaset KB) do okna podglądu; oryginał, dopóki backend go nie
+     * wygeneruje. Opcjonalny, bo serwer sprzed tego pola go nie zwraca - wtedy okno
+     * bierze `fullSizeUrl`.
+     */
+    previewUrl?: string;
+    /** Oryginał z aparatu (często kilka MB) - tylko do pobrania. */
     fullSizeUrl: string;
     description: string;
     capturedAt?: string;

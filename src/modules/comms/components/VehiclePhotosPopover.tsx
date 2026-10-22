@@ -9,14 +9,18 @@
 // mówią, że jest ich więcej, zanim ktokolwiek zacznie szukać, gdzie kliknąć.
 //
 // Szybkość rozwiązana dwuetapowo: najpierw pokazujemy MINIATURĘ (jest w odpowiedzi
-// i waży tyle co nic), a pełny plik podmienia ją dopiero, gdy się doczyta. Dzięki
-// temu chmurka pojawia się natychmiast i nie zostaje rozmyta.
+// i waży tyle co nic), a podgląd (~2048 px) podmienia ją dopiero, gdy się doczyta. Dzięki
+// temu chmurka pojawia się natychmiast i nie zostaje rozmyta. Podgląd, nie oryginał:
+// oryginał z aparatu waży 3-10 MB i w chmurce szerokiej na kilkaset pikseli wyglądał
+// tak samo, tylko doczytywał się kilka sekund. Oryginał zostaje pod „Pełny rozmiar".
 import { useCallback, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { useQuery } from '@tanstack/react-query';
 import styled from 'styled-components';
 import { ChevronLeft, ChevronRight, X } from 'lucide-react';
 import { vehicleApi } from '@/modules/vehicles/api/vehicleApi';
+import type { VehiclePhoto } from '@/modules/vehicles/types';
+import { preloadImage } from '@/common/components/ProgressiveImage';
 import { applyFloatingPlacement } from '@/common/utils/floatingPlacement';
 
 const CARD_WIDTH = 380;
@@ -191,6 +195,9 @@ interface VehiclePhotosPopoverProps {
 /** Ile zdjęć wciągamy. Podgląd, nie galeria - pełna jest w kartotece pojazdu. */
 const PHOTO_LIMIT = 12;
 
+/** Co pokazuje chmurka: podgląd, a bez niego (starszy serwer) oryginał. */
+const stageUrl = (photo: VehiclePhoto) => photo.previewUrl || photo.fullSizeUrl;
+
 /** Powyżej tylu zdjęć kropki przestają być czytelne i zamieniają się w licznik. */
 const MAX_DOTS = 10;
 
@@ -209,6 +216,15 @@ export function VehiclePhotosPopover({ vehicleId, label, anchor, onClose }: Vehi
     const photos = data?.items ?? [];
     const total = data?.page.totalItems ?? photos.length;
     const current = photos[Math.min(index, Math.max(0, photos.length - 1))];
+
+    // Sąsiedzi, do których prowadzi strzałka, pobierają się w tle - następny przed
+    // poprzednim. Miniatury już są (siedzą w odpowiedzi jako podkład), więc tylko podglądy.
+    const nextUrl = photos[index + 1] ? stageUrl(photos[index + 1]) : '';
+    const prevUrl = photos[index - 1] ? stageUrl(photos[index - 1]) : '';
+    useEffect(() => {
+        preloadImage(nextUrl);
+        preloadImage(prevUrl);
+    }, [nextUrl, prevUrl]);
 
     const go = useCallback(
         (delta: number) => {
@@ -314,7 +330,7 @@ export function VehiclePhotosPopover({ vehicleId, label, anchor, onClose }: Vehi
                         <img
                             key={current.id}
                             className={`full${loaded[current.id] ? ' ready' : ''}`}
-                            src={current.fullSizeUrl}
+                            src={stageUrl(current)}
                             alt={current.description || current.fileName}
                             decoding="async"
                             onLoad={() => setLoaded((state) => ({ ...state, [current.id]: true }))}
