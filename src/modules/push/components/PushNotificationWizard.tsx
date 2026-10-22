@@ -47,7 +47,7 @@ function pairingErrorMessage(error: unknown, platform: PushPlatform): string {
     const code = error instanceof Error ? error.message : '';
     if (code === 'permission-denied') {
         return platform.kind === 'ios-app'
-            ? 'Powiadomienia są zablokowane. Włącz je w Ustawieniach iPhone’a → Powiadomienia → ta aplikacja.'
+            ? 'Powiadomienia są zablokowane. Włącz je w Ustawieniach iPhone’a → Powiadomienia → aplikacja z nazwą studia.'
             : 'Powiadomienia są zablokowane. Odblokuj je w ustawieniach przeglądarki dla tej strony.';
     }
     if (code === 'sw-unavailable') {
@@ -118,7 +118,7 @@ function InstallStage({ platform, onDismiss }: {
     platform: Extract<PushPlatform, { kind: 'ios-install' }>;
     onDismiss?: () => void;
 }) {
-    const deviceName = platform.device === 'ipad' ? 'iPad' : 'iPhone';
+    const deviceWhere = platform.device === 'ipad' ? 'iPadzie' : 'iPhonie';
     const shareWhere =
         platform.browser === 'chrome' ? 'w pasku adresu Chrome'
             : platform.browser === 'edge' ? 'w menu Edge'
@@ -130,8 +130,8 @@ function InstallStage({ platform, onDismiss }: {
             <Lead>
                 <Title>Najpierw dodaj CRM do ekranu początkowego</Title>
                 <Text>
-                    {deviceName} pozwala na powiadomienia tylko aplikacjom z ekranu początkowego.
-                    Robisz to raz, zajmie to pół minuty.
+                    Na {deviceWhere} powiadomienia działają tylko w aplikacjach z ekranu początkowego.
+                    Ten krok robisz tylko raz.
                 </Text>
             </Lead>
 
@@ -142,7 +142,7 @@ function InstallStage({ platform, onDismiss }: {
                         Dotknij <Glyph><IosShareIcon /></Glyph> <strong>Udostępnij</strong> {shareWhere}.
                         {platform.browser === 'safari' && platform.device === 'iphone' && (
                             <StepHint>
-                                Nie widzisz tej ikony? Dotknij najpierw <Glyph><MoreIcon /></Glyph> obok adresu strony.
+                                Jeśli nie widzisz tej ikony, dotknij najpierw <Glyph><MoreIcon /></Glyph> obok adresu strony.
                             </StepHint>
                         )}
                     </StepBody>
@@ -159,8 +159,8 @@ function InstallStage({ platform, onDismiss }: {
                     <StepBody>
                         Otwórz CRM <strong>z nowej ikony</strong> i zaloguj się jeszcze raz.
                         <StepHint>
-                            {deviceName} trzyma aplikację z ekranu osobno od przeglądarki, więc prosi
-                            o logowanie. Zaraz potem poprowadzimy Cię dalej.
+                            Aplikacja z ekranu początkowego ma osobne logowanie. Po zalogowaniu
+                            otwiera się kolejny krok.
                         </StepHint>
                     </StepBody>
                 </Step>
@@ -169,13 +169,13 @@ function InstallStage({ platform, onDismiss }: {
             {/* Safari nie wie, że ikona już jest - więc mówimy o tym zawsze, także bez
                 podpowiedzi z konta (np. aplikacja dodana, ale powiadomienia nigdy niewłączone). */}
             <Muted>
-                Masz już CRM na ekranie początkowym? Otwórz go z ikony - Safari nie widzi tej
-                aplikacji i nie może jej otworzyć za Ciebie.
+                Jeśli CRM jest już na ekranie początkowym, otwórz go z ikony. Safari nie otwiera
+                aplikacji z ekranu początkowego.
             </Muted>
 
             {platform.browser !== 'safari' && (
                 <Muted>
-                    Nie ma tej opcji w menu? <CopyLinkButton label="Skopiuj link" /> i otwórz go w Safari.
+                    Jeśli w menu nie ma tej opcji, <CopyLinkButton label="skopiuj link" /> i otwórz go w Safari.
                 </Muted>
             )}
             {onDismiss && <Footer><Button variant="ghost" onClick={onDismiss}>Nie teraz</Button></Footer>}
@@ -200,15 +200,15 @@ function OpenInstalledStage({ platform, onDismiss }: {
             <Lead>
                 <Title>Otwórz CRM z ikony na ekranie początkowym</Title>
                 <Text>
-                    Na tym koncie powiadomienia działają już w aplikacji na {deviceName}. Tutaj,
-                    w przeglądarce, ich nie będzie - a przeglądarka nie potrafi tej aplikacji otworzyć.
+                    Na tym koncie powiadomienia działają już w aplikacji na {deviceName}. W przeglądarce
+                    ich nie ma, a Safari nie otwiera aplikacji z ekranu początkowego.
                 </Text>
             </Lead>
 
             <Steps>
                 <Step>
                     <StepNo>1</StepNo>
-                    <StepBody>Wyjdź na ekran początkowy.</StepBody>
+                    <StepBody>Przejdź do ekranu początkowego.</StepBody>
                 </Step>
                 <Step>
                     <StepNo>2</StepNo>
@@ -216,15 +216,15 @@ function OpenInstalledStage({ platform, onDismiss }: {
                         Dotknij ikony z <strong>nazwą Twojego studia</strong> (albo „DetailBoost").
                         <StepHint>
                             Ikona nosi nazwę studia, bo tak nazywała się aplikacja w chwili dodania.
-                            Nie widzisz jej? Przeciągnij palcem w dół na ekranie początkowym i wpisz tę nazwę.
+                            Jeśli jej nie widzisz, przeciągnij palcem w dół na ekranie początkowym i wpisz tę nazwę.
                         </StepHint>
                     </StepBody>
                 </Step>
             </Steps>
 
             <Muted>
-                Nie masz ikony na tym telefonie?{' '}
-                <InlineLink type="button" onClick={() => setShowInstall(true)}>Pokaż, jak ją dodać</InlineLink>
+                <InlineLink type="button" onClick={() => setShowInstall(true)}>Pokaż, jak dodać ikonę</InlineLink>,
+                jeśli nie ma jej na tym telefonie.
             </Muted>
             {onDismiss && <Footer><Button variant="ghost" onClick={onDismiss}>Nie teraz</Button></Footer>}
         </>
@@ -255,7 +255,7 @@ function OpenInBrowserStage({ os }: { os: 'ios' | 'android' }) {
                 <Step>
                     <StepNo>2</StepNo>
                     <StepBody>
-                        Nie ma takiej opcji? <CopyLinkButton label="Skopiuj link" /> i wklej go w {browser}.
+                        Jeśli nie ma takiej opcji, <CopyLinkButton label="skopiuj link" /> i wklej go w {browser}.
                     </StepBody>
                 </Step>
             </Steps>
@@ -268,8 +268,8 @@ function UpdateOsStage() {
         <Notice $tone="warn">
             <WarnIcon />
             <span>
-                Ten iPhone ma system bez powiadomień dla aplikacji internetowych. Zaktualizuj iOS
-                do wersji <strong>16.4 lub nowszej</strong>: Ustawienia → Ogólne → Uaktualnienia.
+                Powiadomienia z aplikacji internetowych działają od iOS <strong>16.4</strong>.
+                Zaktualizuj system: Ustawienia → Ogólne → Uaktualnienia.
             </span>
         </Notice>
     );
@@ -280,9 +280,9 @@ function UpdateOsStage() {
 function BlockedStage({ platform }: { platform: PushPlatform }) {
     let steps: ReactNode;
     if (platform.kind === 'ios-app') {
-        steps = <>Otwórz <strong>Ustawienia</strong> iPhone’a → <strong>Powiadomienia</strong> → wybierz CRM → włącz <strong>Pozwalaj na powiadomienia</strong>.</>;
+        steps = <>Otwórz <strong>Ustawienia</strong> iPhone’a → <strong>Powiadomienia</strong> → wybierz aplikację z nazwą studia → włącz <strong>Pozwalaj na powiadomienia</strong>.</>;
     } else if (platform.kind === 'android' && platform.installed) {
-        steps = <>Przytrzymaj ikonę CRM na ekranie → <strong>Informacje o aplikacji</strong> → <strong>Powiadomienia</strong> → włącz.</>;
+        steps = <>Przytrzymaj ikonę z nazwą studia na ekranie → <strong>Informacje o aplikacji</strong> → <strong>Powiadomienia</strong> → włącz.</>;
     } else if (platform.kind === 'android') {
         steps = <>Dotknij ikony obok adresu strony → <strong>Uprawnienia</strong> → <strong>Powiadomienia</strong> → <strong>Zezwól</strong>.</>;
     } else {
@@ -294,8 +294,8 @@ function BlockedStage({ platform }: { platform: PushPlatform }) {
             <Lead>
                 <Title>Powiadomienia są zablokowane</Title>
                 <Text>
-                    Po odmowie przeglądarka nie zapyta drugi raz, więc trzeba je odblokować
-                    w ustawieniach. Gdy tu wrócisz, ten ekran sam to zauważy.
+                    Po odmowie okienko zgody już się nie pokazuje. Odblokuj powiadomienia
+                    w ustawieniach. Po powrocie do CRM ten krok odświeża się automatycznie.
                 </Text>
             </Lead>
             <Notice $tone="warn">
@@ -309,12 +309,13 @@ function BlockedStage({ platform }: { platform: PushPlatform }) {
 // ─── Etap: dlaczego warto + zgoda ─────────────────────────────────────────────
 
 // Jedno zdanie na korzyść, bez osobnego tytułu i opisu pod nim - dwie linie na
-// pozycję przytłaczały przycisk. Zdanie mówi wprost, co i kiedy przyjdzie.
+// pozycję przytłaczały przycisk. Zdanie mówi wprost, co i kiedy przyjdzie: w czasie
+// teraźniejszym i bez „telefon zapyta" (przewodnik „Styl tekstów w animacjach DetailBoost").
 const BENEFITS = [
-    { icon: <PhoneIcon />, text: 'Klikniesz numer klienta na komputerze, a telefon zapyta, czy do niego zadzwonić.' },
-    { icon: <WalletIcon />, text: 'Dowiesz się, kiedy ktoś utworzy rezerwację, przyjmie pojazd do studia albo klient odbierze samochód.' },
-    { icon: <InboxIcon />, text: 'Dostaniesz powiadomienie, gdy przyjdzie wiadomość z zapytaniem o usługę.' },
-    { icon: <MegaphoneIcon />, text: 'Dowiesz się, kiedy konkurencja doda nową kampanię reklamową wycelowaną w Twoją okolicę.' },
+    { icon: <PhoneIcon />, text: 'Numer kliknięty na komputerze pojawia się na telefonie z przyciskiem „Zadzwoń”.' },
+    { icon: <WalletIcon />, text: 'Powiadomienie przychodzi przy nowej rezerwacji, przyjęciu auta i wydaniu auta klientowi.' },
+    { icon: <InboxIcon />, text: 'Każde nowe zapytanie od klienta jest od razu na telefonie.' },
+    { icon: <MegaphoneIcon />, text: 'Powiadomienie przychodzi też, gdy konkurencja uruchomi reklamę w okolicy studia.' },
 ];
 
 function AskStage({ push, onDismiss }: { push: PushDeviceState; onDismiss?: () => void }) {
@@ -326,7 +327,7 @@ function AskStage({ push, onDismiss }: { push: PushDeviceState; onDismiss?: () =
             // enable() pyta o zgodę synchronicznie - to wywołanie musi stać w obsłudze
             // kliknięcia bez żadnego await przed nim (patrz usePushDevice).
             await push.enable();
-            showSuccess('Powiadomienia włączone', 'Wyślij próbne, żeby zobaczyć, jak wyglądają.');
+            showSuccess('Powiadomienia włączone', 'Wyślij powiadomienie próbne i sprawdź, jak wygląda.');
         } catch (error) {
             showError('Nie udało się włączyć powiadomień', pairingErrorMessage(error, push.platform));
         }
@@ -334,15 +335,14 @@ function AskStage({ push, onDismiss }: { push: PushDeviceState; onDismiss?: () =
 
     return (
         <>
-            {/* Urządzenie właśnie rozparował serwer (usePushDevice.unpairHere) - bez tego zdania
-                wyglądałoby, jakby ekran sam z siebie „zapomniał" włączonych powiadomień. */}
+            {/* Serwer nie uznał już tego urządzenia i subskrypcja została zdjęta (usePushDevice) -
+                bez tego zdania wyglądałoby, jakby ekran sam z siebie „zapomniał" włączonych powiadomień. */}
             {push.unpairedByServer && (
                 <Notice $tone="warn">
                     <WarnIcon />
                     <span>
-                        CRM nie rozpoznał już tego urządzenia, więc powiadomienia są tu wyłączone.
-                        Mogło zostać odłączone na liście urządzeń albo powiadomienia włączyło w tej
-                        przeglądarce inne konto.
+                        Powiadomienia na tym urządzeniu są wyłączone. Urządzenie odłączono w tabeli
+                        „Rodzaje powiadomień” albo w tej przeglądarce powiadomienia włączono na innym koncie.
                     </span>
                 </Notice>
             )}
@@ -369,7 +369,7 @@ function AskStage({ push, onDismiss }: { push: PushDeviceState; onDismiss?: () =
                 {onDismiss && <Button variant="ghost" onClick={onDismiss}>Nie teraz</Button>}
             </Footer>
             <Muted>
-                Gdy telefon zapyta, wybierz <strong>{allowLabel}</strong>. Odmowy nie da się cofnąć z aplikacji.
+                W okienku systemu wybierz <strong>{allowLabel}</strong>. Odmowy nie da się cofnąć w CRM.
             </Muted>
         </>
     );
@@ -395,7 +395,7 @@ function ReadyStage({ push }: { push: PushDeviceState }) {
     const handleDisable = async () => {
         try {
             await push.disable();
-            showSuccess('Powiadomienia wyłączone', 'To urządzenie nie będzie już ich dostawać.');
+            showSuccess('Powiadomienia wyłączone', 'To urządzenie nie dostaje już powiadomień.');
         } catch {
             showError('Nie udało się wyłączyć', 'Spróbuj ponownie.');
         }
@@ -410,10 +410,10 @@ function ReadyStage({ push }: { push: PushDeviceState }) {
 
             {testSent ? (
                 <Lead>
-                    <Title>Wysłane</Title>
+                    <Title>Powiadomienie wysłane</Title>
                     <Text>
-                        Powiadomienie powinno pojawić się w ciągu kilku sekund. Najpewniej zobaczysz je
-                        po zablokowaniu ekranu.
+                        Powiadomienie przychodzi w ciągu kilku sekund. Najlepiej widać je
+                        na zablokowanym ekranie.
                     </Text>
                     <Details>
                         <summary>Nie przyszło?</summary>
@@ -421,19 +421,19 @@ function ReadyStage({ push }: { push: PushDeviceState }) {
                             <li>Wyłącz tryb <strong>Nie przeszkadzać</strong> albo <strong>Skupienie</strong>.</li>
                             {onAndroid && (
                                 <li>
-                                    Oszczędzanie baterii potrafi wstrzymać powiadomienia: Ustawienia → Aplikacje →
-                                    Chrome (albo CRM) → Bateria → <strong>Bez ograniczeń</strong>.
+                                    Oszczędzanie baterii może wstrzymywać powiadomienia. Wyłącz je: Ustawienia →
+                                    Aplikacje → Chrome (albo aplikacja z nazwą studia) → Bateria → <strong>Bez ograniczeń</strong>.
                                 </li>
                             )}
                             {onIos && (
-                                <li>Sprawdź Ustawienia → Powiadomienia → CRM: <strong>Pozwalaj na powiadomienia</strong>.</li>
+                                <li>Sprawdź Ustawienia → Powiadomienia → aplikacja z nazwą studia: <strong>Pozwalaj na powiadomienia</strong>.</li>
                             )}
-                            <li>Wyłącz i włącz powiadomienia tutaj jeszcze raz.</li>
+                            <li>Wyłącz powiadomienia na tym urządzeniu i włącz je ponownie.</li>
                         </ul>
                     </Details>
                 </Lead>
             ) : (
-                <Text>Wyślij próbne powiadomienie na to urządzenie, żeby sprawdzić, czy dochodzi i jak wygląda.</Text>
+                <Text>Wyślij powiadomienie próbne i sprawdź, czy przychodzi na to urządzenie.</Text>
             )}
 
             <Footer>
@@ -456,16 +456,16 @@ function ReadyStage({ push }: { push: PushDeviceState }) {
                     <summary>Własny dźwięk powiadomień</summary>
                     {onAndroid ? (
                         <p>
-                            Dźwięk ustawia Android, nie aplikacja. Ustawienia telefonu → Aplikacje →
-                            {push.platform.kind === 'android' && push.platform.installed ? ' CRM' : ' Chrome'} →
+                            Dźwięk ustawiasz w Androidzie, nie w CRM: Ustawienia telefonu → Aplikacje →
+                            {push.platform.kind === 'android' && push.platform.installed ? ' aplikacja z nazwą studia' : ' Chrome'} →
                             Powiadomienia → wybierz kategorię z nazwą tej strony → <strong>Dźwięk</strong>.
-                            Możesz tam wskazać dowolny dzwonek, także własny plik.
+                            Wybierz dowolny dzwonek, także własny plik.
                         </p>
                     ) : (
                         <p>
-                            iPhone odtwarza dla aplikacji internetowych zawsze dźwięk systemowy - własnego
-                            ustawić się nie da. Upewnij się tylko, że jest włączony: Ustawienia →
-                            Powiadomienia → CRM → <strong>Dźwięki</strong>.
+                            Aplikacje internetowe na iPhonie mają zawsze dźwięk systemowy. Własnego
+                            dźwięku nie można ustawić. Sprawdź tylko, czy dźwięk jest włączony: Ustawienia →
+                            Powiadomienia → aplikacja z nazwą studia → <strong>Dźwięki</strong>.
                         </p>
                     )}
                 </Details>

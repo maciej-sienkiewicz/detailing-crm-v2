@@ -51,7 +51,7 @@ const SHOW_DELAY_AFTER_INSTALL_MS = 1_200;
 const CARD_COPY: Partial<Record<ReturnType<typeof wizardStage>, { title: string; text: string }>> = {
     install: {
         title: 'Powiadomienia na tym iPhonie',
-        text: 'Dwa kroki i telefon da znać o nowym leadzie, rezerwacji czy wydanym aucie.',
+        text: 'Dodaj CRM do ekranu początkowego i włącz powiadomienia o nowych leadach, rezerwacjach i wydanych autach.',
     },
     // Konto ma już aplikację na iPhonie, a użytkownik jest w Safari - nie każemy mu
     // instalować drugi raz, tylko mówimy, gdzie są jego powiadomienia.
@@ -61,7 +61,7 @@ const CARD_COPY: Partial<Record<ReturnType<typeof wizardStage>, { title: string;
     },
     ask: {
         title: 'Włącz powiadomienia',
-        text: 'Telefon da znać o nowym leadzie, rezerwacji, przyjętym i wydanym aucie.',
+        text: 'Powiadomienia o nowych leadach i rezerwacjach oraz o przyjęciu i wydaniu auta przychodzą na ten telefon.',
     },
 };
 

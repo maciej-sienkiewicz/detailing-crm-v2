@@ -61,7 +61,7 @@ describe('PushNotificationWizard', () => {
             platform: { kind: 'ios-install', device: 'iphone', browser: 'safari' },
             support: 'unsupported',
         })} />);
-        expect(screen.getByText(/Masz już CRM na ekranie początkowym\? Otwórz go z ikony/)).toBeTruthy();
+        expect(screen.getByText(/Jeśli CRM jest już na ekranie początkowym, otwórz go z ikony/)).toBeTruthy();
     });
 
     it('konto z aplikacją na iPhonie: „otwórz z ikony" zamiast drugiej instalacji, instrukcja o dotknięcie dalej', () => {
@@ -75,14 +75,14 @@ describe('PushNotificationWizard', () => {
         expect(screen.queryByText('Dodaj do ekranu początkowego')).toBeNull();
 
         // Podpowiedź z konta bywa chybiona (inny iPhone) - droga do instalacji zostaje.
-        fireEvent.click(screen.getByRole('button', { name: 'Pokaż, jak ją dodać' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Pokaż, jak dodać ikonę' }));
         expect(screen.getByText('Dodaj do ekranu początkowego')).toBeTruthy();
     });
 
     it('przed monitem systemowym tłumaczy, co będzie przychodzić', () => {
         render(<PushNotificationWizard push={pushState({})} />);
-        expect(screen.getByText(/telefon zapyta, czy do niego zadzwonić/)).toBeTruthy();
-        expect(screen.getByText(/wiadomość z zapytaniem o usługę/)).toBeTruthy();
+        expect(screen.getByText(/pojawia się na telefonie z przyciskiem „Zadzwoń”/)).toBeTruthy();
+        expect(screen.getByText(/nowe zapytanie od klienta/)).toBeTruthy();
     });
 
     it('kliknięcie „Włącz" woła enable() synchronicznie, w obsłudze gestu', () => {
@@ -107,7 +107,7 @@ describe('PushNotificationWizard', () => {
         const push = pushState({ isSubscribedHere: false, unpairedByServer: true });
         render(<PushNotificationWizard push={push} />);
 
-        expect(screen.getByText(/CRM nie rozpoznał już tego urządzenia/)).toBeTruthy();
+        expect(screen.getByText(/Powiadomienia na tym urządzeniu są wyłączone/)).toBeTruthy();
         expect(screen.queryByText('To urządzenie odbiera powiadomienia z CRM.')).toBeNull();
         expect(screen.queryByRole('button', { name: /Wyślij powiadomienie próbne/ })).toBeNull();
 

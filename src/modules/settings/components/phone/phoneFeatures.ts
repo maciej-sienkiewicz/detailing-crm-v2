@@ -9,6 +9,10 @@
 // Opisy są rzeczowe: co funkcja robi i co trzeba ustawić. Pierwsza wersja pisała
 // hasłami reklamowymi („Lead, rezerwacja i przychód trafiają do kieszeni…") - właściciel
 // studia odebrał to jako kicz, a hasło nie mówiło, co tu właściwie się ustawia.
+// Druga brzmiała sztucznie: „telefon zaproponuje", „zapiszą się", „zobaczysz". Teraz
+// według przewodnika „Styl tekstów w animacjach DetailBoost": czynność trybem
+// rozkazującym, skutek w czasie teraźniejszym, nic nie dzieje się „samo".
+// Opis powiadomień („Bądź na bieżąco…") ustalił właściciel - zostaje dosłownie.
 
 export type PhoneFeatureId = 'push' | 'calls' | 'dial' | 'voice' | 'camera' | 'app';
 
@@ -30,36 +34,36 @@ export const PHONE_FEATURES: Record<PhoneFeatureId, PhoneFeature> = {
         id: 'push',
         name: 'Powiadomienia',
         description: 'Bądź na bieżąco ze wszystkimi wydarzeniami. Ustaw, które powiadomienia chcesz otrzymywać.',
-        cta: 'Wybierz, co ma przychodzić',
+        cta: 'Ustaw powiadomienia',
     },
     calls: {
         id: 'calls',
         name: 'Kto dzwoni',
-        description: 'Dodaj klientów studia do kontaktów w telefonie. Gdy klient zadzwoni, zobaczysz jego imię i nazwisko zamiast samego numeru.',
+        description: 'Dodaj klientów studia do kontaktów w telefonie. Gdy klient dzwoni, widzisz jego imię i nazwisko zamiast numeru.',
         cta: 'Dodaj klientów do kontaktów',
     },
     dial: {
         id: 'dial',
         name: 'Dzwonienie z komputera',
-        description: 'Kliknij numer telefonu na karcie klienta, a Twój telefon zaproponuje połączenie z tym numerem.',
+        description: 'Kliknij numer na karcie klienta na komputerze. Na telefonie pojawia się powiadomienie z przyciskiem „Zadzwoń”.',
         cta: 'Sparuj telefon',
     },
     voice: {
         id: 'voice',
         name: 'Lead głosem',
-        description: 'Podyktuj leada albo notatkę na telefonie, a zapiszą się w CRM. Skrót działa bez logowania.',
+        description: 'Podyktuj nowy lead albo notatkę zamiast pisać na telefonie. Skrót działa bez logowania.',
         cta: 'Dodaj skrót na telefon',
     },
     camera: {
         id: 'camera',
         name: 'Aparat dla komputera',
-        description: 'Zrób zdjęcie albo zeskanuj kod telefonem, a wynik trafi na ekran komputera. Kod QR pojawia się wszędzie tam, gdzie można z tego skorzystać.',
+        description: 'Zrób telefonem zdjęcia auta, odczytaj VIN albo zeskanuj produkt. Wynik od razu jest w CRM na komputerze. Kod QR do zeskanowania jest w oknach zdjęć, VIN i produktów.',
         cta: null,
     },
     app: {
         id: 'app',
         name: 'Aplikacja',
-        description: 'Dodaj CRM do ekranu głównego telefonu, a otworzysz go jak zwykłą aplikację. Na iPhonie powiadomienia działają tylko w ten sposób.',
+        description: 'Dodaj CRM do ekranu głównego telefonu i otwieraj go jak zwykłą aplikację. Na iPhonie powiadomienia działają tylko tak.',
         cta: 'Dodaj do ekranu',
     },
 };

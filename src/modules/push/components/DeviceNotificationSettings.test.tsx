@@ -123,7 +123,7 @@ describe('DeviceNotificationSettings', () => {
         expect(screen.getByLabelText('Auto wydane klientowi, Mac, Chrome')).toBeChecked();
         // Telefon Anny przychodów nie dostanie - kreska zamiast przełącznika, który niczego nie zmienia.
         expect(screen.queryByLabelText('Auto wydane klientowi, iPhone Anny')).not.toBeInTheDocument();
-        expect(screen.getByText(/„—" znaczy/)).toBeInTheDocument();
+        expect(screen.getByText(/Kreska oznacza/)).toBeInTheDocument();
 
         await userEvent.click(screen.getByLabelText('Nowe zapytanie, Mac, Chrome'));
         await waitFor(() => expect(pushApi.updateDeviceNotifications).toHaveBeenCalled());
@@ -171,6 +171,6 @@ describe('summaryOf', () => {
             { category: 'NEW_LEADS', enabled: true, available: true },
             { category: 'RESERVATIONS', enabled: false, available: true },
             { category: 'EARNINGS', enabled: true, available: false },
-        ])).toBe('1 z 2 rodzajów');
+        ])).toBe('Włączone 1 z 2');
     });
 });

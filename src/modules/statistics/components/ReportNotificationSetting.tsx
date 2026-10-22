@@ -55,7 +55,7 @@ function Setting() {
                     onChange={frequency => { if (frequency !== value) update.mutate(frequency); }}
                 />
             </Scroll>
-            <Hint>Przychodzi rano, gdy skończy się wybrany okres: tydzień, 2 tygodnie albo miesiąc.</Hint>
+            <Hint>Przychodzi rano, gdy skończy się wybrany okres.</Hint>
         </Row>
     );
 }

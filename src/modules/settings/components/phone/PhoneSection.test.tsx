@@ -137,7 +137,7 @@ describe('PhoneSection', () => {
     it('przycisk otwiera ustawienia funkcji i chowa skład, „Wróć" przywraca opis', async () => {
         renderSection();
 
-        await userEvent.click(screen.getByRole('button', { name: /Wybierz, co ma przychodzić/ }));
+        await userEvent.click(screen.getByRole('button', { name: /Ustaw powiadomienia/ }));
 
         expect(await screen.findByTestId('setup')).toHaveTextContent('ustawienia push');
         expect(screen.getByRole('tablist').closest('[inert]')).not.toBeNull();
@@ -145,7 +145,7 @@ describe('PhoneSection', () => {
         await userEvent.click(screen.getByRole('button', { name: 'Wróć' }));
 
         await waitFor(() => expect(screen.queryByTestId('setup')).toBeNull());
-        expect(screen.getByRole('button', { name: /Wybierz, co ma przychodzić/ })).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Ustaw powiadomienia/ })).toBeInTheDocument();
         expect(screen.getByRole('tablist').closest('[inert]')).toBeNull();
     });
 

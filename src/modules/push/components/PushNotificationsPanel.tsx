@@ -72,8 +72,7 @@ export function PushNotificationsPanel() {
                 <PairingBlock>
                     <SectionTitle as="h3">Dodaj telefon</SectionTitle>
                     <BlockLead>
-                        Powiadomienia przychodzą na telefon. Zeskanuj kod telefonem, który masz przy sobie,
-                        i włącz na nim powiadomienia. Tak samo dodasz kolejne telefony.
+                        Powiadomienia z CRM przychodzą na telefon. Kolejne telefony dodaj tym samym kodem.
                     </BlockLead>
                     <Layout>
                         <QrPanel>
@@ -86,13 +85,14 @@ export function PushNotificationsPanel() {
                                     level="M"
                                 />
                             </QrBox>
-                            <QrLabel>Zeskanuj telefonem</QrLabel>
+                            <QrLabel>Kod dla telefonu</QrLabel>
                         </QrPanel>
 
                         <Steps>
                             <StepList>
-                                <li>Zeskanuj kod aparatem telefonu i zaloguj się, jeśli CRM o to poprosi.</li>
-                                <li>Postępuj według wskazówek na telefonie. Na końcu zezwól na powiadomienia.</li>
+                                <li>Zeskanuj kod aparatem telefonu i zaloguj się do CRM, jeśli trzeba.</li>
+                                <li>Na iPhonie dodaj CRM do ekranu początkowego. Instrukcja jest na ekranie telefonu.</li>
+                                <li>Dotknij „Włącz powiadomienia” i zezwól na nie w okienku systemu.</li>
                             </StepList>
 
                             <CopyRow>
@@ -110,8 +110,8 @@ export function PushNotificationsPanel() {
                 onRevoke={push.revokeDevice}
                 currentDeviceId={push.currentDeviceId}
                 emptyHint={onPhone
-                    ? 'Włącz powiadomienia wyżej, a ten telefon pojawi się tutaj.'
-                    : 'Zeskanuj kod wyżej telefonem, a pojawi się tutaj.'}
+                    ? 'Włącz powiadomienia na tym telefonie.'
+                    : 'Zeskanuj kod telefonem i włącz na nim powiadomienia.'}
             />
         </Wrap>
     );

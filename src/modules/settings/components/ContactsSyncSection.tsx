@@ -139,7 +139,7 @@ export function ContactsSyncSection() {
 
     const handleRevoke = (account: CarddavAccountDto) => {
         revokeAccount.mutate(account.accountId, {
-            onSuccess: () => showSuccess('Dostęp odwołany', 'Telefon przestanie synchronizować kontakty studia.'),
+            onSuccess: () => showSuccess('Dostęp odwołany', 'Kontakty klientów nie synchronizują się już z tym telefonem.'),
             onError: (error) => {
                 if (toastedGlobally(error)) return;
                 showError('Nie udało się odwołać dostępu', serverMessage(error) ?? 'Spróbuj ponownie.');
@@ -150,16 +150,16 @@ export function ContactsSyncSection() {
     const setupLabel = createProvisioning.isPending
         ? 'Przygotowuję…'
         : installPath === 'ios-safari'
-            ? 'Skonfiguruj na tym iPhonie'
+            ? 'Dodaj kontakty na tym iPhonie'
             : installPath === 'ios-other'
                 ? 'Przygotuj profil dla iPhone’a'
-                : 'Skonfiguruj iPhone’a';
+                : 'Dodaj kontakty na iPhonie';
 
     return (
         <View>
             <Intro>
-                Dodaj klientów studia do kontaktów w iPhonie. Gdy klient zadzwoni, zobaczysz jego
-                imię i nazwisko zamiast samego numeru.
+                Dodaj klientów studia do kontaktów w iPhonie. Gdy klient dzwoni, widzisz jego imię
+                i nazwisko zamiast numeru.
             </Intro>
 
             <div>
@@ -183,7 +183,7 @@ export function ContactsSyncSection() {
                             <Step>
                                 <StepNo>1</StepNo>
                                 <span>
-                                    Instalację profilu uruchamia wyłącznie Safari.{' '}
+                                    Profil instaluje się tylko z Safari.{' '}
                                     <CopyLinkBtn type="button" onClick={copyLink}>Skopiuj link</CopyLinkBtn>{' '}
                                     i wklej go w Safari na tym iPhonie.
                                 </span>
@@ -192,12 +192,12 @@ export function ContactsSyncSection() {
                         {installPath === 'ios-safari' && (
                             <Step><StepNo>1</StepNo><span>Dotknij <strong>Pozwól</strong>, a potem <strong>Zamknij</strong>.</span></Step>
                         )}
-                        <Step><StepNo>2</StepNo><span>W <strong>Ustawieniach</strong> dotknij <strong>„Profil pobrany"</strong> na samej górze.</span></Step>
-                        <Step><StepNo>3</StepNo><span>Dotknij <strong>Zainstaluj</strong> i podaj kod telefonu. Ostrzeżenie „Niezweryfikowany" jest w porządku.</span></Step>
-                        <Step><StepNo>4</StepNo><span>Gotowe. Klienci pojawią się w Kontaktach w ciągu kilku minut.</span></Step>
+                        <Step><StepNo>2</StepNo><span>W <strong>Ustawieniach</strong> dotknij <strong>„Profil pobrany”</strong> na samej górze.</span></Step>
+                        <Step><StepNo>3</StepNo><span>Dotknij <strong>Zainstaluj</strong> i podaj kod telefonu. Ostrzeżenie „Niezweryfikowany” nie oznacza błędu.</span></Step>
+                        <Step><StepNo>4</StepNo><span>Po kilku minutach klienci są w „Kontaktach”.</span></Step>
                         {secondsLeft !== null && (
                             <Expiry $urgent={secondsLeft < 60} role="timer">
-                                Link wygaśnie za {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')}.
+                                Link jest ważny jeszcze {Math.floor(secondsLeft / 60)}:{String(secondsLeft % 60).padStart(2, '0')}.
                             </Expiry>
                         )}
                     </InstallSteps>
@@ -234,7 +234,7 @@ export function ContactsSyncSection() {
                 ) : accounts.length === 0 ? (
                     <EmptyState>
                         <strong>Żaden telefon nie ma jeszcze kontaktów klientów</strong>
-                        <p>Kliknij „{setupLabel}” wyżej i postępuj według wskazówek.</p>
+                        <p>Kliknij „{setupLabel}”, żeby dodać pierwszy telefon.</p>
                     </EmptyState>
                 ) : (
                     accounts.map(account => {
@@ -246,7 +246,7 @@ export function ContactsSyncSection() {
                                     <Smartphone aria-hidden="true" />
                                     <DeviceText>
                                         <strong>{account.deviceName}</strong>
-                                        <span>Skonfigurowano {formatDate(account.createdAt)}</span>
+                                        <span>Dodano {formatDate(account.createdAt)}</span>
                                     </DeviceText>
                                 </DeviceMain>
                                 <DeviceSide>
@@ -270,7 +270,7 @@ export function ContactsSyncSection() {
                 isOpen={toRevoke !== null}
                 title="Odwołać dostęp do kontaktów?"
                 message={toRevoke
-                    ? `„${toRevoke.deviceName}” przestanie synchronizować kontakty studia. Żeby je przywrócić, trzeba od nowa zainstalować profil.`
+                    ? `Kontakty klientów przestaną się synchronizować z „${toRevoke.deviceName}”. Żeby je przywrócić, zainstaluj profil ponownie.`
                     : ''}
                 variant="danger"
                 confirmText="Odwołaj dostęp"

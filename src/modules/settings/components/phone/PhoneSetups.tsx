@@ -1,6 +1,6 @@
 // src/modules/settings/components/phone/PhoneSetups.tsx
 //
-// Ustawienia funkcji telefonu, które wjeżdżają po „Wybierz, co ma przychodzić",
+// Ustawienia funkcji telefonu, które wjeżdżają po „Ustaw powiadomienia",
 // „Dodaj skrót na telefon"…
 //
 // Powiadomienia i kontakty to te same panele co dotąd - jedna implementacja, więc
@@ -54,8 +54,8 @@ function PushSetup() {
                     <SummariesHead>
                         <SectionTitle as="h3">Raporty i podsumowania</SectionTitle>
                         <SummariesLead>
-                            Ustaw, jak często mają przychodzić. Na które urządzenia trafiają, wybierasz
-                            wyżej, w tabeli „Rodzaje powiadomień”.
+                            Ustaw, jak często przychodzą. Urządzenia, które je dostają, wybierz
+                            w tabeli „Rodzaje powiadomień”.
                         </SummariesLead>
                     </SummariesHead>
                     {showReport && <ReportNotificationSetting />}
@@ -75,8 +75,8 @@ function DialSetup() {
     return (
         <Stack>
             <Lead>
-                Sparuj telefon, który nosisz przy sobie. W tabeli niżej zostaw przy nim włączone
-                „Dzwonienie z komputera”, a numer kliknięty na karcie klienta pojawi się na telefonie
+                Sparuj telefon, który masz przy sobie, i zostaw przy nim włączone „Dzwonienie
+                z komputera”. Numer kliknięty na karcie klienta pojawia się wtedy na telefonie
                 z przyciskiem „Zadzwoń”.
             </Lead>
             <PushNotificationsPanel />

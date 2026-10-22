@@ -54,7 +54,7 @@ export const wizardStage = ({ platform, support, isSubscribedHere, appLikelyOnHo
 /** Ścieżka, którą widzi użytkownik - na iPhonie o jeden krok dłuższa. */
 export const wizardTrail = (platform: PushPlatform): string[] =>
     platform.kind === 'ios-install' || platform.kind === 'ios-app'
-        ? ['Na ekran', 'Zezwól', 'Sprawdź']
+        ? ['Dodaj do ekranu', 'Zezwól', 'Sprawdź']
         : ['Zezwól', 'Sprawdź'];
 
 /** Indeks bieżącego kroku na ścieżce albo null, gdy etap leży poza nią (np. „zaktualizuj iOS"). */

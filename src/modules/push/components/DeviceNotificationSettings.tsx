@@ -120,7 +120,7 @@ export function DeviceNotificationSettings({ onRevoke, currentDeviceId = null, e
         },
         onError: (error, _variables, context) => {
             if (context?.previous) queryClient.setQueryData(pushQueryKeys.notificationSettings, context.previous);
-            if (!toastedGlobally(error)) showError('Nie udało się zapisać', 'Sprawdź internet i spróbuj jeszcze raz.');
+            if (!toastedGlobally(error)) showError('Nie udało się zapisać', 'Sprawdź połączenie z internetem i spróbuj ponownie.');
         },
         onSuccess: saved => {
             queryClient.setQueryData<PushNotificationSettings>(pushQueryKeys.notificationSettings, old => old && {
@@ -150,7 +150,7 @@ export function DeviceNotificationSettings({ onRevoke, currentDeviceId = null, e
         setRevokingId(device.id);
         try {
             await onRevoke(device.id);
-            showSuccess('Urządzenie odłączone', `„${nameOf(device)}" nie będzie już dostawać powiadomień.`);
+            showSuccess('Urządzenie odłączone', `„${nameOf(device)}” nie dostaje już powiadomień.`);
         } catch (error) {
             if (!toastedGlobally(error)) showError('Nie udało się odłączyć', 'Spróbuj ponownie.');
         } finally {
@@ -165,8 +165,8 @@ export function DeviceNotificationSettings({ onRevoke, currentDeviceId = null, e
             </SectionTitle>
             <Lead>
                 {manageAll
-                    ? 'Wybierz, o czym ma dawać znać każde urządzenie w studiu. Nowe rodzaje powiadomień włączają się same.'
-                    : 'Wybierz, o czym ma dawać znać każde z Twoich urządzeń. Nowe rodzaje powiadomień włączają się same.'}
+                    ? 'Wybierz, jakie powiadomienia dostaje każde urządzenie w studiu. Nowe rodzaje powiadomień są domyślnie włączone.'
+                    : 'Wybierz, jakie powiadomienia dostaje każde z Twoich urządzeń. Nowe rodzaje powiadomień są domyślnie włączone.'}
             </Lead>
         </Head>
     );
@@ -229,9 +229,9 @@ export function DeviceNotificationSettings({ onRevoke, currentDeviceId = null, e
     const onlyMine = restricted.every(d => d.mine);
     const role = onlyMine ? 'Twoja rola' : 'rola tej osoby';
     const footnote = [
-        dashes && `„—" znaczy, że ${role} nie ma uprawnienia do tego powiadomienia.`,
+        dashes && `Kreska oznacza, że ${role} nie ma uprawnienia do tego powiadomienia.`,
         hiddenRows && `Pozostałe powiadomienia wymagają uprawnień, których ${role} nie ma.`,
-        (dashes || hiddenRows) && !onlyMine && 'Uprawnienia zmienisz w Ustawieniach, w Rolach.',
+        (dashes || hiddenRows) && !onlyMine && 'Uprawnienia zmień w „Ustawieniach”, w sekcji „Role i uprawnienia”.',
     ].filter(Boolean).join(' ');
 
     // „To urządzenie" mówi już, czyje jest - serwer uznaje je tylko za urządzenie oglądającego.
@@ -335,7 +335,7 @@ export function DeviceNotificationSettings({ onRevoke, currentDeviceId = null, e
                                                         ariaLabel={single ? copy.label : `${copy.label}, ${nameOf(device)}`}
                                                     />
                                                 ) : (
-                                                    <Unavailable title="Rola posiadacza tego urządzenia nie ma uprawnienia do tego powiadomienia">—</Unavailable>
+                                                    <Unavailable title="Rola tej osoby nie obejmuje tego powiadomienia">—</Unavailable>
                                                 )}
                                             </Cell>
                                         );
@@ -374,7 +374,7 @@ export function DeviceNotificationSettings({ onRevoke, currentDeviceId = null, e
                 isOpen={toRevoke !== null}
                 title="Odłączyć urządzenie?"
                 message={toRevoke
-                    ? `„${nameOf(toRevoke)}" przestanie dostawać powiadomienia z CRM. Żeby je przywrócić, trzeba je włączyć od nowa na tym urządzeniu.`
+                    ? `„${nameOf(toRevoke)}” przestanie dostawać powiadomienia z CRM. Żeby je przywrócić, włącz je ponownie na tym urządzeniu.`
                     : ''}
                 variant="danger"
                 confirmText="Odłącz"

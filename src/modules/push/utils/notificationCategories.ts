@@ -24,19 +24,22 @@ export const GROUPS: { title: string; categories: PushNotificationCategory[] }[]
 /*
  * Etykieta mówi, CO przychodzi, opis - KIEDY. Pisane tak, jak właściciel studia
  * opowiedziałby to pracownikowi: „dostaniesz, gdy…", bez skrótów myślowych.
+ * Bez form rodzajowych („dodajesz sam", „zarobiłeś") i bez głosu „my" - według
+ * przewodnika „Styl tekstów w animacjach DetailBoost"; tabela pokazuje te opisy
+ * każdemu w zespole.
  */
 export const CATEGORY_COPY: Record<string, CategoryCopy> = {
     NEW_LEADS: {
         label: 'Nowe zapytanie',
-        hint: 'Gdy klient napisze przez formularz albo e-mail, zadzwoni, albo ktoś doda zapytanie ręcznie.',
+        hint: 'Gdy klient napisze przez formularz lub e-mail, zadzwoni albo ktoś z zespołu doda zapytanie ręcznie.',
     },
     LEADS_WAITING: {
         label: 'Klient czeka na odpowiedź',
-        hint: 'Przypomnienie, gdy nikt jeszcze nie odpisał, a rano lista zapytań, które wciąż czekają.',
+        hint: 'Gdy nikt z zespołu nie odpisał klientowi. Rano przychodzi też lista zapytań bez odpowiedzi.',
     },
     RESERVATIONS: {
         label: 'Nowa rezerwacja',
-        hint: 'Gdy w kalendarzu pojawi się nowa wizyta. O tych, które dodajesz sam, nie powiadamiamy.',
+        hint: 'Gdy w kalendarzu pojawi się nowa rezerwacja. Za rezerwacje dodane przez Ciebie powiadomienie nie przychodzi.',
     },
     CHECKINS: {
         label: 'Auto przyjęte do studia',
@@ -44,15 +47,15 @@ export const CATEGORY_COPY: Record<string, CategoryCopy> = {
     },
     EARNINGS: {
         label: 'Auto wydane klientowi',
-        hint: 'Gdy klient odbierze auto. W powiadomieniu zobaczysz, ile zarobiłeś na tej wizycie.',
+        hint: 'Gdy klient odbierze auto. Powiadomienie podaje, ile studio zarobiło na tej wizycie.',
     },
     REPORTS: {
         label: 'Nowy raport',
-        hint: 'Gdy gotowy jest raport za kolejny okres. Jak często, wybierasz niżej, w sekcji „Raporty i podsumowania”.',
+        hint: 'Gdy raport za kolejny okres jest gotowy. Częstotliwość ustaw w sekcji „Raporty i podsumowania”.',
     },
     COMPETITION: {
         label: 'Reklamy konkurencji',
-        hint: 'Gdy firma z obserwowanej okolicy uruchomi nową kampanię reklamową.',
+        hint: 'Gdy studio z obserwowanej okolicy uruchomi nową kampanię reklamową.',
     },
     LEAVE_REQUESTS: {
         label: 'Wniosek urlopowy',
@@ -60,15 +63,15 @@ export const CATEGORY_COPY: Record<string, CategoryCopy> = {
     },
     WORKTIME_CARDS: {
         label: 'Karta czasu pracy',
-        hint: 'Gdy pracownik złoży kartę za miesiąc do zatwierdzenia.',
+        hint: 'Gdy pracownik złoży do zatwierdzenia kartę czasu pracy za miesiąc.',
     },
     MY_MATTERS: {
         label: 'Mój urlop i moja karta pracy',
-        hint: 'Decyzja w Twoim wniosku urlopowym, zatwierdzenie albo zwrot Twojej karty i przypomnienie, żeby ją uzupełnić.',
+        hint: 'Gdy ktoś rozpatrzy Twój wniosek urlopowy albo kartę pracy. Do tego przypomnienie, gdy karta nie jest uzupełniona.',
     },
     CLICK_TO_CALL: {
         label: 'Dzwonienie z komputera',
-        hint: 'Klikasz numer klienta w CRM na komputerze, a ten telefon od razu proponuje połączenie.',
+        hint: 'Gdy klikniesz numer klienta w CRM na komputerze. Powiadomienie ma przycisk „Zadzwoń”.',
     },
 };
 
@@ -79,8 +82,8 @@ export const summaryOf = (categories: PushCategorySetting[]): string => {
     const available = categories.filter(c => c.available);
     const on = available.filter(c => c.enabled).length;
     if (available.length === 0) return 'Brak powiadomień dla tej roli';
-    if (on === available.length) return 'Wszystkie powiadomienia';
+    if (on === available.length) return 'Wszystkie włączone';
     if (on === 0) return 'Wszystkie wyłączone';
-    return `${on} z ${available.length} rodzajów`;
+    return `Włączone ${on} z ${available.length}`;
 };
 

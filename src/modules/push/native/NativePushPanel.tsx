@@ -18,9 +18,9 @@ import { DeviceNotificationSettings } from '../components/DeviceNotificationSett
 import { enableNativePush, nativePushPermission, sendNativeTestPush, type NativePushPermission } from './nativePush';
 
 const COPY: Record<NativePushPermission, string> = {
-    prompt: 'Telefon da znać o nowym leadzie, rezerwacji, przyjętym i wydanym aucie.',
-    granted: 'Powiadomienia są włączone. Możesz wysłać próbne, żeby zobaczyć, jak wyglądają.',
-    denied: 'Powiadomienia są wyłączone w ustawieniach telefonu. Włącz je tam dla aplikacji DetailBoost i wróć tutaj.',
+    prompt: 'Włącz powiadomienia o nowych leadach i rezerwacjach oraz o przyjęciu i wydaniu auta.',
+    granted: 'Powiadomienia są włączone. Wyślij powiadomienie próbne i sprawdź, jak wygląda.',
+    denied: 'Powiadomienia są wyłączone w ustawieniach telefonu. Włącz je dla aplikacji DetailBoost i wróć do CRM.',
 };
 
 export function NativePushPanel() {
@@ -47,10 +47,10 @@ export function NativePushPanel() {
             recheck();
             if (granted) {
                 await queryClient.invalidateQueries({ queryKey: pushQueryKeys.devices });
-                showSuccess('Powiadomienia włączone', 'Ten telefon da znać, gdy coś się wydarzy.');
+                showSuccess('Powiadomienia włączone', 'Ten telefon dostaje powiadomienia z CRM.');
             }
         } catch {
-            showError('Nie udało się włączyć powiadomień', 'Sprawdź internet i spróbuj jeszcze raz.');
+            showError('Nie udało się włączyć powiadomień', 'Sprawdź połączenie z internetem i spróbuj ponownie.');
         } finally {
             setBusy(false);
         }
@@ -60,9 +60,9 @@ export function NativePushPanel() {
         setBusy(true);
         try {
             await sendNativeTestPush();
-            showSuccess('Wysłane', 'Powiadomienie powinno pojawić się za chwilę.');
+            showSuccess('Powiadomienie wysłane', 'Powiadomienie przychodzi w ciągu kilku sekund.');
         } catch {
-            showError('Nie udało się wysłać', 'Wyłącz i włącz powiadomienia jeszcze raz albo spróbuj później.');
+            showError('Nie udało się wysłać', 'Wyłącz powiadomienia i włącz je ponownie albo spróbuj później.');
         } finally {
             setBusy(false);
         }
@@ -85,7 +85,7 @@ export function NativePushPanel() {
                 )}
                 {permission === 'granted' && (
                     <div>
-                        <Button variant="outline" onClick={sendTest} disabled={busy}>Wyślij próbne</Button>
+                        <Button variant="outline" onClick={sendTest} disabled={busy}>Wyślij powiadomienie próbne</Button>
                     </div>
                 )}
             </ThisPhone>
