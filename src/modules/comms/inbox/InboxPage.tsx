@@ -1,5 +1,5 @@
 // src/modules/comms/inbox/InboxPage.tsx
-// Skrzynka „Zapytania" (/zapytania) - dawne „Leady" i „Poczta" w jednym miejscu,
+// Skrzynka „Zapytania" (/inbox) - dawne „Leady" i „Poczta" w jednym miejscu,
 // zbudowana według makiet z canvasu „Zapytania – makiety".
 //
 // Układ zależy od miejsca, jakie ma karta skrzynki (a nie okno - obok stoi pasek
@@ -461,7 +461,7 @@ export default function InboxPage() {
                             // Wątek sprawy otwiera się jako sprawa - z wyceną i krokiem następnym (makieta).
                             const thread = threads.find((item) => item.id === id);
                             if (thread?.leadId && tab === 'poczta') {
-                                navigate(`/zapytania?lead=${encodeURIComponent(thread.leadId)}`);
+                                navigate(`/inbox?lead=${encodeURIComponent(thread.leadId)}`);
                                 return;
                             }
                             nav.openThread(id);
@@ -529,7 +529,7 @@ export default function InboxPage() {
                 phone={phone}
                 onBack={back}
                 onArchived={() => nav.openThread(null)}
-                onOpenCase={(id) => navigate(`/zapytania?lead=${encodeURIComponent(id)}`)}
+                onOpenCase={(id) => navigate(`/inbox?lead=${encodeURIComponent(id)}`)}
             />
         );
     }

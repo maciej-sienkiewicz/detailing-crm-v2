@@ -67,7 +67,7 @@ const preview = (item: SentItem): string | null => ('subject' in item && item.su
 const relatedLink = (item: SentItem): { label: string; to: string } | null => {
     if (item.campaign) return { label: 'Otwórz kampanię', to: `/campaigns/${item.campaign.id}` };
     if (item.visitId) return { label: 'Otwórz wizytę', to: `/visits/${item.visitId}` };
-    if (item.appointmentId) return { label: 'Pokaż rezerwację', to: `/calendar/rezerwacja/${item.appointmentId}` };
+    if (item.appointmentId) return { label: 'Pokaż rezerwację', to: `/calendar/appointments/${item.appointmentId}` };
     return null;
 };
 

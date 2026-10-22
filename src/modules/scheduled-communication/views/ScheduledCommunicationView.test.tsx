@@ -236,7 +236,7 @@ describe('ScheduledCommunicationView - SMS-y', () => {
 
 describe('ScheduledCommunicationView - E-maile', () => {
     it('zakładka e-maili: temat zamiast treści, kampania jednym wierszem z liczbą e-maili', async () => {
-        renderView('/scheduled-communication?kanal=email');
+        renderView('/scheduled-communication?channel=email');
 
         const row = await rowOf('Piotr Lis');
         expect(within(row).getByText('Przyjęliśmy Twoje auto')).toBeTruthy();
@@ -261,7 +261,7 @@ describe('ScheduledCommunicationView - E-maile', () => {
     });
 
     it('zmiana e-maila wysyła temat, treść i termin; okno pokazuje załączniki', async () => {
-        renderView('/scheduled-communication?kanal=email');
+        renderView('/scheduled-communication?channel=email');
         fireEvent.click(await rowOf('Piotr Lis'));
 
         expect(await screen.findByText('protokol_przyjecia.pdf')).toBeTruthy();
@@ -278,7 +278,7 @@ describe('ScheduledCommunicationView - E-maile', () => {
     });
 
     it('anulowanie e-maila idzie do API e-maili przez okno z właściwym rzeczownikiem', async () => {
-        renderView('/scheduled-communication?kanal=email');
+        renderView('/scheduled-communication?channel=email');
         openMenu(await rowOf('Piotr Lis'));
         fireEvent.click(menuItem('Anuluj wysyłkę'));
 

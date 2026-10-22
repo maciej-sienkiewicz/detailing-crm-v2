@@ -25,7 +25,7 @@ export const SERVICE_WORKER_URL = '/service-worker.js';
 
 /**
  * Czy w tym oknie wolno mieć workera. Nie w podglądzie roli: ani jego okno
- * (/podglad), ani aplikacja w jego ramce. Podgląd to jednorazowa piaskownica pod
+ * (/preview), ani aplikacja w jego ramce. Podgląd to jednorazowa piaskownica pod
  * własnym adresem - worker by ją przeżył, trzymałby jej dane i mógłby zapisać się
  * na push. Sprawdzają to WSZYSTKIE drogi do rejestracji, nie tylko start aplikacji:
  * kreator powiadomień rejestruje workera sam, gdy start się nie powiódł.

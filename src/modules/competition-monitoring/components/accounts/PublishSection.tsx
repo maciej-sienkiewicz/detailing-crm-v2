@@ -177,7 +177,7 @@ export const PublishSection = ({
     if (connection?.status !== 'CONNECTED') {
         return (
             <Wrap>
-                <LinkButton to="/instagram?widok=moj" $variant="tinted" $size="md" onClick={onGoToConnect}>
+                <LinkButton to="/instagram?view=mine" $variant="tinted" $size="md" onClick={onGoToConnect}>
                     <Instagram aria-hidden="true" />
                     Połącz konto Instagram, żeby publikować z CRM
                 </LinkButton>

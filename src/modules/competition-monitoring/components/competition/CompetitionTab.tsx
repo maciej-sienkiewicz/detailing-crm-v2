@@ -34,9 +34,9 @@ import { problemDetail, problemStatus } from '@/core/problem';
  */
 
 const VIEW_OPTIONS: { value: CompetitionView; label: string }[] = [
-    { value: 'profile', label: 'Profile' },
-    { value: 'reklamy', label: 'Reklamy' },
-    { value: 'okolica', label: 'W okolicy' },
+    { value: 'profiles', label: 'Profile' },
+    { value: 'ads', label: 'Reklamy' },
+    { value: 'area', label: 'W okolicy' },
 ];
 
 /** Biblioteka reklam Meta trzyma rok historii - więcej lat nie ma czym wypełnić. */
@@ -91,8 +91,8 @@ interface Props {
 
 export const CompetitionTab: React.FC<Props> = ({ view, days, year, onChange, onAddProfile, onOpenAd }) => {
     const colors = useProfileColors();
-    const competitionQuery = useCompetition(days, view === 'profile');
-    const adsQuery = useAdCalendar(year, view === 'reklamy');
+    const competitionQuery = useCompetition(days, view === 'profiles');
+    const adsQuery = useAdCalendar(year, view === 'ads');
     const resync = useResyncFailedProfiles();
     const [resyncMessage, setResyncMessage] = useState<string | null>(null);
     const [openProfile, setOpenProfile] = useState<CompetitionProfile | null>(null);
@@ -211,7 +211,7 @@ export const CompetitionTab: React.FC<Props> = ({ view, days, year, onChange, on
                     onChange={next => onChange({ view: next })}
                     block={!isDesktop}
                 />
-                {view === 'profile' && (
+                {view === 'profiles' && (
                     <Segmented
                         label="Okres"
                         // Na telefonie ten sam rozmiar co przełącznik widoku nad nim - dwa
@@ -223,7 +223,7 @@ export const CompetitionTab: React.FC<Props> = ({ view, days, year, onChange, on
                         block={!isDesktop}
                     />
                 )}
-                {view === 'reklamy' && (
+                {view === 'ads' && (
                     <Segmented
                         label="Rok"
                         size={isDesktop ? 'sm' : 'md'}
@@ -235,9 +235,9 @@ export const CompetitionTab: React.FC<Props> = ({ view, days, year, onChange, on
                 )}
             </Bar>
 
-            {view === 'profile' && renderProfiles()}
-            {view === 'reklamy' && renderAds()}
-            {view === 'okolica' && <AreaSection />}
+            {view === 'profiles' && renderProfiles()}
+            {view === 'ads' && renderAds()}
+            {view === 'area' && <AreaSection />}
 
             {openProfile && data && (
                 <ProfileDetailDrawer
@@ -247,7 +247,7 @@ export const CompetitionTab: React.FC<Props> = ({ view, days, year, onChange, on
                     onClose={() => setOpenProfile(null)}
                     onOpenAds={() => {
                         setOpenProfile(null);
-                        onChange({ view: 'reklamy' });
+                        onChange({ view: 'ads' });
                     }}
                 />
             )}

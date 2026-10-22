@@ -108,7 +108,7 @@ test('studio bez modułów nie pyta o to, czego serwer mu odmówi (402)', async 
     ];
     const visited: ApiCall[] = [];
     const problems: string[] = [];
-    for (const path of ['/calendar', '/dashboard', '/finance']) {
+    for (const path of ['/calendar', '/dashboard', '/finances']) {
         const opened = await open(page, path, { modules: 'none' });
         visited.push(...opened.api.calls);
         problems.push(...opened.problems);

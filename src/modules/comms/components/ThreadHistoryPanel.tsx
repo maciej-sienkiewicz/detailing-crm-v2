@@ -196,7 +196,7 @@ export function ThreadHistoryPanel({ threadId, email, onClose }: ThreadHistoryPa
     const openThread = (id: string) => {
         // Wcześniejsza rozmowa otwiera się w zakładce Poczta skrzynki „Zapytania" -
         // sam parametr `thread` w zakładce Sprawy nic by nie otworzył.
-        setSearchParams({ view: 'poczta', thread: id }, { replace: false });
+        setSearchParams({ view: 'mail', thread: id }, { replace: false });
         onClose();
     };
 

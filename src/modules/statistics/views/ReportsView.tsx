@@ -11,7 +11,7 @@
 // zmienia się z godziny na godzinę, a porównany z pełnym tygodniem wygląda jak spadek.
 // Zamiast przycisku kręci się wskaźnik i data, od której raport będzie do pobrania.
 //
-// Długość okresu i porównanie siedzą w adresie (`?okres=…&porownanie=…`), żeby odświeżenie
+// Długość okresu i porównanie siedzą w adresie (`?period=…&compare=…`), żeby odświeżenie
 // i link wysłany wspólnikowi pokazywały tę samą tabelę.
 
 import { useState } from 'react';
@@ -39,14 +39,14 @@ import {
 export const REPORTS_PAGE = 26;
 
 const LENGTHS: { value: ReportLength; label: string; param: string }[] = [
-    { value: 'WEEK', label: 'Tydzień', param: 'tydzien' },
-    { value: 'TWO_WEEKS', label: '2 tygodnie', param: '2-tygodnie' },
-    { value: 'MONTH', label: 'Miesiąc', param: 'miesiac' },
+    { value: 'WEEK', label: 'Tydzień', param: 'week' },
+    { value: 'TWO_WEEKS', label: '2 tygodnie', param: 'two-weeks' },
+    { value: 'MONTH', label: 'Miesiąc', param: 'month' },
 ];
 
 const COMPARISONS: { value: ReportComparison; label: string; param: string; word: string }[] = [
-    { value: 'PREVIOUS', label: 'Poprzedni okres', param: 'poprzedni', word: 'poprzednio' },
-    { value: 'MEDIAN', label: 'Typowy wynik z 6 okresów', param: 'mediana', word: 'typowo' },
+    { value: 'PREVIOUS', label: 'Poprzedni okres', param: 'previous', word: 'poprzednio' },
+    { value: 'MEDIAN', label: 'Typowy wynik z 6 okresów', param: 'median', word: 'typowo' },
 ];
 
 const pln = (grosz: number) => formatCurrency(grosz / 100, 'PLN');
@@ -61,8 +61,8 @@ const changeTone = (change: string): PillTone =>
 
 export const ReportsView = () => {
     const [searchParams, setSearchParams] = useSearchParams();
-    const length = LENGTHS.find(l => l.param === searchParams.get('okres'))?.value ?? 'WEEK';
-    const comparison = COMPARISONS.find(c => c.param === searchParams.get('porownanie')) ?? COMPARISONS[0];
+    const length = LENGTHS.find(l => l.param === searchParams.get('period'))?.value ?? 'WEEK';
+    const comparison = COMPARISONS.find(c => c.param === searchParams.get('compare')) ?? COMPARISONS[0];
     const [visible, setVisible] = useState(REPORTS_PAGE);
 
     const archive = useQuery({
@@ -108,7 +108,7 @@ export const ReportsView = () => {
                             options={LENGTHS}
                             value={length}
                             onChange={value => {
-                                setParam('okres', LENGTHS.find(l => l.value === value)!.param);
+                                setParam('period', LENGTHS.find(l => l.value === value)!.param);
                                 setVisible(REPORTS_PAGE);
                             }}
                         />
@@ -116,7 +116,7 @@ export const ReportsView = () => {
                             label="Porównanie z"
                             options={COMPARISONS}
                             value={comparison.value}
-                            onChange={value => setParam('porownanie', COMPARISONS.find(c => c.value === value)!.param)}
+                            onChange={value => setParam('compare', COMPARISONS.find(c => c.value === value)!.param)}
                         />
                     </Controls>
                 </Head>

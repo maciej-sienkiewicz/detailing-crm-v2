@@ -111,7 +111,7 @@ export const buildMenuSections = ({
                 // ktoś, kto czeka na odpowiedź. Sama nieprzeczytana poczta pokazuje
                 // biały licznik bez poświaty (decyzja z 21.10.2026). Stare adresy są
                 // w `match`, żeby pozycja świeciła także w trakcie przekierowania.
-                { path: '/zapytania', label: 'Zapytania', icon: InquiriesIcon,
+                { path: '/inbox', label: 'Zapytania', icon: InquiriesIcon,
                     badge: newLeadsCount > 0 ? newLeadsCount : unreadMailCount > 0 ? unreadMailCount : undefined,
                     badgeTone: newLeadsCount > 0 ? undefined : 'neutral',
                     alert: newLeadsCount > 0, requires: 'LEADS_MANAGE', match: ['/leads', '/communication'] },
@@ -135,7 +135,7 @@ export const buildMenuSections = ({
         {
             title: 'Firma',
             items: [
-                { path: '/finances',   label: 'Finanse',    icon: FinancesIcon, requires: ANY_FINANCE, match: ['/finance'] },
+                { path: '/finances',   label: 'Finanse',    icon: FinancesIcon, requires: ANY_FINANCE },
                 { path: '/statistics', label: 'Statystyki', icon: StatisticsIcon, requires: 'STATISTICS_VIEW' },
                 // Ścieżka to pierwsza zakładka, do której użytkownik ma dostęp - kierownik
                 // zmiany bez EMPLOYEES_MANAGE nie może trafić na /employees i przekierowanie.

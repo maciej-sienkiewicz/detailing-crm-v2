@@ -15,7 +15,7 @@ import { PostingPlanPanel } from './PostingPlanPanel';
 import { MarketNotificationPreferences } from '@/common/components/notifications';
 
 /**
- * Zakładka „Moje konta" (`?widok=moj`): własny Instagram i wizytówka Google studia.
+ * Zakładka „Moje konta" (`?view=mine`): własny Instagram i wizytówka Google studia.
  *
  * Tu odpowiadamy na pytanie, którego reszta modułu zadać nie umie: czy moje kanały
  * przynoszą klientów - kliknięcia „zadzwoń", trasy, wiadomości, opinie. Dane

@@ -83,7 +83,7 @@ export const LeadsWaitingKpi = () => {
             <Value>{waiting}</Value>
             <Note>
                 {alert ? (
-                    <ReplyLink type="button" onClick={() => navigate('/zapytania')}>Odpisz →</ReplyLink>
+                    <ReplyLink type="button" onClick={() => navigate('/inbox')}>Odpisz →</ReplyLink>
                 ) : (
                     <span>
                         Wszystko obsłużone

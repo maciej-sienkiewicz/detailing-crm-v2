@@ -44,7 +44,7 @@ const google = (patch: Partial<GoogleBusiness> = {}): GoogleBusiness => ({
     dataUntil: null, reviews: [], unansweredReviews: 0, ...patch,
 });
 
-const renderTab = (url = '/instagram?widok=moj') => {
+const renderTab = (url = '/instagram?view=mine') => {
     const router = createMemoryRouter([{ path: '/instagram', element: <MyAccountsTab /> }], { initialEntries: [url] });
     const client = new QueryClient({ defaultOptions: { queries: { retry: false } } });
     render(
@@ -138,10 +138,10 @@ describe('MyAccountsTab', () => {
     it('wynik logowania pokazuje się raz i znika z adresu', async () => {
         vi.mocked(accountsApi.getConnection).mockResolvedValue(connection());
 
-        const router = renderTab('/instagram?widok=moj&polaczenie=blad&powod=brak-konta');
+        const router = renderTab('/instagram?view=mine&connection=error&reason=no-account');
 
         await screen.findByText('Nie udało się połączyć Instagrama');
-        await waitFor(() => expect(router.state.location.search).toBe('?widok=moj'));
+        await waitFor(() => expect(router.state.location.search).toBe('?view=mine'));
         expect(screen.getByText(/firmowym kontem Instagram/)).toBeTruthy();
     });
 

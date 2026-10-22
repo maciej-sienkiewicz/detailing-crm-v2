@@ -23,13 +23,17 @@ export function readEntryCodeFromHash(hash: string): string | null {
 }
 
 /** Ścieżka okna podglądu na adresie podglądu. */
-export const ROLE_PREVIEW_SHELL_PATH = '/podglad';
+export const ROLE_PREVIEW_SHELL_PATH = '/preview';
 
 export function previewWindowUrl(previewBaseUrl: string, entryCode: string): string {
     return `${previewBaseUrl.replace(/\/+$/, '')}${ROLE_PREVIEW_SHELL_PATH}#k=${entryCode}`;
 }
 
+/** Dawna ścieżka okna podglądu - otwierają ją jeszcze karty starego frontu (audyt HTTP, P2-21). */
+const LEGACY_SHELL_PATH = '/podglad';
+
 /** Czy ta strona to okno podglądu (a nie aplikacja w jego ramce). */
 export function isRolePreviewShellPath(pathname: string): boolean {
-    return pathname === ROLE_PREVIEW_SHELL_PATH || pathname === `${ROLE_PREVIEW_SHELL_PATH}/`;
+    const path = pathname.endsWith('/') && pathname.length > 1 ? pathname.slice(0, -1) : pathname;
+    return path === ROLE_PREVIEW_SHELL_PATH || path === LEGACY_SHELL_PATH;
 }

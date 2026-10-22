@@ -45,7 +45,7 @@ const kindHint = (item: ScheduledItem): string => {
 const relatedLink = (item: ScheduledItem): { label: string; to: string } | null => {
     if (item.campaign) return { label: 'Otwórz kampanię', to: `/campaigns/${item.campaign.id}` };
     if (item.visitId) return { label: 'Otwórz wizytę', to: `/visits/${item.visitId}` };
-    if (item.appointmentId) return { label: 'Pokaż rezerwację', to: `/calendar/rezerwacja/${item.appointmentId}` };
+    if (item.appointmentId) return { label: 'Pokaż rezerwację', to: `/calendar/appointments/${item.appointmentId}` };
     return null;
 };
 

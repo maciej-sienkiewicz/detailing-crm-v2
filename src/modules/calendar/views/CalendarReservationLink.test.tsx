@@ -16,10 +16,10 @@ function CalendarProbe() {
 describe('CalendarReservationLink', () => {
     it('przekazuje kalendarzowi rezerwację do podświetlenia i miesiąc do skoku', () => {
         render(
-            <MemoryRouter initialEntries={['/calendar/rezerwacja/a-1?start=2026-10-01T08:00:00Z']}>
+            <MemoryRouter initialEntries={['/calendar/appointments/a-1?start=2026-10-01T08:00:00Z']}>
                 <Routes>
                     <Route path="/calendar" element={<CalendarProbe />} />
-                    <Route path="/calendar/rezerwacja/:appointmentId" element={<CalendarReservationLink />} />
+                    <Route path="/calendar/appointments/:appointmentId" element={<CalendarReservationLink />} />
                 </Routes>
             </MemoryRouter>,
         );

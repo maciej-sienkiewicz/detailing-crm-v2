@@ -55,7 +55,7 @@ for (const phone of PHONES) {
         });
 
         test('nagłówek nazywa moduł, a wszystkie cztery zakładki mieszczą się na ekranie', async ({ page }) => {
-            await openModule(page, 'widok=przeglad');
+            await openModule(page, 'view=overview');
 
             await expect(page.getByText('Instagram', { exact: true }).first()).toBeVisible();
             const tabs = page.getByRole('tab');
@@ -70,7 +70,7 @@ for (const phone of PHONES) {
         });
 
         test('po przewinięciu zakładki zostają u góry ekranu', async ({ page }) => {
-            await openModule(page, 'widok=moj');
+            await openModule(page, 'view=mine');
             await page.evaluate(() => window.scrollTo(0, 1600));
 
             const tablist = page.getByRole('tablist', { name: 'Zakładki modułu Instagram' });
@@ -80,13 +80,13 @@ for (const phone of PHONES) {
         });
 
         for (const query of [
-            'widok=przeglad',
-            'widok=moj',
-            'widok=konkurencja&pokaz=profile&okres=90',
-            'widok=konkurencja&pokaz=profile&okres=365',
-            'widok=konkurencja&pokaz=reklamy',
-            'widok=konkurencja&pokaz=okolica',
-            'widok=inspiracje',
+            'view=overview',
+            'view=mine',
+            'view=competition&show=profiles&period=90',
+            'view=competition&show=profiles&period=365',
+            'view=competition&show=ads',
+            'view=competition&show=area',
+            'view=inspiration',
         ]) {
             test(`strony nie da się przewinąć w bok: ${query}`, async ({ page }) => {
                 await openModule(page, query);
@@ -96,7 +96,7 @@ for (const phone of PHONES) {
         }
 
         test('„W okolicy": nazwa każdej firmy jest czytelna, a nie ucięta do litery', async ({ page }) => {
-            await openModule(page, 'widok=konkurencja&pokaz=okolica');
+            await openModule(page, 'view=competition&show=area');
 
             for (const name of ['GlossWerk Warszawa', 'Perłowy Połysk – Studio Detailingu i Ochrony Lakieru Sp. z o.o.', 'Myjnia Ręczna Bąkowa 24h']) {
                 const label = page.getByText(name, { exact: true }).first();
@@ -109,7 +109,7 @@ for (const phone of PHONES) {
         });
 
         test('nazwa konta Instagram nie łamie się w pół słowa', async ({ page }) => {
-            await openModule(page, 'widok=moj');
+            await openModule(page, 'view=mine');
 
             const handle = page.getByRole('heading', { name: '@detailing_studio_mokotow' });
             await expect(handle).toBeVisible();
@@ -121,7 +121,7 @@ for (const phone of PHONES) {
         });
 
         test('szczegóły reklamy mieszczą się w szerokości ekranu', async ({ page }) => {
-            await openModule(page, 'widok=konkurencja&pokaz=reklamy');
+            await openModule(page, 'view=competition&show=ads');
             await page.getByRole('button', { name: /PPF Full Front/ }).first().click();
 
             const dialog = page.getByRole('dialog');
@@ -137,7 +137,7 @@ for (const phone of PHONES) {
         });
 
         test('generator zajmuje cały ekran, a przyciski wyniku mają po jednej linii', async ({ page }) => {
-            await openModule(page, 'widok=przeglad');
+            await openModule(page, 'view=overview');
             await page.getByRole('button', { name: 'Generuj', exact: true }).click();
 
             const dialog = page.getByRole('dialog', { name: 'Generator postów na Instagram' });
@@ -166,7 +166,7 @@ test.describe('Instagram na komputerze (1280px) - układ desktopowy bez zmian', 
     });
 
     test('nagłówek z akcjami i zakładki z pełnymi nazwami', async ({ page }) => {
-        await openModule(page, 'widok=przeglad');
+        await openModule(page, 'view=overview');
 
         await expect(page.getByRole('heading', { name: 'Instagram' })).toBeVisible();
         await expect(page.getByRole('button', { name: 'Generuj post' })).toBeVisible();
@@ -176,9 +176,17 @@ test.describe('Instagram na komputerze (1280px) - układ desktopowy bez zmian', 
     });
 
     test('„W okolicy" zostaje tabelą z nagłówkami kolumn', async ({ page }) => {
-        await openModule(page, 'widok=konkurencja&pokaz=okolica');
+        await openModule(page, 'view=competition&show=area');
 
         await expect(page.getByText('Perłowy Połysk – Studio Detailingu i Ochrony Lakieru Sp. z o.o.', { exact: true }).first()).toBeVisible();
+        await expect(page.getByRole('columnheader', { name: /Kampanie/i })).toBeVisible();
+    });
+
+    // Wysłane już pushe i podpowiedzi z Tablicy niosą polskie parametry (audyt HTTP, P2-21).
+    test('link ze starego pusha otwiera obiecany widok pod nowym adresem', async ({ page }) => {
+        await openModule(page, 'widok=konkurencja&pokaz=okolica');
+
+        await expect(page).toHaveURL(/\/instagram\?view=competition&show=area$/);
         await expect(page.getByRole('columnheader', { name: /Kampanie/i })).toBeVisible();
     });
 });

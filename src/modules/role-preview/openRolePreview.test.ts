@@ -17,7 +17,7 @@ describe('otwieranie podglądu roli', () => {
         await openRolePreview('https://podglad.detailboost.pl', input, { open, start, newCode: () => 'KOD' });
 
         // Okno przed serwerem: po odpowiedzi przeglądarka zablokowałaby je jako wyskakujące.
-        expect(events).toEqual(['open https://podglad.detailboost.pl/podglad#k=KOD', 'start KOD']);
+        expect(events).toEqual(['open https://podglad.detailboost.pl/preview#k=KOD', 'start KOD']);
         expect(start).toHaveBeenCalledWith({ ...input, entryCode: 'KOD' });
         expect(previewWindow.close).not.toHaveBeenCalled();
         expect(previewWindow.postMessage).not.toHaveBeenCalled();

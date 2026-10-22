@@ -134,14 +134,14 @@ export interface ConnectionResult {
 }
 
 /** Parametry, które backend dokleja do adresu po powrocie z logowania. */
-export const RESULT_PARAMS = ['polaczenie', 'google', 'powod'] as const;
+export const RESULT_PARAMS = ['connection', 'google', 'reason'] as const;
 
 const FAILURE_TEXT: Record<string, string> = {
-    wygaslo: 'Logowanie trwało za długo. Spróbuj jeszcze raz.',
-    anulowano: 'Połączenie przerwane. Nic nie zostało zmienione.',
-    'brak-konta': 'Na tym koncie Facebook nie ma strony połączonej z firmowym kontem Instagram.',
-    'brak-wizytowki': 'To konto Google nie zarządza żadną wizytówką firmy.',
-    'brak-zgody': 'Google nie dał stałego dostępu. Połącz jeszcze raz i zaznacz wszystkie zgody.',
+    expired: 'Logowanie trwało za długo. Spróbuj jeszcze raz.',
+    cancelled: 'Połączenie przerwane. Nic nie zostało zmienione.',
+    'no-account': 'Na tym koncie Facebook nie ma strony połączonej z firmowym kontem Instagram.',
+    'no-listing': 'To konto Google nie zarządza żadną wizytówką firmy.',
+    'no-consent': 'Google nie dał stałego dostępu. Połącz jeszcze raz i zaznacz wszystkie zgody.',
 };
 
 /**
@@ -150,12 +150,12 @@ const FAILURE_TEXT: Record<string, string> = {
  * w którym można go pokazać.
  */
 export const connectionResult = (params: URLSearchParams): ConnectionResult | null => {
-    const instagram = params.get('polaczenie');
+    const instagram = params.get('connection');
     const google = params.get('google');
-    const reason = params.get('powod') ?? '';
+    const reason = params.get('reason') ?? '';
     if (instagram) {
         if (instagram === 'ok') return { tone: 'ok', title: 'Instagram połączony', text: 'Pierwsze statystyki pojawią się za kilka minut.' };
-        if (instagram === 'wybierz') return { tone: 'info', title: 'Wybierz konto', text: 'Masz kilka kont Instagram. Wskaż konto studia.' };
+        if (instagram === 'choose') return { tone: 'info', title: 'Wybierz konto', text: 'Masz kilka kont Instagram. Wskaż konto studia.' };
         return {
             tone: 'danger',
             title: 'Nie udało się połączyć Instagrama',
@@ -164,7 +164,7 @@ export const connectionResult = (params: URLSearchParams): ConnectionResult | nu
     }
     if (google) {
         if (google === 'ok') return { tone: 'ok', title: 'Wizytówka Google połączona', text: 'Telefony i opinie pojawią się za kilka minut.' };
-        if (google === 'wybierz') return { tone: 'info', title: 'Wybierz wizytówkę', text: 'To konto zarządza kilkoma wizytówkami. Wskaż wizytówkę studia.' };
+        if (google === 'choose') return { tone: 'info', title: 'Wybierz wizytówkę', text: 'To konto zarządza kilkoma wizytówkami. Wskaż wizytówkę studia.' };
         return {
             tone: 'danger',
             title: 'Nie udało się połączyć wizytówki',

@@ -145,7 +145,7 @@ export const BottomNav = () => {
             { path: '/calendar',      label: 'Kalendarz', icon: Calendar, requires: 'VISITS_VIEW' },
             // Skrzynka „Zapytania" (sprawy i poczta): licznik spraw czekających na nas,
             // a gdy żadna nie czeka - nieprzeczytanej poczty.
-            { path: '/zapytania',     label: 'Zapytania', icon: Inbox,    requires: 'LEADS_MANAGE', badge: casesWaiting > 0 ? casesWaiting : unreadMail },
+            { path: '/inbox',         label: 'Zapytania', icon: Inbox,    requires: 'LEADS_MANAGE', badge: casesWaiting > 0 ? casesWaiting : unreadMail },
             { path: '/finances',      label: 'Finanse',   icon: FileText, requires: ANY_FINANCE },
         ]
         : [

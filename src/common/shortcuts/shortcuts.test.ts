@@ -12,21 +12,21 @@ describe('skróty zakładek Instagrama', () => {
 
     it('idą po kolei po zakładkach paska', () => {
         expect(shortcuts.map((s) => [s.key, s.param?.value])).toEqual([
-            ['1', 'przeglad'],
-            ['2', 'moj'],
-            ['3', 'konkurencja'],
-            ['4', 'inspiracje'],
+            ['1', 'overview'],
+            ['2', 'mine'],
+            ['3', 'competition'],
+            ['4', 'inspiration'],
         ]);
     });
 
     it('żaden nie prowadzi do adresu, który przekierowanie starych adresów zmienia', () => {
         shortcuts.forEach((s) => {
-            expect(resolveLegacyUrl(new URLSearchParams({ widok: s.param!.value }))).toBeNull();
+            expect(resolveLegacyUrl(new URLSearchParams({ view: s.param!.value }))).toBeNull();
         });
     });
 
     it('wyjście z Konkurencji zdejmuje jej parametry, wejście ich nie rusza', () => {
-        expect(shortcuts.find((s) => s.key === '1')?.drop).toEqual(['pokaz', 'okres', 'rok']);
+        expect(shortcuts.find((s) => s.key === '1')?.drop).toEqual(['show', 'period', 'year']);
         expect(shortcuts.find((s) => s.key === '3')?.drop).toBeUndefined();
     });
 });

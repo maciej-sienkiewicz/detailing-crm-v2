@@ -4,7 +4,7 @@
 // i przycisk „wstecz" trafiają w to samo miejsce.
 import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { inboxTabFromParam, type InboxTab } from '../utils/inboxTabs';
+import { inboxTabFromParam, inboxTabParam, type InboxTab } from '../utils/inboxTabs';
 
 export interface InboxLocation {
     tab: InboxTab;
@@ -29,7 +29,7 @@ export function useInboxNav() {
             leadId: params.get('lead'),
             threadId: params.get('thread'),
             archive: params.get('archive') === '1',
-            board: params.get('uklad') === 'tablica',
+            board: params.get('layout') === 'board',
             rejected: params.get('folder') === 'rejected',
             compose: params.get('compose') === '1' ? { to: params.get('to') ?? '' } : null,
         }),
@@ -40,9 +40,10 @@ export function useInboxNav() {
         (next: Partial<InboxLocation>) => {
             const merged = { ...location, ...next };
             const out: Record<string, string> = {};
-            if (merged.tab !== 'sprawy') out.view = merged.tab;
+            const view = inboxTabParam(merged.tab);
+            if (view) out.view = view;
             if (merged.tab === 'sprawy') {
-                if (merged.board) out.uklad = 'tablica';
+                if (merged.board) out.layout = 'board';
                 else if (merged.archive) out.archive = '1';
                 if (merged.leadId) out.lead = merged.leadId;
             } else {

@@ -223,13 +223,13 @@ const TabsDock = styled.div<{ $docked: boolean }>`
 
 // ─── Zakładki ─────────────────────────────────────────────────────────────────
 
-type TabKey = 'przeglad' | 'moj' | 'konkurencja' | 'inspiracje';
+type TabKey = 'overview' | 'mine' | 'competition' | 'inspiration';
 
 const TABS: ReadonlyArray<TabDefinition<TabKey>> = [
-    { key: 'przeglad', label: 'Przegląd', icon: <LayoutDashboard size={14} /> },
-    { key: 'moj', label: 'Moje konta', icon: <UserRound size={14} /> },
-    { key: 'konkurencja', label: 'Konkurencja', icon: <Users size={14} /> },
-    { key: 'inspiracje', label: 'Inspiracje', icon: <Lightbulb size={14} /> },
+    { key: 'overview', label: 'Przegląd', icon: <LayoutDashboard size={14} /> },
+    { key: 'mine', label: 'Moje konta', icon: <UserRound size={14} /> },
+    { key: 'competition', label: 'Konkurencja', icon: <Users size={14} /> },
+    { key: 'inspiration', label: 'Inspiracje', icon: <Lightbulb size={14} /> },
 ];
 
 /**
@@ -238,11 +238,11 @@ const TABS: ReadonlyArray<TabDefinition<TabKey>> = [
  */
 const MOBILE_TABS: ReadonlyArray<TabDefinition<TabKey>> = TABS.map(({ key, label }) => ({
     key,
-    label: key === 'moj' ? 'Konta' : label,
+    label: key === 'mine' ? 'Konta' : label,
 }));
 
 const resolveTab = (raw: string | null): TabKey =>
-    TABS.some(t => t.key === raw) ? (raw as TabKey) : 'przeglad';
+    TABS.some(t => t.key === raw) ? (raw as TabKey) : 'overview';
 
 /** Biblioteka reklam Meta trzyma rok historii - dwa lata to wszystko, co da się pokazać. */
 const AD_YEARS = 2;
@@ -293,13 +293,13 @@ export const CompetitionMonitoringView = () => {
         if (next) setSearchParams(next, { replace: true });
     }, [searchParams, setSearchParams]);
 
-    const tab = resolveTab(searchParams.get('widok'));
-    const viewParam = searchParams.get('pokaz');
-    const competitionView: CompetitionView = isCompetitionView(viewParam) ? viewParam : 'profile';
-    const days: CompetitionDays = searchParams.get('okres') === '365' ? 365 : 90;
+    const tab = resolveTab(searchParams.get('view'));
+    const viewParam = searchParams.get('show');
+    const competitionView: CompetitionView = isCompetitionView(viewParam) ? viewParam : 'profiles';
+    const days: CompetitionDays = searchParams.get('period') === '365' ? 365 : 90;
 
     const currentYear = new Date().getFullYear();
-    const yearParam = Number(searchParams.get('rok'));
+    const yearParam = Number(searchParams.get('year'));
     const year = Number.isInteger(yearParam) && yearParam > currentYear - AD_YEARS && yearParam <= currentYear
         ? yearParam
         : currentYear;
@@ -308,15 +308,15 @@ export const CompetitionMonitoringView = () => {
         (next: { tab?: TabKey; view?: CompetitionView; days?: CompetitionDays; year?: number }) => {
             setSearchParams(prev => {
                 const params = new URLSearchParams(prev);
-                if (next.tab) params.set('widok', next.tab);
-                if (next.view) params.set('pokaz', next.view);
-                if (next.days) params.set('okres', String(next.days));
-                if (next.year) params.set('rok', String(next.year));
+                if (next.tab) params.set('view', next.tab);
+                if (next.view) params.set('show', next.view);
+                if (next.days) params.set('period', String(next.days));
+                if (next.year) params.set('year', String(next.year));
                 // Widok i okres dotyczą wyłącznie Konkurencji - na innych zakładkach to szum w adresie.
-                if (next.tab && next.tab !== 'konkurencja') {
-                    params.delete('pokaz');
-                    params.delete('okres');
-                    params.delete('rok');
+                if (next.tab && next.tab !== 'competition') {
+                    params.delete('show');
+                    params.delete('period');
+                    params.delete('year');
                 }
                 return params;
             }, { replace: true });
@@ -353,20 +353,20 @@ export const CompetitionMonitoringView = () => {
                 if (todo.url) openExternal(todo.url);
                 break;
             case 'OPEN_AREA':
-                setUrlState({ tab: 'konkurencja', view: 'okolica' });
+                setUrlState({ tab: 'competition', view: 'area' });
                 break;
             case 'OPEN_ADS':
-                setUrlState({ tab: 'konkurencja', view: 'reklamy' });
+                setUrlState({ tab: 'competition', view: 'ads' });
                 break;
             case 'OPEN_COMPETITION':
-                setUrlState({ tab: 'konkurencja', view: 'profile' });
+                setUrlState({ tab: 'competition', view: 'profiles' });
                 break;
             case 'OPEN_PROFILES':
                 setDrawerOpen(true);
                 break;
             case 'CONNECT':
             case 'OPEN_GOOGLE':
-                setUrlState({ tab: 'moj' });
+                setUrlState({ tab: 'mine' });
                 break;
             case 'OPEN_LEADS':
                 navigate('/leads');
@@ -375,8 +375,8 @@ export const CompetitionMonitoringView = () => {
     };
 
     const handleMarket = (event: HomeMarketEvent) => {
-        if (event.target === 'OPEN_ADS') setUrlState({ tab: 'konkurencja', view: 'reklamy' });
-        else if (event.target === 'OPEN_AREA') setUrlState({ tab: 'konkurencja', view: 'okolica' });
+        if (event.target === 'OPEN_ADS') setUrlState({ tab: 'competition', view: 'ads' });
+        else if (event.target === 'OPEN_AREA') setUrlState({ tab: 'competition', view: 'area' });
         else if (event.url) openExternal(event.url);
     };
 
@@ -464,19 +464,19 @@ export const CompetitionMonitoringView = () => {
                 </MobileTop>
             )}
 
-            {tab === 'przeglad' && (
+            {tab === 'overview' && (
                 <OverviewTab
                     onTodo={handleTodo}
                     onPickVisit={() => openGenerator({ pickVisit: true })}
                     onMarket={handleMarket}
                     onOpenProfiles={() => setDrawerOpen(true)}
-                    onOpenAccounts={() => setUrlState({ tab: 'moj' })}
+                    onOpenAccounts={() => setUrlState({ tab: 'mine' })}
                 />
             )}
 
-            {tab === 'moj' && <MyAccountsTab />}
+            {tab === 'mine' && <MyAccountsTab />}
 
-            {tab === 'konkurencja' && (
+            {tab === 'competition' && (
                 <CompetitionTab
                     view={competitionView}
                     days={days}
@@ -487,7 +487,7 @@ export const CompetitionMonitoringView = () => {
                 />
             )}
 
-            {tab === 'inspiracje' && <InspirationTab onMakeSimilar={openGenerator} />}
+            {tab === 'inspiration' && <InspirationTab onMakeSimilar={openGenerator} />}
 
             {openAdId && <AdDetailModal adId={openAdId} onClose={() => setOpenAdId(null)} />}
 

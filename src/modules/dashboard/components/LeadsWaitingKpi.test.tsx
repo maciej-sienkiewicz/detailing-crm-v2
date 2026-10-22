@@ -18,7 +18,7 @@ afterEach(() => cleanup());
 const renderKpi = () => {
     const router = createMemoryRouter([
         { path: '/dashboard', element: <LeadsWaitingKpi /> },
-        { path: '/zapytania', element: <p>skrzynka zapytań</p> },
+        { path: '/inbox', element: <p>skrzynka zapytań</p> },
     ], { initialEntries: ['/dashboard'] });
     render(<RouterProvider router={router} />);
     return router;
@@ -31,7 +31,7 @@ describe('LeadsWaitingKpi', () => {
         expect(screen.getByText('Zapytania czekają na odpowiedź')).toBeInTheDocument();
         expect(screen.getByText('7')).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: 'Odpisz →' }));
-        expect(router.state.location.pathname).toBe('/zapytania');
+        expect(router.state.location.pathname).toBe('/inbox');
     });
 
     it('nic nie czeka: spokojne „Wszystko obsłużone”, bez przycisku', () => {

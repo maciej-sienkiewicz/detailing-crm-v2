@@ -129,7 +129,7 @@ describe('ReportsView', () => {
     });
 
     it('długość i porównanie z adresu, zmiana zapisuje się w adresie', async () => {
-        renderView('/statistics/reports?okres=miesiac&porownanie=mediana');
+        renderView('/statistics/reports?period=month&compare=median');
 
         await waitFor(() => expect(api.getArchive).toHaveBeenCalledWith('MONTH', 'MEDIAN'));
         expect(await screen.findAllByText(/^typowo /)).not.toHaveLength(0);
@@ -138,11 +138,11 @@ describe('ReportsView', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Poprzedni okres' }));
 
         await waitFor(() => expect(api.getArchive).toHaveBeenLastCalledWith('TWO_WEEKS', 'PREVIOUS'));
-        expect(screen.getByTestId('location').textContent).toBe('/statistics/reports?okres=2-tygodnie&porownanie=poprzedni');
+        expect(screen.getByTestId('location').textContent).toBe('/statistics/reports?period=two-weeks&compare=previous');
     });
 
     it('PDF za pełny okres z wybranym porównaniem', async () => {
-        renderView('/statistics/reports?porownanie=mediana');
+        renderView('/statistics/reports?compare=median');
 
         fireEvent.click(await screen.findByRole('button', { name: 'Pobierz raport PDF za 21 wrz – 27 wrz' }));
 

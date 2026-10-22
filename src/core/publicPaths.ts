@@ -5,6 +5,7 @@
 // karta wizyty klienta, podpis zdalny). Na nich 401 jest normalnym stanem, a nie wygasłą sesją.
 // Każdą nową gołą trasę z routera dopisz tutaj - pilnuje tego publicPaths.test.ts.
 import { LEGAL_DOCUMENTS, legalPath } from '@/modules/legal/documents';
+import { isRolePreviewShellPath } from '@/modules/role-preview/entryCode';
 
 const PUBLIC_PATHS = [
     '/login', '/signup', '/forgot-password', '/reset-password', '/confirm-password',
@@ -16,7 +17,7 @@ const PUBLIC_PATHS = [
 export function isPublicAppPath(pathname: string): boolean {
     return PUBLIC_PATHS.includes(pathname)
         // The role preview window handles an ended preview itself; /login there leads nowhere.
-        || pathname === '/podglad'
+        || isRolePreviewShellPath(pathname)
         || pathname.startsWith('/vc/')
         || pathname.startsWith('/sign/')
         || pathname.startsWith('/m/sig/');

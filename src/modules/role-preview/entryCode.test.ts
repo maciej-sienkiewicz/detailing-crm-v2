@@ -27,13 +27,16 @@ describe('kod wejścia do podglądu roli', () => {
     });
 
     it('trafia do okna podglądu w części adresu, której przeglądarka nie wysyła serwerowi', () => {
-        expect(previewWindowUrl('https://podglad.detailboost.pl/', 'KOD')).toBe('https://podglad.detailboost.pl/podglad#k=KOD');
-        expect(previewWindowUrl('https://podglad.detailboost.pl', 'KOD')).toBe('https://podglad.detailboost.pl/podglad#k=KOD');
+        expect(previewWindowUrl('https://podglad.detailboost.pl/', 'KOD')).toBe('https://podglad.detailboost.pl/preview#k=KOD');
+        expect(previewWindowUrl('https://podglad.detailboost.pl', 'KOD')).toBe('https://podglad.detailboost.pl/preview#k=KOD');
     });
 
-    it('okno podglądu to tylko /podglad - aplikacja w ramce działa pod zwykłymi adresami', () => {
+    it('okno podglądu to tylko /preview (i dawne /podglad) - aplikacja w ramce działa pod zwykłymi adresami', () => {
+        expect(isRolePreviewShellPath('/preview')).toBe(true);
+        expect(isRolePreviewShellPath('/preview/')).toBe(true);
         expect(isRolePreviewShellPath('/podglad')).toBe(true);
         expect(isRolePreviewShellPath('/podglad/')).toBe(true);
+        expect(isRolePreviewShellPath('/previews')).toBe(false);
         expect(isRolePreviewShellPath('/')).toBe(false);
         expect(isRolePreviewShellPath('/podglady')).toBe(false);
         expect(isRolePreviewShellPath('/settings/podglad')).toBe(false);

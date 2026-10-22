@@ -7,7 +7,7 @@
 // Dwa poziomy wyboru, bo to dwa różne pytania:
 //   - TabBar pod nagłówkiem wybiera KANAŁ. SMS-y i e-maile mają inne źródła (e-maile nie
 //     mają automatów ani przypomnień), inną edycję (temat, załączniki) i inne liczniki.
-//     Kanał jest w adresie (?kanal=email), żeby link z innego miejsca otwierał właściwą listę.
+//     Kanał jest w adresie (?channel=email), żeby link z innego miejsca otwierał właściwą listę.
 //   - Segmented w karcie wybiera STAN listy: „Zaplanowane", „Anulowane", „Wysłane".
 //     Zostaje przy zmianie kanału - kto oglądał wysłane SMS-y, chce zobaczyć wysłane e-maile.
 //
@@ -157,7 +157,7 @@ export const ScheduledCommunicationView = () => {
     const { showSuccess, showError } = useToast();
     const isDesktop = useBreakpoint('md');
     const [params, setParams] = useSearchParams();
-    const channel = channelFrom(params.get('kanal'));
+    const channel = channelFrom(params.get('channel'));
     const copy = COPY[channel];
 
     const [search, setSearch] = useState('');
@@ -208,8 +208,8 @@ export const ScheduledCommunicationView = () => {
         setCancelling(null);
         setParams(prev => {
             const p = new URLSearchParams(prev);
-            if (next === 'EMAIL') p.set('kanal', 'email');
-            else p.delete('kanal');
+            if (next === 'EMAIL') p.set('channel', 'email');
+            else p.delete('channel');
             return p;
         }, { replace: true });
     };

@@ -225,7 +225,7 @@ export default function LeadAnalyticsView() {
                 actions={
                     <>
                         <PeriodPicker value={period} onChange={setPeriod} />
-                        <Link to="/zapytania">
+                        <Link to="/inbox">
                             <PageHeaderGhostButton as="span">
                                 <ArrowLeft /> Zapytania
                             </PageHeaderGhostButton>
@@ -305,7 +305,7 @@ function Report({ data, thin, yearSeries, year }: {
             <Section aria-labelledby="leads-rest">
                 <SectionTitle id="leads-rest">Co z resztą</SectionTitle>
                 <Rows>
-                    <Row type="button" onClick={() => navigate('/zapytania')}>
+                    <Row type="button" onClick={() => navigate('/inbox')}>
                         <span className="text">
                             <span className="title">W toku: {cases(open)}</span>
                             <span className="note">
@@ -317,7 +317,7 @@ function Report({ data, thin, yearSeries, year }: {
                         <span className="amount">{formatMoney(openValue)}</span>
                         <ChevronRight aria-hidden="true" />
                     </Row>
-                    <Row type="button" onClick={() => navigate('/zapytania?archive=1')}>
+                    <Row type="button" onClick={() => navigate('/inbox?archive=1')}>
                         <span className="text">
                             <span className="title">Przegrane: {cases(lost)}</span>
                             <span className="note">

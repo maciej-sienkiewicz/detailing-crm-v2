@@ -127,18 +127,18 @@ describe('kiedy odświeżono', () => {
 
 describe('powrót z logowania', () => {
     it('każdy wynik ma zdanie dla właściciela', () => {
-        expect(connectionResult(new URLSearchParams('polaczenie=ok'))?.tone).toBe('ok');
-        expect(connectionResult(new URLSearchParams('polaczenie=wybierz'))?.tone).toBe('info');
-        expect(connectionResult(new URLSearchParams('polaczenie=blad&powod=brak-konta'))?.text)
+        expect(connectionResult(new URLSearchParams('connection=ok'))?.tone).toBe('ok');
+        expect(connectionResult(new URLSearchParams('connection=choose'))?.tone).toBe('info');
+        expect(connectionResult(new URLSearchParams('connection=error&reason=no-account'))?.text)
             .toContain('firmowym kontem Instagram');
-        expect(connectionResult(new URLSearchParams('google=blad&powod=brak-zgody'))?.text).toContain('zgody');
-        expect(connectionResult(new URLSearchParams('google=blad&powod=cos-nowego'))?.tone).toBe('danger');
-        expect(connectionResult(new URLSearchParams('widok=moj'))).toBeNull();
+        expect(connectionResult(new URLSearchParams('google=error&reason=no-consent'))?.text).toContain('zgody');
+        expect(connectionResult(new URLSearchParams('google=error&reason=something-new'))?.tone).toBe('danger');
+        expect(connectionResult(new URLSearchParams('view=mine'))).toBeNull();
     });
 
     it('po pokazaniu komunikatu zostaje tylko widok', () => {
-        const cleaned = withoutResultParams(new URLSearchParams('widok=moj&polaczenie=blad&powod=wygaslo'));
-        expect(cleaned.toString()).toBe('widok=moj');
+        const cleaned = withoutResultParams(new URLSearchParams('view=mine&connection=error&reason=expired'));
+        expect(cleaned.toString()).toBe('view=mine');
     });
 });
 

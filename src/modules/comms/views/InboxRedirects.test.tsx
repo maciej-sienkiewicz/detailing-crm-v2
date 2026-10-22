@@ -19,7 +19,7 @@ const landOn = (url: string) => {
             <Routes>
                 <Route path="/leads" element={<LegacyLeadsRedirect />} />
                 <Route path="/communication" element={<LegacyMailRedirect />} />
-                <Route path="/zapytania" element={<Where />} />
+                <Route path="/inbox" element={<Where />} />
             </Routes>
         </MemoryRouter>
     );
@@ -28,28 +28,28 @@ const landOn = (url: string) => {
 
 describe('przekierowania do skrzynki „Zapytania"', () => {
     it('lead z powiadomienia otwiera tę samą sprawę', () => {
-        expect(landOn('/leads?lead=abc')).toBe('/zapytania?lead=abc');
+        expect(landOn('/leads?lead=abc')).toBe('/inbox?lead=abc');
     });
 
     it('archiwum leadów z analityki zostaje archiwum', () => {
-        expect(landOn('/leads?status=LOST')).toBe('/zapytania?status=LOST');
+        expect(landOn('/leads?status=LOST')).toBe('/inbox?status=LOST');
     });
 
     it('wątek poczty otwiera się w zakładce Poczta', () => {
-        expect(landOn('/communication?thread=t1')).toBe('/zapytania?thread=t1&view=poczta');
+        expect(landOn('/communication?thread=t1')).toBe('/inbox?thread=t1&view=mail');
     });
 
     it('folder Wysłane staje się zakładką Wysłane', () => {
-        expect(landOn('/communication?folder=sent&thread=t2')).toBe('/zapytania?thread=t2&view=wyslane');
+        expect(landOn('/communication?folder=sent&thread=t2')).toBe('/inbox?thread=t2&view=sent');
     });
 
     it('nowa wiadomość do leada bez wątku otwiera jego sprawę', () => {
-        expect(landOn('/communication?compose=1&to=jan%40example.com&lead=L1')).toBe('/zapytania?lead=L1');
+        expect(landOn('/communication?compose=1&to=jan%40example.com&lead=L1')).toBe('/inbox?lead=L1');
     });
 
     it('nowa wiadomość bez leada zostaje w poczcie z adresatem', () => {
         expect(landOn('/communication?compose=1&to=jan%40example.com')).toBe(
-            '/zapytania?compose=1&to=jan%40example.com&view=poczta'
+            '/inbox?compose=1&to=jan%40example.com&view=mail'
         );
     });
 });

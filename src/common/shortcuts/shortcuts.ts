@@ -34,8 +34,8 @@ export const GLOBAL_SHORTCUTS: GlobalShortcut[] = [
     { key: 'w', to: '/checkin/new', description: 'Przyjęcie auta - nowa wizyta', requiresAction: 'canCreateVisit' },
     { key: 'r', to: '/calendar', state: { openQuickEvent: true }, description: 'Nowa rezerwacja', requiresAction: 'canCreateAppointment' },
     { key: 'k', to: '/calendar', description: 'Kalendarz' },
-    { key: 'l', to: '/zapytania', description: 'Zapytania (sprawy)' },
-    { key: 'p', to: '/zapytania?view=poczta', description: 'Zapytania (poczta)' },
+    { key: 'l', to: '/inbox', description: 'Zapytania (sprawy)' },
+    { key: 'p', to: '/inbox?view=mail', description: 'Zapytania (poczta)' },
     { key: 'f', to: '/finances', description: 'Finanse' },
     { key: 's', to: '/statistics', description: 'Statystyki' },
     { key: 'g', to: '/gallery', description: 'Galeria' },
@@ -47,7 +47,7 @@ export const GLOBAL_SHORTCUTS: GlobalShortcut[] = [
  * Skrót sekcyjny prowadzi do zakładki na dwa sposoby, bo zakładki są robione
  * dwojako:
  *  • `param` - zakładka siedzi w parametrze adresu (Finanse `?tab=`, Instagram
- *    `?widok=`). Ustawiamy tylko ten jeden parametr i zostawiamy resztę, żeby
+ *    `?view=`). Ustawiamy tylko ten jeden parametr i zostawiamy resztę, żeby
  *    skok między zakładkami nie gubił wybranego okresu ani roku;
  *  • `to`    - zakładka to osobna trasa (Statystyki mają `/statistics/costs`).
  */
@@ -76,7 +76,7 @@ export interface ScopedShortcutGroup {
 }
 
 /** Parametry adresu, które znaczą coś tylko na zakładce Konkurencja Instagrama. */
-const COMPETITION_ONLY_PARAMS = ['pokaz', 'okres', 'rok'];
+const COMPETITION_ONLY_PARAMS = ['show', 'period', 'year'];
 
 export const SCOPED_SHORTCUTS: ScopedShortcutGroup[] = [
     {
@@ -106,10 +106,10 @@ export const SCOPED_SHORTCUTS: ScopedShortcutGroup[] = [
             // (tydzien, porownanie, tresci, reklamy) przechodziły przez przekierowanie starych
             // adresów i lądowały w innej kolejności niż pasek zakładek: „2" otwierało Konkurencję,
             // a „Moje konta" nie miały skrótu wcale.
-            { key: '1', param: { name: 'widok', value: 'przeglad' }, drop: COMPETITION_ONLY_PARAMS, description: 'Przegląd' },
-            { key: '2', param: { name: 'widok', value: 'moj' }, drop: COMPETITION_ONLY_PARAMS, description: 'Moje konta' },
-            { key: '3', param: { name: 'widok', value: 'konkurencja' }, description: 'Konkurencja' },
-            { key: '4', param: { name: 'widok', value: 'inspiracje' }, drop: COMPETITION_ONLY_PARAMS, description: 'Inspiracje' },
+            { key: '1', param: { name: 'view', value: 'overview' }, drop: COMPETITION_ONLY_PARAMS, description: 'Przegląd' },
+            { key: '2', param: { name: 'view', value: 'mine' }, drop: COMPETITION_ONLY_PARAMS, description: 'Moje konta' },
+            { key: '3', param: { name: 'view', value: 'competition' }, description: 'Konkurencja' },
+            { key: '4', param: { name: 'view', value: 'inspiration' }, drop: COMPETITION_ONLY_PARAMS, description: 'Inspiracje' },
         ],
     },
 ];

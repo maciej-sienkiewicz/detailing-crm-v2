@@ -7,6 +7,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { BootSplash } from './components/BootSplash';
 import { NavigationProgress } from './components/NavigationProgress';
 import { ScrollLockRouteReset } from './components/ScrollLockRouteReset';
+import { LegacyUrlRedirect } from './components/LegacyUrlRedirect';
 import { RedirectWithParams } from './components/RedirectWithParams';
 import { RequirePermission, HomeRedirect, NoAccessView, ANY_FINANCE, ANY_DASHBOARD, ANY_EMPLOYEES } from './permissions';
 import type { PermissionRequirement } from './permissions';
@@ -145,7 +146,8 @@ export const router = createBrowserRouter([
         // ScrollLockRouteReset: zwolnienie blokad scrolla po każdej nawigacji
         // (siatka bezpieczeństwa; opis w komponencie).
         // NavigationProgress: pasek u góry, gdy kod następnego ekranu jeszcze się pobiera.
-        element: <><ScrollLockRouteReset /><NavigationProgress /><Outlet /></>,
+        // LegacyUrlRedirect: stare (polskie) trasy i parametry z pushy, e-maili i OAuth → nowe.
+        element: <><ScrollLockRouteReset /><NavigationProgress /><LegacyUrlRedirect><Outlet /></LegacyUrlRedirect></>,
         errorElement: <RouteErrorBoundary />,
         // Pierwsze wejście czeka na kod widoku z `route.lazy` - w tym czasie ekran
         // startowy z index.html, a nie pusta strona.
@@ -221,7 +223,8 @@ export const router = createBrowserRouter([
         },
         {
             // Link z powiadomienia push „Nowa rezerwacja" - tłumaczony na stan kalendarza.
-            path: '/calendar/rezerwacja/:appointmentId',
+            // Dawny polski adres tego linku przekierowuje LegacyUrlRedirect.
+            path: '/calendar/appointments/:appointmentId',
             ...lazyPage(() => import('@/modules/calendar/views/CalendarReservationLink').then(m => m.CalendarReservationLink), 'VISITS_VIEW'),
         },
         {
@@ -318,7 +321,8 @@ export const router = createBrowserRouter([
 
         // ── Zapytania: sprawy (dawne Leady) i poczta w jednej skrzynce ─────────
         {
-            path: '/zapytania',
+            // Dawny polski adres skrzynki przekierowuje LegacyUrlRedirect.
+            path: '/inbox',
             ...lazyPage(() => import('@/modules/comms/views/InboxView').then(m => m.default), 'LEADS_MANAGE'),
         },
         {
@@ -342,10 +346,7 @@ export const router = createBrowserRouter([
 
         // ── Finanse ──────────────────────────────────────────────────────────
         {
-            path: '/finance',
-            ...lazyGatedPage(() => import('@/modules/finance/views/FinanceView').then(m => m.FinanceView), 'FINANCE', FINANCE_BENEFITS, ANY_FINANCE),
-        },
-        {
+            // Jedna trasa; /finance przekierowuje LegacyUrlRedirect.
             path: '/finances',
             ...lazyGatedPage(() => import('@/modules/finance/views/FinanceView').then(m => m.FinanceView), 'FINANCE', FINANCE_BENEFITS, ANY_FINANCE),
         },

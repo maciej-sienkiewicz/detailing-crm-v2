@@ -5,20 +5,20 @@ const resolve = (query: string) => resolveLegacyUrl(new URLSearchParams(query))?
 
 describe('resolveLegacyUrl', () => {
     it('stare zakładki prowadzą do nowych', () => {
-        expect(resolve('widok=tydzien')).toBe('widok=przeglad');
-        expect(resolve('widok=tresci&okres=12')).toBe('widok=inspiracje');
-        expect(resolve('widok=porownanie&okres=52')).toBe('widok=konkurencja&okres=365&pokaz=profile');
-        expect(resolve('widok=reklamy&rok=2026')).toBe('widok=konkurencja&rok=2026&pokaz=reklamy');
+        expect(resolve('view=tydzien')).toBe('view=overview');
+        expect(resolve('view=tresci&period=12')).toBe('view=inspiration');
+        expect(resolve('view=porownanie&period=52')).toBe('view=competition&period=365&show=profiles');
+        expect(resolve('view=reklamy&year=2026')).toBe('view=competition&year=2026&show=ads');
     });
 
     it('adres z powiadomienia o okolicy jest już aktualny', () => {
-        expect(resolve('widok=konkurencja&pokaz=okolica')).toBeNull();
-        expect(resolve('widok=moj&polaczenie=ok')).toBeNull();
+        expect(resolve('view=competition&show=area')).toBeNull();
+        expect(resolve('view=mine&connection=ok')).toBeNull();
         expect(resolve('')).toBeNull();
     });
 
     it('dawny podwidok porównania i okres w tygodniach', () => {
-        expect(resolve('widok=konkurencja&pokaz=porownanie')).toBe('widok=konkurencja&pokaz=profile');
-        expect(resolve('widok=konkurencja&okres=4')).toBe('widok=konkurencja');
+        expect(resolve('view=competition&show=porownanie')).toBe('view=competition&show=profiles');
+        expect(resolve('view=competition&period=4')).toBe('view=competition');
     });
 });

@@ -1,6 +1,6 @@
 // src/modules/calendar/views/CalendarReservationLink.tsx
 //
-// Adres rezerwacji w kalendarzu, którym da się podzielić: /calendar/rezerwacja/:id?start=<ISO>.
+// Adres rezerwacji w kalendarzu, którym da się podzielić: /calendar/appointments/:id?start=<ISO>.
 //
 // Kalendarz umie przewinąć do rezerwacji i otworzyć jej podgląd, ale bierze cel
 // z `location.state` - a tego nie przeniesie nic spoza aplikacji. Powiadomienie push
