@@ -75,6 +75,43 @@ export const offlinePhotoDb = {
         });
     },
 
+    /**
+     * Zajmuje zdjęcie do wysyłki: odczyt i zapis statusu w JEDNEJ transakcji, więc z dwóch
+     * chętnych (wybór pliku, „Ponów", kolejka co 30 s, powrót z aparatu, druga karta z tym
+     * samym kodem) wygrywa dokładnie jeden. Zwraca rekord albo null, gdy zdjęcie jest już
+     * wysłane albo w drodze.
+     *
+     * Dawniej kolejka czytała listę oczekujących raz i wysyłała ją po kolei, a wybór pliku
+     * i „Ponów" wysyłały obok niej - to samo zdjęcie szło na serwer dwa razy, a serwer każde
+     * wysłanie zapisuje jako nowe zdjęcie.
+     *
+     * `uploading` zajęte przed [orphanedBefore] należy do strony, której już nie ma (iPhone
+     * przeładował ją po powrocie z aparatu) - bez przejęcia wisiało jako „Oczekujące"
+     * i blokowało „Gotowe". Ponowienie takiego zdjęcia jest bezpieczne, bo serwer rozpoznaje
+     * je po kluczu (Idempotency-Key) i oddaje zapisane wcześniej.
+     */
+    async claim(id: string, orphanedBefore: number): Promise<PendingPhoto | null> {
+        const db = await openDb();
+        return new Promise((resolve, reject) => {
+            const store = tx(db, 'readwrite');
+            const getReq = store.get(id);
+            getReq.onsuccess = () => {
+                const record = getReq.result as PendingPhoto | undefined;
+                const claimable = record && (
+                    record.status === 'pending'
+                    || record.status === 'failed'
+                    || (record.status === 'uploading' && (record.claimedAt ?? 0) < orphanedBefore)
+                );
+                if (!record || !claimable) { resolve(null); return; }
+                const claimed: PendingPhoto = { ...record, status: 'uploading', claimedAt: Date.now(), error: undefined };
+                const putReq = store.put(claimed);
+                putReq.onsuccess = () => resolve(claimed);
+                putReq.onerror = () => reject(putReq.error);
+            };
+            getReq.onerror = () => reject(getReq.error);
+        });
+    },
+
     async remove(id: string): Promise<void> {
         const db = await openDb();
         return new Promise((resolve, reject) => {
@@ -85,8 +122,9 @@ export const offlinePhotoDb = {
         });
     },
 
+    /** Wszystko, czego serwer jeszcze nie potwierdził. Które z nich wysłać, rozstrzyga [claim]. */
     async getPendingByToken(token: string): Promise<PendingPhoto[]> {
         const all = await this.getByToken(token);
-        return all.filter(p => p.status === 'pending' || p.status === 'failed');
+        return all.filter(p => p.status !== 'done');
     },
 };

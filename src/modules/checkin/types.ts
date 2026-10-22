@@ -480,6 +480,8 @@ export interface PendingPhoto {
     queuedAt: number;
     /** 'done' records stay in the queue so a reopened page can show what was sent. */
     status: 'pending' | 'uploading' | 'failed' | 'done';
+    /** Kiedy strona zajęła zdjęcie do wysyłki (status 'uploading') - patrz offlinePhotoDb.claim. */
+    claimedAt?: number;
     error?: string;
     uploadedPhotoId?: string;
 }

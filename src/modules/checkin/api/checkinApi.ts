@@ -182,10 +182,16 @@ export const checkinApi = {
      * Upload a single photo from the mobile device.
      * Uses X-Upload-Token header, no session cookie needed.
      */
+    /**
+     * [photoKey] to stały identyfikator zdjęcia w kolejce telefonu. Na słabym zasięgu
+     * serwer potrafi zapisać zdjęcie, a odpowiedź do telefonu nie dochodzi - ponowienie
+     * z tym samym kluczem dostaje zapisane wcześniej zdjęcie zamiast drugiej kopii.
+     */
     uploadMobilePhoto: async (
         file: File | Blob,
         fileName: string,
-        token: string
+        token: string,
+        photoKey?: string
     ): Promise<MobilePhotoUploadResponse> => {
         const formData = new FormData();
         formData.append('photo', file, fileName);
@@ -195,6 +201,7 @@ export const checkinApi = {
             {
                 headers: {
                     'X-Upload-Token': token,
+                    ...(photoKey ? { 'Idempotency-Key': photoKey } : {}),
                     // Content-Type is set automatically by axios for FormData
                 },
                 // Błąd pokazuje karta zdjęcia - bez dodatkowego tosta na telefonie.

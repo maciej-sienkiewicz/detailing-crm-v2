@@ -65,6 +65,9 @@ export function useMobilePhotoUploadLogic(token: string): MobilePhotoUploadLogic
     const [preparingCount, setPreparingCount] = useState(0);
 
     const isSyncingRef = useRef(false);
+    // Zdjęcie zajęte do wysyłki PRZED otwarciem tej strony nie jest w drodze - jego strona
+    // zginęła (offlinePhotoDb.claim).
+    const pageOpenedAtRef = useRef(Date.now());
     // Mirrors `photos` so previews can be revoked without reading state inside updaters
     const photosRef = useRef<LocalPhoto[]>([]);
     photosRef.current = photos;
@@ -140,15 +143,21 @@ export function useMobilePhotoUploadLogic(token: string): MobilePhotoUploadLogic
 
     // ─── Upload one photo ─────────────────────────────────────────────────────
 
-    const uploadOne = useCallback(async (pending: PendingPhoto): Promise<void> => {
-        await offlinePhotoDb.updateStatus(pending.id, 'uploading');
+    /**
+     * Jedyna droga zdjęcia na serwer. Wołają ją wybór pliku, „Ponów" i kolejka - każde
+     * najpierw zajmuje zdjęcie (offlinePhotoDb.claim), więc to samo zdjęcie nigdy nie
+     * idzie dwa razy naraz, a już wysłane nie idzie wcale.
+     */
+    const uploadOne = useCallback(async (photoId: string): Promise<void> => {
+        const pending = await offlinePhotoDb.claim(photoId, pageOpenedAtRef.current);
+        if (!pending) return;
         setPhotos(prev => prev.map(p =>
-            p.id === pending.id ? { ...p, status: 'uploading' as const } : p
+            p.id === pending.id ? { ...p, status: 'uploading' as const, error: undefined } : p
         ));
 
         try {
             const blob = new Blob([pending.fileData], { type: pending.mimeType });
-            await checkinApi.uploadMobilePhoto(blob, pending.fileName, token);
+            await checkinApi.uploadMobilePhoto(blob, pending.fileName, token, pending.id);
             await offlinePhotoDb.updateStatus(pending.id, 'done');
             setPhotos(prev => prev.map(p =>
                 p.id === pending.id ? { ...p, status: 'done' as const, error: undefined } : p
@@ -174,7 +183,7 @@ export function useMobilePhotoUploadLogic(token: string): MobilePhotoUploadLogic
         try {
             const pending = await offlinePhotoDb.getPendingByToken(token);
             for (const photo of pending) {
-                try { await uploadOne(photo); } catch { /* continue */ }
+                try { await uploadOne(photo.id); } catch { /* continue */ }
             }
         } finally {
             isSyncingRef.current = false;
@@ -187,9 +196,11 @@ export function useMobilePhotoUploadLogic(token: string): MobilePhotoUploadLogic
         return () => clearInterval(timer);
     }, [sessionState, syncPending]);
 
+    // Także zaraz po otwarciu strony: zdjęcia z kolejki poprzedniej (przeładowanej) strony
+    // mają ruszyć od razu, a nie po 30 s.
     useEffect(() => {
         if (isOnline && sessionState === 'active') syncPending();
-    }, [isOnline]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [isOnline, sessionState]); // eslint-disable-line react-hooks/exhaustive-deps
 
     // ─── Status polling: detect when the desktop ends the session ────────────
     //
@@ -318,7 +329,7 @@ export function useMobilePhotoUploadLogic(token: string): MobilePhotoUploadLogic
                 };
                 await offlinePhotoDb.add(record);
 
-                if (isOnline) uploadOne(record).catch(() => {});
+                if (isOnline) uploadOne(id).catch(() => {});
             }
         } finally {
             if (unprocessed > 0) setPreparingCount(count => Math.max(0, count - unprocessed));
@@ -327,16 +338,11 @@ export function useMobilePhotoUploadLogic(token: string): MobilePhotoUploadLogic
         if (rejected.length > 0) alert(rejected.join('\n\n'));
     }, [token, isOnline, uploadOne]);
 
-    const handleRetry = useCallback(async (photoId: string) => {
-        const all = await offlinePhotoDb.getByToken(token);
-        const record = all.find(p => p.id === photoId);
-        if (!record) return;
-        await offlinePhotoDb.updateStatus(photoId, 'pending');
-        setPhotos(prev => prev.map(p =>
-            p.id === photoId ? { ...p, status: 'pending' as const, error: undefined } : p
-        ));
-        if (isOnline) uploadOne({ ...record, status: 'pending' }).catch(() => {});
-    }, [token, isOnline, uploadOne]);
+    // Bez przepisywania statusu na „pending": kolejka mogła właśnie zająć to zdjęcie, a zdjęte
+    // zajęcie pozwoliłoby wysłać je drugi raz obok niej. Nieudane zajmuje się wprost.
+    const handleRetry = useCallback((photoId: string) => {
+        if (isOnline) uploadOne(photoId).catch(() => {});
+    }, [isOnline, uploadOne]);
 
     const handleRemove = useCallback(async (photoId: string, previewUrl: string) => {
         URL.revokeObjectURL(previewUrl);
