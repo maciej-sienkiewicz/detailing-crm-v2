@@ -54,7 +54,7 @@ import {
     useLeadTimeline,
     useStagnationThresholds,
 } from '../hooks/useLeads';
-import type { Lead, LeadStatus } from '../types';
+import type { ContactTarget, Lead, LeadStatus } from '../types';
 import { leadToBookingPrefill } from '../utils/bookingPrefill';
 import { leadEmail, leadPhoneNumber } from '../utils/leadPrimaryAction';
 import { describeLeadUrgency } from '../utils/leadUrgency';
@@ -204,11 +204,16 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
     const thresholds = useStagnationThresholds();
     const contactEmail = leadEmail(lead);
     const cardEmail = contactEmail ?? thread?.participantEmail ?? null;
+    // Serwer czyta adres sprawy sam (adres zapytania, a bez niego adres rozmowy) - w URL-u idzie tylko id.
+    const contact = useMemo<ContactTarget | null>(
+        () => (cardEmail ? { email: cardEmail, ref: { leadId } } : null),
+        [cardEmail, leadId]
+    );
     // Sprawa z wiadomości na Instagramie: rozmowa i odpowiedź idą przez Meta, nie przez pocztę.
     const instagram = lead?.source === 'INSTAGRAM';
     const { data: igConversation, isLoading: igLoading } = useInstagramConversation(leadId, instagram);
     const markInstagramRead = useMarkInstagramRead(leadId);
-    const { data: contactCard } = useContactCard(cardEmail, { enabled: Boolean(cardEmail) });
+    const { data: contactCard } = useContactCard(contact, { enabled: Boolean(cardEmail) });
     const { data: appointment } = useLeadAppointment(lead?.appointmentId ?? null);
     const { data: leadBooking } = useLeadBooking(leadId, Boolean(lead?.appointmentId));
     // Szkic potwierdzenia z paska rezerwacji - nowe `id` wpycha treść do kompozytora.
@@ -509,16 +514,16 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                 )}
             </ActionMenu>
 
-            {contactAnchor && cardEmail && (
+            {contactAnchor && contact && (
                 <ContactCardPopover
-                    email={cardEmail}
+                    contact={contact}
                     participantName={lead.customerName}
                     anchor={contactAnchor}
                     onClose={() => setContactAnchor(null)}
                 />
             )}
-            {notesAnchor && cardEmail && (
-                <ContactNotesPopover email={cardEmail} anchor={notesAnchor} onClose={() => setNotesAnchor(null)} />
+            {notesAnchor && contact && (
+                <ContactNotesPopover contact={contact} anchor={notesAnchor} onClose={() => setNotesAnchor(null)} />
             )}
             {historyOpen && thread && (
                 <ThreadHistoryPanel threadId={thread.id} email={thread.participantEmail} onClose={() => setHistoryOpen(false)} />
@@ -549,7 +554,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                 <ClientEditor
                     lead={lead}
                     customerId={lead.customerId ?? contactCard?.customer?.id ?? null}
-                    email={cardEmail}
+                    contact={contact}
                     anchor={clientAnchor}
                     onClose={() => setClientAnchor(null)}
                 />

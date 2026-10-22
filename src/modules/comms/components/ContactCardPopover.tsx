@@ -26,7 +26,8 @@ import { AddCustomerModal } from '@/modules/customers/components/AddCustomerModa
 import { useToast } from '@/common/components/Toast';
 import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
 import type { Customer } from '@/modules/customers/types';
-import { COMMS_CONTACT_CARD_KEY, COMMS_INSIGHTS_KEY, useContactCard } from '../hooks/useComms';
+import type { ContactTarget } from '../types';
+import { COMMS_CONTACT_CARD_KEY, useContactCard } from '../hooks/useComms';
 import { VehiclePhotosPopover } from './VehiclePhotosPopover';
 import { formatGrosze } from './shared';
 import { PiiValue } from '@/common/pii';
@@ -366,7 +367,8 @@ function splitName(full: string | null): { firstName: string; lastName: string }
 const DEFAULT_Z_INDEX = 120;
 
 interface ContactCardPopoverProps {
-    email: string;
+    /** Adres kontaktu i rozmowa albo sprawa, po której pytamy serwer. */
+    contact: ContactTarget;
     /** Nazwa z wątku - podpowiedź przy zakładaniu kartoteki. */
     participantName: string | null;
     anchor: HTMLElement;
@@ -376,7 +378,7 @@ interface ContactCardPopoverProps {
 }
 
 export function ContactCardPopover({
-    email,
+    contact,
     participantName,
     anchor,
     onClose,
@@ -396,7 +398,8 @@ export function ContactCardPopover({
     const cardRef = useRef<HTMLDivElement | null>(null);
     const navigate = useNavigate();
 
-    const { data, isLoading } = useContactCard(email);
+    const { email } = contact;
+    const { data, isLoading } = useContactCard(contact);
     const queryClient = useQueryClient();
     const { showSuccess, showError } = useToast();
 
@@ -470,7 +473,6 @@ export function ContactCardPopover({
 
     const refresh = () => {
         queryClient.invalidateQueries({ queryKey: COMMS_CONTACT_CARD_KEY });
-        queryClient.invalidateQueries({ queryKey: COMMS_INSIGHTS_KEY });
     };
 
     const linkTo = async (customer: Customer) => {

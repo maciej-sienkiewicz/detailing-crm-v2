@@ -285,7 +285,7 @@ export const router = createBrowserRouter([
             ...lazyBare(() => import('@/modules/products/views/MobileProductScanView').then(m => m.MobileProductScanView)),
         },
         {
-            // Public voice intake route, no auth required, token via ?token=
+            // Public voice intake route, no auth required, token in the fragment #token= (old links: ?token=)
             path: '/m/voice',
             ...lazyBare(() => import('@/modules/voice-commands/views/MobileVoiceCommandsWrapper').then(m => m.MobileVoiceCommandsWrapper)),
         },

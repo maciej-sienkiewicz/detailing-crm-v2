@@ -17,24 +17,25 @@ import { useCustomerDetail } from '@/modules/customers/hooks/useCustomerDetail';
 import { ContactCardPopover } from '../components/ContactCardPopover';
 import { COMMS_CONTACT_CARD_KEY } from '../hooks/useComms';
 import { useAssignLeadCustomer } from '../hooks/useLeads';
-import type { Lead } from '../types';
+import type { ContactTarget, Lead } from '../types';
 import { leadPhoneNumber } from '../utils/leadPrimaryAction';
 
 interface ClientEditorProps {
     lead: Lead;
     /** Klient z kartoteki - ze sprawy albo rozpoznany po adresie. */
     customerId: string | null;
-    email: string | null;
+    /** Adres sprawy i sama sprawa, po której pytamy serwer - null, gdy sprawa nie ma maila. */
+    contact: ContactTarget | null;
     anchor: HTMLElement;
     onClose: () => void;
 }
 
-export function ClientEditor({ lead, customerId, email, anchor, onClose }: ClientEditorProps) {
+export function ClientEditor({ lead, customerId, contact, anchor, onClose }: ClientEditorProps) {
     if (customerId) return <KnownClient customerId={customerId} onClose={onClose} />;
-    if (email) {
+    if (contact) {
         return (
             <ContactCardPopover
-                email={email}
+                contact={contact}
                 participantName={lead.customerName}
                 anchor={anchor}
                 // Nad pełnoekranową rozmową telefonu (900) - domyślne 120 chowałoby się pod nią.

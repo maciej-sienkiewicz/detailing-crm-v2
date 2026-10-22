@@ -238,35 +238,18 @@ export interface SaveMailSignaturePayload {
 
 export type SignatureImageKind = 'photo' | 'logo';
 
-// ── Insights ─────────────────────────────────────────────────────────────────
+// ── Kontakt ──────────────────────────────────────────────────────────────────
 
-export interface ContactInsights {
+/**
+ * Rekord, po którym serwer znajduje adres kontaktu: rozmowa albo sprawa. Adres e-mail
+ * nie idzie w URL-u (audyt HTTP, P2-20) - lądował w logach proxy i historii przeglądarki.
+ */
+export type ContactRef = { threadId: string } | { leadId: string };
+
+/** Kontakt w skrzynce: adres (do wyświetlenia i jako klucz cache) i rekord, po którym pytamy. */
+export interface ContactTarget {
     email: string;
-    customer: {
-        id: string;
-        name: string | null;
-        phone: string | null;
-        completedVisitCount: number;
-        totalSpentGross: number;
-    } | null;
-    previousThreads: {
-        id: string;
-        subject: string | null;
-        lastMessageAt: string;
-        snippet: string | null;
-        leadId: string | null;
-    }[];
-    leads: Lead[];
-    upcomingAppointments: InsightsAppointment[];
-    pastAppointments: InsightsAppointment[];
-}
-
-export interface InsightsAppointment {
-    id: string;
-    title: string | null;
-    startDateTime: string;
-    endDateTime: string;
-    status: string;
+    ref: ContactRef;
 }
 
 // ── Leady ────────────────────────────────────────────────────────────────────

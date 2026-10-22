@@ -63,7 +63,11 @@
 
 <script>
 (function () {
-  var params = new URLSearchParams(location.search);
+  // Number and name travel in the fragment (#number=…&name=…): a fragment never
+  // reaches the server, so it stays out of the nginx and Cloudflare access logs.
+  // A Service Worker cached on the phone before that change still opens
+  // ?number=… - the query string is read only when there is no fragment.
+  var params = new URLSearchParams(location.hash.slice(1) || location.search);
   // The number is written by our own Service Worker but arrives through the
   // URL bar, so it is sanitised like any untrusted input: a tel: URL may hold
   // digits and one leading plus, nothing else.

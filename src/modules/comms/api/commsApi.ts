@@ -7,9 +7,9 @@ import type {
     CommThreadPage,
     ConnectMailAccountRequest,
     ContactCard,
-    ContactInsights,
     ContactNote,
     ContactNoteEvent,
+    ContactRef,
     FormMailSource,
     MailAccountState,
     MarkFormLeadResult,
@@ -25,6 +25,10 @@ import type {
     ThreadListFilters,
 } from '../types';
 import type { BackgroundRequestConfig } from '@/core/backgroundRequest';
+
+/** Rozmowa albo sprawa, której kontakt pokazujemy - serwer sam czyta z niej adres e-mail. */
+const contactPath = (contact: ContactRef): string =>
+    'threadId' in contact ? `/v1/comms/threads/${contact.threadId}` : `/v1/leads/${contact.leadId}`;
 
 export const commsApi = {
     // ── Skrzynki (onboarding zostaje pod /mailbox, stan pod /comms) ──────────
@@ -202,15 +206,6 @@ export const commsApi = {
 
 
 
-    // ── Insights ─────────────────────────────────────────────────────────────
-
-    getInsights: async (email: string, threadId?: string): Promise<ContactInsights> => {
-        const params = new URLSearchParams({ email });
-        if (threadId) params.set('threadId', threadId);
-        const { data } = await apiClient.get(`/v1/comms/insights?${params}`);
-        return data;
-    },
-
     // ── Plakietki nagłówka rozmowy ───────────────────────────────────────────
 
     getThreadContactBadges: async (threadId: string): Promise<ThreadContactBadges> => {
@@ -251,33 +246,27 @@ export const commsApi = {
     },
 
     /** Wizytówka kontaktu spod avatara - kto to jest, kiedy był, czym jeździ. */
-    getContactCard: async (email: string): Promise<ContactCard> => {
-        const { data } = await apiClient.get(
-            `/v1/comms/contact-card?email=${encodeURIComponent(email)}`
-        );
+    getContactCard: async (contact: ContactRef): Promise<ContactCard> => {
+        const { data } = await apiClient.get(`${contactPath(contact)}/contact-card`);
         return data;
     },
 
     // ── Notatki o kontakcie ──────────────────────────────────────────────────
 
-    getNotes: async (email: string): Promise<{ email: string; notes: ContactNote[] }> => {
-        const { data } = await apiClient.get(`/v1/comms/notes?email=${encodeURIComponent(email)}`);
+    getNotes: async (contact: ContactRef): Promise<{ email: string; notes: ContactNote[] }> => {
+        const { data } = await apiClient.get(`${contactPath(contact)}/contact-notes`);
         return data;
     },
 
-    getNoteHistory: async (email: string): Promise<ContactNoteEvent[]> => {
-        const { data } = await apiClient.get(
-            `/v1/comms/notes/history?email=${encodeURIComponent(email)}`
-        );
+    getNoteHistory: async (contact: ContactRef): Promise<ContactNoteEvent[]> => {
+        const { data } = await apiClient.get(`${contactPath(contact)}/contact-notes/history`);
         return data;
     },
 
-    createNote: async (email: string, body: string): Promise<ContactNote> => {
-        const { data } = await apiClient.post(
-            `/v1/comms/notes?email=${encodeURIComponent(email)}`,
-            { body },
-            { skipErrorToast: true }
-        );
+    createNote: async (contact: ContactRef, body: string): Promise<ContactNote> => {
+        const { data } = await apiClient.post(`${contactPath(contact)}/contact-notes`, { body }, {
+            skipErrorToast: true,
+        });
         return data;
     },
 

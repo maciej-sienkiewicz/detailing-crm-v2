@@ -15,7 +15,9 @@ import { describe, expect, it } from 'vitest';
  *  - lista to `Page<T>` z `@/core/page` (P2-18) - żaden typ nie trzyma już dawnych kształtów
  *    stron (`pagination`, `itemsPerPage`, `nextBefore`, springowe `totalElements`),
  *  - błąd to `ApiProblem` z `@/core/problem` (P2-19) - ekran nie czyta ciała błędu sam
- *    i nie rzutuje go na własny kształt, tylko pyta `problemDetail`, `problemCode`…
+ *    i nie rzutuje go na własny kształt, tylko pyta `problemDetail`, `problemCode`…,
+ *  - adres e-mail ani telefon nie idą w URL-u (P2-20): trafiały do logów proxy i historii
+ *    przeglądarki - kontakt wskazuje się id rozmowy, sprawy albo klienta.
  */
 
 const SRC = fileURLToPath(new URL('..', import.meta.url));
@@ -58,6 +60,9 @@ const PARAMS_OBJECT = /\bparams:\s*\{([^{}]*)\}/g;
 const OLD_PAGE_FIELD = /^\s+(itemsPerPage|nextBefore|totalElements)\??:/m;
 /** `pagination` wolno tylko jako właściwość komponentu typu `PageMeta`. */
 const OLD_PAGINATION = /^\s+pagination\??:[ \t]*(?!PageMeta\b)\S/gm;
+
+/** `?email=`, `&phone=`, `{ params: { email } }` w konfiguracji axiosa - dane osobowe w adresie żądania. */
+const PERSONAL_DATA_IN_URL = /[?&](e-?mail|phone|phoneNumber|number|contactIdentifier)=|[{,]\s*params:\s*\{[^{}]*\b(email|phone|phoneNumber|contactIdentifier)\b/;
 
 /** Jedyne miejsca, które czytają surowe ciało błędu. */
 const ERROR_BODY_READERS = [
@@ -121,6 +126,7 @@ const scan = () => {
         for (const [, , url] of source.matchAll(BASE_ARGUMENT)) {
             if (!url.startsWith('/v1/')) violations.push(`${where}: vinApiAt(${url}) - poza /v1/`);
         }
+        if (PERSONAL_DATA_IN_URL.test(source)) violations.push(`${where}: e-mail albo telefon w adresie żądania`);
         if (!isApiModule || DATE_FIELDS_NOT_RANGES.includes(where)) continue;
         for (const [, appended, assigned] of source.matchAll(PARAM_WRITE)) {
             const name = appended ?? assigned;
@@ -144,5 +150,13 @@ describe('kontrakt API', () => {
 
     it('błąd API czyta się jednym typem - ApiProblem z @/core/problem', () => {
         expect(scanErrors()).toEqual([]);
+    });
+
+    it('numer z powiadomienia o połączeniu idzie do /call.html we fragmencie, nie w query stringu', () => {
+        const worker = readFileSync(join(SRC, '../public/service-worker.js'), 'utf8');
+        const page = readFileSync(join(SRC, '../public/call.html'), 'utf8');
+        expect(worker).toContain('target.hash = handoff.toString()');
+        expect(worker).not.toMatch(/searchParams\.set\(\s*'(number|name)'/);
+        expect(page).toContain('new URLSearchParams(location.hash.slice(1) || location.search)');
     });
 });

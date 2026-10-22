@@ -21,13 +21,13 @@ import type {
     SendMailRequest,
     SignatureImageKind,
     ThreadListFilters,
+    ContactTarget,
 } from '../types';
 import { backgroundRequest } from '@/core/backgroundRequest';
 
 export const COMMS_KEY = ['comms'];
 export const COMMS_THREADS_KEY = [...COMMS_KEY, 'threads'];
 export const COMMS_ACCOUNTS_KEY = [...COMMS_KEY, 'accounts'];
-export const COMMS_INSIGHTS_KEY = [...COMMS_KEY, 'insights'];
 export const COMMS_BADGES_KEY = [...COMMS_KEY, 'contact-badges'];
 export const COMMS_NOTES_KEY = [...COMMS_KEY, 'notes'];
 export const COMMS_CONTACT_CARD_KEY = [...COMMS_KEY, 'contact-card'];
@@ -139,12 +139,15 @@ export const useRelatedThreads = (threadId: string | null, options?: { enabled?:
         staleTime: 60_000,
     });
 
-/** Wizytówka kontaktu - pobierana dopiero po otwarciu chmurki. */
-export const useContactCard = (email: string | null, options?: { enabled?: boolean }) =>
+/**
+ * Wizytówka kontaktu - pobierana dopiero po otwarciu chmurki. Klucz to adres: ta sama osoba
+ * w rozmowie i w sprawie ma tę samą wizytówkę, choć serwer pytamy po id rekordu.
+ */
+export const useContactCard = (contact: ContactTarget | null, options?: { enabled?: boolean }) =>
     useQuery({
-        queryKey: [...COMMS_CONTACT_CARD_KEY, email],
-        queryFn: () => commsApi.getContactCard(email!),
-        enabled: email !== null && (options?.enabled ?? true),
+        queryKey: [...COMMS_CONTACT_CARD_KEY, contact?.email ?? null],
+        queryFn: () => commsApi.getContactCard(contact!.ref),
+        enabled: contact !== null && (options?.enabled ?? true),
         staleTime: 60_000,
     });
 
@@ -181,18 +184,18 @@ export const useDeactivateFormSource = () => {
     });
 };
 
-export const useContactNotes = (email: string | null, options?: { enabled?: boolean }) =>
+export const useContactNotes = (contact: ContactTarget | null, options?: { enabled?: boolean }) =>
     useQuery({
-        queryKey: [...COMMS_NOTES_KEY, 'list', email],
-        queryFn: () => commsApi.getNotes(email!),
-        enabled: email !== null && (options?.enabled ?? true),
+        queryKey: [...COMMS_NOTES_KEY, 'list', contact?.email ?? null],
+        queryFn: () => commsApi.getNotes(contact!.ref),
+        enabled: contact !== null && (options?.enabled ?? true),
     });
 
-export const useContactNoteHistory = (email: string | null, options?: { enabled?: boolean }) =>
+export const useContactNoteHistory = (contact: ContactTarget | null, options?: { enabled?: boolean }) =>
     useQuery({
-        queryKey: [...COMMS_NOTES_KEY, 'history', email],
-        queryFn: () => commsApi.getNoteHistory(email!),
-        enabled: email !== null && (options?.enabled ?? true),
+        queryKey: [...COMMS_NOTES_KEY, 'history', contact?.email ?? null],
+        queryFn: () => commsApi.getNoteHistory(contact!.ref),
+        enabled: contact !== null && (options?.enabled ?? true),
     });
 
 /**
@@ -211,9 +214,9 @@ const useNotesInvalidation = () => {
 export const useCreateContactNote = () => {
     const invalidate = useNotesInvalidation();
     return useMutation({
-        mutationFn: ({ email, body }: { email: string; body: string }) =>
-            commsApi.createNote(email, body),
-        onSuccess: (_note, variables) => invalidate(variables.email),
+        mutationFn: ({ contact, body }: { contact: ContactTarget; body: string }) =>
+            commsApi.createNote(contact.ref, body),
+        onSuccess: (_note, variables) => invalidate(variables.contact.email),
     });
 };
 

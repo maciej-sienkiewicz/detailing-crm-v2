@@ -135,3 +135,21 @@ The `build:prod` script bypasses TypeScript checking. If you need type safety:
 - Run `./deploy/verify-build.sh` before deployment
 - Check `build-info.txt` after deployment to confirm new build
 - Use `--no-cache` as a last resort if build args don't work
+
+## Logi dostępu bez query stringa (audyt HTTP, P2-20)
+
+Query string niesie dane osobowe: frazy wyszukiwania (imiona, telefony, e-maile), NIP-y
+i tokeny z linków. Nginx z tego repo (`deploy/ngnix/ngnix.conf`) zapisuje więc log formatem
+`no_query`: sama ścieżka (`$uri`) i ścieżka strony z nagłówka Referer, bez parametrów.
+
+Na produkcji `/api` i `/ws-registry` idą przez nginx-proxy-manager prosto do backendu,
+z pominięciem tego pliku. Domyślny format logu NPM (`proxy`) zapisuje `$request_uri`, czyli
+adres z query stringiem - trzeba go podmienić także tam:
+
+1. W `/data/nginx/custom/http_top.conf` kontenera NPM zdefiniować format bez parametrów
+   (ten sam co `no_query` w `ngnix.conf`, razem z mapą `$referer_path`).
+2. W hostach aplikacji (`app.*`, `podglad.*`) przestawić log dostępu na ten format.
+3. Sprawdzić w logu hosta jedno wyszukiwanie klienta: w wierszu ma być sama ścieżka.
+
+Log błędów nginx (`error_log`) zapisuje przy awarii upstreamu pełny wiersz żądania - formatu
+tego logu nginx nie pozwala zmienić.

@@ -20,7 +20,7 @@
  *      - 'push'              → decrypted payload from the backend
  *                              (pl.detailing.crm.push.call.ClickToCallPayload)
  *                              → system notification with a "Zadzwoń" action.
- *      - 'notificationclick' → opens /call.html?number=... (a static page,
+ *      - 'notificationclick' → opens /call.html#number=... (a static page,
  *                              not an SPA route - it must paint and fire the
  *                              dialer instantly, with no bundle in the way).
  *                              A Service Worker CANNOT open the dialer itself:
@@ -51,7 +51,7 @@
 // Bump on every change to this file. Browsers compare bytes, so the bump is not
 // what triggers an update - it is what Settings → Urządzenia mobilne →
 // Powiadomienia shows, so "does this phone have the fix yet?" has an answer.
-const SW_VERSION = '2026-10-22.1';
+const SW_VERSION = '2026-10-22.2';
 
 // v2: tylko odpowiedzi OK (CORS) - stary cache mógł trzymać nieprzezroczyste 404.
 const CACHE_VERSION = 'v2';
@@ -267,8 +267,10 @@ self.addEventListener('notificationclick', event => {
     if (data.phoneNumber) {
         const number = String(data.phoneNumber).replace(/[^+\d]/g, '');
         const target = new URL('/call.html', self.location.origin);
-        target.searchParams.set('number', number);
-        if (data.displayName) target.searchParams.set('name', data.displayName);
+        // Fragment, not query: the number and name never reach the server or its access logs.
+        const handoff = new URLSearchParams({ number });
+        if (data.displayName) handoff.set('name', data.displayName);
+        target.hash = handoff.toString();
         event.waitUntil(openApp(target.href));
         return;
     }

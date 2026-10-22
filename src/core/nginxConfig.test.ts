@@ -154,3 +154,38 @@ describe('nginx nigdy nie pozwala zatrzymać Service Workera w cache', () => {
         expect(location?.block?.find(d => d.name === 'return')?.args).toEqual(['404']);
     });
 });
+
+/**
+ * Log dostępu bez danych osobowych (audyt HTTP, P2-20). Domyślny format `main` zapisuje
+ * "$request" z query stringiem, a w nim frazy wyszukiwania (imiona, telefony, e-maile), NIP-y
+ * i tokeny z linków. Każdy blok serwera pisze więc formatem bez query stringa - także
+ * w nagłówku Referer, który niesie adres strony razem z jej parametrami.
+ */
+describe('nginx nie zapisuje query stringa w logu dostępu', () => {
+    const top = parse(tokenize(CONFIG));
+    const format = top.find(d => d.name === 'log_format' && d.args[0] === 'no_query');
+    const line = format?.args.slice(1).join('') ?? '';
+
+    it('format no_query ma ścieżkę bez parametrów', () => {
+        expect(line).toContain('$request_method $uri $server_protocol');
+        for (const variable of ['$request ', '$request"', '$request_uri', '$args', '$query_string', '$http_referer']) {
+            expect(line).not.toContain(variable);
+        }
+    });
+
+    it('Referer trafia do logu bez query stringa i fragmentu', () => {
+        const map = top.find(d => d.name === 'map' && d.args[0] === '$http_referer' && d.args[1] === '$referer_path');
+        const rule = map?.block?.find(d => d.name.startsWith('~'));
+        const base = new RegExp(rule?.name.slice(1).replace('(?<referer_base>', '(?<base>') ?? '$^');
+        expect(line).toContain('"$referer_path"');
+        expect('https://app.detailboost.pl/customers?search=jan%40klient.pl#x'.match(base)?.groups?.base)
+            .toBe('https://app.detailboost.pl/customers');
+    });
+
+    it.each(cases)('blok %s pisze log formatem no_query', (_, server) => {
+        const logs = (server.block ?? []).filter(d => d.name === 'access_log');
+        expect(logs.map(d => d.args)).toEqual([['/var/log/nginx/access.log', 'no_query']]);
+        const nested = (server.block ?? []).flatMap(d => d.block ?? []).filter(d => d.name === 'access_log');
+        expect(nested.every(d => d.args[0] === 'off' || d.args[1] === 'no_query')).toBe(true);
+    });
+});

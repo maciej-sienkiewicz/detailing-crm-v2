@@ -38,7 +38,7 @@ import {
     useSetThreadArchived,
     useThread,
 } from '../hooks/useComms';
-import type { CommMessage, CommThread } from '../types';
+import type { CommMessage, CommThread, ContactTarget } from '../types';
 import { contactToBookingPrefill } from '../utils/bookingPrefill';
 import { plainPreview, splitQuotedHistory } from '../utils/emailHtml';
 import { ReplyComposer } from '../components/ReplyComposer';
@@ -206,7 +206,11 @@ export function MailDetail({ threadId, listThread, phone, onBack, onArchived, on
     const messages = useMemo(() => (detailMatches ? detail!.messages : []), [detailMatches, detail]);
     const { data: formSources } = useFormMailSources();
     const email = thread?.participantEmail ?? null;
-    const { data: contactCard } = useContactCard(email, { enabled: Boolean(email) });
+    const contact = useMemo<ContactTarget | null>(
+        () => (thread && email ? { email, ref: { threadId: thread.id } } : null),
+        [thread, email]
+    );
+    const { data: contactCard } = useContactCard(contact, { enabled: Boolean(email) });
 
     const markRead = useMarkThreadRead();
     const markUnread = useMarkMessageUnread();
@@ -447,10 +451,10 @@ export function MailDetail({ threadId, listThread, phone, onBack, onArchived, on
                 />
             )}
             {modal === 'history' && <ThreadHistoryPanel threadId={thread.id} email={thread.participantEmail} onClose={() => setModal(null)} />}
-            {contactAnchor && (
-                <ContactCardPopover email={thread.participantEmail} participantName={thread.participantName} anchor={contactAnchor} onClose={() => setContactAnchor(null)} />
+            {contactAnchor && contact && (
+                <ContactCardPopover contact={contact} participantName={thread.participantName} anchor={contactAnchor} onClose={() => setContactAnchor(null)} />
             )}
-            {notesAnchor && <ContactNotesPopover email={thread.participantEmail} anchor={notesAnchor} onClose={() => setNotesAnchor(null)} />}
+            {notesAnchor && contact && <ContactNotesPopover contact={contact} anchor={notesAnchor} onClose={() => setNotesAnchor(null)} />}
         </Pane>
     );
 }

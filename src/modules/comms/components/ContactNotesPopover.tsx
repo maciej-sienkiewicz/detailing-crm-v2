@@ -21,7 +21,7 @@ import {
     useUpdateContactNote,
 } from '../hooks/useComms';
 import { useFloatingPanel } from '@/common/hooks/useFloatingPanel';
-import type { ContactNoteAction } from '../types';
+import type { ContactNoteAction, ContactTarget } from '../types';
 import { formatDateTime } from './shared';
 
 // Pozycję, szerokość i wysokość nadaje useFloatingPanel po pomiarze. Dawniej chmurka
@@ -204,13 +204,15 @@ const ACTION_LABELS: Record<ContactNoteAction, string> = {
 };
 
 interface ContactNotesPopoverProps {
-    email: string;
+    /** Adres kontaktu i rozmowa albo sprawa, po której pytamy serwer. */
+    contact: ContactTarget;
     /** Element, pod którym chmurka ma się zaczepić - zwykle plakietka w nagłówku. */
     anchor: HTMLElement | null;
     onClose: () => void;
 }
 
-export function ContactNotesPopover({ email, anchor, onClose }: ContactNotesPopoverProps) {
+export function ContactNotesPopover({ contact, anchor, onClose }: ContactNotesPopoverProps) {
+    const { email } = contact;
     const [draft, setDraft] = useState('');
     const [composing, setComposing] = useState(false);
     const [editingId, setEditingId] = useState<string | null>(null);
@@ -218,8 +220,8 @@ export function ContactNotesPopover({ email, anchor, onClose }: ContactNotesPopo
     const [historyShown, setHistoryShown] = useState(false);
     const cardRef = useRef<HTMLDivElement | null>(null);
 
-    const { data, isLoading } = useContactNotes(email);
-    const { data: history, isLoading: historyLoading } = useContactNoteHistory(email, {
+    const { data, isLoading } = useContactNotes(contact);
+    const { data: history, isLoading: historyLoading } = useContactNoteHistory(contact, {
         enabled: historyShown,
     });
     const createNote = useCreateContactNote();
@@ -266,7 +268,7 @@ export function ContactNotesPopover({ email, anchor, onClose }: ContactNotesPopo
         const body = draft.trim();
         if (!body) return;
         createNote.mutate(
-            { email, body },
+            { contact, body },
             {
                 onSuccess: () => {
                     setDraft('');
