@@ -246,6 +246,10 @@ export interface CheckoutRequest {
     type: CheckoutType;
     planKey?: PlanKey;
     addOnKeys?: AddOnKey[];
+    /** Zgoda z CheckoutConsent - wymagana w typie, żeby żadne wejście do płatności jej nie pominęło. */
+    acceptTerms: true;
+    /** Dokleja API (LEGAL_VERSION) - wersja dokumentów, którą backend zapisuje przy zgodzie. */
+    legalVersion?: string;
 }
 
 /**

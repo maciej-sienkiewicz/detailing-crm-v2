@@ -1,3 +1,4 @@
+import { LEGAL_VERSION } from '@/modules/legal/documents';
 import { apiClient } from '@/core';
 import type {
     SmsCreditBalance,
@@ -24,7 +25,8 @@ export const smsCreditApi = {
     purchaseCredits: async (packageId: string): Promise<PurchaseCreditsResponse> => {
         const res = await apiClient.post<PurchaseCreditsResponse>(
             `${BASE_PATH}/purchase`,
-            { packageId },
+            // Okno zakupu przepuszcza tylko z zaznaczoną zgodą (CheckoutConsent).
+            { packageId, acceptTerms: true, legalVersion: LEGAL_VERSION },
             { skipErrorToast: true },
         );
         return res.data;

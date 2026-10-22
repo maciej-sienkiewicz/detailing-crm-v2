@@ -1,4 +1,5 @@
 import { apiClient } from '@/core';
+import { LEGAL_VERSION } from '@/modules/legal/documents';
 import type {
     EntitlementsResponse,
     MyPlanResponse,
@@ -76,7 +77,7 @@ export const newSubscriptionApi = {
     // there; the webhook fulfils the order and the /payments/result page picks
     // the buyer up on return.
     checkout: async (body: CheckoutRequest): Promise<CheckoutResponse> => {
-        const res = await apiClient.post<CheckoutResponse>(`${BASE}/checkout`, body);
+        const res = await apiClient.post<CheckoutResponse>(`${BASE}/checkout`, { ...body, legalVersion: LEGAL_VERSION });
         return res.data;
     },
 

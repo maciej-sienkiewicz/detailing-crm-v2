@@ -79,6 +79,7 @@ describe('FirstLoginModal - zakup bez płatności', () => {
     it('CANCELLED: komunikat z powodem, a ekran znów pozwala wybrać', async () => {
         checkout.mockResolvedValue(response('CANCELLED', { failureReason: 'Studio ma już pakiet.' }));
         renderGate();
+        await userEvent.click(screen.getByRole('checkbox', { name: /Akceptuję regulamin/ }));
         await userEvent.click(screen.getByText('Basic'));
 
         expect((await screen.findAllByText(/Studio ma już pakiet\. Nic nie zostało pobrane/)).length).toBeGreaterThan(0);
@@ -89,6 +90,7 @@ describe('FirstLoginModal - zakup bez płatności', () => {
     it('PAID: strona wyniku płatności przejmuje czekanie na włączenie', async () => {
         checkout.mockResolvedValue(response('PAID'));
         renderGate();
+        await userEvent.click(screen.getByRole('checkbox', { name: /Akceptuję regulamin/ }));
         await userEvent.click(screen.getByText('Basic'));
 
         await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/payments/result?orderId=ord-9'));
@@ -98,9 +100,20 @@ describe('FirstLoginModal - zakup bez płatności', () => {
 describe('ExpiredModal - przedłużenie bez płatności', () => {
     beforeEach(() => { state.status = status({ status: 'EXPIRED', isAccessible: false }); });
 
+    // Przelewy24 wymaga akceptacji regulaminu i polityki przed płatnością.
+    it('bez zgody na regulamin płatność nie rusza, a zgoda się podświetla', async () => {
+        renderGate();
+        await userEvent.click(screen.getByRole('button', { name: 'Przedłuż pakiet' }));
+
+        expect(await screen.findByRole('alert')).toBeTruthy();
+        expect(screen.getByText(/Zaznacz akceptację regulaminu/)).toBeTruthy();
+        expect(checkout).not.toHaveBeenCalled();
+    });
+
     it('CANCELLED: błąd zamiast ciszy', async () => {
         checkout.mockResolvedValue(response('CANCELLED', { failureReason: 'Okres już opłacony.' }));
         renderGate();
+        await userEvent.click(screen.getByRole('checkbox', { name: /Akceptuję regulamin/ }));
         await userEvent.click(screen.getByRole('button', { name: 'Przedłuż pakiet' }));
 
         expect(await screen.findByText('Nie udało się włączyć zakupu')).toBeTruthy();
@@ -110,6 +123,7 @@ describe('ExpiredModal - przedłużenie bez płatności', () => {
     it('PAID: strona wyniku płatności', async () => {
         checkout.mockResolvedValue(response('PAID'));
         renderGate();
+        await userEvent.click(screen.getByRole('checkbox', { name: /Akceptuję regulamin/ }));
         await userEvent.click(screen.getByRole('button', { name: 'Przedłuż pakiet' }));
 
         await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/payments/result?orderId=ord-9'));
@@ -118,9 +132,10 @@ describe('ExpiredModal - przedłużenie bez płatności', () => {
     it('FULFILLED: bez komunikatu o błędzie (status pakietu odświeża się sam)', async () => {
         checkout.mockResolvedValue(response('FULFILLED'));
         renderGate();
+        await userEvent.click(screen.getByRole('checkbox', { name: /Akceptuję regulamin/ }));
         await userEvent.click(screen.getByRole('button', { name: 'Przedłuż pakiet' }));
 
-        await waitFor(() => expect(checkout).toHaveBeenCalledWith({ type: 'RENEWAL' }));
+        await waitFor(() => expect(checkout).toHaveBeenCalledWith({ type: 'RENEWAL', acceptTerms: true }));
         expect(screen.queryByText('Nie udało się włączyć zakupu')).toBeNull();
         expect(screen.queryByText('Błąd płatności')).toBeNull();
     });

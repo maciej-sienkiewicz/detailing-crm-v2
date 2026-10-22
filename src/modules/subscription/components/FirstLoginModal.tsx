@@ -5,6 +5,8 @@ import { canPurchaseHere } from '@/core/native/platform';
 import { useFeaturePlans, useAddOns, useStartTrial, useCheckout } from '../api/subscriptionQueries';
 import { newSubscriptionApi } from '../api/subscriptionApi';
 import { toastCheckoutProblem, useCheckoutHandoff } from '../hooks/useCheckoutHandoff';
+import { CheckoutConsent } from './CheckoutConsent';
+import { useCheckoutConsent } from '../hooks/useCheckoutConsent';
 import type { FeaturePlan, AddOnDto, AddOnKey, PlanKey, CalculatePriceResponse, CheckoutResponse } from '../types';
 import { formatCents, featureLabel } from '../utils/formatters';
 import { t } from '@/common/i18n';
@@ -60,6 +62,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
     const startTrial = useStartTrial();
     const checkout = useCheckout();
     const handoff = useCheckoutHandoff();
+    const consent = useCheckoutConsent();
 
     const [phase, setPhase] = useState<Phase>('idle');
     const [error, setError] = useState<string | null>(null);
@@ -133,7 +136,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
     };
 
     const handleSelectPlan = async (planKey: string) => {
-        if (isPending) return;
+        if (isPending || !consent.require()) return;
         setError(null);
         setPhase('pending-plan');
         try {
@@ -141,6 +144,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
                 type: 'INITIAL_PURCHASE',
                 planKey: planKey as PlanKey,
                 addOnKeys: [],
+                acceptTerms: true,
             });
             settleCheckout(order);
         } catch (err: unknown) {
@@ -152,7 +156,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
     };
 
     const handleCustomConfirm = async () => {
-        if (isPending) return;
+        if (isPending || !consent.require()) return;
         setError(null);
         setPhase('pending-custom');
         try {
@@ -160,6 +164,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
                 type: 'INITIAL_PURCHASE',
                 planKey: 'BASIC',
                 addOnKeys: Array.from(selectedAddOns),
+                acceptTerms: true,
             });
             settleCheckout(order);
         } catch (err: unknown) {
@@ -227,6 +232,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
                         {sortedPlans.length > 0 && (
                             <Section aria-labelledby="first-login-plans" $first={trialUsed}>
                                 <h2 id="first-login-plans">{trialUsed ? 'Pakiety' : 'Albo wybierz pakiet od razu'}</h2>
+                                <CheckoutConsent consent={consent} />
                                 {sortedPlans.map(plan => (
                                     <PlanOption key={plan.key} type="button" onClick={() => handleSelectPlan(plan.key)}>
                                         <span className="name">
@@ -234,7 +240,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
                                             {plan.key === 'FULL' && <Recommended>Polecany</Recommended>}
                                         </span>
                                         <span className="price">
-                                            {formatCents(plan.monthlyPriceGrossCents)} <small>/ mies.</small>
+                                            {formatCents(plan.monthlyPriceGrossCents)} <small>brutto / mies.</small>
                                         </span>
                                         <span className="features">{planFeatureSummary(plan)}</span>
                                     </PlanOption>
@@ -295,7 +301,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
 
                                         <CustomSummary>
                                             <div className="total">
-                                                Łącznie miesięcznie
+                                                Łącznie miesięcznie (brutto)
                                                 <strong>
                                                     {priceLoading
                                                         ? '…'

@@ -34,7 +34,7 @@ import {
     useCheckout,
 } from '../api/subscriptionQueries';
 import { newSubscriptionApi } from '../api/subscriptionApi';
-import { PlanChangeDialog, AddOnActivationDialog, AddOnDeactivationDialog } from '../components/PlanChangeDialog';
+import { PlanChangeDialog, AddOnActivationDialog, AddOnDeactivationDialog, RenewDialog } from '../components/PlanChangeDialog';
 import { PlanCard } from '../components/PlanCard';
 import { AddOnCard } from '../components/AddOnCard';
 import { PendingDowngradeBanner } from '../components/PendingDowngradeBanner';
@@ -80,6 +80,7 @@ type DialogState =
     | { type: 'plan'; plan: FeaturePlan; preview: PlanChangePreview | null; loading: boolean }
     | { type: 'addon-activate'; key: AddOnKey; name: string; preview: AddOnPreview | null; loading: boolean }
     | { type: 'addon-deactivate'; key: AddOnKey; name: string }
+    | { type: 'renew' }
     | null;
 
 // ─── Main component ───────────────────────────────────────────────────────────
@@ -130,14 +131,21 @@ export function SubscriptionSettingsPage() {
     const renewalAmount = renewalCents > 0 ? formatCents(renewalCents) : null;
 
     // ── Przedłużenie (Przelewy24) ─────────────────────────────────────────────
-    const handleRenew = async () => {
+    // Przycisk otwiera okno z kwotą i zgodą na regulamin (RenewDialog) - dopiero ono płaci.
+    const handleRenew = () => {
+        if (checkout.isPending) return;
+        setDialog({ type: 'renew' });
+    };
+
+    const confirmRenew = async () => {
         if (checkout.isPending) return;
         try {
             // Brak adresu płatności to NIE sukces - rozstrzyga stan zamówienia (useCheckoutHandoff).
-            const step = handoff(await checkout.mutateAsync({ type: 'RENEWAL' }));
+            const step = handoff(await checkout.mutateAsync({ type: 'RENEWAL', acceptTerms: true }));
             if (step.kind === 'redirect' || step.kind === 'track') return;
             if (step.kind === 'done') showSuccess('Pakiet przedłużony', 'Twój pakiet działa przez kolejne 30 dni.');
             else toastCheckoutProblem({ showError, showWarning }, step);
+            setDialog(null);
         } catch (err: unknown) {
             toastUnhandledError(showError, err, 'Nie udało się rozpocząć płatności', 'Spróbuj ponownie za chwilę.');
         }
@@ -370,6 +378,16 @@ export function SubscriptionSettingsPage() {
                     addOnName={dialog.name}
                     preview={dialog.preview}
                     isLoadingPreview={dialog.loading}
+                    onClose={() => setDialog(null)}
+                />
+            )}
+
+            {dialog?.type === 'renew' && (
+                <RenewDialog
+                    planName={myPlan.plan.name}
+                    amount={renewalAmount}
+                    isPending={checkout.isPending}
+                    onConfirm={confirmRenew}
                     onClose={() => setDialog(null)}
                 />
             )}

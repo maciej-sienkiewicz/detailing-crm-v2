@@ -203,26 +203,36 @@
  {
   "t": "p",
   "n": "2.",
-  "text": "Płatność za Okres rozliczeniowy ma charakter jednorazowy. Usługodawca **nie pobiera płatności automatycznie** – aby przedłużyć dostęp, Licencjobiorca opłaca kolejny Okres w Aplikacji."
+  "text": "Operatorem kart płatniczych jest PayPro SA Agent Rozliczeniowy, ul. Pastelowa 8, 60-198 Poznań, wpisany do Rejestru Przedsiębiorców Krajowego Rejestru Sądowego prowadzonego przez Sąd Rejonowy Poznań Nowe Miasto i Wilda w Poznaniu, VIII Wydział Gospodarczy Krajowego Rejestru Sądowego pod numerem KRS 0000347935, NIP 7792369887, REGON 301345068."
  },
  {
   "t": "p",
   "n": "3.",
-  "text": "Dostęp do opłaconego Planu lub Modułu jest aktywowany niezwłocznie po potwierdzeniu płatności przez Przelewy24, co do zasady w ciągu kilku minut."
+  "text": "Przed przejściem do płatności Aplikacja pokazuje zakres zamówienia, cenę brutto do zapłaty i informację o prawie odstąpienia od umowy. Złożenie zamówienia wymaga akceptacji Regulaminu i Polityki Prywatności przez zaznaczenie pola wyboru."
  },
  {
   "t": "p",
   "n": "4.",
-  "text": "Po upływie opłaconego Okresu rozliczeniowego Aplikacja działa jeszcze przez 7 dni (okres karencji). Brak płatności w tym czasie skutkuje zablokowaniem dostępu na zasadach z § 4 ust. 4."
+  "text": "Płatność za Okres rozliczeniowy ma charakter jednorazowy. Usługodawca **nie pobiera płatności automatycznie** – aby przedłużyć dostęp, Licencjobiorca opłaca kolejny Okres w Aplikacji."
  },
  {
   "t": "p",
   "n": "5.",
-  "text": "Przejście na wyższy Plan lub włączenie Modułu w trakcie Okresu rozliczeniowego wymaga dopłaty proporcjonalnej do liczby dni pozostałych do końca Okresu. Przejście na niższy Plan lub wyłączenie Modułu następuje z końcem opłaconego Okresu; za niewykorzystaną część Okresu opłata nie jest zwracana."
+  "text": "Dostęp do opłaconego Planu lub Modułu jest aktywowany niezwłocznie po potwierdzeniu płatności przez Przelewy24, co do zasady w ciągu kilku minut."
  },
  {
   "t": "p",
   "n": "6.",
+  "text": "Po upływie opłaconego Okresu rozliczeniowego Aplikacja działa jeszcze przez 7 dni (okres karencji). Brak płatności w tym czasie skutkuje zablokowaniem dostępu na zasadach z § 4 ust. 4."
+ },
+ {
+  "t": "p",
+  "n": "7.",
+  "text": "Przejście na wyższy Plan lub włączenie Modułu w trakcie Okresu rozliczeniowego wymaga dopłaty proporcjonalnej do liczby dni pozostałych do końca Okresu. Przejście na niższy Plan lub wyłączenie Modułu następuje z końcem opłaconego Okresu; za niewykorzystaną część Okresu opłata nie jest zwracana."
+ },
+ {
+  "t": "p",
+  "n": "8.",
   "text": "Za każdą płatność Usługodawca wystawia fakturę VAT w Krajowym Systemie e-Faktur (KSeF) i udostępnia ją Licencjobiorcy na adres e-mail Konta. Licencjobiorca odpowiada za poprawność danych do faktury."
  },
  {
@@ -314,16 +324,21 @@
  {
   "t": "p",
   "n": "1.",
-  "text": "Przedsiębiorcy na prawach konsumenta przysługuje prawo odstąpienia od umowy zawartej na odległość, bez podania przyczyny, w terminie 14 dni od dnia jej zawarcia. Do zachowania terminu wystarczy wysłanie oświadczenia przed jego upływem na adres biuro@detailboost.pl."
+  "text": "Przedsiębiorcy na prawach konsumenta przysługuje prawo odstąpienia od umowy zawartej na odległość, bez podania przyczyny, w terminie 14 dni od dnia jej zawarcia, to jest od dnia opłacenia Abonamentu, Modułu dodatkowego lub Pakietu SMS. Do zachowania terminu wystarczy wysłanie oświadczenia przed jego upływem na adres biuro@detailboost.pl lub pocztą na adres Usługodawcy."
  },
  {
   "t": "p",
   "n": "2.",
-  "text": "Usługodawca zwraca otrzymane płatności niezwłocznie, nie później niż w terminie 14 dni od otrzymania oświadczenia, przy użyciu takiego samego sposobu płatności, jakiego użył Licencjobiorca."
+  "text": "Oświadczenie można złożyć na formularzu, którego wzór stanowi Załącznik nr 1 do Regulaminu i jest dostępny pod adresem https://detailboost.pl/formularz-odstapienia. Skorzystanie z wzoru nie jest obowiązkowe. Usługodawca niezwłocznie potwierdza otrzymanie oświadczenia e-mailem."
  },
  {
   "t": "p",
   "n": "3.",
+  "text": "Usługodawca zwraca otrzymane płatności niezwłocznie, nie później niż w terminie 14 dni od otrzymania oświadczenia, przy użyciu takiego samego sposobu płatności, jakiego użył Licencjobiorca."
+ },
+ {
+  "t": "p",
+  "n": "4.",
   "text": "Okres próbny jest bezpłatny i nie rodzi zobowiązań – Licencjobiorca może z niego zrezygnować w każdej chwili."
  },
  {
@@ -400,6 +415,54 @@
  {
   "t": "p",
   "n": "3.",
-  "text": "Regulamin obowiązuje od dnia 21 października 2026 r."
+  "text": "Regulamin obowiązuje od dnia 22 października 2026 r."
+ },
+ {
+  "t": "h",
+  "text": "Załącznik nr 1 – wzór formularza odstąpienia od umowy"
+ },
+ {
+  "t": "p",
+  "text": "(formularz ten należy wypełnić i odesłać tylko w przypadku chęci odstąpienia od umowy)"
+ },
+ {
+  "t": "p",
+  "text": "**Adresat:** M&M SOLUTIONS sp. z o.o., ul. Poznańska 119, 60-185 Skórzewo, e-mail: biuro@detailboost.pl"
+ },
+ {
+  "t": "p",
+  "text": "Ja/My(*) niniejszym informuję/informujemy(*) o moim/naszym odstąpieniu od umowy o świadczenie następującej usługi: abonament aplikacji DetailBoost CRM / Pakiet SMS(*) ……………………………………………"
+ },
+ {
+  "t": "p",
+  "text": "Data zawarcia umowy: ……………………………………………"
+ },
+ {
+  "t": "p",
+  "text": "Imię i nazwisko oraz nazwa firmy Licencjobiorcy: ……………………………………………"
+ },
+ {
+  "t": "p",
+  "text": "NIP: ……………………………………………"
+ },
+ {
+  "t": "p",
+  "text": "Adres: ……………………………………………"
+ },
+ {
+  "t": "p",
+  "text": "Adres e-mail Konta w Aplikacji: ……………………………………………"
+ },
+ {
+  "t": "p",
+  "text": "Podpis (tylko jeżeli formularz jest przesyłany w wersji papierowej): ……………………………………………"
+ },
+ {
+  "t": "p",
+  "text": "Data: ……………………………………………"
+ },
+ {
+  "t": "p",
+  "text": "(*) Niepotrzebne skreślić."
  }
 ]

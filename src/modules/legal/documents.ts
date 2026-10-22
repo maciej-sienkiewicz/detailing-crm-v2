@@ -14,7 +14,8 @@ export type LegalSlug =
     | 'polityka-prywatnosci'
     | 'klauzula-informacyjna'
     | 'umowa-powierzenia'
-    | 'usuwanie-danych';
+    | 'usuwanie-danych'
+    | 'formularz-odstapienia';
 
 export interface LegalDocument {
     slug: LegalSlug;
@@ -28,15 +29,16 @@ export interface LegalDocument {
  * backend zapisuje ją jako dowód akceptacji (`LegalDocumentVersions.CURRENT`). Przy każdej
  * zmianie treści tych dokumentów podbij obie stałe naraz.
  */
-export const LEGAL_VERSION = '2026-10-21';
+export const LEGAL_VERSION = '2026-10-22';
 
 const UPDATED_AT = '21 października 2026 r.';
+const TERMS_UPDATED_AT = '22 października 2026 r.';
 
 export const LEGAL_DOCUMENTS: LegalDocument[] = [
     {
         slug: 'regulamin',
         title: 'Regulamin sprzedaży abonamentu',
-        updatedAt: UPDATED_AT,
+        updatedAt: TERMS_UPDATED_AT,
         load: () => import('./content/regulamin.json') as Promise<{ default: LegalBlock[] }>,
     },
     {
@@ -62,6 +64,12 @@ export const LEGAL_DOCUMENTS: LegalDocument[] = [
         title: 'Usuwanie danych',
         updatedAt: UPDATED_AT,
         load: () => import('./content/usuwanie-danych.json') as Promise<{ default: LegalBlock[] }>,
+    },
+    {
+        slug: 'formularz-odstapienia',
+        title: 'Formularz odstąpienia od umowy',
+        updatedAt: TERMS_UPDATED_AT,
+        load: () => import('./content/formularz-odstapienia.json') as Promise<{ default: LegalBlock[] }>,
     },
 ];
 

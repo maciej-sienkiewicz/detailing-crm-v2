@@ -12,6 +12,7 @@ import { Fragment, useEffect, useState, type ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { LEGAL_DOCUMENTS, legalPath, type LegalBlock, type LegalSlug } from '../documents';
+import { PaymentFlags } from '../components/PaymentFlags';
 
 const BG = '#f1f3f6';
 const CARD = '#ffffff';
@@ -91,6 +92,7 @@ export function LegalDocumentView({ slug }: { slug: LegalSlug }) {
                 <Footer>
                     Pytania dotyczące dokumentów: <a href="mailto:biuro@detailboost.pl">biuro@detailboost.pl</a>
                     {' · '}<Link to="/login">Zaloguj się</Link>
+                    <FlagsRow><PaymentFlags /></FlagsRow>
                 </Footer>
             </Shell>
         </Page>
@@ -216,7 +218,12 @@ const TableWrap = styled.div`
     }
 `;
 
-const Footer = styled.p`
+const FlagsRow = styled.span`
+    display: flex;
+    justify-content: center;
+`;
+
+const Footer = styled.div`
     margin-top: 16px;
     color: ${MUTED};
     font-size: 13px;

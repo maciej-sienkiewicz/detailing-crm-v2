@@ -113,7 +113,9 @@ describe('SubscriptionSettingsPage', () => {
         expect(await screen.findByText('Ostatnia płatność nie przeszła')).toBeTruthy();
         expect(renewButtons()).toHaveLength(1);
         await userEvent.click(screen.getByRole('button', { name: /Zapłać 172,00/ }));
-        await waitFor(() => expect(newSubscriptionApi.checkout).toHaveBeenCalledWith({ type: 'RENEWAL' }));
+        await userEvent.click(await screen.findByRole('checkbox', { name: /Akceptuję regulamin/ }));
+        await userEvent.click(screen.getByRole('button', { name: 'Przejdź do płatności' }));
+        await waitFor(() => expect(newSubscriptionApi.checkout).toHaveBeenCalledWith({ type: 'RENEWAL', acceptTerms: true }));
     });
 
     it('przedłużenie bez płatności: sukces tylko dla FULFILLED', async () => {
@@ -122,6 +124,8 @@ describe('SubscriptionSettingsPage', () => {
         });
         renderPage();
         await userEvent.click(await screen.findByRole('button', { name: /Przedłuż o 30 dni/ }));
+        await userEvent.click(await screen.findByRole('checkbox', { name: /Akceptuję regulamin/ }));
+        await userEvent.click(screen.getByRole('button', { name: 'Przejdź do płatności' }));
         expect(await screen.findByText('Pakiet przedłużony')).toBeTruthy();
     });
 
@@ -132,6 +136,8 @@ describe('SubscriptionSettingsPage', () => {
         });
         renderPage();
         await userEvent.click(await screen.findByRole('button', { name: /Przedłuż o 30 dni/ }));
+        await userEvent.click(await screen.findByRole('checkbox', { name: /Akceptuję regulamin/ }));
+        await userEvent.click(screen.getByRole('button', { name: 'Przejdź do płatności' }));
         expect(await screen.findByText('Nie udało się włączyć zakupu')).toBeTruthy();
         expect(screen.getByText(/Studio ma już opłacony okres\. Nic nie zostało pobrane/)).toBeTruthy();
         expect(screen.queryByText('Pakiet przedłużony')).toBeNull();

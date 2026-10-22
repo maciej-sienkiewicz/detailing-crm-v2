@@ -11,6 +11,8 @@
 //   - zakup przechodzi przez okno potwierdzenia z rozbiciem netto / VAT / brutto;
 //   - wynik i błąd mówi toast, a nie bloki doklejane pod przyciskiem.
 
+import { CheckoutConsent } from '@/modules/subscription/components/CheckoutConsent';
+import { useCheckoutConsent } from '@/modules/subscription/hooks/useCheckoutConsent';
 import { useState } from 'react';
 import styled from 'styled-components';
 import { LockedSection } from '@/common/components/LockedSection';
@@ -206,13 +208,14 @@ interface ConfirmProps {
 export function PurchaseConfirmModal({ pkg, currentBalance, isPending, onConfirm, onClose }: ConfirmProps) {
     const price = packagePrice(pkg);
     const gross = formatGrossCents(price.grossCents, pkg.currency);
+    const consent = useCheckoutConsent();
 
     return (
         <ModalShell isOpen onClose={isPending ? () => {} : onClose} size="sm" dismissible={!isPending}>
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Kupić {formatCreditCount(pkg.creditAmount)} {creditsLabel(pkg.creditAmount)} SMS?</ModalTitle>
-                    <ModalSubtitle>Zakup jest płatny i nie da się go cofnąć.</ModalSubtitle>
+                    <ModalSubtitle>Płatność jednorazowa. Niewykorzystane wiadomości nie wygasają.</ModalSubtitle>
                 </ModalTitleGroup>
                 {!isPending && <CloseBtn onClick={onClose} />}
             </ModalHeader>
@@ -231,10 +234,11 @@ export function PurchaseConfirmModal({ pkg, currentBalance, isPending, onConfirm
                         {creditsLabel(currentBalance + pkg.creditAmount)}.
                     </Notice>
                 )}
+                <CheckoutConsent consent={consent} />
             </ModalContent>
             <ModalFooter>
                 <Button onClick={onClose} disabled={isPending}>Anuluj</Button>
-                <Button variant="primary" onClick={onConfirm} disabled={isPending}>
+                <Button variant="primary" onClick={() => consent.require() && onConfirm()} disabled={isPending}>
                     {isPending ? 'Płatność w toku…' : `Kup za ${gross}`}
                 </Button>
             </ModalFooter>

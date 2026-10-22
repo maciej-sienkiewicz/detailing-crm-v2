@@ -18,6 +18,8 @@ import { formatDate } from '../utils/formatters';
 import { toastUnhandledError } from '../utils/apiErrors';
 import { toastCheckoutProblem, useCheckoutHandoff } from '../hooks/useCheckoutHandoff';
 import { LoadingRow, Spinner, Explanation, Strong } from './PlanChangeDialog.styles';
+import { CheckoutConsent } from './CheckoutConsent';
+import { useCheckoutConsent } from '../hooks/useCheckoutConsent';
 
 // ─── Shared helpers ───────────────────────────────────────────────────────────
 
@@ -55,10 +57,12 @@ export function PlanChangeDialog({
     const changePlan = useChangePlan();
     const checkout = useCheckout();
     const handoff = useCheckoutHandoff();
+    const consent = useCheckoutConsent();
 
     const isDowngrade = preview?.changeType === 'DOWNGRADE';
 
     const handleConfirm = async () => {
+        if (!isDowngrade && !consent.require()) return;
         try {
             if (isDowngrade) {
                 await changePlan.mutateAsync(newPlanKey);
@@ -69,7 +73,7 @@ export function PlanChangeDialog({
             // Upgrade: paid operation, goes through Przelewy24.
             // Brak adresu płatności to NIE sukces (zamówienie bez płatności mogło zostać anulowane
             // albo wciąż się włącza) - rozstrzyga stan zamówienia (useCheckoutHandoff).
-            const step = handoff(await checkout.mutateAsync({ type: 'PLAN_UPGRADE', planKey: newPlanKey }));
+            const step = handoff(await checkout.mutateAsync({ type: 'PLAN_UPGRADE', planKey: newPlanKey, acceptTerms: true }));
             if (step.kind === 'redirect' || step.kind === 'track') return;
             if (step.kind === 'done') showSuccess('Pakiet zmieniony', `Od teraz masz pakiet ${newPlanName}.`);
             else toastCheckoutProblem({ showError, showWarning }, step);
@@ -130,6 +134,7 @@ export function PlanChangeDialog({
                         </FieldList>
 
                         <Explanation>{preview.explanation}</Explanation>
+                        {!isDowngrade && <CheckoutConsent consent={consent} />}
                     </>
                 )}
             </ModalContent>
@@ -180,6 +185,7 @@ export function AddOnActivationDialog({
     const { showSuccess, showError, showWarning } = useToast();
     const checkout = useCheckout();
     const handoff = useCheckoutHandoff();
+    const consent = useCheckoutConsent();
 
     // The communication module is the one add-on whose price is not the whole
     // commitment: it needs message texts and it needs credits. Explaining that here
@@ -187,8 +193,9 @@ export function AddOnActivationDialog({
     const [guideDone, setGuideDone] = useState(!ADD_ONS_WITH_GUIDE.has(addOnKey));
 
     const handleConfirm = async () => {
+        if (!consent.require()) return;
         try {
-            const step = handoff(await checkout.mutateAsync({ type: 'ADD_ON_PURCHASE', addOnKeys: [addOnKey] }));
+            const step = handoff(await checkout.mutateAsync({ type: 'ADD_ON_PURCHASE', addOnKeys: [addOnKey], acceptTerms: true }));
             if (step.kind === 'redirect' || step.kind === 'track') return;
             if (step.kind === 'done') showSuccess('Moduł włączony', `Moduł ${addOnName} już działa.`);
             else toastCheckoutProblem({ showError, showWarning }, step);
@@ -244,6 +251,7 @@ export function AddOnActivationDialog({
                         </FieldList>
 
                         <Explanation>{preview.explanation}</Explanation>
+                        <CheckoutConsent consent={consent} />
                     </>
                 )}
             </ModalContent>
@@ -301,5 +309,55 @@ export function AddOnDeactivationDialog({ addOnKey, addOnName, onClose }: Deacti
             onConfirm={handleConfirm}
             onCancel={onClose}
         />
+    );
+}
+
+// ─── Renewal dialog ───────────────────────────────────────────────────────────
+
+interface RenewDialogProps {
+    planName: string;
+    /** Sformatowana kwota brutto za 30 dni; null, gdy nie ma czego płacić. */
+    amount: string | null;
+    isPending: boolean;
+    onConfirm: () => void;
+    onClose: () => void;
+}
+
+/** Przedłużenie o 30 dni: kwota i zgoda na regulamin przed przejściem do Przelewy24. */
+export function RenewDialog({ planName, amount, isPending, onConfirm, onClose }: RenewDialogProps) {
+    const consent = useCheckoutConsent();
+
+    return (
+        <ModalShell isOpen onClose={onClose} size="sm">
+            <ModalHeader>
+                <ModalTitleGroup>
+                    <ModalTitle>Przedłuż pakiet</ModalTitle>
+                </ModalTitleGroup>
+                <CloseBtn onClick={onClose} />
+            </ModalHeader>
+
+            <ModalContent>
+                <FieldList>
+                    <FieldRow label="Pakiet"><strong>{planName}</strong> z aktywnymi modułami</FieldRow>
+                    <FieldRow label="Okres">30 dni od opłacenia</FieldRow>
+                    <FieldRow label="Do zapłaty">
+                        <Strong $highlight>{amount ? `${amount} brutto` : 'Bez opłaty'}</Strong>
+                    </FieldRow>
+                </FieldList>
+                <Explanation>Płatność jednorazowa przez Przelewy24 - nie odnawia się automatycznie.</Explanation>
+                <CheckoutConsent consent={consent} />
+            </ModalContent>
+
+            <ModalFooter>
+                <Button onClick={onClose} disabled={isPending}>Anuluj</Button>
+                <Button
+                    variant="primary"
+                    onClick={() => consent.require() && onConfirm()}
+                    disabled={isPending}
+                >
+                    {isPending ? 'Przekierowywanie…' : 'Przejdź do płatności'}
+                </Button>
+            </ModalFooter>
+        </ModalShell>
     );
 }

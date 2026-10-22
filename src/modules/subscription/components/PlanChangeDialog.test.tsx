@@ -74,6 +74,7 @@ describe('AddOnActivationDialog - zakup bez płatności', () => {
     it('FULFILLED: „Moduł włączony" i zamknięcie okna', async () => {
         checkout.mockResolvedValue(response('FULFILLED'));
         renderDialog();
+        await userEvent.click(screen.getByRole('checkbox', { name: /Akceptuję regulamin/ }));
         await userEvent.click(screen.getByRole('button', { name: 'Włącz bezpłatnie' }));
 
         expect(await screen.findByText('Moduł włączony')).toBeTruthy();
@@ -83,6 +84,7 @@ describe('AddOnActivationDialog - zakup bez płatności', () => {
     it('CANCELLED: błąd z powodem i tym, co zrobić - nigdy „Moduł włączony"', async () => {
         checkout.mockResolvedValue(response('CANCELLED', { failureReason: 'Ten moduł jest już aktywny.' }));
         renderDialog();
+        await userEvent.click(screen.getByRole('checkbox', { name: /Akceptuję regulamin/ }));
         await userEvent.click(screen.getByRole('button', { name: 'Włącz bezpłatnie' }));
 
         expect(await screen.findByText('Nie udało się włączyć zakupu')).toBeTruthy();
@@ -93,6 +95,7 @@ describe('AddOnActivationDialog - zakup bez płatności', () => {
     it('REFUND_REQUIRED: ostrzeżenie o zwrocie, nie sukces', async () => {
         checkout.mockResolvedValue(response('REFUND_REQUIRED', { amountCents: 4900, failureReason: 'Moduł już aktywny.' }));
         renderDialog();
+        await userEvent.click(screen.getByRole('checkbox', { name: /Akceptuję regulamin/ }));
         await userEvent.click(screen.getByRole('button', { name: 'Włącz bezpłatnie' }));
 
         expect(await screen.findByText('Płatność przyjęta, ale zakupu nie da się włączyć')).toBeTruthy();
@@ -102,6 +105,7 @@ describe('AddOnActivationDialog - zakup bez płatności', () => {
     it('PAID: przejście na stronę wyniku płatności, która czeka na włączenie', async () => {
         checkout.mockResolvedValue(response('PAID'));
         renderDialog();
+        await userEvent.click(screen.getByRole('checkbox', { name: /Akceptuję regulamin/ }));
         await userEvent.click(screen.getByRole('button', { name: 'Włącz bezpłatnie' }));
 
         await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/payments/result?orderId=ord-7'));
@@ -114,6 +118,7 @@ describe('AddOnActivationDialog - zakup bez płatności', () => {
         try {
             checkout.mockResolvedValue(response('PENDING', { paymentUrl: 'https://sandbox.przelewy24.pl/trnRequest/T', amountCents: 4900 }));
             renderDialog();
+            await userEvent.click(screen.getByRole('checkbox', { name: /Akceptuję regulamin/ }));
             await userEvent.click(screen.getByRole('button', { name: 'Włącz bezpłatnie' }));
 
             await waitFor(() => expect(assign).toHaveBeenCalledWith('https://sandbox.przelewy24.pl/trnRequest/T'));
@@ -133,15 +138,17 @@ describe('PlanChangeDialog - zmiana pakietu bez płatności', () => {
     it('FULFILLED: „Pakiet zmieniony"', async () => {
         checkout.mockResolvedValue(response('FULFILLED'));
         renderDialog();
+        await userEvent.click(screen.getByRole('checkbox', { name: /Akceptuję regulamin/ }));
         await userEvent.click(screen.getByRole('button', { name: 'Przejdź do płatności' }));
 
         expect(await screen.findByText('Pakiet zmieniony')).toBeTruthy();
-        expect(checkout).toHaveBeenCalledWith({ type: 'PLAN_UPGRADE', planKey: 'FULL' });
+        expect(checkout).toHaveBeenCalledWith({ type: 'PLAN_UPGRADE', planKey: 'FULL', acceptTerms: true });
     });
 
     it('CANCELLED: błąd zamiast „Pakiet zmieniony"', async () => {
         checkout.mockResolvedValue(response('CANCELLED', { failureReason: 'Studio ma już pakiet FULL.' }));
         renderDialog();
+        await userEvent.click(screen.getByRole('checkbox', { name: /Akceptuję regulamin/ }));
         await userEvent.click(screen.getByRole('button', { name: 'Przejdź do płatności' }));
 
         expect(await screen.findByText('Nie udało się włączyć zakupu')).toBeTruthy();
@@ -152,6 +159,7 @@ describe('PlanChangeDialog - zmiana pakietu bez płatności', () => {
     it('PAID: strona wyniku płatności zamiast sukcesu', async () => {
         checkout.mockResolvedValue(response('PAID'));
         renderDialog();
+        await userEvent.click(screen.getByRole('checkbox', { name: /Akceptuję regulamin/ }));
         await userEvent.click(screen.getByRole('button', { name: 'Przejdź do płatności' }));
 
         await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/payments/result?orderId=ord-7'));

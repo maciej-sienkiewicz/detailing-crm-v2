@@ -135,11 +135,22 @@ describe('SmsCreditSection', () => {
         renderSection();
         await userEvent.click(await screen.findByRole('radio', { name: /Studio/ }));
         await userEvent.click(screen.getByRole('button', { name: /^Kup 2000/ }));
+        await userEvent.click(await screen.findByRole('checkbox', { name: /Akceptuję regulamin/ }));
         await userEvent.click(await screen.findByRole('button', { name: /Kup za 246,00/ }));
 
         await waitFor(() => expect(smsCreditApi.purchaseCredits).toHaveBeenCalledWith('k2'));
         expect(await screen.findByText('Kredyty dodane')).toBeTruthy();
         await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    });
+
+    it('bez zgody na regulamin pakiet nie jest kupowany', async () => {
+        renderSection();
+        await userEvent.click(await screen.findByRole('radio', { name: /Studio/ }));
+        await userEvent.click(screen.getByRole('button', { name: /^Kup 2000/ }));
+        await userEvent.click(await screen.findByRole('button', { name: /Kup za 246,00/ }));
+
+        expect(await screen.findByText(/Zaznacz akceptację regulaminu/)).toBeTruthy();
+        expect(smsCreditApi.purchaseCredits).not.toHaveBeenCalled();
     });
 
     it('odrzucona płatność: toast z powodem, okno zostaje otwarte', async () => {
@@ -150,6 +161,7 @@ describe('SmsCreditSection', () => {
         renderSection();
         await userEvent.click(await screen.findByRole('radio', { name: /Start/ }));
         await userEvent.click(screen.getByRole('button', { name: /^Kup 500/ }));
+        await userEvent.click(await screen.findByRole('checkbox', { name: /Akceptuję regulamin/ }));
         await userEvent.click(await screen.findByRole('button', { name: /Kup za 73,80/ }));
 
         expect(await screen.findByText('Zakup się nie udał')).toBeTruthy();

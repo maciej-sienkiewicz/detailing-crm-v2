@@ -2,6 +2,8 @@ import type { ReactNode } from 'react';
 import styled, { keyframes } from 'styled-components';
 import { COMPANY_ADDRESS, COMPANY_CAPITAL, COMPANY_COURT, COMPANY_IDS, COMPANY_NAME } from '@/core/companyLegal';
 import { AuthDotField } from './AuthDotField';
+import { LEGAL_DOCUMENTS, legalPath, type LegalSlug } from '@/modules/legal/documents';
+import { PaymentFlags } from '@/modules/legal/components/PaymentFlags';
 
 /**
  * Brama między stroną detailboost.pl a aplikacją: ekran logowania, rejestracji
@@ -170,6 +172,15 @@ const Legal = styled.footer`
         color: rgba(244, 244, 242, 0.6);
     }
 
+    a {
+        color: rgba(244, 244, 242, 0.6);
+        text-decoration: none;
+
+        &:hover {
+            color: rgba(244, 244, 242, 0.9);
+        }
+    }
+
     > span {
         display: flex;
         flex-wrap: wrap;
@@ -194,6 +205,12 @@ const MobileLegal = styled.footer`
         font-weight: 500;
     }
 
+    a {
+        color: inherit;
+        text-decoration: underline;
+        text-underline-offset: 2px;
+    }
+
     > span {
         display: flex;
         flex-wrap: wrap;
@@ -205,6 +222,8 @@ const MobileLegal = styled.footer`
         display: none;
     }
 `;
+
+const FOOTER_DOCUMENTS: LegalSlug[] = ['regulamin', 'polityka-prywatnosci', 'formularz-odstapienia'];
 
 function CompanyInfo() {
     return (
@@ -218,6 +237,18 @@ function CompanyInfo() {
                 ))}
             </span>
             <div>{COMPANY_CAPITAL}</div>
+            {/* Przelewy24 wymaga regulaminu i polityki pod ręką na każdej stronie przed zakupem. */}
+            <span>
+                {FOOTER_DOCUMENTS.map((slug) => {
+                    const doc = LEGAL_DOCUMENTS.find((d) => d.slug === slug)!;
+                    return (
+                        <a key={slug} href={legalPath(slug)} target="_blank" rel="noopener noreferrer">
+                            {doc.title}
+                        </a>
+                    );
+                })}
+            </span>
+            <PaymentFlags />
         </>
     );
 }

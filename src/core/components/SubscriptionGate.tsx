@@ -9,6 +9,8 @@ import { authApi } from '@/modules/auth/api/authApi';
 import { useSubscriptionStatus } from '@/modules/settings/hooks/useSubscription';
 import { useCheckout, useMyPlan } from '@/modules/subscription/api/subscriptionQueries';
 import { toastCheckoutProblem, useCheckoutHandoff } from '@/modules/subscription/hooks/useCheckoutHandoff';
+import { CheckoutConsent } from '@/modules/subscription/components/CheckoutConsent';
+import { useCheckoutConsent } from '@/modules/subscription/hooks/useCheckoutConsent';
 import { FirstLoginModal } from '@/modules/subscription/components/FirstLoginModal';
 import { formatCents } from '@/modules/subscription/utils/formatters';
 import { BootSplash } from './BootSplash';
@@ -172,15 +174,16 @@ function ExpiredModal() {
     const { data: myPlan } = useMyPlan();
     const checkout = useCheckout();
     const handoff = useCheckoutHandoff();
+    const consent = useCheckoutConsent();
 
     const isOwner = user?.role === 'OWNER';
 
     const handleRenew = async () => {
-        if (!isOwner || checkout.isPending) return;
+        if (!isOwner || checkout.isPending || !consent.require()) return;
         try {
             // Brak adresu płatności to NIE sukces - rozstrzyga stan zamówienia. Zrealizowane
             // odświeża status pakietu (useCheckout) i ta nakładka znika sama.
-            const step = handoff(await checkout.mutateAsync({ type: 'RENEWAL' }));
+            const step = handoff(await checkout.mutateAsync({ type: 'RENEWAL', acceptTerms: true }));
             if (step.kind === 'refund' || step.kind === 'failed') toastCheckoutProblem({ showError, showWarning }, step);
         } catch {
             showError('Błąd płatności', 'Nie udało się rozpocząć płatności. Spróbuj ponownie.');
@@ -209,10 +212,12 @@ function ExpiredModal() {
                         <PlanCard $highlighted={true} $disabled={true} disabled>
                             <PlanName $light={true}>Pakiet {myPlan.plan.name}</PlanName>
                             <PlanAmount $light={true}>{formatCents(myPlan.monthlyCostCents)}</PlanAmount>
-                            <PlanPer $light={true}>/ 30 dni (pakiet + aktywne moduły)</PlanPer>
+                            <PlanPer $light={true}>brutto / 30 dni (pakiet + aktywne moduły)</PlanPer>
                         </PlanCard>
                     </PlansGrid>
                 )}
+
+                {isOwner && <CheckoutConsent consent={consent} />}
 
                 <PurchaseBtn onClick={handleRenew} disabled={!isOwner || checkout.isPending}>
                     {checkout.isPending && <BtnSpinner />}
