@@ -1,6 +1,6 @@
 // src/modules/push/components/DeviceNotificationSettings.tsx
 //
-// Ustawienia → Tablety, telefon, kontakty → Powiadomienia: który telefon dostaje
+// Ustawienia → Telefon → Powiadomienia: który telefon dostaje
 // które powiadomienia.
 //
 // W studiu jedni chcą wiedzieć o wszystkim, inni tylko o nowych leadach, jeszcze inni

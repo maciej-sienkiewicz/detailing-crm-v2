@@ -148,7 +148,7 @@ export const buildMenuSections = ({
         {
             // Na końcu listy, bez przypinania do dołu (decyzja z 21.10.2026): przy pełnych
             // uprawnieniach na niskim ekranie trzeba do nich przewinąć menu.
-            // Parowanie telefonu do Click-to-Call jest w Ustawienia → Urządzenia mobilne.
+            // Parowanie telefonu do Click-to-Call jest w Ustawienia → Telefon.
             items: [
                 { path: '/settings', label: 'Ustawienia', icon: SettingsIcon },
                 { label: 'Zgłoś problem', icon: ReportProblemIcon, onClick: onReportProblem },

@@ -1,6 +1,6 @@
 // src/modules/visits/hooks/useServiceChecklist.ts
 //
-// Odhaczanie wykonanych usług na widoku wizyty (Ustawienia → Tablety, telefon, kontakty).
+// Odhaczanie wykonanych usług na widoku wizyty (Ustawienia → Tablety).
 //
 // Odhaczenie pokazuje się od razu, zanim odpowie serwer: na tablecie na hali ktoś stuka
 // w usługę rękawiczką i odchodzi do auta - czekanie na odpowiedź wyglądałoby jak brak

@@ -1,6 +1,6 @@
 // src/modules/push/components/PushNotificationsPanel.tsx
 //
-// „Powiadomienia" w Ustawieniach → Tablety, telefon, kontakty.
+// Ustawienia → Telefon → Powiadomienia (i Dzwonienie z komputera, które paruje się tak samo).
 //
 // Powiadomienie ma zabuczeć w kieszeni, więc włącza się je NA TYM urządzeniu,
 // które ma je pokazywać - przeglądarka pyta o zgodę tylko dla siebie.

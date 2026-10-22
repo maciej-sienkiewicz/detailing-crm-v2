@@ -27,7 +27,7 @@ import { useNavigate, useSearchParams, type Location } from 'react-router-dom';
 import styled from 'styled-components';
 import {
     Banknote, Building2, ChevronLeft, ChevronRight, Crown, FileSignature, Filter, HelpCircle, IdCard, Keyboard,
-    ListChecks, MessageSquare, Plug, Receipt, Search, ShieldCheck, TabletSmartphone, Tag, UserCog, Wallet,
+    ListChecks, MessageSquare, Plug, Receipt, Search, ShieldCheck, Smartphone, Tablet, Tag, UserCog, Wallet,
 } from 'lucide-react';
 import { PageContainer } from '@/common/components/PageContainer';
 import { PageChromeProvider } from '@/common/components/PageChrome';
@@ -47,7 +47,9 @@ import { MessageTemplatesSection } from '@/modules/message-templates';
 import { SmsCreditSection } from '../components/SmsCreditSection';
 import { InvoicesSection } from '../components/InvoicesSection';
 import { FinanceSection } from '../components/FinanceSection';
-import { MobileDevicesSection, type MobileDevicesSubView } from '../components/MobileDevicesSection';
+import { TabletsSettingsSection } from '../components/TabletsSettingsSection';
+import { PhoneSection } from '../components/phone/PhoneSection';
+import { isPhoneFeatureId, type PhoneFeatureId } from '../components/phone/phoneFeatures';
 import { VisitCardSection } from '../components/VisitCardSection';
 import { LeadsSettingsSection } from '../components/LeadsSettingsSection';
 import { ShortcutsSection } from '../components/ShortcutsSection';
@@ -70,7 +72,7 @@ import {
 type SectionId =
     | 'company' | 'labels' | 'services' | 'roles'
     | 'templates' | 'documents'
-    | 'mobile-devices' | 'visit-card' | 'leads'
+    | 'phone' | 'tablets' | 'visit-card' | 'leads'
     | 'shortcuts'
     | 'plan' | 'credits' | 'finance' | 'invoices' | 'integrations' | 'security';
 
@@ -154,9 +156,18 @@ const GROUPS: SectionGroup[] = [
         group: 'Urządzenia',
         items: [
             {
-                id: 'mobile-devices', label: 'Tablety, telefon, kontakty', summary: 'Podpis na tablecie, powiadomienia, kontakty', icon: <TabletSmartphone />,
-                description: 'Tablety do podpisu, powiadomienia na telefon i synchronizacja kontaktów.',
-                keywords: 'tablet parowanie powiadomienia push carddav kontakty telefon hala odhaczanie usług zrobione lista kontrolna',
+                // Telefon i tablet to dwa różne urządzenia w dwóch różnych rękach: telefon
+                // nosi każdy przy sobie, tablet stoi w recepcji albo na hali. Dawniej dzieliły
+                // jedną sekcję „Tablety, telefon, kontakty", a telefon chował połowę swoich
+                // funkcji (skróty głosowe były pod adresem, do którego nic nie linkowało).
+                id: 'phone', label: 'Telefon', summary: 'Powiadomienia, kontakty, lead głosem', icon: <Smartphone />,
+                description: 'Co Twój telefon potrafi z CRM i jak to włączyć.',
+                keywords: 'telefon powiadomienia push carddav kontakty dzwonienie click to call połączenia lead głosem notatka głosowa skróty mobilne pwa aplikacja ekran główny kod qr aparat zdjęcia vin',
+            },
+            {
+                id: 'tablets', label: 'Tablety', summary: 'Podpis w recepcji, lista na hali', icon: <Tablet />,
+                description: 'Tablety do podpisu i odhaczanie wykonanych usług na hali.',
+                keywords: 'tablet parowanie podpis hala odhaczanie usług zrobione lista kontrolna',
             },
             {
                 id: 'shortcuts', label: 'Skróty klawiszowe', summary: 'Tylko w tej przeglądarce', icon: <Keyboard />,
@@ -214,19 +225,37 @@ const VALID_SECTIONS = new Set<SectionId>(ALL_SECTIONS.map(s => s.id));
  * i zakładkach przeglądarki, więc przemianowana sekcja przekierowuje, zamiast
  * po cichu wrzucać na domyślną.
  */
-const SECTION_ALIASES: Record<string, { section: SectionId; view?: SubView }> = {
+const SECTION_ALIASES: Record<string, SectionAlias> = {
     'email-templates': { section: 'templates' },
     'sms-credits': { section: 'credits' },
     // Numeracja wizyt przestała być osobną sekcją i jest widokiem „Oznaczeń".
     'visit-numbering': { section: 'labels', view: 'numbering' },
-    'tablets': { section: 'mobile-devices', view: 'tablets' },
+};
+
+interface SectionAlias {
+    section: SectionId;
+    view?: SubView;
+    /** Dawny adres prowadził wprost do ustawień funkcji telefonu, a nie do jej opisu. */
+    openSetup?: boolean;
+}
+
+/**
+ * Dawna sekcja „Tablety, telefon, kontakty" (`?tab=mobile-devices`) rozeszła się na dwie.
+ * Jej widoki trafiają tam, gdzie mieszka to samo: powiadomienia i kontakty od razu
+ * z otwartymi ustawieniami, bo po to był ten adres. Bez widoku - telefon: tak linkuje
+ * backend z testowego powiadomienia aplikacji ze sklepu (SendTestPushHandler).
+ */
+const legacyDevicesAlias = (view: string | null): SectionAlias => {
+    if (view === 'tablets') return { section: 'tablets' };
+    if (view === 'contacts') return { section: 'phone', view: 'calls', openSetup: true };
+    return { section: 'phone', view: 'push', openSetup: true };
 };
 
 /** Sekcje z widokami wewnętrznymi trzymają je w tym samym parametrze URL. */
-type SubView = LabelsSubView | MobileDevicesSubView | ServicesSubView;
+type SubView = LabelsSubView | PhoneFeatureId | ServicesSubView;
 
 const VIEW_PARAM = 'view';
-const SECTIONS_WITH_SUBVIEWS = new Set<SectionId>(['labels', 'mobile-devices', 'services']);
+const SECTIONS_WITH_SUBVIEWS = new Set<SectionId>(['labels', 'phone', 'services']);
 
 /** Wyjście z sekcji to w ustawieniach także zmiana `?tab=` albo `?view=` na tej samej ścieżce. */
 const leavesSettingsSection = (current: Location, next: Location): boolean => {
@@ -250,7 +279,9 @@ const SECTION_REQUIREMENTS: Partial<Record<SectionId, AccessRequirement>> = {
     roles: 'EMPLOYEES_MANAGE',
     templates: 'COMMUNICATION_SEND',
     documents: 'VISITS_CREATE',
-    'mobile-devices': 'VISITS_CREATE',
+    // Telefon nie ma wpisu: każdy paruje WŁASNY telefon (backend przypisuje urządzenie
+    // do zalogowanej osoby), a funkcje, do których ktoś nie ma prawa, znikają w środku.
+    tablets: 'VISITS_CREATE',
     'visit-card': 'VISITS_CREATE',
     // Automat zakłada leady w imieniu studia i kosztuje - jak każde ustawienie, które
     // zmienia zawartość CRM-a bez udziału człowieka, zostaje przy właścicielu.
@@ -545,7 +576,9 @@ export function SettingsView() {
     // Adres jest stanem sekcji, a nie jednorazowym ziarnem - dzięki temu działają
     // linki, wstecz/dalej i „wyślij mi ten ekran".
     const rawTab = searchParams.get('tab') ?? '';
-    const alias = SECTION_ALIASES[rawTab];
+    const alias: SectionAlias | undefined = rawTab === 'mobile-devices'
+        ? legacyDevicesAlias(searchParams.get(VIEW_PARAM))
+        : SECTION_ALIASES[rawTab];
     const tabParam = (alias?.section ?? rawTab) as SectionId;
     const hasSection = VALID_SECTIONS.has(tabParam) && canSee(tabParam);
     const section: SectionId = hasSection ? tabParam : firstVisible;
@@ -555,8 +588,7 @@ export function SettingsView() {
     const viewParam = alias?.view ?? searchParams.get(VIEW_PARAM);
     const labelsSubView: LabelsSubView = viewParam === 'colors' ? 'colors' : 'numbering';
     const servicesSubView: ServicesSubView = viewParam === 'care' ? 'care' : 'pricing';
-    const mobileDevicesSubView: MobileDevicesSubView =
-        viewParam === 'notifications' || viewParam === 'contacts' ? viewParam : 'tablets';
+    const phoneSubView: PhoneFeatureId = isPhoneFeatureId(viewParam) ? viewParam : 'push';
 
     // ── Liczniki w menu: tylko dla tych, którzy widzą daną sekcję ──
     const { data: balance } = useSmsCreditBalance({ enabled: canSee('credits') });
@@ -631,15 +663,17 @@ export function SettingsView() {
         content = <SubscriptionSettingsPage />;
     } else if (section === 'credits') {
         content = <SmsCreditSection />;
-    } else if (section === 'mobile-devices') {
-        // Tablety do podpisu, powiadomienia na telefon i synchronizacja kontaktów -
-        // trzy osobne widoki jednego tematu.
+    } else if (section === 'phone') {
         content = (
-            <MobileDevicesSection
-                subView={mobileDevicesSubView}
-                onSubViewChange={view => goToSection('mobile-devices', view)}
+            <PhoneSection
+                feature={phoneSubView}
+                onFeatureChange={feature => goToSection('phone', feature)}
+                openSetupOnArrival={alias?.openSetup === true}
+                featureChosen={isPhoneFeatureId(viewParam)}
             />
         );
+    } else if (section === 'tablets') {
+        content = <TabletsSettingsSection />;
     } else if (section === 'visit-card') {
         content = <VisitCardSection />;
     } else if (section === 'leads') {

@@ -1,24 +1,17 @@
 // @vitest-environment jsdom
 //
-// Link skrótów mobilnych niesie token działający bez sesji. Token jest we fragmencie
-// adresu (#token=), nie w query stringu - fragment nie trafia do serwera ani do logów
-// proxy. „Unieważnij link" wydaje nowy token po potwierdzeniu.
+// Dawna strona „Skróty mobilne" przeszła do Ustawienia → Telefon. Adres zostaje, bo
+// siedzi w zakładkach i na ekranach telefonów: telefon z tokenem dalej trafia prosto
+// do nagrywania (token we fragmencie #, nie w query stringu), reszta - do ustawień.
 import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
-import userEvent from '@testing-library/user-event';
 import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
-import { ThemeProvider } from 'styled-components';
-import { theme } from '@/common/theme';
 import { MobileShortcutsView } from './MobileShortcutsView';
 
 const state = vi.hoisted(() => ({ mobile: false, token: 'tok-1' as string | null }));
-const rotate = vi.hoisted(() => vi.fn());
 
-vi.mock('qrcode.react', () => ({ QRCodeSVG: ({ value }: { value: string }) => <output data-testid="qr">{value}</output> }));
-vi.mock('../hooks/usePWAInstall', () => ({ usePWAInstall: () => ({ isInstalled: false, canInstall: false, install: vi.fn() }) }));
 vi.mock('../hooks/useMobileShortcutToken', () => ({
     useMobileShortcutToken: () => ({ data: state.token, isLoading: false }),
-    useRotateMobileShortcutToken: () => ({ mutate: rotate, isPending: false }),
 }));
 
 beforeAll(() => {
@@ -27,46 +20,31 @@ beforeAll(() => {
     })) as unknown as typeof window.matchMedia;
 });
 
-const VoicePage = () => {
+const Where = () => {
     const location = useLocation();
-    return <p>strona głosowa {location.search}{location.hash}</p>;
+    return <p>{location.pathname}{location.search}{location.hash}</p>;
 };
 
 const renderView = () => render(
     <MemoryRouter initialEntries={['/mobile-shortcuts']}>
-        <ThemeProvider theme={theme}>
-            <Routes>
-                <Route path="/mobile-shortcuts" element={<MobileShortcutsView />} />
-                <Route path="/m/voice" element={<VoicePage />} />
-            </Routes>
-        </ThemeProvider>
+        <Routes>
+            <Route path="/mobile-shortcuts" element={<MobileShortcutsView />} />
+            <Route path="*" element={<Where />} />
+        </Routes>
     </MemoryRouter>,
 );
 
 afterEach(() => {
     cleanup();
-    vi.clearAllMocks();
     state.mobile = false;
     state.token = 'tok-1';
 });
 
 describe('MobileShortcutsView', () => {
-    it('kod QR prowadzi do strony z tokenem we fragmencie, nie w query stringu', () => {
+    it('na komputerze prowadzi do Ustawienia → Telefon → Lead głosem', () => {
         renderView();
 
-        const qr = screen.getAllByTestId('qr')[0].textContent ?? '';
-        expect(qr).toMatch(/\/m\/voice#token=tok-1$/);
-        expect(qr).not.toContain('?token=');
-    });
-
-    it('„Unieważnij link" wydaje nowy token dopiero po potwierdzeniu', async () => {
-        renderView();
-
-        await userEvent.click(screen.getByRole('button', { name: 'Unieważnij link' }));
-        expect(rotate).not.toHaveBeenCalled();
-
-        await userEvent.click(screen.getByRole('button', { name: 'Unieważnij' }));
-        expect(rotate).toHaveBeenCalledTimes(1);
+        expect(screen.getByText('/settings?tab=phone&view=voice')).toBeInTheDocument();
     });
 
     it('na telefonie przechodzi na stronę głosową z tokenem we fragmencie', () => {
@@ -74,15 +52,15 @@ describe('MobileShortcutsView', () => {
 
         renderView();
 
-        expect(screen.getByText('strona głosowa #token=tok-1')).toBeInTheDocument();
+        expect(screen.getByText('/m/voice#token=tok-1')).toBeInTheDocument();
     });
 
-    it('bez tokenu mówi, że skróty nie są włączone', () => {
+    it('telefon bez tokenu trafia do ustawień, które mówią, czemu skrótu nie ma', () => {
+        state.mobile = true;
         state.token = null;
 
         renderView();
 
-        expect(screen.getByText('Skróty mobilne nie są włączone')).toBeInTheDocument();
-        expect(screen.queryByRole('button', { name: 'Unieważnij link' })).not.toBeInTheDocument();
+        expect(screen.getByText('/settings?tab=phone&view=voice')).toBeInTheDocument();
     });
 });

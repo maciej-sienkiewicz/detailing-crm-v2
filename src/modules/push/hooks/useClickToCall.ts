@@ -26,7 +26,7 @@ export const useClickToCall = () => {
             // 422 = valid click, no paired phone - an onboarding nudge, not an error.
             if (isAxiosError(error) && error.response?.status === 422) {
                 showInfo(
-                    'Nie masz sparowanego telefonu. Włącz powiadomienia na telefonie: Ustawienia → Tablety, telefon, kontakty.',
+                    'Nie masz sparowanego telefonu. Sparuj telefon: Ustawienia → Telefon → Dzwonienie z komputera.',
                 );
                 return;
             }

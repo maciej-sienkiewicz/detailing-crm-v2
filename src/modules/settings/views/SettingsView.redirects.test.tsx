@@ -17,6 +17,11 @@ vi.mock('@/core/context/AuthContext', () => ({ useAuth: () => ({ user: { permiss
 vi.mock('../hooks/useSmsCredits', () => ({ useSmsCreditBalance: () => ({ data: undefined }) }));
 // Sekcja ról nie jest tematem - liczy się tylko, że rama ją wybrała.
 vi.mock('../components/RolesSection', () => ({ RolesSection: () => <p>sekcja ról</p> }));
+vi.mock('../components/phone/PhoneSection', () => ({
+    PhoneSection: ({ feature, openSetupOnArrival }: { feature: string; openSetupOnArrival?: boolean }) =>
+        <p>sekcja telefonu {feature}{openSetupOnArrival ? ' z ustawieniami' : ''}</p>,
+}));
+vi.mock('../components/TabletsSettingsSection', () => ({ TabletsSettingsSection: () => <p>sekcja tabletów</p> }));
 
 const renderAt = (path: string) => {
     const router = createMemoryRouter([
@@ -92,5 +97,23 @@ describe('SettingsView - przekierowania dawnych adresów', () => {
         const router = renderAt('/team/emp-42');
         await waitFor(() => expect(router.state.location.pathname).toBe('/employees/emp-42'));
         expect(screen.getByText('karta pracownika')).toBeTruthy();
+    });
+});
+
+// „Tablety, telefon, kontakty" rozeszła się na Telefon i Tablety. Dawne adresy siedzą
+// w zakładkach, w treści toastów i w linku testowego powiadomienia z backendu
+// (SendTestPushHandler: `/settings?tab=mobile-devices`).
+describe('SettingsView - dawna sekcja urządzeń', () => {
+    it.each([
+        ['/settings?tab=mobile-devices&view=notifications', 'sekcja telefonu push z ustawieniami'],
+        ['/settings?tab=mobile-devices&view=contacts', 'sekcja telefonu calls z ustawieniami'],
+        ['/settings?tab=mobile-devices', 'sekcja telefonu push z ustawieniami'],
+        ['/settings?tab=mobile-devices&view=tablets', 'sekcja tabletów'],
+        ['/settings?tab=tablets', 'sekcja tabletów'],
+        ['/settings?tab=phone&view=voice', 'sekcja telefonu voice'],
+        ['/settings?tab=phone&view=nieznany', 'sekcja telefonu push'],
+    ])('%s otwiera właściwą sekcję', async (path, expected) => {
+        renderAt(path);
+        expect(await screen.findByText(expected)).toBeTruthy();
     });
 });

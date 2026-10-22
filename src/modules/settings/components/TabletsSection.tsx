@@ -1,6 +1,6 @@
 // src/modules/settings/components/TabletsSection.tsx
 //
-// Ustawienia → Tablety, telefon, kontakty → Tablety do podpisu.
+// Ustawienia → Tablety → Tablety do podpisu.
 //
 // Co się zmieniło i dlaczego:
 //   - „Dodaj tablet" stał w pasku nad listą obok pustego licznika; akcja główna

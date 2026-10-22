@@ -1,6 +1,6 @@
 // src/modules/settings/components/ServiceChecklistCard.tsx
 //
-// Ustawienia → Tablety, telefon, kontakty → „Odhaczanie wykonanych usług na widoku wizyty".
+// Ustawienia → Tablety → „Odhaczanie wykonanych usług na widoku wizyty".
 //
 // Część studiów wiesza tablet na hali i chce odhaczać przy wizycie, co już zrobiono.
 // Reszta tego nie potrzebuje, więc to ustawienie, domyślnie wyłączone. Budowa jak karty

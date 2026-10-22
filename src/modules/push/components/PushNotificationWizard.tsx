@@ -1,8 +1,8 @@
 // src/modules/push/components/PushNotificationWizard.tsx
 //
 // Kreator powiadomień push - jedna ścieżka dla wszystkich miejsc, w których się je
-// włącza: strony /call-device (z kodu QR), Ustawień → Urządzenia mobilne →
-// Powiadomienia i zachęty na telefonie (PushOnboardingPrompt).
+// włącza: strony /call-device (z kodu QR), Ustawień → Telefon → Powiadomienia
+// i zachęty na telefonie (PushOnboardingPrompt).
 //
 // Dlaczego kreator, a nie przycisk. Użytkownicy odpadali w trzech miejscach:
 //   1. iPhone: przycisk „Włącz" nie mógł zadziałać, bo Safari w karcie nie ma API

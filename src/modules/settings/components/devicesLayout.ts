@@ -1,6 +1,6 @@
 // src/modules/settings/components/devicesLayout.ts
 //
-// Wspólny układ trzech widoków „Tablety, telefon, kontakty".
+// Wspólny układ widoków urządzeń: Ustawienia → Tablety i kontakty w Ustawienia → Telefon.
 //
 // Każdy z nich miał własną kopię Block / BlockTitle / BlockHint i własny próg
 // telefonu (900 px w tabletach, 639 px w kontaktach, 600 px w powiadomieniach),

@@ -10,12 +10,12 @@ import { mobileShortcutTokenApi } from '../api/mobileShortcutTokenApi';
  */
 const tokenKey = (userId: string | undefined) => ['me', 'mobile-token', userId] as const;
 
-export const useMobileShortcutToken = () => {
+export const useMobileShortcutToken = ({ enabled = true }: { enabled?: boolean } = {}) => {
     const { user } = useAuth();
     return useQuery({
         queryKey: tokenKey(user?.userId),
         queryFn: mobileShortcutTokenApi.get,
-        enabled: !!user?.userId,
+        enabled: enabled && !!user?.userId,
         // Token zmienia się tylko rotacją, a ta podmienia go w cache.
         staleTime: Infinity,
     });
