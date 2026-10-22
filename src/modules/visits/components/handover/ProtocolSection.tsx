@@ -27,6 +27,7 @@ import { Section, SectionLabel } from './HandoverKit';
 import { VisualConditionModal } from './VisualConditionModal';
 import type { VisitProtocol } from '@/modules/protocols/types';
 import type { ProtocolSignatureStatus } from './signatureStep';
+import { openInNewTab } from '@/common/utils/safeUrl';
 
 const FileIcon = () => (
     <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -196,7 +197,7 @@ export const ProtocolSection = ({
     };
 
     const handlePrint = (protocol: VisitProtocol) => {
-        if (protocol.filledPdfUrl) window.open(protocol.filledPdfUrl, '_blank');
+        if (protocol.filledPdfUrl) openInNewTab(protocol.filledPdfUrl);
     };
 
     const NO_SIGNER = 'Nie masz dostępu do danych klienta, więc nie wyślesz do podpisu';

@@ -6,16 +6,7 @@ export type { VehicleKind } from './vehicleKind';
 
 export type OwnershipRole = 'PRIMARY' | 'CO_OWNER' | 'COMPANY';
 
-export type EngineType = 'GASOLINE' | 'DIESEL' | 'HYBRID' | 'ELECTRIC';
-
 export type VehicleStatus = 'active' | 'sold' | 'archived';
-
-export type DocumentCategory =
-    | 'protocols'
-    | 'invoices'
-    | 'photos'
-    | 'technical'
-    | 'other';
 
 export type ActivityType =
     | 'registration_changed'
@@ -193,10 +184,6 @@ export interface VehicleDocument {
     source: DocumentSource;
 }
 
-export interface VehicleDocumentsResponse {
-    documents: VehicleDocument[];
-}
-
 export interface UploadVehicleDocumentPayload {
     file: File;
     vehicleId: string;
@@ -307,12 +294,6 @@ export interface VehicleDetailResponse {
 }
 
 
-export interface UploadPhotoPayload {
-    file: File;
-    description: string;
-    visitId?: string;
-}
-
 export interface VehiclePhotoGalleryResponse {
     photos: VehiclePhoto[];
     pagination: {
@@ -362,11 +343,6 @@ export interface VehicleComment {
     visitId: string;
     visitTitle: string;
     visitDate: string;
-}
-
-export interface VehicleCommentsFilters {
-    page: number;
-    limit: number;
 }
 
 export interface VehicleCommentsResponse {

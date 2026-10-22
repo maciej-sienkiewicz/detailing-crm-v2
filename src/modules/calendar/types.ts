@@ -228,14 +228,6 @@ export interface DateRange {
 }
 
 /**
- * Calendar filters for appointments and visits
- */
-export interface CalendarFilters {
-    appointmentStatuses: AppointmentStatus[];
-    visitStatuses: VisitStatus[];
-}
-
-/**
  * Event creation data from click/drag interaction
  */
 export interface EventCreationData {

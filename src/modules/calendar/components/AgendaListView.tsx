@@ -256,12 +256,6 @@ const EventCard = styled.div<{ $color: string; $dimmed: boolean; $started: boole
     }
 `;
 
-const EventColorBar = styled.div<{ $color: string }>`
-    width: 3px;
-    background: ${p => p.$color}22;
-    flex-shrink: 0;
-`;
-
 const EventContent = styled.div`
     flex: 1;
     padding: 9px 11px;

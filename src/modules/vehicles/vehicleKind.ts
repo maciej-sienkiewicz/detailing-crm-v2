@@ -10,8 +10,6 @@ export type VehicleKind = 'CAR' | 'MOTORCYCLE';
 /** Filtr marek w listach i wyszukiwarkach: marki obu rodzajów naraz. */
 export type VehicleKindFilter = VehicleKind | 'ALL';
 
-export const VEHICLE_KINDS: VehicleKind[] = ['CAR', 'MOTORCYCLE'];
-
 export const VEHICLE_KIND_LABEL: Record<VehicleKind, string> = {
     CAR: 'Samochód',
     MOTORCYCLE: 'Motocykl',

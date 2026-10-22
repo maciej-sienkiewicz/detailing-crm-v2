@@ -89,17 +89,6 @@ export const ANY_FINANCE: PermissionCode[] = [
 export const ANY_EMPLOYEES: PermissionCode[] = ['EMPLOYEES_MANAGE', 'EMPLOYEES_LEAVES_APPROVE'];
 
 /**
- * ANY-OF shorthand: the Settings view. A user sees Settings when at least one
- * administration area inside it is permitted (owners always pass). Tabs are
- * additionally filtered one by one inside SettingsView.
- */
-export const ANY_SETTINGS: PermissionCode[] = [
-    'EMPLOYEES_MANAGE',
-    'COMMUNICATION_SEND',
-    'VISITS_CREATE',
-];
-
-/**
  * ANY-OF shorthand: the Dashboard. The dashboard shows cross-module statistics
  * and quick-actions that are only meaningful when the user has access to at
  * least one area beyond the bare calendar view. A user whose sole permission

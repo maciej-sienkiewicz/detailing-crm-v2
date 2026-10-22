@@ -42,7 +42,6 @@ const baseFormData = (): CheckInFormData => ({
         inspectionNotes: '',
         protocolNotes: '',
     },
-    note: '',
     visitStartAt: '2026-01-10T10:00',
     visitEndAt: '2026-01-10T12:00',
     isAllDay: false,

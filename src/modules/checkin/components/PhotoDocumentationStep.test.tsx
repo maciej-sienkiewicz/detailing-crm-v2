@@ -46,7 +46,6 @@ const formData = (overrides: Partial<CheckInFormData>): CheckInFormData => ({
         inspectionNotes: '',
         protocolNotes: '',
     },
-    note: '',
     photos: [],
     damagePoints: [],
     services: [],

@@ -26,16 +26,6 @@ export const paymentMethods: PaymentMethodOption[] = [
 ];
 
 /**
- * Typy dokumentu. `other` mapuje się na backendzie na DocumentType.OTHER:
- * dokument z prefiksem DOK w module finansów.
- */
-export const documentTypes: Array<{ value: InvoiceType; label: string }> = [
-    { value: 'RECEIPT', label: 'Paragon' },
-    { value: 'INVOICE', label: 'Faktura VAT' },
-    { value: 'other', label: 'Inne rozliczenie' },
-];
-
-/**
  * Wybór dokumentu na ekranie wydania. Podział na fakturę i inny dokument nie jest
  * osobnym dokumentem, tylko sposobem zapłaty faktury - włącza się go przy formie
  * zapłaty, gdy wybrana jest faktura. Jako czwarta pigułka mylił się z „Inny dokument”.

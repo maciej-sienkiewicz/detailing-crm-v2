@@ -38,34 +38,6 @@ export const formatDateTime = (
     }).format(typeof date === 'string' ? new Date(date) : date);
 };
 
-export const formatNumber = (
-    num: number,
-    locale = 'pl-PL'
-): string => {
-    return new Intl.NumberFormat(locale).format(num);
-};
-
-export const formatPercentage = (
-    value: number,
-    locale = 'pl-PL'
-): string => {
-    return new Intl.NumberFormat(locale, {
-        style: 'percent',
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 2,
-    }).format(value / 100);
-};
-
-export const truncateText = (text: string, maxLength: number): string => {
-    if (text.length <= maxLength) return text;
-    return `${text.slice(0, maxLength).trim()}...`;
-};
-
-export const capitalizeFirst = (text: string): string => {
-    if (!text) return '';
-    return text.charAt(0).toUpperCase() + text.slice(1).toLowerCase();
-};
-
 export const formatPhoneNumber = (phone: string): string => {
     const clean = phone.replace(/[\s-]/g, '').replace(/^\+48/, '');
     if (clean.length !== 9) return phone;

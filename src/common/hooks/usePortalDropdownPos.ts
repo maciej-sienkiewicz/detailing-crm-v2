@@ -72,7 +72,6 @@ export function usePortalDropdownPos() {
             maxHeight: placement.maxHeight,
             visible: true,
         });
-    // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [pos]);
 
     // Inline style to apply to the menu element.

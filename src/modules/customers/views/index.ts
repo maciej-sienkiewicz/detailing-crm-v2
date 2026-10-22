@@ -1,1 +1,0 @@
-export { CustomerListView } from './CustomerListView';

@@ -79,12 +79,15 @@ const WarnNote = styled.div`
 
 // ─── Props ────────────────────────────────────────────────────────────────────
 
+/** Tyle okno czyta z operacji - kalendarz nie ma pełnej `Operation`, tylko dane zdarzenia. */
+export type DeleteRecurringTarget = Pick<Operation, 'id' | 'title' | 'customerFirstName' | 'customerLastName' | 'recurrenceInfo'>;
+
 interface DeleteRecurringModalProps {
     isOpen: boolean;
     onClose: () => void;
     onConfirm: (scope: RecurrenceEditScope) => void;
     isDeleting: boolean;
-    operation: Operation;
+    operation: DeleteRecurringTarget;
 }
 
 // ─── Component ────────────────────────────────────────────────────────────────

@@ -177,7 +177,7 @@ describe('Lewa kolumna: decyzje', () => {
     });
 
     it('podział: każda pozycja na fakturze z polem kwoty, bez kolumny „Dokument”, pod nimi dwie kwoty', () => {
-        const lines = linesFromPrices(prices).map(l => (l.serviceIds[0] === 'p' ? { ...l, amount: '0', amountMode: 'GROSS' } : l));
+        const lines = linesFromPrices(prices).map(l => (l.serviceIds[0] === 'p' ? { ...l, amount: '0', amountMode: 'GROSS' as const } : l));
         const c = controls();
         left(state({ splitRemainder: true, lines }), { remainder: 18_519, c });
 

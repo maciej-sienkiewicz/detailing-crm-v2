@@ -11,7 +11,6 @@ import { hasMaskedPii, mergeMaskedPii } from '@/common/pii';
 import { leadsApi } from '../api/leadsApi';
 import { LEAD_STATUS_LABELS } from '../types';
 import { pluralPl } from '@/common/utils/plural';
-import type { VehicleKind } from '@/modules/vehicles/vehicleKind';
 import { COMMS_THREADS_KEY } from './useComms';
 import { DEFAULT_STAGNATION, type StagnationThresholds } from '../utils/leadUrgency';
 import type {
@@ -37,20 +36,6 @@ export const LEAD_OVERVIEW_KEY = [...LEADS_KEY, 'overview'];
  * dopisanie go tutaj jest jedyną rzeczą, jakiej wymaga scalanie rozgłoszeń.
  */
 const LEAD_PII_FIELDS = ['customerName', 'contactIdentifier'] as const satisfies ReadonlyArray<keyof Lead>;
-
-export const useLeads = (filters: {
-    status?: LeadStatus;
-    query?: string;
-    awaitingReply?: boolean;
-    sortDirection?: LeadSortDirection;
-    page?: number;
-    pageSize?: number;
-}) =>
-    useQuery({
-        queryKey: [...LEADS_KEY, 'list', filters],
-        queryFn: () => leadsApi.getLeads(filters),
-        placeholderData: (previous) => previous,
-    });
 
 /** Sprawy w toku - te, które mają jeszcze „czyj ruch". */
 export const OPEN_LEAD_STATUSES: LeadStatus[] = ['NEW', 'IN_PROGRESS', 'CONFIRMED'];
@@ -292,35 +277,6 @@ export const useNewLeadsCount = (options?: { enabled?: boolean }): number => {
 };
 
 // ── Notatki na leadzie ───────────────────────────────────────────────────────
-
-export const useLeadNotes = (leadId: string | null) =>
-    useQuery({
-        queryKey: [...LEADS_KEY, 'notes', leadId],
-        queryFn: () => leadsApi.getNotes(leadId!),
-        enabled: leadId !== null,
-    });
-
-export const useAddLeadNote = () => {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: ({ leadId, content }: { leadId: string; content: string }) =>
-            leadsApi.addNote(leadId, content),
-        onSuccess: (_note, { leadId }) => {
-            queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'notes', leadId] });
-        },
-    });
-};
-
-export const useDeleteLeadNote = () => {
-    const queryClient = useQueryClient();
-    return useMutation({
-        mutationFn: ({ leadId, noteId }: { leadId: string; noteId: string }) =>
-            leadsApi.deleteNote(leadId, noteId),
-        onSuccess: (_result, { leadId }) => {
-            queryClient.invalidateQueries({ queryKey: [...LEADS_KEY, 'notes', leadId] });
-        },
-    });
-};
 
 /**
  * Podmiana zapamiętanych STRON listy leadów — z pominięciem tego, co stroną nie jest.
@@ -581,28 +537,6 @@ export const useDeleteLeadTag = () => {
 
 // ── Webhooki formularzy ──────────────────────────────────────────────────────
 
-export const LEAD_INTAKE_KEY = [...LEADS_KEY, 'intake-webhooks'];
-export const useUpdateLeadTags = () => {
-    const invalidate = useLeadInvalidation();
-    return useMutation({
-        mutationFn: ({ leadId, tags }: { leadId: string; tags: string[] }) =>
-            leadsApi.updateTags(leadId, tags),
-        onSuccess: (_lead, variables) => invalidate(variables.leadId),
-    });
-};
-
-export const useUpdateLeadVehicle = () => {
-    const invalidate = useLeadInvalidation();
-    return useMutation({
-        mutationFn: ({ leadId, vehicleBrand, vehicleModel, vehicleKind }: {
-            leadId: string;
-            vehicleBrand: string | null;
-            vehicleModel: string | null;
-            vehicleKind?: VehicleKind;
-        }) => leadsApi.updateVehicle(leadId, vehicleBrand, vehicleModel, vehicleKind),
-        onSuccess: (_lead, variables) => invalidate(variables.leadId),
-    });
-};
 
 /**
  * Nasłuch zmian leadów na topicu studia. Backend przysyła pełny wiersz, więc
@@ -867,20 +801,6 @@ export const useAcceptAllSuggestions = (leadId: string) => {
     });
 };
 
-export const useUpdateLead = () => {
-    const invalidate = useLeadInvalidation();
-    return useMutation({
-        mutationFn: ({
-            leadId,
-            request,
-        }: {
-            leadId: string;
-            request: { category?: string; customerName?: string; assignedUserId?: string };
-        }) => leadsApi.updateLead(leadId, request),
-        onSuccess: (_lead, { leadId }) => invalidate(leadId),
-    });
-};
-
 /**
  * Przypięcie sprawy do klienta z kartoteki - po dodaniu nowego klienta z panelu
  * sprawy. Unieważnia też wizytówkę kontaktu, bo „Nowy klient" właśnie przestał nim być.
@@ -898,10 +818,3 @@ export const useAssignLeadCustomer = () => {
     });
 };
 
-export const useCreateLead = () => {
-    const invalidate = useLeadInvalidation();
-    return useMutation({
-        mutationFn: leadsApi.createLead,
-        onSuccess: () => invalidate(),
-    });
-};

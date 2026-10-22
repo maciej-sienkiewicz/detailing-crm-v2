@@ -1,5 +1,5 @@
-import type { SmsAutomationConfig, SmsRuleKey } from '@/modules/sms-settings/types';
-import type { EmailAutomationConfig, EmailRuleKey } from '@/modules/email-campaigns/types';
+import type { SmsRuleKey } from '@/modules/sms-settings/types';
+import type { EmailRuleKey } from '@/modules/email-campaigns/types';
 
 /**
  * A message is one situation in which we contact the customer: "vehicle ready for
@@ -48,11 +48,6 @@ export type TemplatesDraft = Record<MessageKey, Partial<Record<Channel, ChannelD
  * no text, so nothing is ever sent.
  */
 export type ChannelStatus = 'on' | 'blank' | 'off' | 'absent';
-
-export interface TemplatesPayload {
-  sms: SmsAutomationConfig;
-  email: EmailAutomationConfig;
-}
 
 export type { SmsRuleKey, EmailRuleKey };
 

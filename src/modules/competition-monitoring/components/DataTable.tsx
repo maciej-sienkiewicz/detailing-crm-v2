@@ -145,15 +145,6 @@ export const NameText = styled.span`
     white-space: nowrap;
 `;
 
-export const MetaText = styled.span`
-    font-size: 12px;
-    line-height: 16px;
-    color: ${INK_MUTED};
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-`;
-
 export const MetaLink = styled.a`
     font-size: 12px;
     line-height: 16px;

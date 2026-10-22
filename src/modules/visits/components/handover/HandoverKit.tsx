@@ -22,13 +22,6 @@ export const Section = styled.section`
     gap: 8px;
 `;
 
-export const SectionHead = styled.div`
-    display: flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 12px;
-`;
-
 export const SectionLabel = styled.h3`
     margin: 0;
     font-size: 15px;
@@ -45,20 +38,6 @@ export const Box = styled.div`
     border: 1px solid ${ui.line};
     border-radius: ${ui.radiusStrip};
     background: ${ui.surface};
-`;
-
-export const BoxRow = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 12px;
-    flex-wrap: wrap;
-`;
-
-export const Divider = styled.div`
-    height: 1px;
-    background: ${ui.lineSoft};
-    margin: 2px 0;
 `;
 
 export const PillRow = styled.div`
@@ -118,14 +97,6 @@ export const Muted = styled.span`
     font-size: 12.5px;
     color: ${ui.textMuted};
     line-height: 1.5;
-`;
-
-export const Money = styled.span<{ $strong?: boolean }>`
-    font-variant-numeric: tabular-nums;
-    font-size: ${p => (p.$strong ? '20px' : '13.5px')};
-    font-weight: ${p => (p.$strong ? 700 : 600)};
-    color: ${ui.ink};
-    letter-spacing: ${p => (p.$strong ? '-0.01em' : '0')};
 `;
 
 // ─── Komunikaty przy sekcji, nie w banerze na górze ───────────────────────────

@@ -186,35 +186,6 @@ const NetAmt = styled.div`
 
 // ─── Status badge ─────────────────────────────────────────────────────────────
 
-type StatusKind = 'active' | 'sold' | 'archived';
-
-const STATUS_CONFIG: Record<StatusKind, { label: string; bg: string; color: string }> = {
-    active:   { label: 'Aktywny',   bg: 'rgba(16,185,129,0.12)',  color: '#059669' },
-    sold:     { label: 'Sprzedany', bg: '#f1f5f9',                color: '#475569' },
-    archived: { label: 'Usunięty',  bg: '#f1f5f9',                color: '#64748b' },
-};
-
-const StatusBadge = styled.span<{ $bg: string; $color: string }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 5px;
-    font-size: 11px;
-    font-weight: 600;
-    padding: 4px 9px;
-    border-radius: 9999px;
-    background: ${p => p.$bg};
-    color: ${p => p.$color};
-    white-space: nowrap;
-`;
-
-const StatusDot = styled.span<{ $color: string }>`
-    width: 5px;
-    height: 5px;
-    border-radius: 50%;
-    background: currentColor;
-    flex-shrink: 0;
-`;
-
 // ─── Actions cell ─────────────────────────────────────────────────────────────
 
 const ActionsCell = styled.td`

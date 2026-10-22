@@ -673,28 +673,11 @@ export interface TranslationKeys {
         photos: {
             title: string;
             subtitle: string;
-            required: string;
-            optional: string;
             qrCodeTitle: string;
             qrCodeDescription: string;
             refreshPhotos: string;
-            requiredSlots: {
-                front: string;
-                rear: string;
-                left_side: string;
-                right_side: string;
-            };
-            damageSlots: {
-                damage_front: string;
-                damage_rear: string;
-                damage_left: string;
-                damage_right: string;
-                damage_other: string;
-            };
             photoUploaded: string;
             photoMissing: string;
-            allRequiredUploaded: string;
-            missingRequired: string;
         };
         mobile: {
             title: string;
@@ -1100,4 +1083,3 @@ export interface TranslationKeys {
     };
 }
 
-export type TranslationKey = keyof TranslationKeys;

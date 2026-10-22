@@ -329,13 +329,6 @@ const LicensePlate = styled.span`
     transition: background 0.15s ease, color 0.15s ease;
 `;
 
-const TypeTag = styled.span<{ $isVisit: boolean }>`
-    font-size: 11px;
-    font-weight: 600;
-    color: ${props => props.$isVisit ? '#059669' : '#0284C7'};
-    letter-spacing: 0.2px;
-`;
-
 const SmsBadge = styled.span<{ $status: SmsSendStatus | 'NOT_SENT' }>`
     display: inline-flex;
     align-items: center;
@@ -683,14 +676,6 @@ const SkeletonRow = () => (
 );
 
 // ─── SVG icons ────────────────────────────────────────────────────────────────
-
-const CarIcon = () => (
-    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">
-        <path d="M19 17H5a2 2 0 0 1-2-2V9l2-4h10l4 4v4a2 2 0 0 1-2 2Z" />
-        <circle cx="7.5" cy="17" r="1.5" />
-        <circle cx="16.5" cy="17" r="1.5" />
-    </svg>
-);
 
 const CalendarIcon = () => (
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75">

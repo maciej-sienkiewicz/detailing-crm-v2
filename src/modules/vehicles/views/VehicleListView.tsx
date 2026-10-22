@@ -142,34 +142,6 @@ const FilterTopRow = styled.div`
     }
 `;
 
-const TabGroup = styled.div`
-    display: inline-flex;
-    background: #f1f5f9;
-    border-radius: 10px;
-    padding: 3px;
-    gap: 2px;
-    flex-shrink: 0;
-`;
-
-const TabBtn = styled.button<{ $active: boolean }>`
-    border: none;
-    background: ${p => p.$active ? '#fff' : 'transparent'};
-    padding: 6px 14px;
-    border-radius: 8px;
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    color: ${p => p.$active ? '#0f172a' : '#64748b'};
-    cursor: pointer;
-    transition: all 180ms ease;
-    white-space: nowrap;
-    box-shadow: ${p => p.$active ? '0 1px 3px rgba(0,0,0,0.06)' : 'none'};
-
-    &:hover {
-        color: ${p => p.$active ? '#0f172a' : '#475569'};
-    }
-`;
-
 const Spacer = styled.div`
     flex: 1;
 

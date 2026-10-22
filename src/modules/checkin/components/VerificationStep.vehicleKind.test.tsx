@@ -89,7 +89,6 @@ const makeFormData = (overrides: Partial<CheckInFormData> = {}): CheckInFormData
         inspectionNotes: '',
         protocolNotes: '',
     },
-    note: '',
     photos: [],
     damagePoints: [],
     services: [],

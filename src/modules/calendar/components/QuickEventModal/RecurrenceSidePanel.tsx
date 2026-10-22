@@ -255,7 +255,7 @@ function computePreview(rule: RecurrenceRuleRequest, startIso: string): { count:
         const sortedDays = [...rule.daysOfWeek].sort((a, b) => DAY_INDEX[a] - DAY_INDEX[b]);
         const weekStart = new Date(base);
         weekStart.setDate(weekStart.getDate() - ((weekStart.getDay() + 6) % 7));
-        let weekCursor = new Date(weekStart);
+        const weekCursor = new Date(weekStart);
 
         while (dates.length < limit) {
             for (const day of sortedDays) {

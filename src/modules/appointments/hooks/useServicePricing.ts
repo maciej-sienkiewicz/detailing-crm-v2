@@ -15,7 +15,7 @@
 // zmieniającym netto. Reszta jest przepisywana.
 import { interpolate, t } from '@/common/i18n';
 import { dinero, toDecimal } from 'dinero.js';
-import { PLN } from '@dinero.js/currencies';
+import { PLN } from 'dinero.js/currencies';
 import { applyAdjustment, exactBaseGross, netToGross } from '@/common/utils/priceAdjustment';
 import type { ServiceLineItem, MoneyAmount } from '../types';
 

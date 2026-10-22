@@ -51,12 +51,15 @@
 // Bump on every change to this file. Browsers compare bytes, so the bump is not
 // what triggers an update - it is what Settings → Urządzenia mobilne →
 // Powiadomienia shows, so "does this phone have the fix yet?" has an answer.
-const SW_VERSION = '2026-09-25.2';
+const SW_VERSION = '2026-10-22.1';
 
 const CACHE_VERSION = 'v1';
 const CACHE_NAME    = `car-logos-${CACHE_VERSION}`;
 
-const LOGO_URL_PATTERN = /cdn\.jsdelivr\.net\/gh\/filippofilip95\/car-logos-dataset/;
+// Zakotwiczony od początku adresu: bez ^ cache-first łapało każde żądanie, którego adres
+// tylko ZAWIERAŁ ten ciąg - także nawigację do /api/…?x=cdn.jsdelivr.net/gh/…, której
+// odpowiedź (dane klientów) zostawała w cache na zawsze, również po wylogowaniu.
+const LOGO_URL_PATTERN = /^https:\/\/cdn\.jsdelivr\.net\/gh\/filippofilip95\/car-logos-dataset[@/]/;
 
 // ─── Lifecycle ────────────────────────────────────────────────────────────────
 
@@ -91,6 +94,7 @@ self.addEventListener('message', event => {
 
 self.addEventListener('fetch', event => {
     if (!LOGO_URL_PATTERN.test(event.request.url)) return;
+    if (event.request.destination !== 'image') return;
     // Żądanie CORS pochodzi z przycinania logo (vehicles/services/logoTrim.ts), które czyta
     // piksele. Z tego cache'u poszłaby mu nieprzezroczysta (opaque) odpowiedź zapisana dla
     // <img>, a z niej przeglądarka pikseli nie odda - takie żądanie obsługuje zwykły cache HTTP.
@@ -262,9 +266,12 @@ self.addEventListener('notificationclick', event => {
         return;
     }
 
-    // Informational notification: open whatever the backend pointed at.
+    // Informational notification: open whatever the backend pointed at - but only inside
+    // the app. `new URL(url, origin)` accepts absolute URLs too, so a payload could send the
+    // user to any site straight from a trusted notification. Same rule as nativePush.ts.
     if (data.url) {
-        event.waitUntil(openApp(new URL(data.url, self.location.origin).href));
+        const target = new URL(data.url, self.location.origin);
+        event.waitUntil(openApp(target.origin === self.location.origin ? target.href : self.location.origin + '/'));
     }
 });
 

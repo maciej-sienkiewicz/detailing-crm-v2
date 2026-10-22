@@ -18,7 +18,7 @@
 // zakładek przy dolnej krawędzi dublował globalną nawigację aplikacji i chował
 // połowę karty za przełączaniem.
 
-import { useRef, useState, type ChangeEvent } from 'react';
+import { useEffect, useRef, useState, type ChangeEvent } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import styled, { keyframes } from 'styled-components';
 import { Award, CarFront, ChevronDown, MessageSquare, Pencil, Plus, QrCode, Truck } from 'lucide-react';
@@ -387,6 +387,14 @@ export const VisitDetailView = () => {
 
     const queryClient = useQueryClient();
 
+    // Podglądy z pamięci (blob:) żyją, dopóki ktoś ich nie zwolni - przy każdym zdjęciu
+    // uszkodzenia zostawał w pamięci cały plik z aparatu. Zwalniamy je z wyjściem z wizyty.
+    const damagePreviewUrls = useRef<string[]>([]);
+    useEffect(() => {
+        const urls = damagePreviewUrls.current;
+        return () => urls.forEach(url => URL.revokeObjectURL(url));
+    }, []);
+
     // „Faktury wystawia księgowość": faktury konsumenckiej z CRM nie wystawiamy - fakturę
     // do paragonu zamawia się przez „Popraw rozliczenie", a wystawia ją księgowość.
     const invoicesIssuedExternally = useKsefAutomation({
@@ -574,11 +582,13 @@ export const VisitDetailView = () => {
     const handleUploadDamagePhoto = async (file: File) => {
         const uploaded = await visitApi.uploadPhoto({ visitId: visitId!, file });
         queryClient.invalidateQueries({ queryKey: visitPhotosQueryKey(visitId!) });
+        const previewUrl = URL.createObjectURL(file);
+        damagePreviewUrls.current.push(previewUrl);
         return {
             id: uploaded.photoId,
             fileName: file.name,
             uploadedAt: new Date().toISOString(),
-            previewUrl: URL.createObjectURL(file),
+            previewUrl,
         };
     };
 

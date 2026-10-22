@@ -2,11 +2,8 @@
 export { AppointmentEditView } from './views/AppointmentEditView';
 export { appointmentApi } from './api/appointmentApi';
 export {
-    useAppointmentForm,
-    useAppointmentServices,
     useCustomerSearch,
     useCustomerVehicles,
-    useAppointmentColors,
 } from './hooks/useAppointmentForm';
 export { formatMoneyAmount, parseMoneyAmount } from './hooks/usePriceCalculator';
 export { useServicePricing } from './hooks/useServicePricing';

@@ -4,7 +4,6 @@ import { useInvalidateFinance } from './useFinance';
 import type { IssueCorrectionRequest, IssueInvoiceRequest } from '../types';
 
 export const KSEF_REVENUE_KEY            = ['ksef', 'revenue']               as const;
-export const KSEF_REVENUE_STATISTICS_KEY = ['ksef', 'revenue', 'statistics'] as const;
 
 /**
  * Zmiana w ledgerze KSeF (nowa faktura, korekta, status płatności, duplikat)
@@ -88,22 +87,5 @@ export const useUpdateRevenuePaymentStatus = () => {
   });
 };
 
-export const useUpdateRevenueNote = () => {
-  const invalidate = useInvalidateRevenue();
-  return useMutation({
-    mutationFn: ({ id, note }: { id: string; note: string | null }) =>
-      ksefRevenueApi.updateNote(id, note),
-    onSuccess: invalidate,
-  });
-};
-
 // ── Statystyki ────────────────────────────────────────────────────────────────
 
-export const useKsefRevenueStatistics = (year: number) => {
-  const { data, isLoading, isError } = useQuery({
-    queryKey: [...KSEF_REVENUE_STATISTICS_KEY, year],
-    queryFn:  () => ksefRevenueApi.getStatistics(year),
-  });
-
-  return { statistics: data, isLoading, isError };
-};

@@ -7,8 +7,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, fireEvent, render, screen } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
-// ProtectedRoute bierze useNavigate z 'react-router' - router z tego samego pakietu.
-import { MemoryRouter } from 'react-router';
+// ProtectedRoute bierze useNavigate z 'react-router-dom' - router z tego samego pakietu.
+import { MemoryRouter } from 'react-router-dom';
 import type { User } from '@/modules/auth/types';
 import { SESSION_LOCKED_EVENT, resetActivityThrottleForTests } from '../sessionLock';
 import { setDeviceIdleTimeout } from '../deviceIdleLock';

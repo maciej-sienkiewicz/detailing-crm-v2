@@ -19,6 +19,4 @@ export {
     ModalContent,
     ModalFooter,
     ModalSectionTitle,
-    ModalDivider,
-    ModalSectionDivider,
 } from '@/common/styles';

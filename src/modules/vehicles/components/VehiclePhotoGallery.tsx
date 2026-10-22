@@ -18,6 +18,7 @@ import { ImageViewerModal } from '@/modules/customers/components/ImageViewerModa
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useContainerWidth } from '@/common/hooks';
 import { Button, Panel, PanelActions, PanelBody, PanelHead, SectionTitle, ui } from '@/common/components/ui';
+import { openInNewTab } from '@/common/utils/safeUrl';
 
 /** Poniżej tej szerokości panelu siatka ma 4 kolumny zamiast 8. */
 const NARROW_MAX_WIDTH = 520;
@@ -178,7 +179,7 @@ export const VehiclePhotoGallery = ({ vehicleId, readOnly, id }: Props) => {
                                     <img src={photo.thumbnailUrl} alt="" loading="lazy" decoding="async" />
                                 </TileButton>
                                 <TileActions>
-                                    <TileAction type="button" onClick={() => window.open(photo.fullSizeUrl, '_blank')} title="Pobierz" aria-label={`Pobierz ${photo.fileName}`}>
+                                    <TileAction type="button" onClick={() => openInNewTab(photo.fullSizeUrl)} title="Pobierz" aria-label={`Pobierz ${photo.fileName}`}>
                                         <Download />
                                     </TileAction>
                                     {!readOnly && photo.source === 'VEHICLE' && (
@@ -229,7 +230,7 @@ export const VehiclePhotoGallery = ({ vehicleId, readOnly, id }: Props) => {
                     hasPrev={viewerIndex! > 0}
                     onNext={() => setViewerIndex(i => (i ?? 0) + 1)}
                     onPrev={() => setViewerIndex(i => (i ?? 0) - 1)}
-                    onDownload={() => window.open(current.fullSizeUrl, '_blank')}
+                    onDownload={() => openInNewTab(current.fullSizeUrl)}
                 />
             )}
 

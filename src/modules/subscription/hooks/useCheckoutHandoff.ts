@@ -2,6 +2,7 @@ import { useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { checkoutNextStep, paymentResultPath, type CheckoutNextStep } from '../utils/paymentOrderStatus';
 import type { CheckoutResponse } from '../types';
+import { assignSafeUrl } from '@/common/utils/safeUrl';
 
 /**
  * Wspólny koniec każdego „Kup / Przedłuż / Włącz" po odpowiedzi checkoutu.
@@ -18,7 +19,7 @@ export function useCheckoutHandoff() {
     const navigate = useNavigate();
     return useCallback((order: CheckoutResponse): CheckoutNextStep => {
         const step = checkoutNextStep(order);
-        if (step.kind === 'redirect') window.location.assign(step.url);
+        if (step.kind === 'redirect') assignSafeUrl(step.url);
         if (step.kind === 'track') navigate(paymentResultPath(step.orderId));
         return step;
     }, [navigate]);

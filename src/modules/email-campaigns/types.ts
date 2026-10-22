@@ -19,4 +19,3 @@ export type EmailRuleKey =
 
 export type EmailAutomationConfig = Record<EmailRuleKey, EmailNotificationRule>;
 
-export type UpdateEmailAutomationConfigRequest = EmailAutomationConfig;

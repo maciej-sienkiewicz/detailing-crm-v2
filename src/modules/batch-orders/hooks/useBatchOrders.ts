@@ -33,16 +33,6 @@ export function useContractors() {
     });
 }
 
-export function useContractorsOverview(from?: string, to?: string) {
-    return useQuery({
-        queryKey: [...OVERVIEW_KEY, from, to],
-        queryFn: () => batchOrderApi.getOverview(from, to),
-        // Zmiana miesiąca to nowy klucz; bez tego lista kontrahentów znikała na
-        // moment przy każdym kliknięciu strzałki, co czyta się jak utrata danych.
-        placeholderData: previous => previous,
-    });
-}
-
 export function useContractorEntries(
     contractorId: string,
     from?: string,

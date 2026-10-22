@@ -6,6 +6,7 @@ import { protocolsApi } from '@/modules/protocols/api/protocolsApi';
 // Ten sam wygląd przycisków co w modalu "Dokumentacja i Podpisy" — jeden komponent,
 // żeby style dwóch modali z tego samego etapu przyjęcia nie mogły się rozjechać.
 import { CancelBtn, ConfirmBtn } from './SigningRequirementModal.styles';
+import { openInNewTab } from '@/common/utils/safeUrl';
 
 const ModalContent = styled.div`
     display: flex;
@@ -255,7 +256,7 @@ export const DocumentPreview = ({
                         Twoja przeglądarka może nie obsługiwać podglądu PDF.
                         Spróbuj otworzyć dokument w nowej karcie.
                     </ErrorDetails>
-                    <ConfirmBtn onClick={() => window.open(pdfUrl, '_blank')}>
+                    <ConfirmBtn onClick={() => openInNewTab(pdfUrl)}>
                         Otwórz w nowej karcie
                     </ConfirmBtn>
                 </ErrorContainer>
@@ -286,7 +287,7 @@ export const DocumentPreview = ({
 
                 <FooterActions>
                     {pdfUrl && !pdfError && (
-                        <CancelBtn onClick={() => window.open(pdfUrl, '_blank')}>
+                        <CancelBtn onClick={() => openInNewTab(pdfUrl)}>
                             Otwórz w nowej karcie
                         </CancelBtn>
                     )}

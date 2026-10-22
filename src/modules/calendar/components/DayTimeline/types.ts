@@ -1,4 +1,4 @@
-import type { CalendarView as CalendarViewType, AppointmentEventData, VisitEventData } from '../../types';
+import type { CalendarEvent, CalendarView as CalendarViewType, AppointmentEventData, VisitEventData } from '../../types';
 import type { PopoverAnchor } from '../EventSummaryPopover';
 
 export type { CalendarViewType };

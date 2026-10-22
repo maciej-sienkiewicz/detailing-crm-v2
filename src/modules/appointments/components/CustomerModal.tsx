@@ -80,10 +80,10 @@ export const CustomerModal = ({ isOpen, onClose, onSelect, currentCustomerId }: 
     const handleCustomerClick = (customer: Customer) => {
         onSelect({
             id: customer.id,
-            firstName: customer.firstName,
-            lastName: customer.lastName,
-            phone: customer.phone,
-            email: customer.email,
+            firstName: customer.firstName ?? undefined,
+            lastName: customer.lastName ?? undefined,
+            phone: customer.phone ?? undefined,
+            email: customer.email ?? undefined,
             isNew: false,
         });
         handleClose();

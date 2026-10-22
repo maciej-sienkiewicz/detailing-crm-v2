@@ -109,7 +109,8 @@ export type VehicleIdentity =
 
 export interface ServiceLineItem {
     id: string;
-    serviceId: string;
+    /** `null` - usługa wpisana ręcznie w oknie edycji, spoza katalogu (jak w przyjęciu). */
+    serviceId: string | null;
     serviceName: string;
     basePriceNet: MoneyAmount;
     /**
@@ -123,7 +124,7 @@ export interface ServiceLineItem {
     /** Brutto końcowe policzone przez serwer dla tego rabatu (pozycje odczytane z API). */
     finalPriceGross?: MoneyAmount | null;
     vatRate: number;
-    requireManualPrice: boolean;
+    requireManualPrice?: boolean;
     adjustment: PriceAdjustment;
     note?: string;
 }

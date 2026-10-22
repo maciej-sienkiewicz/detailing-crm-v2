@@ -5,7 +5,7 @@
  * @/common/styles so the same tokens can be reused elsewhere.
  */
 import { ui } from '@/common/components/ui';
-import styled, { keyframes, css } from 'styled-components';
+import styled, { keyframes } from 'styled-components';
 import {
     overlayFadeIn,
     modalScaleIn,
@@ -14,7 +14,6 @@ import {
     ModalCloseButton,
     FormInput,
     FormTextarea,
-    FormSelectButton,
     FormErrorMessage,
     SharedButton,
 } from '@/common/styles';
@@ -150,13 +149,6 @@ export const MobilePageTitleName = styled.h1`
     color: ${ui.ink};
     letter-spacing: -0.2px;
     line-height: 1.15;
-`;
-
-export const MobilePageTitleSub = styled.p`
-    margin: 2px 0 0;
-    font-size: 12px;
-    color: ${ui.textMuted};
-    line-height: 1.2;
 `;
 
 export const HeaderContent = styled.div`
@@ -347,13 +339,6 @@ export const RowHeaderStatus = styled.span`
     max-width: 140px;
 `;
 
-/** Zachowany dla kompatybilności - stare użycia RowHeaderIcon jako plakietka.
-    Na mobile ukryte, bo ikona sekcji trafia teraz INLINE do RowHeaderLabel jak
-    w /checkin/new. */
-export const RowHeaderIcon = styled.span<{ $color?: string }>`
-    display: none;
-`;
-
 /** Hint po prawej stronie nagłówka - "wymagane" / "opcjonalne" jako subtelny
     napis. W /checkin/new hint pojawia się jako SectionActions (przyciski),
     ale dla QuickEvent nie ma akcji, więc korzystamy z hintu jako marker. */
@@ -534,27 +519,6 @@ export const Input = styled(FormInput)<{ $dropdownOpen?: boolean }>`
     `}
 `;
 
-export const Checkbox = styled.input.attrs({ type: 'checkbox' })<{ $accentColor?: string }>`
-    width: 15px;
-    height: 15px;
-    border-radius: 4px;
-    cursor: pointer;
-    accent-color: ${p => p.$accentColor ?? ui.brandInk};
-`;
-
-export const CheckboxLabel = styled.label`
-    display: flex;
-    align-items: center;
-    gap: 8px;
-    cursor: pointer;
-    width: fit-content;
-
-    span {
-        font-size: 14px;
-        color: ${ui.ink};
-    }
-`;
-
 export const Divider = styled.div`
     height: 1px;
     margin: 4px 0;
@@ -569,45 +533,12 @@ export const Divider = styled.div`
 
 // ─── Select / trigger button ──────────────────────────────────────────────────
 
-export const SelectButton = styled(FormSelectButton)``;
-
-export const RemoveButton = styled.div`
-    padding: 4px;
-    color: ${ui.textFaint};
-    border-radius: 999px;
-    transition: all 150ms ease;
-    cursor: pointer;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    &:hover { color: #ef4444; background: ${ui.dangerTint}; }
-    svg { width: 14px; height: 14px; }
-`;
-
 export const Textarea = styled(FormTextarea)``;
 
 // ─── Dropdowns ────────────────────────────────────────────────────────────────
 
 export const DropdownContainer = styled.div`
     position: relative;
-`;
-
-export const Dropdown = styled.div`
-    position: absolute;
-    z-index: 2001;
-    width: 100%;
-    margin-top: -1px;
-    background: ${ui.surface};
-    border: 1.5px solid ${ui.brandInk};
-    border-top: none;
-    border-radius: 0 0 12px 12px;
-    box-shadow:
-        0 8px 20px -4px rgba(0,0,0,0.10),
-        0 0 0 3px rgba(3, 105, 161, 0.10);
-    max-height: 220px;
-    overflow-y: auto;
-    overflow-x: hidden;
 `;
 
 export const ServicePortalDropdown = styled.div`
@@ -930,11 +861,6 @@ export const ChipMeta = styled.span`
     white-space: nowrap;
 `;
 
-export const ChipDot = styled.span`
-    font-size: 12px;
-    color: #d1d5db;
-`;
-
 export const ChipEdit = styled.button`
     flex-shrink: 0;
     padding: 4px;
@@ -974,482 +900,14 @@ export const ChipClear = styled.button`
 // ServicesList + SummarySection live inside ServicesBlock so they share
 // a single outer border and form one cohesive component.
 
-/** Outer container: single border wraps header + rows + summary */
-export const ServicesBlock = styled.div`
-    border: 1.5px solid ${ui.line};
-    border-radius: 14px;
-    overflow: hidden;
-    transition: border-color 180ms ease;
-
-    &:focus-within { border-color: rgba(3, 105, 161, 0.25); }
-`;
-
-/** Sticky column-header row */
-export const ServicesTableHeader = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 74px 74px 90px;
-    align-items: center;
-    gap: 4px;
-    padding: 7px 8px 7px 14px;
-    background: ${ui.surfaceSoft};
-    border-bottom: 1px solid ${ui.line};
-`;
-
-export const ServicesHeaderCell = styled.span`
-    font-size: 10px;
-    font-weight: 700;
-    color: ${ui.textFaint};
-    text-transform: uppercase;
-    letter-spacing: 0.08em;
-    text-align: right;
-
-    &:first-child { text-align: left; }
-    &:last-child  { /* actions col: empty */ }
-`;
-
 // ─── Services list ────────────────────────────────────────────────────────────
-
-export const ServicesList = styled.div`
-    display: flex;
-    flex-direction: column;
-`;
-
-export const ServiceItem = styled.div<{ $hasDiscount?: boolean }>`
-    border-bottom: 1px solid ${ui.surfaceAlt};
-    background: ${p => p.$hasDiscount ? ui.warnTint : 'transparent'};
-    transition: background 120ms ease;
-
-    &:last-child { border-bottom: none; }
-    &:hover { background: ${p => p.$hasDiscount ? '#fef3c7' : ui.surfaceSoft}; }
-`;
-
-export const ServiceItemRow = styled.div`
-    display: grid;
-    grid-template-columns: 1fr 74px 74px 90px;
-    align-items: center;
-    gap: 4px;
-    padding: 8px 8px 8px 14px;
-`;
-
-export const ServiceName = styled.span`
-    font-size: 14px;
-    font-weight: 500;
-    color: ${ui.ink};
-    min-width: 0;
-    white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    padding-right: 4px;
-`;
 
 // ─── Inline price display (read-only) ────────────────────────────────────────
 
-/** Kept as display:contents so the two inputs land in their grid cells */
-export const ServicePricesGroup = styled.div`display: contents;`;
-export const PriceCell            = styled.div`display: contents;`;
-export const PriceCellLabel       = styled.span`display: none;`;
-export const PriceSep             = styled.span`display: none;`;
-export const PriceCurrency        = styled.span`display: none;`;
-
-export const PriceDisplay = styled.div`
-    display: flex;
-    flex-direction: column;
-    align-items: flex-end;
-    gap: 1px;
-    padding: 5px 8px;
-`;
-
-export const PriceDisplayMain = styled.span<{ $isBrutto?: boolean; $isDiscounted?: boolean }>`
-    font-size: 13px;
-    font-weight: ${p => p.$isBrutto ? 600 : 400};
-    color: ${p => p.$isDiscounted ? '#059669' : (p.$isBrutto ? ui.ink : ui.textMuted)};
-    font-variant-numeric: tabular-nums;
-    font-feature-settings: 'tnum';
-    white-space: nowrap;
-`;
-
-export const PriceDisplayOriginal = styled.span`
-    font-size: 10px;
-    color: ${ui.textFaint};
-    text-decoration: line-through;
-    font-variant-numeric: tabular-nums;
-    font-feature-settings: 'tnum';
-    white-space: nowrap;
-`;
-
-export const PriceCellInput = styled.input<{ $isBrutto?: boolean }>`
-    width: 100%;
-    padding: 5px 8px;
-    font-size: 13px;
-    font-weight: ${p => p.$isBrutto ? 600 : 400};
-    text-align: right;
-    background: transparent;
-    border: 1.5px solid transparent;
-    border-radius: 8px;
-    color: ${p => p.$isBrutto ? ui.ink : ui.textMuted};
-    outline: none;
-    font-variant-numeric: tabular-nums;
-    font-feature-settings: 'tnum';
-    transition: all 150ms ease;
-    font-family: inherit;
-
-    &:hover {
-        border-color: ${ui.line};
-        background: ${ui.surfaceSoft};
-    }
-
-    &:focus {
-        background: ${ui.surface};
-        border-color: ${ui.brandInk};
-        box-shadow: 0 0 0 2px rgba(3, 105, 161, 0.14);
-    }
-`;
-
-export const ServiceActions = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: flex-end;
-    gap: 2px;
-    flex-shrink: 0;
-`;
-
-export const DiscountButton = styled.button<{ $active?: boolean }>`
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 7px;
-    border: none;
-    background: ${p => p.$active ? '#fef3c7' : 'transparent'};
-    color: ${p => p.$active ? '#d97706' : ui.textFaint};
-    cursor: pointer;
-    transition: all 150ms ease;
-
-    &:hover { background: #fef3c7; color: #d97706; }
-    svg { width: 13px; height: 13px; }
-`;
-
-export const IconButton = styled.button<{ $active?: boolean }>`
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 7px;
-    border: none;
-    background: ${p => p.$active ? 'rgba(3, 105, 161, 0.1)' : 'transparent'};
-    color: ${p => p.$active ? ui.brandInk : ui.textFaint};
-    cursor: pointer;
-    transition: all 150ms ease;
-
-    &:hover { background: rgba(3, 105, 161, 0.1); color: ${ui.brandInk}; }
-    svg { width: 13px; height: 13px; }
-`;
-
-export const DeleteButton = styled.button`
-    width: 28px;
-    height: 28px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    border-radius: 7px;
-    border: none;
-    background: transparent;
-    color: ${ui.textFaint};
-    cursor: pointer;
-    transition: all 150ms ease;
-
-    &:hover { background: ${ui.dangerTint}; color: #ef4444; }
-    svg { width: 13px; height: 13px; }
-`;
-
-const slideDown = keyframes`
-    from { max-height: 0; opacity: 0; transform: translateY(-4px); }
-    to   { max-height: 160px; opacity: 1; transform: translateY(0); }
-`;
-
-export const DiscountPanel = styled.div`
-    overflow: hidden;
-    animation: ${slideDown} 200ms ease-out forwards;
-    padding: 8px 10px 10px 14px;
-    background: ${ui.warnTint};
-    border-top: 1px dashed #fde68a;
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-`;
-
-export const DiscountTypeRow = styled.div`
-    display: flex;
-    gap: 4px;
-    flex-wrap: wrap;
-`;
-
-export const DiscountTypePill = styled.button<{ $selected?: boolean }>`
-    padding: 3px 9px;
-    font-size: 11px;
-    font-weight: ${p => p.$selected ? 700 : 500};
-    color: ${p => p.$selected ? ui.warnInk : '#78716c'};
-    background: ${p => p.$selected ? '#fde68a' : '#f5f5f4'};
-    border: 1.5px solid ${p => p.$selected ? '#f59e0b' : '#e7e5e4'};
-    border-radius: 6px;
-    cursor: pointer;
-    transition: all 120ms ease;
-    white-space: nowrap;
-    font-family: inherit;
-
-    &:hover { background: #fde68a; color: ${ui.warnInk}; border-color: #f59e0b; }
-`;
-
-export const DiscountValueRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 7px;
-`;
-
-export const DiscountValueInput = styled.input`
-    width: 110px;
-    padding: 5px 8px;
-    font-size: 13px;
-    font-weight: 500;
-    text-align: right;
-    background: ${ui.surface};
-    border: 1.5px solid #f59e0b;
-    border-radius: 8px;
-    color: ${ui.ink};
-    outline: none;
-    font-variant-numeric: tabular-nums;
-    font-family: inherit;
-    transition: all 150ms ease;
-
-    &:focus { box-shadow: 0 0 0 2px rgba(245,158,11,0.20); }
-    &::placeholder { color: #d1cdc7; }
-`;
-
-export const DiscountValueSuffix = styled.span`
-    font-size: 13px;
-    font-weight: 600;
-    color: ${ui.warnInk};
-    min-width: 20px;
-`;
-
-export const DiscountActionButtons = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    margin-left: auto;
-`;
-
-export const DiscountRemoveButton = styled.button`
-    padding: 3px 9px;
-    font-size: 11px;
-    font-weight: 600;
-    color: #6b7280;
-    background: transparent;
-    border: 1.5px solid #e5e7eb;
-    border-radius: 6px;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all 150ms ease;
-    white-space: nowrap;
-
-    &:hover { color: #ef4444; border-color: #fca5a5; background: ${ui.dangerTint}; }
-`;
-
-export const DiscountHideButton = styled.button`
-    padding: 3px 9px;
-    font-size: 11px;
-    font-weight: 500;
-    color: ${ui.warnInk};
-    background: transparent;
-    border: 1.5px solid #fde68a;
-    border-radius: 6px;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all 150ms ease;
-    white-space: nowrap;
-
-    &:hover { background: #fef3c7; }
-`;
-
-export const ServiceNoteContainer = styled.div`
-    padding: 0 10px 10px 14px;
-`;
-
-export const ServiceNoteTextarea = styled.textarea`
-    width: 100%;
-    padding: 7px 10px;
-    background: ${ui.surfaceSoft};
-    border: 1.5px solid ${ui.surfaceAlt};
-    border-radius: 8px;
-    font-size: 12.5px;
-    color: ${ui.textSecondary};
-    outline: none;
-    resize: none;
-    transition: all 150ms ease;
-    font-family: inherit;
-    line-height: 1.45;
-
-    &::placeholder { color: ${ui.textFaint}; }
-
-    &:hover { border-color: ${ui.line}; }
-
-    &:focus {
-        background: ${ui.surface};
-        border-color: ${ui.brandInk};
-        box-shadow: 0 0 0 2px rgba(3, 105, 161, 0.10);
-    }
-`;
 
 // ─── Summary (inside ServicesBlock) ──────────────────────────────────────────
 
-export const SummarySection = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    padding: 10px 14px;
-    background: ${ui.surfaceSoft};
-    border-top: 1px solid ${ui.line};
-`;
-
-export const BulkDiscountTrigger = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    padding: 4px 10px;
-    font-size: 11px;
-    font-weight: 600;
-    color: ${ui.warnInk};
-    background: #fef3c7;
-    border: 1.5px solid #fde68a;
-    border-radius: 7px;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all 150ms ease;
-    white-space: nowrap;
-
-    svg { width: 11px; height: 11px; }
-    &:hover { background: #fde68a; border-color: #f59e0b; }
-`;
-
-export const SummaryTotals = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 0;
-`;
-
-export const SummaryItem = styled.div`
-    display: flex;
-    align-items: baseline;
-    gap: 5px;
-    padding: 0 14px;
-    border-right: 1px solid ${ui.line};
-
-    &:last-child { border-right: none; padding-right: 0; }
-    &:first-child { padding-left: 0; }
-`;
-
-export const SummaryLabel = styled.span<{ $isTotal?: boolean }>`
-    font-size: 11px;
-    font-weight: 500;
-    color: ${ui.textFaint};
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    white-space: nowrap;
-`;
-
-export const SummaryValue = styled.span<{ $isTotal?: boolean }>`
-    font-size: ${p => p.$isTotal ? '15px' : '13px'};
-    color: ${p => p.$isTotal ? ui.ink : ui.textSecondary};
-    font-weight: ${p => p.$isTotal ? 700 : 500};
-    font-variant-numeric: tabular-nums;
-    font-feature-settings: 'tnum';
-    white-space: nowrap;
-`;
-
-/** No longer used (vertical dividers are now CSS border-right on SummaryItem) */
-export const SummaryDivider = styled.div`display: none;`;
-
 // ─── Bulk discount modal ──────────────────────────────────────────────────────
-
-export const BulkDiscountOverlay = styled.div`
-    position: fixed;
-    inset: 0;
-    background: rgba(0, 0, 0, 0.35);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    z-index: 9999;
-`;
-
-export const BulkDiscountCard = styled.div`
-    width: 340px;
-    background: ${ui.surface};
-    border-radius: 16px;
-    overflow: hidden;
-    box-shadow: 0 20px 40px -8px rgba(0, 0, 0, 0.18), 0 0 0 1px rgba(0,0,0,0.06);
-`;
-
-export const BulkDiscountHeader = styled.div`
-    padding: 16px 20px 12px;
-    border-bottom: 1px solid ${ui.surfaceAlt};
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-`;
-
-export const BulkDiscountTitle = styled.h4`
-    margin: 0;
-    font-size: 14px;
-    font-weight: 700;
-    color: ${ui.ink};
-`;
-
-export const BulkDiscountBody = styled.div`
-    padding: 16px 20px;
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-`;
-
-export const BulkDiscountFooter = styled.div`
-    padding: 12px 20px;
-    background: ${ui.surfaceSoft};
-    border-top: 1px solid ${ui.surfaceAlt};
-    display: flex;
-    justify-content: flex-end;
-    gap: 8px;
-`;
-
-export const BulkDiscountCancelBtn = styled.button`
-    padding: 8px 16px;
-    font-size: 13px;
-    font-weight: 500;
-    color: ${ui.textMuted};
-    background: transparent;
-    border: 1.5px solid ${ui.line};
-    border-radius: 8px;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all 150ms ease;
-    &:hover { background: ${ui.surfaceAlt}; }
-`;
-
-export const BulkDiscountApplyBtn = styled.button`
-    padding: 8px 18px;
-    font-size: 13px;
-    font-weight: 700;
-    color: ${ui.surface};
-    background: #d97706;
-    border: none;
-    border-radius: 8px;
-    cursor: pointer;
-    font-family: inherit;
-    transition: background 150ms ease;
-    &:hover { background: #b45309; }
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
-`;
 
 // ─── Footer ───────────────────────────────────────────────────────────────────
 
@@ -1874,79 +1332,6 @@ export const CustomerEditCancelBtn = styled.button`
 
 // ─── Backwards-compat stubs (still referenced by some JSX) ───────────────────
 
-export const DragHandle = styled.div`display: none;`;
-
-export const ServiceItemHeader = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 10px 10px 16px;
-`;
-
-export const ServicePriceWrapper = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 6px;
-`;
-
-export const ServicePricesRow = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 6px 16px 10px;
-`;
-
-export const ServicePriceSeparator = styled.div`
-    width: 1px;
-    height: 18px;
-    background: ${ui.line};
-    flex-shrink: 0;
-`;
-
-export const ServicePriceInput = styled.input`
-    width: 80px;
-    padding: 5px 8px;
-    font-size: 13px;
-    font-weight: 500;
-    text-align: right;
-    background: ${ui.surfaceSoft};
-    border: 1.5px solid transparent;
-    border-radius: 8px;
-    color: ${ui.ink};
-    outline: none;
-    font-variant-numeric: tabular-nums;
-    font-family: inherit;
-    transition: all 150ms ease;
-    &:hover { border-color: ${ui.line}; }
-    &:focus {
-        background: ${ui.surface};
-        border-color: ${ui.brandInk};
-        box-shadow: 0 0 0 2px rgba(3, 105, 161, 0.14);
-    }
-`;
-
-export const ServicePriceLabel = styled.span`
-    font-size: 12px;
-    color: ${ui.textFaint};
-`;
-
-export const ServicePriceBadge = styled.span`
-    font-size: 10px;
-    font-weight: 600;
-    color: ${ui.textFaint};
-    text-transform: uppercase;
-    letter-spacing: 0.06em;
-`;
-
-export const SummaryRow = styled.div<{ $isTotal?: boolean }>`
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: ${p => p.$isTotal ? '8px 0 0' : '4px 0'};
-    border-top: ${p => p.$isTotal ? `1px solid ${ui.line}` : 'none'};
-    margin-top: ${p => p.$isTotal ? '8px' : '0'};
-`;
-
 /* ─── Wiersz stanu SMS (telefon) ─────────────────────────────────────────────
    Trzy kwadraciki 15 px pod „Szczegółami" ginęły podczas rozmowy z klientem.
    Zamiast nich jeden wiersz, który mówi, co poleci, i otwiera arkusz z
@@ -2081,33 +1466,6 @@ export const MobileSheetSearchWrap = styled.div`
     padding: 10px 16px;
     border-bottom: 1px solid ${ui.surfaceAlt};
     flex-shrink: 0;
-`;
-
-export const MobileSheetSearchInput = styled.input`
-    width: 100%;
-    box-sizing: border-box;
-    height: 44px;
-    padding: 0 44px 0 16px;
-    /* 16px prevents iOS Safari from auto-zooming on focus */
-    font-size: 16px;
-    color: ${ui.ink};
-    background: ${ui.surfaceSoft};
-    border: 1.5px solid ${ui.line};
-    border-radius: 12px;
-    outline: none;
-    font-family: inherit;
-
-    &::placeholder { color: ${ui.textFaint}; }
-
-    &:focus {
-        border-color: ${ui.brandInk};
-        background: ${ui.surface};
-        box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.12);
-    }
-
-    /* suppress native clear button added by type="search" */
-    &::-webkit-search-cancel-button { display: none; }
-    &::-webkit-search-decoration { display: none; }
 `;
 
 // contenteditable variant, used on iOS mobile to avoid the ^ v ✓ accessory bar

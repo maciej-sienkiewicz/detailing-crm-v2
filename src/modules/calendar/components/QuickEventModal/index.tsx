@@ -283,10 +283,10 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                 form.customerJustSelectedRef.current = true;
                                 form.handleCustomerSelect({
                                     id: c.id,
-                                    firstName: c.firstName,
-                                    lastName: c.lastName,
-                                    phone: c.phone,
-                                    email: c.email,
+                                    firstName: c.firstName ?? undefined,
+                                    lastName: c.lastName ?? undefined,
+                                    phone: c.phone ?? undefined,
+                                    email: c.email ?? undefined,
                                     isNew: false,
                                 });
                                 setMobileSuggestOpen(false);
@@ -1242,7 +1242,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                 </S.CustomerInputRow>
                                             </S.CustomerInputBlock>
                                             <S.CustomerEditActions>
-                                                <S.CustomerEditConfirmBtn type="button" onClick={form.handleConfirmEdit}>
+                                                <S.CustomerEditConfirmBtn type="button" onClick={() => form.handleConfirmEdit()}>
                                                     <IconCheck />
                                                     Zatwierdź zmiany
                                                 </S.CustomerEditConfirmBtn>
@@ -1420,10 +1420,10 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                                         form.customerJustSelectedRef.current = true;
                                                                         form.handleCustomerSelect({
                                                                             id: c.id,
-                                                                            firstName: c.firstName,
-                                                                            lastName: c.lastName,
-                                                                            phone: c.phone,
-                                                                            email: c.email,
+                                                                            firstName: c.firstName ?? undefined,
+                                                                            lastName: c.lastName ?? undefined,
+                                                                            phone: c.phone ?? undefined,
+                                                                            email: c.email ?? undefined,
                                                                             isNew: false,
                                                                         });
                                                                         form.setShowCustomerDropdown(false);

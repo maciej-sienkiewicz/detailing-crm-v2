@@ -49,19 +49,6 @@ export const formatDateTime = (iso: string): string =>
         minute: '2-digit',
     });
 
-export const Pill = styled.span<{ $bg: string; $fg: string }>`
-    display: inline-flex;
-    align-items: center;
-    gap: 4px;
-    padding: 2px 8px;
-    border-radius: ${p => p.theme.radii.full};
-    font-size: 11px;
-    font-weight: ${p => p.theme.fontWeights.semibold};
-    background: ${({ $bg }) => $bg};
-    color: ${({ $fg }) => $fg};
-    white-space: nowrap;
-`;
-
 export const IconButton = styled.button`
     display: inline-flex;
     align-items: center;

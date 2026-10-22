@@ -13,6 +13,7 @@ import {
   useSignSenderNameAuthDoc,
   useSenderNameDocumentUrl,
 } from '../hooks/useSmsSenderName';
+import { openInNewTab } from '@/common/utils/safeUrl';
 
 /**
  * Nazwa nadawcy SMS - to, co klient widzi zamiast numeru telefonu, plus podpisane
@@ -307,7 +308,7 @@ export const SmsSenderNameCard: React.FC = () => {
 
   const handleViewDoc = async () => {
     try {
-      window.open(await docUrlMutation.mutateAsync(), '_blank', 'noopener');
+      openInNewTab(await docUrlMutation.mutateAsync());
     } catch {
       flash(true, 'Nie udało się pobrać linku do upoważnienia.');
     }

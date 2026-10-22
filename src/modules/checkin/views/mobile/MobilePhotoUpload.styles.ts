@@ -52,12 +52,6 @@ export const Title = styled.h1`
     color: white;
 `;
 
-export const Subtitle = styled.p`
-    margin: 0;
-    font-size: 14px;
-    color: rgba(255,255,255,0.6);
-`;
-
 // ─── Tab navigation ───────────────────────────────────────────────────────────
 
 export const TabBar = styled.div`

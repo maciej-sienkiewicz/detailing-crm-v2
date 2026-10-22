@@ -1,53 +1,6 @@
 // src/modules/appointments/hooks/useAppointmentForm.ts
-import { useForm } from 'react-hook-form';
-import { zodResolver } from '@hookform/resolvers/zod';
-import { keepPreviousData, useMutation, useQuery } from '@tanstack/react-query';
-import { appointmentSchema } from '../utils/appointmentSchema';
+import { keepPreviousData, useQuery } from '@tanstack/react-query';
 import { appointmentApi } from '../api/appointmentApi';
-import type { AppointmentCreateRequest } from '../types';
-
-export const useAppointmentForm = () => {
-    const form = useForm<AppointmentCreateRequest>({
-        resolver: zodResolver(appointmentSchema),
-        defaultValues: {
-            customer: {
-                mode: 'EXISTING',
-                id: '',
-            },
-            vehicle: {
-                mode: 'EXISTING',
-                id: '',
-            },
-            services: [],
-            schedule: {
-                isAllDay: false,
-                startDateTime: '',
-                endDateTime: '',
-            },
-            appointmentTitle: '',
-            appointmentColorId: '',
-        },
-    });
-
-    const createMutation = useMutation({
-        mutationFn: appointmentApi.createAppointment,
-        onSuccess: () => {
-            form.reset();
-        },
-    });
-
-    return {
-        form,
-        createMutation,
-    };
-};
-
-export const useAppointmentServices = () => {
-    return useQuery({
-        queryKey: ['appointments', 'services'],
-        queryFn: appointmentApi.getServices,
-    });
-};
 
 export const useCustomerSearch = (query: string) => {
     return useQuery({
@@ -69,9 +22,3 @@ export const useCustomerVehicles = (customerId: string | undefined) => {
     });
 };
 
-export const useAppointmentColors = () => {
-    return useQuery({
-        queryKey: ['appointments', 'colors'],
-        queryFn: appointmentApi.getAppointmentColors,
-    });
-};

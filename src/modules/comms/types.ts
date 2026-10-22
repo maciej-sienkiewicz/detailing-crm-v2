@@ -155,13 +155,6 @@ export interface CommThreadDetail {
     replyName?: string | null;
 }
 
-export interface CommLabel {
-    id: string;
-    name: string;
-    color: string | null;
-    position: number;
-}
-
 export interface ThreadListFilters {
     accountId?: string;
     archived?: boolean;

@@ -8,6 +8,3 @@ export interface TagSuggestionsResponse {
     suggestions: string[];
 }
 
-export interface UpdatePhotoTagsPayload {
-    tags: string[];
-}

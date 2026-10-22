@@ -108,37 +108,6 @@ const Panel = styled.div`
     }
 `;
 
-const PanelHeader = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: space-between;
-    gap: 10px;
-    padding: 13px 16px 11px;
-    border-bottom: 1px solid #f1f5f9;
-`;
-
-const PanelTitle = styled.span`
-    font-size: 13px;
-    font-weight: 700;
-    color: #0f172a;
-    letter-spacing: -0.01em;
-`;
-
-const ResetBtn = styled.button`
-    background: none;
-    border: none;
-    padding: 0;
-    font-family: inherit;
-    font-size: 12px;
-    font-weight: 600;
-    color: #64748b;
-    cursor: pointer;
-    transition: color 150ms ease;
-
-    &:hover { color: #0f172a; }
-    &:disabled { opacity: 0.4; cursor: default; }
-`;
-
 const Row = styled.div`
     display: flex;
     align-items: center;

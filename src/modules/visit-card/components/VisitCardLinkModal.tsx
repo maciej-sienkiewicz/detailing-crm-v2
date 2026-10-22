@@ -16,6 +16,7 @@ import { SharedButton } from '@/common/styles';
 import { visitCardApi, type UpsellTarget } from '../api/visitCardApi';
 import type { VisitCardSendChannel } from '../types';
 import { UpsellSuggestionsManager } from './UpsellSuggestionsManager';
+import { openInNewTab } from '@/common/utils/safeUrl';
 
 const formatDateTime = (iso: string): string =>
     new Date(iso).toLocaleString('pl-PL', {
@@ -350,7 +351,7 @@ export const VisitCardLinkModal = ({ visitId, appointmentId, isOpen, onClose }: 
             <ModalFooter>
                 <SharedButton
                     $variant="secondary"
-                    onClick={() => link && window.open(link, '_blank', 'noopener')}
+                    onClick={() => link && openInNewTab(link)}
                     disabled={!link}
                 >
                     Podgląd karty

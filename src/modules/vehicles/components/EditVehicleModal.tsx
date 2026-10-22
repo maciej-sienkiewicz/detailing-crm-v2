@@ -18,7 +18,7 @@ import {
 import { useToast } from '@/common/components/Toast';
 import { Button, ui } from '@/common/components/ui';
 import { useUpdateVehicle } from '../hooks/useUpdateVehicle';
-import { updateVehicleSchema, type UpdateVehicleFormData } from '../utils/vehicleValidation';
+import { updateVehicleSchema, type UpdateVehicleFormData, type UpdateVehicleFormInput } from '../utils/vehicleValidation';
 import type { Vehicle } from '../types';
 import { normalizeVehicleKind } from '../vehicleKind';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
@@ -67,7 +67,7 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
         setValue,
         watch,
         formState: { errors },
-    } = useForm<UpdateVehicleFormData>({
+    } = useForm<UpdateVehicleFormInput, unknown, UpdateVehicleFormData>({
         resolver: zodResolver(updateVehicleSchema),
         defaultValues: {
             kind: normalizeVehicleKind(vehicle.kind),
@@ -146,7 +146,7 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
                                     render={({ field }) => (
                                         <BrandSelect
                                             kind={kind}
-                                            value={field.value}
+                                            value={field.value ?? undefined}
                                             onChange={(val) => {
                                                 field.onChange(val);
                                                 setValue('model', '');
@@ -167,8 +167,8 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
                                     render={({ field }) => (
                                         <ModelSelect
                                             kind={kind}
-                                            brand={watch('brand')}
-                                            value={field.value}
+                                            brand={watch('brand') ?? undefined}
+                                            value={field.value ?? undefined}
                                             onChange={(val) => field.onChange(val)}
                                         />
                                     )}

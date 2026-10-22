@@ -1,15 +1,10 @@
 // src/modules/batch-orders/utils/format.ts
 
 import { pluralPl } from '@/common/utils/plural';
-import type { ContractorOverview } from '../types';
 
 const money = new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' });
 
 export const formatMoney = (cents: number): string => money.format(cents / 100);
-
-/** Kwota bez „zł" - do drugiej linii pod kwotą główną („3 000,00 netto"). */
-export const formatAmount = (cents: number): string =>
-    (cents / 100).toLocaleString('pl-PL', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
 
 /**
  * „1 auto", „2 auta", „8 aut". Liczymy AUTA, nie „wpisy": wpis to słowo z bazy
@@ -20,25 +15,9 @@ export const formatAmount = (cents: number): string =>
 export const carsLabel = (count: number): string =>
     `${count} ${pluralPl(count, 'auto', 'auta', 'aut')}`;
 
-export const contractorsLabel = (count: number): string =>
-    `${count} ${pluralPl(count, 'kontrahent', 'kontrahentów', 'kontrahentów')}`;
-
-export const photosLabel = (count: number): string =>
-    `${count} ${pluralPl(count, 'zdjęcie', 'zdjęcia', 'zdjęć')}`;
-
-/**
- * Brutto wykonanych usług kontrahenta w okresie: nierozliczone i już w zestawieniach.
- * Nagłówek mówi „wykonałeś usługi na kwotę" - gdyby liczył tylko nierozliczone,
- * kwota malałaby po każdym zestawieniu, choć pracy nie ubyło.
- */
-export const doneGrossCents = (o: ContractorOverview): number =>
-    o.openGrossCents + (o.settledGrossCents ?? 0);
-
 /** „Brutto za 8 aut. Netto 10 689,44 zł." - kwota główna jest brutto, netto to dopisek. */
 export const grossForCars = (count: number, netCents: number): string =>
     `Brutto za ${carsLabel(count)}. Netto ${formatMoney(netCents)}.`;
-
-export const vatLabel = (rate: number): string => (rate === -1 ? 'ZW' : `${rate}%`);
 
 /** Marka i model wpisu albo myślnik - wiersz tabeli nigdy nie zostaje pusty. */
 export const vehicleName = (e: { vehicleMake: string | null; vehicleModel: string | null }): string =>

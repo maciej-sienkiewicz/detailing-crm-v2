@@ -23,6 +23,7 @@ import {
     Button, IconButton, Panel, PanelActions, PanelBody, PanelHead, SectionTitle, StatusPill, ui,
 } from '@/common/components/ui';
 import type { VehicleDocument } from '../types';
+import { openInNewTab } from '@/common/utils/safeUrl';
 
 /** Od tylu dokumentów pokazujemy wyszukiwarkę; tyle też mieści się przed „Pokaż wszystkie". */
 const SEARCH_FROM = 7;
@@ -129,7 +130,7 @@ export const VehicleDocuments = ({ vehicleId, readOnly, id }: Props) => {
     const open = (doc: VehicleDocument) => {
         const idx = viewable.findIndex(d => d.id === doc.id);
         if (idx !== -1) setViewerIndex(idx);
-        else window.open(doc.fileUrl, '_blank');
+        else openInNewTab(doc.fileUrl);
     };
 
     return (
@@ -184,7 +185,7 @@ export const VehicleDocuments = ({ vehicleId, readOnly, id }: Props) => {
                                     {isViewable(doc.fileName) && (
                                         <Button variant="ghost" size="sm" onClick={() => open(doc)}>Podgląd</Button>
                                     )}
-                                    <IconButton label={`Pobierz ${doc.name || doc.fileName}`} variant="ghost" size="sm" onClick={() => window.open(doc.fileUrl, '_blank')}>
+                                    <IconButton label={`Pobierz ${doc.name || doc.fileName}`} variant="ghost" size="sm" onClick={() => openInNewTab(doc.fileUrl)}>
                                         <Download />
                                     </IconButton>
                                     {/* Dokument „Z wizyty" (protokół, skan z przyjęcia) należy do wizyty:
@@ -227,7 +228,7 @@ export const VehicleDocuments = ({ vehicleId, readOnly, id }: Props) => {
                     hasPrev={viewerIndex! > 0}
                     onNext={() => setViewerIndex(i => (i ?? 0) + 1)}
                     onPrev={() => setViewerIndex(i => (i ?? 0) - 1)}
-                    onDownload={() => window.open(current.fileUrl, '_blank')}
+                    onDownload={() => openInNewTab(current.fileUrl)}
                 />
             )}
 

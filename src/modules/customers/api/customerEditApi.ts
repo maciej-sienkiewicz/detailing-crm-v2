@@ -15,156 +15,6 @@ import type {
 } from '../types';
 
 const CUSTOMERS_BASE_PATH = '/v1/customers';
-const USE_MOCKS = false;
-
-const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
-
-const mockUpdateCustomer = async (
-    customerId: string,
-    payload: UpdateCustomerPayload
-): Promise<Customer> => {
-    await delay(600);
-
-    return {
-        id: customerId,
-        firstName: payload.firstName || '',
-        lastName: payload.lastName || '',
-        contact: {
-            email: payload.contact?.email || '',
-            phone: payload.contact?.phone || '',
-        },
-        homeAddress: payload.homeAddress || null,
-        company: null,
-        notes: 'Updated customer',
-        lastVisitDate: '2025-01-10',
-        totalVisits: 12,
-        vehicleCount: 3,
-        totalRevenue: {
-            netAmount: 45000,
-            grossAmount: 55350,
-            currency: 'PLN',
-        },
-        createdAt: '2023-06-15T10:30:00Z',
-        updatedAt: new Date().toISOString(),
-    };
-};
-
-const mockUpdateCompany = async (
-    _customerId: string,
-    payload: UpdateCompanyPayload
-): Promise<CompanyDetails> => {
-    await delay(500);
-
-    return {
-        id: `comp_${Date.now()}`,
-        name: payload.name,
-        nip: payload.nip,
-        regon: payload.regon,
-        address: payload.address,
-    };
-};
-
-const mockDeleteCompany = async (_customerId: string): Promise<void> => {
-    await delay(400);
-};
-
-const mockNotes: CustomerNote[] = [
-    {
-        id: 'note_001',
-        content: 'Stały klient, preferuje kontakt telefoniczny.',
-        createdBy: 'user_123',
-        createdByName: 'Jan Kowalski',
-        createdAt: '2023-06-15T10:30:00Z',
-        updatedAt: '2023-06-15T10:30:00Z',
-    },
-    {
-        id: 'note_002',
-        content: 'VIP - zawsze sprawdzać dostępność dodatkowych usług.',
-        createdBy: 'user_456',
-        createdByName: 'Anna Nowak',
-        createdAt: '2024-01-15T09:00:00Z',
-        updatedAt: '2024-01-15T09:00:00Z',
-    },
-];
-
-const mockDocuments: CustomerDocument[] = [
-    {
-        id: 'doc_001',
-        name: 'Umowa serwisowa - pakiet Gold',
-        fileName: 'umowa_serwisowa_2023.pdf',
-        fileUrl: 'https://s3.example.com/doc1.pdf',
-        uploadedAt: '2023-06-15T10:30:00Z',
-        uploadedByName: 'Jan Kowalski',
-    },
-    {
-        id: 'doc_002',
-        name: 'Kopia dowodu osobistego',
-        fileName: 'dowod_osobisty_skan.pdf',
-        fileUrl: 'https://s3.example.com/doc2.pdf',
-        uploadedAt: '2023-06-15T10:35:00Z',
-        uploadedByName: 'Jan Kowalski',
-    },
-    {
-        id: 'doc_003',
-        name: 'Faktura VAT 2024/01/001',
-        fileName: 'faktura_2024_01.pdf',
-        fileUrl: 'https://s3.example.com/doc3.pdf',
-        uploadedAt: '2024-01-15T09:00:00Z',
-        uploadedByName: 'Anna Nowak',
-    },
-];
-
-const mockGetDocuments = async (
-    customerId: string
-): Promise<CustomerDocument[]> => {
-    await delay(400);
-    return mockDocuments.filter(doc => doc.customerId === customerId);
-};
-
-const mockUploadDocument = async (
-    payload: UploadDocumentPayload
-): Promise<CustomerDocument> => {
-    await delay(1500);
-
-    const newDoc: CustomerDocument = {
-        id: `doc_${Date.now()}`,
-        name: payload.name || payload.file.name,
-        fileName: payload.file.name,
-        fileUrl: `https://s3.example.com/${payload.file.name}`,
-        uploadedAt: new Date().toISOString(),
-        uploadedByName: 'Current User',
-    };
-
-    mockDocuments.unshift(newDoc);
-    return newDoc;
-};
-
-const mockGetDocumentDownload = async (documentId: string): Promise<DocumentDownloadResponse> => {
-    await delay(200);
-
-    const doc = mockDocuments.find(d => d.id === documentId);
-    if (!doc) {
-        throw new Error('Document not found');
-    }
-
-    return {
-        documentId,
-        fileName: doc.fileName,
-        downloadUrl: `${doc.fileUrl}?expires=3600&signature=abc123`,
-        expiresAt: new Date(Date.now() + 3600000).toISOString(),
-        fileSize: 1024 * 1024, // Mock size 1MB
-        mimeType: 'application/pdf', // Mock mime type
-    };
-};
-
-const mockDeleteDocument = async (documentId: string): Promise<void> => {
-    await delay(300);
-
-    const index = mockDocuments.findIndex(d => d.id === documentId);
-    if (index !== -1) {
-        mockDocuments.splice(index, 1);
-    }
-};
 
 export const customerEditApi = {
     /**
@@ -180,10 +30,6 @@ export const customerEditApi = {
         customerId: string,
         payload: UpdateCustomerPayload
     ): Promise<Customer> => {
-        if (USE_MOCKS) {
-            return mockUpdateCustomer(customerId, payload);
-        }
-
         const response = await apiClient.patch<Customer>(
             `${CUSTOMERS_BASE_PATH}/${customerId}`,
             payload
@@ -195,10 +41,6 @@ export const customerEditApi = {
         customerId: string,
         payload: UpdateCompanyPayload
     ): Promise<CompanyDetails> => {
-        if (USE_MOCKS) {
-            return mockUpdateCompany(customerId, payload);
-        }
-
         const response = await apiClient.patch<CompanyDetails>(
             `${CUSTOMERS_BASE_PATH}/${customerId}/company`,
             payload
@@ -207,18 +49,10 @@ export const customerEditApi = {
     },
 
     deleteCompany: async (customerId: string): Promise<void> => {
-        if (USE_MOCKS) {
-            return mockDeleteCompany(customerId);
-        }
-
         await apiClient.delete(`${CUSTOMERS_BASE_PATH}/${customerId}/company`);
     },
 
     getNotes: async (customerId: string): Promise<CustomerNote[]> => {
-        if (USE_MOCKS) {
-            await delay(300);
-            return [...mockNotes];
-        }
         const response = await apiClient.get<CustomerNote[]>(
             `${CUSTOMERS_BASE_PATH}/${customerId}/notes`
         );
@@ -226,19 +60,6 @@ export const customerEditApi = {
     },
 
     createNote: async (customerId: string, payload: CreateNotePayload): Promise<CustomerNote> => {
-        if (USE_MOCKS) {
-            await delay(300);
-            const note: CustomerNote = {
-                id: `note_${Date.now()}`,
-                content: payload.content,
-                createdBy: 'current_user',
-                createdByName: 'Current User',
-                createdAt: new Date().toISOString(),
-                updatedAt: new Date().toISOString(),
-            };
-            mockNotes.unshift(note);
-            return note;
-        }
         const response = await apiClient.post<CustomerNote>(
             `${CUSTOMERS_BASE_PATH}/${customerId}/notes`,
             payload
@@ -247,15 +68,6 @@ export const customerEditApi = {
     },
 
     updateNote: async (customerId: string, noteId: string, payload: UpdateNotePayload): Promise<CustomerNote> => {
-        if (USE_MOCKS) {
-            await delay(300);
-            const note = mockNotes.find(n => n.id === noteId);
-            if (note) {
-                note.content = payload.content;
-                note.updatedAt = new Date().toISOString();
-            }
-            return note!;
-        }
         const response = await apiClient.patch<CustomerNote>(
             `${CUSTOMERS_BASE_PATH}/${customerId}/notes/${noteId}`,
             payload
@@ -264,20 +76,10 @@ export const customerEditApi = {
     },
 
     deleteNote: async (customerId: string, noteId: string): Promise<void> => {
-        if (USE_MOCKS) {
-            await delay(300);
-            const idx = mockNotes.findIndex(n => n.id === noteId);
-            if (idx !== -1) mockNotes.splice(idx, 1);
-            return;
-        }
         await apiClient.delete(`${CUSTOMERS_BASE_PATH}/${customerId}/notes/${noteId}`);
     },
 
     getDocuments: async (customerId: string): Promise<CustomerDocument[]> => {
-        if (USE_MOCKS) {
-            return mockGetDocuments(customerId);
-        }
-
         const response = await apiClient.get<CustomerDocument[]>(
             `${CUSTOMERS_BASE_PATH}/${customerId}/documents`
         );
@@ -285,10 +87,6 @@ export const customerEditApi = {
     },
 
     uploadDocument: async (payload: UploadDocumentPayload): Promise<CustomerDocument> => {
-        if (USE_MOCKS) {
-            return mockUploadDocument(payload);
-        }
-
         // Step 1: Initiate upload; backend returns presigned S3 URL
         const initiateResponse = await apiClient.post<{ documentId: string; uploadUrl: string }>(
             `${CUSTOMERS_BASE_PATH}/${payload.customerId}/documents`,
@@ -325,11 +123,6 @@ export const customerEditApi = {
     },
 
     getDocumentDownload: async (documentId: string): Promise<string> => {
-        if (USE_MOCKS) {
-            const mockResponse = await mockGetDocumentDownload(documentId);
-            return mockResponse.downloadUrl;
-        }
-
         const response = await apiClient.get<{ url: string }>(
             `/documents/${documentId}/download-url`
         );
@@ -337,10 +130,6 @@ export const customerEditApi = {
     },
 
     deleteDocument: async (customerId: string, documentId: string): Promise<void> => {
-        if (USE_MOCKS) {
-            return mockDeleteDocument(documentId);
-        }
-
         await apiClient.delete(`${CUSTOMERS_BASE_PATH}/${customerId}/documents/${documentId}`);
     },
 };

@@ -1,5 +1,4 @@
 // src/core/errors/lazyWithRetry.ts
-import { lazy, type ComponentType } from 'react';
 import { isChunkLoadError, recoverFromChunkError } from './chunkError';
 
 /** Przerwa przed ponowną próbą - tyle wystarcza na chwilowy zanik sieci. */
@@ -41,25 +40,3 @@ export async function importWithRetry<M>(factory: () => Promise<M>): Promise<M> 
     }
 }
 
-/** `React.lazy` z ratunkiem `importWithRetry`. */
-/* eslint-disable @typescript-eslint/no-explicit-any -- ComponentType<any> to
-   dokładnie ta sama sygnatura, której używa React.lazy; węższy parametr
-   uniemożliwiłby przekazanie komponentu z jakimikolwiek propsami. */
-export function lazyWithRetry<T extends ComponentType<any>>(
-    factory: () => Promise<{ default: T }>,
-) {
-    return lazy<T>(() => importWithRetry(factory));
-}
-
-/**
- * Wariant dla modułów z eksportem nazwanym, np.
- * `lazyNamedWithRetry(() => import('@/modules/gallery/views/GalleryView'), 'GalleryView')`.
- */
-export function lazyNamedWithRetry<
-    M extends Record<string, unknown>,
-    K extends keyof M,
->(factory: () => Promise<M>, exportName: K) {
-    return lazyWithRetry(
-        () => factory().then(module => ({ default: module[exportName] as ComponentType<any> })),
-    );
-}

@@ -217,8 +217,6 @@ export const CalendarNavigationOverlay = () => {
 
   if (phase === 'idle' || !card) return null;
 
-  const isVisible = phase !== 'done';
-
   return createPortal(
     <>
       <Backdrop $visible={phase === 'centered' || phase === 'to-center'} />

@@ -278,11 +278,5 @@ export const ModalFooter = styled.div`
 
 // ─── Horizontal divider inside content ────────────────────────────────────────
 
-export const ModalDivider = styled.div`
-    height: 1px;
-    background: #f1f5f9;
-    margin: 4px 0;
-`;
-
 /** @deprecated Use ModalDivider */
-export { ModalDivider as ModalSectionDivider };
+;

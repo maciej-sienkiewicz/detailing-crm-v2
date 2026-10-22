@@ -78,14 +78,6 @@ export function useVoiceCommandsLogic(token: string): VoiceCommandsLogic {
             .catch(() => setSessionState('error'));
     }, [token]);
 
-    // ─── Cleanup on unmount ───────────────────────────────────────────────────
-    useEffect(() => {
-        return () => {
-            stopTimer();
-            releaseStream();
-        };
-    }, []);
-
     // ─── Internal helpers ─────────────────────────────────────────────────────
 
     function stopTimer() {
@@ -108,6 +100,14 @@ export function useVoiceCommandsLogic(token: string): VoiceCommandsLogic {
             streamRef.current = null;
         }
     }
+
+    // ─── Cleanup on unmount (pod pomocnikami, których używa) ──────────────────
+    useEffect(() => {
+        return () => {
+            stopTimer();
+            releaseStream();
+        };
+    }, []);
 
     async function beginRecording() {
         setRecordingState('requesting');
@@ -184,7 +184,7 @@ export function useVoiceCommandsLogic(token: string): VoiceCommandsLogic {
         setMode('note');
         setScreen('dictate');
         beginRecording(); // user-gesture context ✓
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, []);  
 
     const goBackFromPhone = useCallback(() => {
         setPhoneNumber('');
@@ -195,19 +195,19 @@ export function useVoiceCommandsLogic(token: string): VoiceCommandsLogic {
         phoneRef.current = phoneNumber.trim() || null;
         setScreen('dictate');
         beginRecording(); // user-gesture context ✓
-    }, [phoneNumber]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [phoneNumber]);  
 
     const skipPhone = useCallback(() => {
         phoneRef.current = null;
         setScreen('dictate');
         beginRecording(); // user-gesture context ✓
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, []);  
 
     const goBackFromDictate = useCallback(() => {
         stopTimer();
         releaseStream();
         setScreen(modeRef.current === 'lead' ? 'phone' : 'home');
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, []);  
 
     const stopAndSend = useCallback(() => {
         const recorder = mediaRecorderRef.current;
@@ -232,7 +232,7 @@ export function useVoiceCommandsLogic(token: string): VoiceCommandsLogic {
             setScreen('send');
             doSend(blob, mimeType);
         }
-    }, [doSend]); // eslint-disable-line react-hooks/exhaustive-deps
+    }, [doSend]);  
 
     const retrySubmit = useCallback(() => {
         const blob = submittedBlobRef.current;
@@ -243,7 +243,7 @@ export function useVoiceCommandsLogic(token: string): VoiceCommandsLogic {
     const goBackFromSend = useCallback(() => {
         setScreen('dictate');
         beginRecording();
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, []);  
 
     const addAnother = useCallback(() => {
         modeRef.current = null;

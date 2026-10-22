@@ -78,6 +78,19 @@ describe('installNativeShell', () => {
         expect(browserOpen).toHaveBeenCalledWith({ url: 'https://maps.google.com/?q=Krak%C3%B3w' });
     });
 
+    it('adres javascript: z serwera nie wykonuje się w aplikacji', async () => {
+        const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});
+        const before = window.location.href;
+        window.open('JavaScript:alert(document.cookie)', '_blank', 'noopener');
+        await flush();
+
+        expect(browserOpen).not.toHaveBeenCalled();
+        expect(share).not.toHaveBeenCalled();
+        expect(window.location.href).toBe(before);
+        expect(warn).toHaveBeenCalled();
+        warn.mockRestore();
+    });
+
     it('zamknięcie arkusza udostępniania bez wyboru nie jest błędem', async () => {
         share.mockRejectedValue(new Error('Share canceled'));
         const warn = vi.spyOn(console, 'warn').mockImplementation(() => {});

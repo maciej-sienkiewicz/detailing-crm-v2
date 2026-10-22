@@ -55,7 +55,7 @@ function interceptWindowOpen(): void {
 /** Link, który w przeglądarce pobrałby plik albo otworzył nową kartę. */
 function takeOver(anchor: HTMLAnchorElement): boolean {
     const href = anchor.getAttribute('href');
-    if (!href || href.startsWith('#') || href.startsWith('javascript:')) return false;
+    if (!href || href.startsWith('#') || /^\s*javascript:/i.test(href)) return false;
     const isFile = anchor.hasAttribute('download') || href.startsWith('blob:') || href.startsWith('data:');
     const isNewTab = anchor.target === '_blank';
     if (!isFile && !isNewTab) return false;

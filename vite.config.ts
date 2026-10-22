@@ -1,5 +1,5 @@
-/// <reference types="vitest" />
-import { defineConfig } from 'vite';
+// defineConfig z vitest/config zna klucz `test`; ten z 'vite' go nie zna i `tsc -b` padał na tym pliku.
+import { defineConfig } from 'vitest/config';
 import react from '@vitejs/plugin-react';
 import path from 'path';
 import crypto from 'crypto';
@@ -18,10 +18,9 @@ export default defineConfig({
     test: {
         globals: true,
         environment: 'node',
+        // Środowisko jsdom wybiera komentarz `// @vitest-environment jsdom` na początku pliku
+        // testu - Vitest 4 nie ma już `environmentMatchGlobs`, ignorował go po cichu.
         include: ['src/**/*.test.ts', 'src/**/*.test.tsx'],
-        environmentMatchGlobs: [
-            ['src/**/*.test.tsx', 'jsdom'],
-        ],
         setupFiles: ['src/test/setup.ts'],
     },
     server: {

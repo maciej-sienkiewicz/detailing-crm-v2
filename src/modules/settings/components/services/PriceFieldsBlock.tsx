@@ -137,12 +137,6 @@ const Unit = styled.span`
     color: ${ui.textMuted};
 `;
 
-const Hint = styled.span`
-    font-size: 12.5px;
-    line-height: 1.45;
-    color: ${ui.textMuted};
-`;
-
 const SwitchRow = styled.button`
     display: flex;
     align-items: flex-start;

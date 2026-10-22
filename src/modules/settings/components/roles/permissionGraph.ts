@@ -71,14 +71,6 @@ function expandFrom(code: string, step: (c: string) => string[]): string[] {
     return result;
 }
 
-/** Everything `code` requires: its ancestor chain and implied permissions, transitively. */
-export function requirementsOf(code: string, index: TreeIndex): string[] {
-    return expandFrom(code, c => {
-        const parent = index.parentOf.get(c);
-        return parent ? [parent, ...(index.impliesOf.get(c) ?? [])] : (index.impliesOf.get(c) ?? []);
-    });
-}
-
 /** Everything that requires `code`: its subtree and permissions implying it, transitively. */
 export function dependentsOf(code: string, index: TreeIndex): string[] {
     return expandFrom(code, c => [

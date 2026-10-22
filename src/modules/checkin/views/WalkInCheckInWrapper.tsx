@@ -1,5 +1,5 @@
 // src/modules/checkin/views/WalkInCheckInWrapper.tsx
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import styled from 'styled-components';
@@ -66,6 +66,9 @@ export const WalkInCheckInWrapper = () => {
     const navigate = useNavigate();
     const location = useLocation();
     const qrSessionId = useMemo(() => crypto.randomUUID(), []);
+    // Chwila wejścia w przyjęcie, raz - render ma być czysty, a domyślny termin wizyty
+    // (teraz + 1 h) nie powinien się przesuwać przy każdym odświeżeniu widoku.
+    const [openedAt] = useState(() => Date.now());
     const state = location.state as LocationState | null;
     const prefillCustomer = state?.prefillCustomer;
     const prefillVehicle  = state?.prefillVehicle;
@@ -88,9 +91,8 @@ export const WalkInCheckInWrapper = () => {
         );
     }
 
-    const nowIso = new Date().toISOString();
-    const endDate = new Date(Date.now() + 60 * 60 * 1000);
-    const endIso = endDate.toISOString();
+    const nowIso = new Date(openedAt).toISOString();
+    const endIso = new Date(openedAt + 60 * 60 * 1000).toISOString();
 
     const initialData = {
         title: '',

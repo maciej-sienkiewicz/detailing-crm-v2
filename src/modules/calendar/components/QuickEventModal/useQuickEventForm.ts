@@ -92,7 +92,7 @@ interface UseQuickEventFormOptions {
     initialData?: QuickEventInitialData;
 }
 
-export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, initialData }: UseQuickEventFormOptions) {
+export function useQuickEventForm({ isOpen, eventData, onSave, ref, initialData }: UseQuickEventFormOptions) {
     // ─── Form state ────────────────────────────────────────────────────────────
     const [title, setTitle] = useState('');
     const [startDateTime, setStartDateTime] = useState('');
@@ -781,7 +781,6 @@ export function useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, ini
         const fieldRef = map[firstKey];
         if (fieldRef?.current) {
             fieldRef.current.scrollIntoView({ behavior: 'smooth', block: 'center' });
-            // @ts-ignore
             fieldRef.current.focus?.();
         }
     };

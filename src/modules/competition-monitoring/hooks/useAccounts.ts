@@ -3,6 +3,7 @@ import { useMutation, useQuery, useQueryClient, type QueryClient } from '@tansta
 import { accountsApi } from '../api/accountsApi';
 import type { InstagramStudioSettings } from '../accountsTypes';
 import { ANALYTICS_KEYS } from './useAnalytics';
+import { assignSafeUrl } from '@/common/utils/safeUrl';
 
 /**
  * Własne konta studia. Klucze pod jednym przedrostkiem, żeby powrót z logowania
@@ -79,7 +80,7 @@ const useLoginRedirect = () => {
 
     const go = (target: LoginRedirect) => (url: string) => {
         setRedirecting(target);
-        window.location.assign(url);
+        if (!assignSafeUrl(url)) setRedirecting(null);
     };
     return { redirecting, go };
 };

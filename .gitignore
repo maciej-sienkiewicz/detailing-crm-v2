@@ -35,3 +35,10 @@ vite.config.js
 /test-results/
 /playwright-report/
 /blob-report/
+
+# Klucze podpisu aplikacji mobilnej (Android keystore, certyfikaty iOS). Nigdy w repozytorium:
+# kto ma plik i hasło, ten wyda aktualizację „DetailBoost" w sklepie.
+*.jks
+*.keystore
+*.p12
+*.mobileprovision

@@ -37,15 +37,3 @@ export const validatePolishRegon = (regon: string): boolean => {
     return expectedCheckDigit === digits[digits.length - 1];
 };
 
-export const formatNip = (nip: string): string => {
-    const clean = nip.replace(/[\s-]/g, '');
-    return `${clean.slice(0, 3)}-${clean.slice(3, 6)}-${clean.slice(6, 8)}-${clean.slice(8)}`;
-};
-
-export const formatRegon = (regon: string): string => {
-    const clean = regon.replace(/[\s-]/g, '');
-    if (clean.length === 9) {
-        return `${clean.slice(0, 3)}-${clean.slice(3, 6)}-${clean.slice(6)}`;
-    }
-    return clean;
-};

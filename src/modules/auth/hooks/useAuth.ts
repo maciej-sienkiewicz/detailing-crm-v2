@@ -42,20 +42,6 @@ export const useSignup = () => {
     });
 };
 
-export const useLogout = () => {
-    const navigate = useNavigate();
-    const { setAuthenticated } = useAuthContext();
-
-    return useMutation({
-        mutationFn: () => authApi.logout(),
-        onSuccess: () => {
-            sessionStorage.removeItem('crm_session_locked');
-            setAuthenticated(false);
-            navigate('/login');
-        },
-    });
-};
-
 export const useForgotPassword = () => {
     return useMutation({
         mutationFn: (data: { email: string }) => authApi.forgotPassword(data),

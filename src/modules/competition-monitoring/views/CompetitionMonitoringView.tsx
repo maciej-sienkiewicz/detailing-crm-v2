@@ -23,6 +23,7 @@ import type { CompetitionDays, HomeMarketEvent, HomeTodo } from '../types';
 import { isCompetitionView, resolveLegacyUrl, type CompetitionView } from '../utils/moduleUrl';
 import { prefillFromTodo } from '../utils/overview';
 import { PHONE } from '../utils/phone';
+import { openInNewTab } from '@/common/utils/safeUrl';
 
 /**
  * Moduł Instagram, cztery zakładki według pytań właściciela, nie według źródeł danych:
@@ -341,7 +342,7 @@ export const CompetitionMonitoringView = () => {
     }, [docked, isDesktop]);
 
     const openGenerator = (prefill: GeneratePostPrefill = {}) => setGeneratePrefill(prefill);
-    const openExternal = (url: string) => window.open(url, '_blank', 'noopener,noreferrer');
+    const openExternal = (url: string) => openInNewTab(url);
 
     const handleTodo = (todo: HomeTodo) => {
         switch (todo.target) {

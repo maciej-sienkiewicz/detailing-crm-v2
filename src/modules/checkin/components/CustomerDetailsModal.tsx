@@ -142,10 +142,10 @@ export const CustomerDetailsModal = ({
             const { customer } = customerDetail;
             // Użyj danych z API
             setLocalCustomerData({
-                firstName: customer.firstName,
-                lastName: customer.lastName,
-                email: customer.contact.email,
-                phone: customer.contact.phone,
+                firstName: customer.firstName ?? '',
+                lastName: customer.lastName ?? '',
+                email: customer.contact.email ?? '',
+                phone: customer.contact.phone ?? '',
             });
 
             if (customer.homeAddress) {

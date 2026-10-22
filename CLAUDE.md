@@ -104,7 +104,8 @@ podano w brutto.
 - `src/modules/visits/utils/servicePriceEdits.ts` — edycja cen wizyty: okno ceny,
   rabat i VAT zbiorczy, sumy, payload z `basePriceGross`
 - `src/modules/appointments/hooks/useServicePricing.ts` — wycena pozycji i sumy
-- `src/modules/checkin/components/SummaryStep.tsx` — podsumowanie protokołu
+- `src/common/components/ServicesTable/servicesTablePricing.ts` — wykaz usług
+  i sumy przyjęcia pojazdu (krok weryfikacji protokołu)
 - `src/modules/checkin/utils/toCheckInServiceLine.ts` — przeniesienie dokładnego
   brutta przez granicę API (wzorzec dla każdego mapowania odpowiedzi)
 - Backend: `AppointmentLineItem.create(basePriceGross = …)`, `Visit.calculateFinalGross`

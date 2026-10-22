@@ -9,7 +9,6 @@ import type {
   BulkPaymentStatusTarget,
   UpdateExpenseNoteRequest,
   SaveKsefCredentialsRequest,
-  KsefSyncRangeRequest,
   KsefInvoicingSettings,
 } from '../types';
 
@@ -89,9 +88,6 @@ export const useKsefAutomation = (options?: { enabled?: boolean }) => {
   };
 };
 
-/** Gotowość integracji z KSeF w formie, w jakiej czytają ją ekrany wystawiania faktur. */
-export type KsefAutomation = ReturnType<typeof useKsefAutomation>;
-
 /**
  * Ustawienia fakturowania przy wydaniu pojazdu (Ustawienia → Faktury): domyślna odpowiedź
  * na pytanie „wysłać fakturę do KSeF?" i tryb „Faktury wystawia księgowość".
@@ -159,32 +155,6 @@ export const useKsefSyncStatus = () => {
   });
 
   return { syncStatus: data, isLoading, isError, refetch };
-};
-
-export const useTriggerKsefSync = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: () => ksefApi.triggerSync(),
-    onSuccess: (data) => {
-      queryClient.setQueryData(KSEF_SYNC_STATUS_KEY, data);
-      queryClient.invalidateQueries({ queryKey: KSEF_EXPENSES_KEY });
-      queryClient.invalidateQueries({ queryKey: KSEF_STATISTICS_KEY });
-    },
-  });
-};
-
-export const useSyncKsefByRange = () => {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: (data: KsefSyncRangeRequest) => ksefApi.syncExpensesByRange(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: KSEF_EXPENSES_KEY });
-      queryClient.invalidateQueries({ queryKey: KSEF_SYNC_STATUS_KEY });
-      queryClient.invalidateQueries({ queryKey: KSEF_STATISTICS_KEY });
-    },
-  });
 };
 
 // ── Expenses ──────────────────────────────────────────────────────────────────
@@ -343,11 +313,3 @@ export const useDeleteExpenseNote = () => {
 
 // ── Statistics ────────────────────────────────────────────────────────────────
 
-export const useKsefStatistics = (year: number) => {
-  const { data, isLoading, isError, refetch } = useQuery({
-    queryKey: [...KSEF_STATISTICS_KEY, year],
-    queryFn:  () => ksefApi.getStatistics(year),
-  });
-
-  return { statistics: data, isLoading, isError, refetch };
-};

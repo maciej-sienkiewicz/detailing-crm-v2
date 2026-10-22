@@ -1,13 +1,6 @@
-export type TransitionType = 'in_progress_to_ready' | 'ready_to_completed';
 
 export type PaymentMethod = 'CASH' | 'CARD' | 'TRANSFER' | 'BLIK_NA_NUMER' | 'BLIK_TERMINAL' | 'OTHER';
 export type InvoiceType = 'INVOICE' | 'RECEIPT' | 'other';
-
-export interface QualityCheckItem {
-    id: string;
-    label: string;
-    checked: boolean;
-}
 
 export interface NotificationChannels {
     sms: boolean;

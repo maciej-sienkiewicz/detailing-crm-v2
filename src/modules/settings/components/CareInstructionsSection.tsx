@@ -304,14 +304,6 @@ const Toolbar = styled.div`
     gap: 10px 12px;
 `;
 
-const Intro = styled.p`
-    margin: 0;
-    max-width: 72ch;
-    font-size: 13.5px;
-    line-height: 1.55;
-    color: ${ui.textSecondary};
-`;
-
 const List = styled.ul`
     margin: 0;
     padding: 6px 0;

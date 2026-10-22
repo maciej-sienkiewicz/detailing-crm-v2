@@ -404,65 +404,6 @@ export const MicStatus = styled.p<{ $active: boolean }>`
 
 // ─── Transcript / dictation area ──────────────────────────────────────────────
 
-export const TranscriptCard = styled.div`
-    flex: 1;
-    min-height: 100px;
-    background: ${c.surface};
-    border: 1.5px solid ${c.border};
-    border-radius: 16px;
-    padding: 16px 18px;
-    font-size: 17px;
-    color: ${c.text};
-    line-height: 1.6;
-    overflow-y: auto;
-    word-break: break-word;
-    white-space: pre-wrap;
-    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.05);
-
-    &::-webkit-scrollbar { width: 3px; }
-    &::-webkit-scrollbar-track { background: transparent; }
-    &::-webkit-scrollbar-thumb { background: ${c.border}; border-radius: 2px; }
-`;
-
-// Legacy alias used by recording mode display
-export const TranscriptDisplay = TranscriptCard;
-
-export const Placeholder = styled.span`
-    color: ${c.textMuted};
-    pointer-events: none;
-    font-weight: 400;
-`;
-
-export const InterimText = styled.span`
-    color: ${c.textSub};
-    font-style: italic;
-`;
-
-export const TranscriptTextarea = styled.textarea`
-    flex: 1;
-    min-height: 100px;
-    width: 100%;
-    padding: 16px 18px;
-    background: ${c.surface};
-    border: 1.5px solid ${c.border};
-    border-radius: 16px;
-    && { font-size: 17px; }
-    font-weight: 400;
-    color: ${c.text};
-    font-family: inherit;
-    line-height: 1.6;
-    resize: none;
-    outline: none;
-    box-shadow: 0 1px 4px rgba(15, 23, 42, 0.05);
-    transition: border-color 0.15s, box-shadow 0.15s;
-
-    &::placeholder { color: ${c.textMuted}; }
-    &:focus {
-        border-color: ${c.accent};
-        box-shadow: 0 0 0 3px ${c.accentRing};
-    }
-`;
-
 // ─── Recording timer ──────────────────────────────────────────────────────────
 
 export const RecordingTimer = styled.p`
@@ -551,26 +492,6 @@ export const SecondaryBtn = styled.button`
         transform: scale(0.97);
     }
     &:disabled { opacity: 0.40; cursor: not-allowed; }
-`;
-
-export const LinkBtn = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    background: none;
-    border: none;
-    color: ${c.accent};
-    font-family: inherit;
-    font-size: 14px;
-    font-weight: 600;
-    cursor: pointer;
-    padding: 0;
-    min-height: 44px;
-    transition: opacity 0.15s;
-    -webkit-tap-highlight-color: transparent;
-
-    svg { width: 15px; height: 15px; flex-shrink: 0; }
-    &:active { opacity: 0.6; }
 `;
 
 // ─── Bottom action bar ────────────────────────────────────────────────────────

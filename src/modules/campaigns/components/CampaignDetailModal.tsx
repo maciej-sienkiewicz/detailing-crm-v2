@@ -748,13 +748,13 @@ function summarizeOutcome(c: Campaign, estimate: AudienceEstimate | undefined): 
         // Tu odpowiadamy na pytanie, którego stary pasek nie zadawał w ogóle:
         // ilu klientów PASUJE do kryteriów, a mimo to nic nie dostanie i dlaczego.
         // Ta różnica bywa spora (tu: 13 z 197) i dotąd nie było jej w oknie nigdzie.
-        const lost: OutcomePart[] = [
+        const lost: OutcomePart[] = ([
             { key: 'optedOut', count: estimate.optedOut, label: 'wypisani', tone: 'muted' },
             { key: 'noConsent', count: estimate.noConsent, label: 'bez zgody', tone: 'muted' },
             { key: 'noAddress', count: estimate.noAddress, label: 'bez numeru', tone: 'muted' },
             { key: 'cap', count: estimate.frequencyCapped, label: 'niedawno kontaktowani', tone: 'muted' },
             { key: 'excluded', count: estimate.excludedManually, label: 'odznaczeni ręcznie', tone: 'muted' },
-        ].filter((part) => part.count > 0);
+        ] satisfies OutcomePart[]).filter((part) => part.count > 0);
 
         return {
             value: String(estimate.eligible),
@@ -770,11 +770,11 @@ function summarizeOutcome(c: Campaign, estimate: AudienceEstimate | undefined): 
         };
     }
 
-    const parts: OutcomePart[] = [
+    const parts: OutcomePart[] = ([
         { key: 'sent', count: c.recipientsSent, label: 'dostarczone', tone: 'ok' },
         { key: 'failed', count: c.recipientsFailed, label: 'nieudane', tone: 'bad' },
         { key: 'skipped', count: c.recipientsSkipped, label: 'pominięte', tone: 'muted' },
-    ].filter((part) => part.count > 0);
+    ] satisfies OutcomePart[]).filter((part) => part.count > 0);
 
     // `recipientsTotal` bywa zerowe na starszych kampaniach - wtedy całością jest
     // suma części, żeby pasek nadal się domykał.

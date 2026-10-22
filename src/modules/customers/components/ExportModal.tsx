@@ -137,6 +137,7 @@ export const ExportModal = ({ isOpen, onClose, currentFilters, filteredCount }: 
         setIsExporting(true);
         try {
             const filters = scope === 'filtered' ? currentFilters : {
+                search: '',
                 sortBy: currentFilters.sortBy,
                 sortDirection: currentFilters.sortDirection,
             };

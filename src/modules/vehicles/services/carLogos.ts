@@ -159,7 +159,3 @@ export function getCarLogoUrl(brand: string | null | undefined): string | null {
     return null;
 }
 
-/** The jsDelivr CDN hostname, used by the Service Worker to scope its cache. */
-export const CAR_LOGOS_CDN_HOST = 'cdn.jsdelivr.net';
-export const CAR_LOGOS_CDN_PATH_PREFIX =
-    '/gh/filippofilip95/car-logos-dataset@master/logos/thumb/';

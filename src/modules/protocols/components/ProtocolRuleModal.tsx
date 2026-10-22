@@ -14,7 +14,7 @@ import { SharedButton } from '@/common/styles';
 import { Label, FieldGroup, ErrorMessage, Select } from '@/common/components/Form';
 import { useCreateProtocolRule, useUpdateProtocolRule } from '../api/useProtocols';
 import { useServices } from '@/modules/services/hooks/useServices';
-import type { ProtocolTemplate, ProtocolStage, ProtocolRule } from '../types';
+import type { ProtocolTemplate, ProtocolStage, ProtocolRule, ProtocolTriggerType } from '../types';
 
 const Form = styled.form`
     display: flex;
@@ -151,7 +151,7 @@ export const ProtocolRuleModal = ({
     onSuccess,
 }: ProtocolRuleModalProps) => {
     const [protocolTemplateId, setProtocolTemplateId] = useState('');
-    const [triggerType, setTriggerType] = useState<'GLOBAL_ALWAYS' | 'SERVICE_SPECIFIC'>('GLOBAL_ALWAYS');
+    const [triggerType, setTriggerType] = useState<ProtocolTriggerType>('GLOBAL_ALWAYS');
     const [selectedServiceIds, setSelectedServiceIds] = useState<string[]>([]);
     const [errors, setErrors] = useState<Record<string, string>>({});
 

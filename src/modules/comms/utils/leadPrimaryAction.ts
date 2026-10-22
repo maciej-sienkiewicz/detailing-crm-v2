@@ -9,20 +9,6 @@
 // Kolejność gałęzi jest kolejnością pilności, nie wygody implementacji:
 // zaległa odpowiedź bije wszystko inne, bo klient czeka teraz, a termin poczeka.
 import type { Lead } from '../types';
-import type { LeadUrgency } from './leadUrgency';
-
-export type LeadActionKind = 'REPLY' | 'CALL' | 'BOOK' | 'APPOINTMENT';
-
-export interface LeadPrimaryAction {
-    kind: LeadActionKind;
-    label: string;
-    /** Krótka etykieta na wąską kartę telefonu. */
-    shortLabel: string;
-    /** Wypełniony przycisk w kolorze akcentu tylko dla akcji, która jest zadaniem. */
-    emphasis: 'primary' | 'quiet';
-    /** Dla telefonu: link `tel:`, który otwiera dialer bez przechodzenia przez CRM. */
-    href?: string;
-}
 
 /**
  * Adres e-mail kontaktu leada albo null.
@@ -43,31 +29,3 @@ export function leadPhoneNumber(lead: Pick<Lead, 'source' | 'contactIdentifier'>
     return lead.source === 'PHONE' ? lead.contactIdentifier : null;
 }
 
-export function leadPrimaryAction(lead: Lead, urgency: LeadUrgency): LeadPrimaryAction {
-    // Rezerwacja jest już w kalendarzu. Drugiej się nie założy (backend odmówi),
-    // więc oferowanie jej byłoby ślepą uliczką.
-    if (lead.appointmentId) {
-        return { kind: 'APPOINTMENT', label: 'Zobacz rezerwację', shortLabel: 'Termin', emphasis: 'quiet' };
-    }
-
-    if (urgency.turn === 'OURS') {
-        const phone = leadPhoneNumber(lead);
-        // Lead z telefonu nie ma wątku, więc „odpisz" nie miałoby dokąd prowadzić.
-        // Zadzwonienie jest tu jedyną sensowną odpowiedzią - i jedyną, która na
-        // telefonie w hali wykonuje się jednym tapnięciem, bez wchodzenia w CRM.
-        if (!lead.threadId && phone) {
-            return {
-                kind: 'CALL',
-                label: 'Zadzwoń',
-                shortLabel: 'Zadzwoń',
-                emphasis: 'primary',
-                href: `tel:${phone.replace(/\s/g, '')}`,
-            };
-        }
-        return { kind: 'REPLY', label: 'Odpisz klientowi', shortLabel: 'Odpisz', emphasis: 'primary' };
-    }
-
-    // Odpisaliśmy i czekamy - następnym krokiem jest umówienie, czyli po co ten
-    // moduł w ogóle jest.
-    return { kind: 'BOOK', label: 'Umów wizytę', shortLabel: 'Rezerwacja', emphasis: 'quiet' };
-}

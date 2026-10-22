@@ -46,6 +46,7 @@ import {
     TabletPickerItem,
     SpinningIconWrapper,
 } from './SigningRequirementModal.styles';
+import { openInNewTab } from '@/common/utils/safeUrl';
 
 /* ─── Icons ─────────────────────────────────────────────────────────────────── */
 
@@ -303,7 +304,7 @@ export const SigningRequirementModal = ({
 
     const handlePrint = (protocolId: string) => {
         const pdfUrl = protocols.find(p => p.id === protocolId)?.filledPdfUrl;
-        if (pdfUrl) window.open(pdfUrl, '_blank');
+        if (pdfUrl) openInNewTab(pdfUrl);
     };
 
     const setSigningState = (protocolId: string, state: SigningState) => {

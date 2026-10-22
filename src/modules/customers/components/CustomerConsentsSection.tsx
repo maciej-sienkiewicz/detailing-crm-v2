@@ -30,6 +30,7 @@ import {
     useUploadConsentAttachment,
 } from '../hooks/useCustomerConsents';
 import type { CustomerConsentStatusItem } from '../types';
+import { openInNewTab } from '@/common/utils/safeUrl';
 
 const RailPanel = styled(Panel)`
     padding: 16px 18px;
@@ -260,7 +261,7 @@ export const CustomerConsentsSection = ({ customerId, id }: CustomerConsentsSect
 
             <ActionMenu anchor={menu.menu?.anchor ?? null} onClose={menu.close} label="Akcje zgody">
                 {current && currentDoc && (
-                    <MenuItem icon={<FileText />} onClick={() => window.open(currentDoc, '_blank', 'noopener')}>
+                    <MenuItem icon={<FileText />} onClick={() => openInNewTab(currentDoc)}>
                         {current.attachmentUrl ? 'Podpisany dokument' : 'Szablon zgody (PDF)'}
                     </MenuItem>
                 )}

@@ -1,7 +1,7 @@
 export { ErrorScreen, UpdatingScreen } from './ErrorScreen';
 export { RouteErrorBoundary } from './RouteErrorBoundary';
 export { AppErrorBoundary } from './AppErrorBoundary';
-export { lazyWithRetry, lazyNamedWithRetry, importWithRetry } from './lazyWithRetry';
+export { importWithRetry } from './lazyWithRetry';
 export { installChunkErrorHandler } from './installChunkErrorHandler';
 export {
     isChunkLoadError,

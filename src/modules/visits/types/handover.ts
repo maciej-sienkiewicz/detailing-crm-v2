@@ -875,18 +875,4 @@ export const toInvoicePayload = (state: HandoverState, sendToKsef: boolean): Com
 
 // ─── Stawki ──────────────────────────────────────────────────────────────────
 
-/** Brutto pozycji w podziale na stawki VAT. */
-export const grossByRate = (items: HandoverItem[]): Map<VatRateCode, number> => {
-    const byRate = new Map<VatRateCode, number>();
-    items.forEach(item => byRate.set(item.vatRate, (byRate.get(item.vatRate) ?? 0) + itemAmounts(item).gross));
-    return byRate;
-};
-
-/** VAT pozycji: różnica brutto i netto (CLAUDE.md §1). */
-export const vatOfItems = (items: HandoverItem[]): number =>
-    items.reduce((sum, item) => {
-        const { net, gross } = itemAmounts(item);
-        return sum + gross - net;
-    }, 0);
-
 export const RATE_LABEL: Record<VatRateCode, string> = { '23': '23%', '8': '8%', '5': '5%', '0': '0%', zw: 'zw.' };

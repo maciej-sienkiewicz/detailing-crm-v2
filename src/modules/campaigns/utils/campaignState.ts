@@ -139,37 +139,3 @@ export function describeCampaign(campaign: Campaign, creditsShort = false): Camp
     }
 }
 
-/**
- * Sam ton, bez etykiety - dla wiersza tabeli, który zaznacza pilne kampanie
- * paskiem przy krawędzi. Pasek nie zajmuje ani piksela szerokości tabeli,
- * więc znajduje kłopot szybciej niż jakakolwiek plakietka w środku wiersza.
- */
-export const campaignTone = (campaign: Campaign, creditsShort = false): CampaignTone =>
-    describeCampaign(campaign, creditsShort).tone;
-
-/**
- * Ilu ludzi dostało albo dostanie tę wiadomość - liczba, dla której ktoś w ogóle
- * otwiera kampanię. Zwracamy też mianownik, gdy wysyłka jeszcze trwa: „412 z 980"
- * to inna informacja niż „412".
- */
-export function recipientsFigure(campaign: Campaign): { value: string; note: string | null } {
-    if (campaign.status === 'SENDING') {
-        return {
-            value: String(campaign.recipientsSent),
-            note: `z ${campaign.recipientsTotal}`,
-        };
-    }
-    if (campaign.recipientsSent > 0) {
-        return {
-            value: String(campaign.recipientsSent),
-            note: pluralPl(campaign.recipientsSent, 'wysłana wiadomość', 'wysłane wiadomości', 'wysłanych wiadomości'),
-        };
-    }
-    if (campaign.recipientsTotal > 0) {
-        return {
-            value: String(campaign.recipientsTotal),
-            note: pluralPl(campaign.recipientsTotal, 'odbiorca na liście', 'odbiorcy na liście', 'odbiorców na liście'),
-        };
-    }
-    return { value: '-', note: 'lista powstanie przy wysyłce' };
-}

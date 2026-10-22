@@ -13,7 +13,6 @@ export const LIST_CONTAINER = 'scheduled-list';
 export const CARDS_BELOW = 640;
 
 export const listCards = `@container ${LIST_CONTAINER} (max-width: ${CARDS_BELOW - 1}px)`;
-export const listTable = `@container ${LIST_CONTAINER} (min-width: ${CARDS_BELOW}px)`;
 
 /**
  * Średnia lista (tablet, laptop z rozwiniętym menu): tabela jeszcze się mieści, ale na

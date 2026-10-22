@@ -129,5 +129,7 @@ export const ThemeProvider = ({ children, brandColor }: ThemeProviderProps) => {
 };
 
 declare module 'styled-components' {
+    // Rozszerzenie modułu musi być interfejsem - alias typu nie scali się z DefaultTheme.
+    // eslint-disable-next-line @typescript-eslint/no-empty-object-type
     export interface DefaultTheme extends Theme {}
 }

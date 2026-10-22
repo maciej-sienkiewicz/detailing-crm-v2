@@ -74,7 +74,7 @@ export function useCheckinQRToken(appointmentId: string | undefined, vehicleType
         refreshTimerRef.current = setTimeout(() => {
             fetchTokenRef.current();
         }, refreshIn);
-    }, []); // eslint-disable-line react-hooks/exhaustive-deps
+    }, []);
 
     const fetchToken = useCallback(async (rotateToken = false) => {
         if (!appointmentId) return;

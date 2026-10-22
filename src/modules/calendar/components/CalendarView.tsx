@@ -6,7 +6,8 @@ import FullCalendar from '@fullcalendar/react';
 import dayGridPlugin from '@fullcalendar/daygrid';
 import timeGridPlugin from '@fullcalendar/timegrid';
 import interactionPlugin from '@fullcalendar/interaction';
-import type { DateSelectArg, EventClickArg, DatesSetArg, DateClickArg } from '@fullcalendar/core';
+import type { CalendarApi, CalendarOptions, DateSelectArg, EventClickArg, DatesSetArg } from '@fullcalendar/core';
+import type { DateClickArg } from '@fullcalendar/interaction';
 import styled, { css } from 'styled-components';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { useQueryClient } from '@tanstack/react-query';
@@ -28,7 +29,7 @@ import { QuickEventModal, type QuickEventFormData, type QuickEventModalRef } fro
 import { savedReservationToast } from './QuickEventModal/savedToast';
 import { EventSummaryPopover } from './EventSummaryPopover';
 import type { PopoverAnchor } from './EventSummaryPopover';
-import { DeleteRecurringModal } from '@/modules/operations/components/DeleteRecurringModal';
+import { DeleteRecurringModal, type DeleteRecurringTarget } from '@/modules/operations/components/DeleteRecurringModal';
 import { DeleteOperationModal } from '@/modules/operations/components/DeleteOperationModal';
 import { useDeleteOperation } from '@/modules/operations/hooks/useDeleteOperation';
 import { useCalendarNavigation } from '@/common/context/CalendarNavigationContext';
@@ -60,7 +61,6 @@ import { AgendaListView } from './AgendaListView';
 import { DayEventsSheet } from './DayEventsSheet';
 import { usePermissions, usePersonalDataActions } from '@/core/permissions';
 import type { DateRange, CalendarView as CalendarViewType, EventCreationData, AppointmentEventData, VisitEventData, CalendarEvent, DoorToDoorCalendarEntry } from '../types';
-import type { Operation } from '@/modules/operations/types';
 import '../calendar.css';
 import { fromInstantToLocalInput } from '@/common/dateTime';
 import { formatCurrency } from '@/common/utils/formatters';
@@ -1650,7 +1650,7 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const { deleteWithScope, isDeleting: isDeletingRecurring } = useDeleteOperation();
 
     const { can } = usePermissions();
-    const { phase: navPhase, card: navCard, start: startNavAnim, reportTargetRect, finish: finishNavAnim } = useCalendarNavigation();
+    const { phase: navPhase, start: startNavAnim, reportTargetRect, finish: finishNavAnim } = useCalendarNavigation();
     const calendarRef = useRef<FullCalendar>(null);
 
     /**
@@ -1795,14 +1795,13 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
     const [endDateModalOpen, setEndDateModalOpen] = useState(false);
     const [endDateDraft, setEndDateDraft] = useState('');
     const [isSavingEndDate, setIsSavingEndDate] = useState(false);
-    const [deleteRecurringTarget, setDeleteRecurringTarget] = useState<Operation | null>(null);
+    const [deleteRecurringTarget, setDeleteRecurringTarget] = useState<DeleteRecurringTarget | null>(null);
     const [pendingDelete, setPendingDelete] = useState<{ id: string; type: 'VISIT' | 'APPOINTMENT'; name: string } | null>(null);
     const [isConfirmDeleting, setIsConfirmDeleting] = useState(false);
 
     const [searchOpen, setSearchOpen] = useState(false);
     const [highlightedEventId, setHighlightedEventId] = useState<string | null>(null);
     const [dashboardHighlightId, setDashboardHighlightId] = useState<string | null>(null);
-    const [isNavigating, setIsNavigating] = useState(false);
 
     // Capture from location.state into module-level var (survives StrictMode double-mount).
     // Read at render time so it's available before any effects run.
@@ -1920,7 +1919,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
 
         // Start observing once FullCalendar has mounted
         const start = () => {
-            const el = calendarRef.current?.getApi().el;
+            // Calendar z @fullcalendar/core ma `el`, ale typ CalendarApi go nie wystawia.
+            const el = (calendarRef.current?.getApi() as (CalendarApi & { el?: HTMLElement }) | undefined)?.el;
             if (el) observer.observe(el, { childList: true, subtree: true });
         };
         // Small delay to ensure FullCalendar's DOM is ready
@@ -2662,16 +2662,15 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
         }
 
         if (recurrenceInfo) {
-            const op: Operation = {
+            // Okno czytało imię i nazwisko z pól, których ten obiekt nie miał (był tu
+            // `customerName`), więc rezerwacja bez tytułu wychodziła jako „rezerwacja klienta ".
+            // Kalendarz zna tylko złożone imię i nazwisko - okno skleja je joinPiiName.
+            // Tytuł: własny tytuł rezerwacji, jak na liście operacji, nie etykieta kafelka.
+            const op: DeleteRecurringTarget = {
                 id: appt.id,
-                type: 'APPOINTMENT',
-                title: appt.title,
-                customerName: appt.customerName,
-                vehicleInfo: appt.vehicleInfo ?? '',
-                startDate: '',
-                endDate: '',
-                status: (appt.status as Operation['status']) || 'SCHEDULED',
-                services: [],
+                title: appt.appointmentTitle,
+                customerFirstName: appt.customerName,
+                customerLastName: '',
                 recurrenceInfo,
             };
             setPopoverOpen(false);
@@ -3078,7 +3077,6 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                             setPopoverPosition({ x: anchor.right + 10, y: anchor.top });
                             setPopoverOpen(true);
                         }}
-                        onDayAddClick={(date) => { if (canCreateVisits) openQuickEvent({ start: date, end: date, allDay: true }); }}
                         onPrev={() => calendarRef.current?.getApi().prev()}
                         onNext={() => calendarRef.current?.getApi().next()}
                         onToday={() => calendarRef.current?.getApi().today()}
@@ -3117,16 +3115,10 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                 )}
 
                 {/* FullCalendar: always mounted so its API & state machine stay active.
-                    Hidden when custom views are active (height:0 keeps JS running).
-                    opacity transition gives a smooth fade during search navigation. */}
+                    Hidden when custom views are active (height:0 keeps JS running). */}
                 <div ref={fullCalendarWrapperRef} onClickCapture={handleMoreLinkCapture} style={currentView === 'timeGridWeek' || currentView === 'timeGridDay' || agendaListActive
                     ? { height: 0, overflow: 'hidden', pointerEvents: 'none' }
-                    : {
-                        height: '100%',
-                        opacity: isNavigating ? 0 : 1,
-                        transition: 'opacity 0.22s ease',
-                        pointerEvents: isNavigating ? 'none' : undefined,
-                    }
+                    : { height: '100%' }
                 }>
                 <FullCalendar
                 ref={calendarRef}
@@ -3204,7 +3196,8 @@ export const CalendarView: React.FC<CalendarViewProps> = ({
                         return 0; // fall through to FullCalendar's default sort
                     },
                     'start',
-                ]}
+                // FullCalendar przyjmuje tablicę mieszaną (funkcje i nazwy pól), typ w paczce zna tylko jednorodne.
+                ] as unknown as CalendarOptions['eventOrder']}
                 weekends={true}
                 nowIndicator={true}
 

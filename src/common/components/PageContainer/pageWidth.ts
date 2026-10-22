@@ -41,18 +41,6 @@ export const pageGutter = css`
     }
 `;
 
-/**
- * Wyśrodkowana kolumna treści o standardowej szerokości + wspólny gutter.
- * Dla pasm w widokach pełnoekranowych, które chcą wyglądać dokładnie jak
- * standardowy PageContainer, ale nie mogą nim być (własny układ 100dvh).
- */
-export const pageColumn = css`
-    width: 100%;
-    max-width: ${PAGE_MAX_WIDTH};
-    margin-inline: auto;
-    ${pageGutter}
-`;
-
 /** Reguły max-width dla wariantów PageContainer. */
 export const pageWidthStyles = {
     standard: css`

@@ -24,11 +24,6 @@ export interface AuthResponse {
     user?: User | null;
 }
 
-export interface AuthError {
-    field?: string;
-    message: string;
-}
-
 export interface User {
     userId: string;
     studioId: string;
@@ -90,12 +85,6 @@ export interface ResetPasswordRequest {
 export interface ResetPasswordResponse {
     success: boolean;
     message: string;
-}
-
-export interface ResetPasswordError {
-    error: string;
-    message: string;
-    timestamp: string;
 }
 
 export interface DemoAccountResponse {

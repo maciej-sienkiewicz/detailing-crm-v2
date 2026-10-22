@@ -86,6 +86,3 @@ export const createCustomerSchema = z.object({
 
 export type CreateCustomerFormData = z.infer<typeof createCustomerSchema>;
 
-export const customerSearchSchema = z.object({
-    search: z.string().max(100),
-});

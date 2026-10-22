@@ -1,13 +1,11 @@
 import { normalizeVehicleKind, type VehicleKind } from '@/modules/vehicles/vehicleKind';
 import type {
     Customer,
-    CustomerRevenue,
     CreateCustomerPayload,
     Vehicle,
     CustomerVehiclesResponse,
     Visit,
     CustomerVisitsResponse,
-    PaginationMeta,
     Reservation,
     CustomerReservationsResponse,
 } from '../types';
@@ -24,31 +22,6 @@ interface BackendVehicle {
     licensePlate: string;
     color?: string;
     active?: boolean;
-}
-
-// Backend visit response type
-interface BackendVisit {
-    id: string;
-    date: string;
-    vehicleId: string;
-    vehicleName: string;
-    description: string;
-    /** null bez prawa do cen. */
-    totalCost: {
-        netAmount: number;
-        grossAmount: number;
-        currency: string;
-    } | null;
-    status: string;
-    createdBy?: string;
-    notes: string;
-    deletedAt?: string | null;
-}
-
-// Backend visits response
-interface BackendVisitsResponse {
-    visits: BackendVisit[];
-    pagination: PaginationMeta;
 }
 
 // Backend appointment/reservation type
@@ -79,12 +52,6 @@ export const formatCurrency = (amount: number, currency: string): string => {
         style: 'currency',
         currency,
     }).format(amount);
-};
-
-export const formatRevenue = (revenue: CustomerRevenue): string => {
-    const net = formatCurrency(revenue.netAmount, revenue.currency);
-    const gross = formatCurrency(revenue.grossAmount, revenue.currency);
-    return `${net} / ${gross}`;
 };
 
 export const formatDate = (dateString: string | null): string => {
@@ -168,47 +135,6 @@ export const mapBackendVehiclesResponse = (backendVehicles: BackendVehicle[]): C
     totalCount: backendVehicles.length,
 });
 
-export const mapBackendVisitToVisit = (backendVisit: BackendVisit): Visit => {
-    // Map backend status string to frontend union type
-    const visitStatus = (() => {
-        const status = backendVisit.status.toLowerCase();
-        switch (status) {
-            case 'completed':
-                return 'completed' as const;
-            case 'in-progress':
-            case 'in_progress':
-                return 'in-progress' as const;
-            case 'ready_for_pickup':
-            case 'ready-for-pickup':
-                return 'ready-for-pickup' as const;
-            case 'scheduled':
-                return 'scheduled' as const;
-            case 'cancelled':
-                return 'cancelled' as const;
-            default:
-                return 'scheduled' as const;
-        }
-    })();
-
-    return {
-        id: backendVisit.id,
-        date: backendVisit.date,
-        vehicleId: backendVisit.vehicleId,
-        vehicleName: backendVisit.vehicleName,
-        description: backendVisit.description,
-        totalCost: backendVisit.totalCost && {
-            netAmount: backendVisit.totalCost.netAmount,
-            grossAmount: backendVisit.totalCost.grossAmount,
-            currency: backendVisit.totalCost.currency,
-        },
-        status: visitStatus,
-        createdBy: backendVisit.createdBy || '',
-        technician: backendVisit.createdBy || '',
-        notes: backendVisit.notes,
-        deletedAt: backendVisit.deletedAt ?? null,
-    };
-};
-
 export const mapBackendReservationToReservation = (appointment: BackendAppointment): Reservation => {
     const vehicleName = appointment.vehicle
         ? `${appointment.vehicle.brand} ${appointment.vehicle.model}`
@@ -231,12 +157,6 @@ export const mapBackendReservationToReservation = (appointment: BackendAppointme
 
 export const mapBackendReservationsResponse = (appointments: BackendAppointment[]): CustomerReservationsResponse => ({
     reservations: appointments.map(mapBackendReservationToReservation),
-});
-
-export const mapBackendVisitsResponse = (backendVisits: BackendVisitsResponse): CustomerVisitsResponse => ({
-    visits: backendVisits.visits.map(mapBackendVisitToVisit),
-    communications: [],
-    pagination: backendVisits.pagination,
 });
 
 export const mapCalendarVisitToVisit = (v: VisitResponse): Visit => {

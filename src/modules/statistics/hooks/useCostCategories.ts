@@ -74,18 +74,6 @@ export const useAssignCostItems = () => {
     });
 };
 
-export const useUnassignCostItem = () => {
-    const qc = useQueryClient();
-    return useMutation({
-        mutationFn: ({ categoryId, itemId }: { categoryId: string; itemId: string }) =>
-            costsApi.unassignItem(categoryId, itemId),
-        onSuccess: () => {
-            qc.invalidateQueries({ queryKey: [COST_ITEMS_KEY] });
-            qc.invalidateQueries({ queryKey: [COST_BREAKDOWN_KEY] });
-        },
-    });
-};
-
 export const useCostExpenseItems = (dateFrom: string, dateTo: string) => {
     const { data, isLoading, isError, refetch, isFetching } = useQuery({
         queryKey: [COST_ITEMS_KEY, dateFrom, dateTo],

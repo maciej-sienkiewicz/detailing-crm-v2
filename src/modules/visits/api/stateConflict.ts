@@ -15,8 +15,6 @@ import { apiErrorStatus } from './apiError';
 
 /** Wizyta jest już w stanie, o który prosiliśmy — nie ma czego naprawiać. */
 export const VISIT_ALREADY_IN_STATE = 'VISIT_ALREADY_IN_STATE';
-/** Wizyta jest w innym stanie — trzeba spojrzeć na ekran, bo zmienił się pod nami. */
-export const VISIT_STATE_CONFLICT = 'VISIT_STATE_CONFLICT';
 
 interface ApiErrorBody {
     response?: { data?: { code?: unknown } };

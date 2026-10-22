@@ -1,5 +1,6 @@
 // src/modules/operations/components/OperationStatusBadge.tsx
 
+import type { JSX } from 'react';
 import styled from 'styled-components';
 import type { OperationStatus } from '../types';
 
@@ -86,9 +87,6 @@ const statusConfig: Record<OperationStatus, { label: string; color: string; bg: 
     CONVERTED:        { label: 'Wizyta rozpoczęta',  color: '#059669', bg: 'rgba(5, 150, 105, 0.10)', Icon: IconCheck    },
 };
 
-export const getStatusIcon = (status: OperationStatus): StatusIcon =>
-    statusConfig[status]?.Icon ?? IconCheck;
-
 // ─── Styled components ────────────────────────────────────────────────────────
 
 const Badge = styled.span<{ $color: string; $bg: string }>`
@@ -104,14 +102,6 @@ const Badge = styled.span<{ $color: string; $bg: string }>`
     letter-spacing: 0.1px;
     white-space: nowrap;
     line-height: 1;
-`;
-
-const Dot = styled.span<{ $color: string }>`
-    width: 6px;
-    height: 6px;
-    border-radius: 50%;
-    background: ${props => props.$color};
-    flex-shrink: 0;
 `;
 
 // ─── Component ────────────────────────────────────────────────────────────────

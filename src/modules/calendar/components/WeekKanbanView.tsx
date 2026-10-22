@@ -1,14 +1,13 @@
 import { isStartedVisit } from '../utils/visitStatus';
 import styled, { css, keyframes } from 'styled-components';
 import { PiiText } from '@/common/pii';
-import type { CalendarEvent, AppointmentEventData, VisitEventData, CalendarViewType } from '../types';
+import type { CalendarEvent, AppointmentEventData, VisitEventData, CalendarView as CalendarViewType } from '../types';
 import type { PopoverAnchor } from './EventSummaryPopover';
 import { formatClockTime } from '@/common/dateTime';
 import { pluralPl } from '@/common/utils/plural';
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const DAY_NAMES_FULL  = ['Niedziela', 'Poniedziałek', 'Wtorek', 'Środa', 'Czwartek', 'Piątek', 'Sobota'];
 const DAY_NAMES_SHORT = ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'Sb'];
 
 function toLocalDate(isoStr: string): Date {
@@ -130,7 +129,6 @@ interface WeekKanbanViewProps {
         eventData: AppointmentEventData | VisitEventData,
         anchor: PopoverAnchor
     ) => void;
-    onDayAddClick: (date: Date) => void;
     onPrev: () => void;
     onNext: () => void;
     onToday: () => void;
@@ -569,7 +567,6 @@ export const WeekKanbanView = ({
     calendarTitle,
     currentView,
     onEventClick,
-    onDayAddClick,
     onPrev,
     onNext,
     onToday,

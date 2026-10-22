@@ -162,7 +162,6 @@ export interface CheckInFormData {
         inspectionNotes: string;
         protocolNotes: string;
     };
-    note: string;
     // Local UI input value (YYYY-MM-DDTHH:mm). Convert to Instant for backend using toInstant()
     visitStartAt?: string;
     // Local UI input value (YYYY-MM-DDTHH:mm). Convert to Instant for backend using toInstant()
@@ -176,6 +175,15 @@ export interface CheckInFormData {
     appointmentColorId: string;
     doorToDoor?: DoorToDoorInfo;
 }
+
+/**
+ * Dane startowe kreatora przyjęcia. Wszystko opcjonalne - także pola stanu technicznego,
+ * bo rezerwacja i walk-in znają tylko notatki, a kreator uzupełnia resztę domyślnymi
+ * (useCheckInWizard).
+ */
+export type CheckInInitialData = Omit<Partial<CheckInFormData>, 'technicalState'> & {
+    technicalState?: Partial<CheckInFormData['technicalState']>;
+};
 
 export type CheckInCustomerIdentity =
     | {
@@ -272,6 +280,8 @@ export type CheckInVehicleIdentity =
 
 export interface ReservationToVisitPayload {
     reservationId: string;
+    /** Tylko walk-in: przyjęcie z rezerwacji wysyła zdjęcia z telefonu pod id rezerwacji. */
+    qrCheckinId?: undefined;
     /** Instant (UTC ISO-8601 with 'Z') */
     startDateTime?: string;
     /** Instant (UTC ISO-8601 with 'Z') */
@@ -488,4 +498,3 @@ export type ReviseDraftPayload = WalkInVisitPayload;
 
 export type CheckInStep = 'verification' | 'photos';
 
-export type MoneyAmount = number;

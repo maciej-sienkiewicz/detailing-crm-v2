@@ -1,6 +1,6 @@
 // src/modules/services/utils/priceCalculator.ts
 import { dinero, toDecimal } from 'dinero.js';
-import { PLN } from '@dinero.js/currencies';
+import { PLN } from 'dinero.js/currencies';
 import { netToGross, grossToNet } from '@/common/utils/priceAdjustment';
 import type { VatRate, ServicePriceCalculation } from '../types';
 

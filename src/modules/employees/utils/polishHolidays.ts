@@ -80,20 +80,6 @@ export function getPolishHolidays(year: number): Set<string> {
     ]);
 }
 
-/** Human-readable Polish name for a fixed holiday (keyed by MM-DD). */
-export const POLISH_HOLIDAY_NAMES: Record<string, string> = {
-    '01-01': 'Nowy Rok',
-    '01-06': 'Trzech Króli',
-    '05-01': 'Święto Pracy',
-    '05-03': 'Konstytucja 3 Maja',
-    '08-15': 'Wniebowzięcie NMP',
-    '11-01': 'Wszystkich Świętych',
-    '11-11': 'Święto Niepodległości',
-    '12-24': 'Wigilia',
-    '12-25': 'Boże Narodzenie',
-    '12-26': 'Boże Narodzenie (2.)',
-};
-
 /** Returns true if the given YYYY-MM-DD date string is a weekend day. */
 export function isWeekend(dateStr: string): boolean {
     const d = new Date(dateStr + 'T00:00:00');

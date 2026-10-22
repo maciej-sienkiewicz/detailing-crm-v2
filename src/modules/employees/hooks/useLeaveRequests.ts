@@ -12,7 +12,6 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { leaveRequestsApi, myLeaveRequestsApi } from '../api/leaveRequestsApi';
 import { useLeaveCalendar } from './useLeaves';
 import type {
-    CreateLeaveRequestPayload,
     EmployeeSignaturePayload,
     LeaveDecisionPayload,
     LeaveRequestQueueStatus,
@@ -84,12 +83,6 @@ export const useAbsentColleagues = (startDate: string, endDate: string, excludeI
 const useInvalidateMine = () => {
     const queryClient = useQueryClient();
     return () => queryClient.invalidateQueries({ queryKey: MY_LEAVE_REQUESTS_KEY });
-};
-
-export const useCreateLeaveRequest = () => {
-    return useMutation({
-        mutationFn: (payload: CreateLeaveRequestPayload) => myLeaveRequestsApi.create(payload),
-    });
 };
 
 export const useSubmitLeaveRequest = () => {

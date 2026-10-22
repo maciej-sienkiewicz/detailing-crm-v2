@@ -22,6 +22,7 @@ import {
     Button, IconButton, Panel, PanelActions, PanelBody, PanelHead, SectionTitle, ui,
 } from '@/common/components/ui';
 import type { CustomerDocument } from '../types';
+import { openInNewTab } from '@/common/utils/safeUrl';
 
 /** Od tylu dokumentów pokazujemy wyszukiwarkę; tyle też mieści się przed „Pokaż wszystkie". */
 const SEARCH_FROM = 7;
@@ -131,7 +132,7 @@ export const DocumentsManager = ({ customerId, id }: DocumentsManagerProps) => {
     const open = (doc: CustomerDocument) => {
         const idx = viewable.findIndex(d => d.id === doc.id);
         if (idx !== -1) setViewerIndex(idx);
-        else window.open(doc.fileUrl, '_blank');
+        else openInNewTab(doc.fileUrl);
     };
 
     return (
@@ -186,7 +187,7 @@ export const DocumentsManager = ({ customerId, id }: DocumentsManagerProps) => {
                                     {isViewable(doc.fileName) && (
                                         <Button variant="ghost" size="sm" onClick={() => open(doc)}>Podgląd</Button>
                                     )}
-                                    <IconButton label={`Pobierz ${doc.name || doc.fileName}`} variant="ghost" size="sm" onClick={() => window.open(doc.fileUrl, '_blank')}>
+                                    <IconButton label={`Pobierz ${doc.name || doc.fileName}`} variant="ghost" size="sm" onClick={() => openInNewTab(doc.fileUrl)}>
                                         <Download />
                                     </IconButton>
                                     {canDelete && (
@@ -226,7 +227,7 @@ export const DocumentsManager = ({ customerId, id }: DocumentsManagerProps) => {
                     hasPrev={viewerIndex! > 0}
                     onNext={() => setViewerIndex(i => (i ?? 0) + 1)}
                     onPrev={() => setViewerIndex(i => (i ?? 0) - 1)}
-                    onDownload={() => window.open(current.fileUrl, '_blank')}
+                    onDownload={() => openInNewTab(current.fileUrl)}
                 />
             )}
 

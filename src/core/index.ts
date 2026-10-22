@@ -9,7 +9,6 @@ export {
     getDefaultRoute,
     usePermissions,
     RequirePermission,
-    Can,
     HomeRedirect,
 } from './permissions';
 export type { PermissionCode, PermissionRequirement } from './permissions';

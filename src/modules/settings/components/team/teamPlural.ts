@@ -28,5 +28,3 @@ export const peopleGenitive = (n: number) => `${n} ${n === 1 ? 'osoby' : 'osób'
  */
 export const employeesCount = (n: number) => `${n} ${n === 1 ? 'pracownik' : 'pracowników'}`;
 
-/** „2 listy do zatwierdzenia", „5 list do zatwierdzenia". */
-export const sheetsToApprove = (n: number) => `${n} ${plural(n, 'lista', 'listy', 'list')} do zatwierdzenia`;

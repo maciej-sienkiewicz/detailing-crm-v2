@@ -3,12 +3,6 @@
 
 export const today = () => new Date().toISOString().slice(0, 10);
 
-export const oneYearAgo = () => {
-    const d = new Date();
-    d.setFullYear(d.getFullYear() - 1);
-    return d.toISOString().slice(0, 10);
-};
-
 /** Pierwszy dzień bieżącego miesiąca - domyślny zakres obu widoków statystyk. */
 export const currentMonthStart = () => {
     const d = new Date();

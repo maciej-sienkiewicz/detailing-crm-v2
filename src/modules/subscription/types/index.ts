@@ -106,9 +106,6 @@ export interface EntitlementsResponse {
 
 // ─── Paywall (HTTP 402 contract) ──────────────────────────────────────────────
 
-/** Machine-readable codes carried by every HTTP 402 body. Branch on code, never on message. */
-export const PAYWALL_CODE_MODULE_REQUIRED = 'MODULE_REQUIRED';
-export const PAYWALL_CODE_INSUFFICIENT_CREDITS = 'INSUFFICIENT_CREDITS';
 
 export interface PaywallErrorResponse {
     code: string;

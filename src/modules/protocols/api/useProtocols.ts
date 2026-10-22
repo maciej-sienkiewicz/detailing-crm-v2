@@ -4,7 +4,7 @@ import type {
   CreateProtocolTemplateDto,
   UpdateProtocolTemplateDto,
   CreateProtocolRuleDto,
-  SignProtocolDto,
+  
 } from '../types';
 
 // Query Keys
@@ -24,14 +24,6 @@ export function useProtocolTemplates() {
   return useQuery({
     queryKey: protocolQueryKeys.templates(),
     queryFn: () => protocolsApi.getProtocolTemplates(),
-  });
-}
-
-export function useProtocolTemplate(id: string) {
-  return useQuery({
-    queryKey: protocolQueryKeys.template(id),
-    queryFn: () => protocolsApi.getProtocolTemplate(id),
-    enabled: !!id,
   });
 }
 
@@ -79,21 +71,6 @@ export function useProtocolRules() {
   });
 }
 
-export function useProtocolRulesByStage(stage: 'CHECK_IN' | 'CHECK_OUT') {
-  return useQuery({
-    queryKey: protocolQueryKeys.rulesByStage(stage),
-    queryFn: () => protocolsApi.getProtocolRulesByStage(stage),
-  });
-}
-
-export function useProtocolRulesByService(serviceId: string) {
-  return useQuery({
-    queryKey: protocolQueryKeys.rulesByService(serviceId),
-    queryFn: () => protocolsApi.getProtocolRulesByService(serviceId),
-    enabled: !!serviceId,
-  });
-}
-
 export function useCreateProtocolRule() {
   const queryClient = useQueryClient();
 
@@ -128,35 +105,3 @@ export function useDeleteProtocolRule() {
   });
 }
 
-// Visit Protocols Hooks
-export function useVisitProtocols(visitId: string) {
-  return useQuery({
-    queryKey: protocolQueryKeys.visitProtocols(visitId),
-    queryFn: () => protocolsApi.getVisitProtocols(visitId),
-    enabled: !!visitId,
-  });
-}
-
-export function useSignVisitProtocol() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ visitId, protocolId, data }: { visitId: string; protocolId: string; data: SignProtocolDto }) =>
-      protocolsApi.signVisitProtocol(visitId, protocolId, data),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: protocolQueryKeys.visitProtocols(variables.visitId) });
-    },
-  });
-}
-
-export function useGenerateVisitProtocols() {
-  const queryClient = useQueryClient();
-
-  return useMutation({
-    mutationFn: ({ visitId, stage }: { visitId: string; stage?: 'CHECK_IN' | 'CHECK_OUT' }) =>
-      protocolsApi.generateVisitProtocols(visitId, stage),
-    onSuccess: (_, variables) => {
-      queryClient.invalidateQueries({ queryKey: protocolQueryKeys.visitProtocols(variables.visitId) });
-    },
-  });
-}

@@ -27,6 +27,7 @@ import {
 } from '../utils/areaLabels';
 import { PHONE } from '../utils/phone';
 import { followMessage } from '../utils/followMessage';
+import { openInNewTab } from '@/common/utils/safeUrl';
 
 /**
  * „Reklamodawcy w okolicy" — kto jeszcze reklamuje się w moim rejonie.
@@ -892,7 +893,7 @@ const PhoneAdvertiserList = ({ rows, windowDays, busy, onHide }: {
                     <>
                         <MenuItem
                             icon={<ExternalLink />}
-                            onClick={() => window.open(target.adLibraryUrl, '_blank', 'noopener,noreferrer')}
+                            onClick={() => openInNewTab(target.adLibraryUrl)}
                         >
                             Reklamy w Bibliotece Meta
                         </MenuItem>

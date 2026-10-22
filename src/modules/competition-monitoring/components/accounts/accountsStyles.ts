@@ -269,17 +269,6 @@ export const List = styled.ul`
     }
 `;
 
-export const Row = styled.li`
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    padding: 10px 12px;
-    border: 1px solid ${ui.line};
-    border-radius: ${ui.radiusRow};
-    background: ${ui.surface};
-    min-width: 0;
-`;
-
 export const RowText = styled.div`
     display: flex;
     flex-direction: column;

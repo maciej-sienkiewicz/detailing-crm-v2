@@ -4,8 +4,6 @@ import { productsApi, visitProductsApi } from '../api/productsApi';
 import type {
     ProductListFilters,
     CreateProductRequest,
-    UpdateProductRequest,
-    UpdateProductStudioRequest,
     ProductDraft,
 } from '../types';
 
@@ -55,31 +53,6 @@ export const useCreateFromDraft = () => {
         onSuccess: () => qc.invalidateQueries({ queryKey: [KEY] }),
     });
 };
-
-export const useUpdateProduct = (id: string) => {
-    const qc = useQueryClient();
-    return useMutation({
-        mutationFn: (req: UpdateProductRequest) => productsApi.update(id, req),
-        onSuccess: () => {
-            qc.invalidateQueries({ queryKey: [KEY, 'detail', id] });
-            qc.invalidateQueries({ queryKey: [KEY, 'list'] });
-        },
-    });
-};
-
-export const useUpdateProductStudio = (id: string) => {
-    const qc = useQueryClient();
-    return useMutation({
-        mutationFn: (req: UpdateProductStudioRequest) => productsApi.updateStudio(id, req),
-        onSuccess: () => {
-            qc.invalidateQueries({ queryKey: [KEY, 'detail', id] });
-            qc.invalidateQueries({ queryKey: [KEY, 'list'] });
-        },
-    });
-};
-
-export const useProductLookup = () =>
-    useMutation({ mutationFn: (barcode: string) => productsApi.lookup(barcode) });
 
 // ── Notatki ──
 export const useProductNotes = (id: string | undefined) => {

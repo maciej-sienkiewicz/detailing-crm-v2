@@ -280,7 +280,7 @@ describe('podział: faktura + inny dokument', () => {
 
 describe('pozycje faktury ustalają ceny (bez sekcji „Ceny usług”)', () => {
     it('kwota pozycji niższa niż usługa to rabat w wizycie - od strony brutto', () => {
-        const lines = linesFromPrices([ceramika, korekta]).map(l => (l.serviceIds[0] === 'c' ? { ...l, amount: '7000,00', amountMode: 'GROSS' } : l));
+        const lines = linesFromPrices([ceramika, korekta]).map(l => (l.serviceIds[0] === 'c' ? { ...l, amount: '7000,00', amountMode: 'GROSS' as const } : l));
         const s = state({ prices: [ceramika, korekta], lines });
         const plan = settlementPlan(s);
 

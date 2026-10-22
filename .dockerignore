@@ -5,3 +5,8 @@ dist
 .env.local
 *.log
 .DS_Store
+*.jks
+*.keystore
+*.p12
+android
+ios

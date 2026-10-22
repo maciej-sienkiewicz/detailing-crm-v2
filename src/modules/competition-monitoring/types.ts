@@ -22,18 +22,6 @@ export interface InstagramProfile {
 
 // ─── Metryki ──────────────────────────────────────────────────────────────────
 
-export interface MetricTriple {
-    value: number | null;
-    previous: number | null;
-    deltaPct: number | null;
-    benchmark: number | null;
-}
-
-export interface Storefront {
-    score: number;
-    gaps: string[];
-}
-
 // ─── Tydzień ──────────────────────────────────────────────────────────────────
 
 /**

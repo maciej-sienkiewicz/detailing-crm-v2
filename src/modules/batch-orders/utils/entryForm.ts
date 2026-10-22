@@ -78,8 +78,3 @@ export function entryTotals(services: ServiceFormItem[]): EntryTotals {
     return { netCents, grossCents, vatCents: grossCents - netCents };
 }
 
-/** Jedna stawka VAT dla wszystkich pozycji, albo null przy mieszanych stawkach. */
-export function commonVatRate(services: ServiceFormItem[]): number | null {
-    const rates = new Set(services.filter(s => s.name.trim()).map(s => s.vatRate));
-    return rates.size === 1 ? [...rates][0] : null;
-}

@@ -124,5 +124,12 @@ export async function openNatively(href: string, fileName?: string): Promise<voi
         await Browser.open({ url: url.href });
         return;
     }
-    window.location.href = url.href;
+    // Tylko schematy, które system przekaże dzwonieniu, poczcie i SMS-om. Dawniej szło tu
+    // wszystko - także `javascript:`, który wykonałby się w originie CRM z mostem
+    // Capacitora; w przeglądarce chroni przed tym `noopener`, którego ta powłoka nie widzi.
+    if (url.protocol === 'tel:' || url.protocol === 'mailto:' || url.protocol === 'sms:') {
+        window.location.href = url.href;
+        return;
+    }
+    throw new Error(`Odrzucono adres ze schematem ${url.protocol}`);
 }

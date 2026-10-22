@@ -1,5 +1,5 @@
 import { ReactNode, useEffect } from 'react';
-import { useNavigate } from 'react-router';
+import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { SubscriptionGate } from './SubscriptionGate';
 import { SessionLockedScreen } from './SessionLockedScreen';

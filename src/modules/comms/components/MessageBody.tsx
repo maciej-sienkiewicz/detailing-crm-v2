@@ -10,7 +10,8 @@
 //  • MAIL PROJEKTOWANY (newsletter na tabelach, własne style, tła) ląduje w izolowanym
 //    iframe, bo tam układ jest treścią, a obce CSS nie może wyciec na resztę aplikacji.
 //    Sandbox bez allow-scripts; allow-same-origin daje ciasteczka dla obrazków inline
-//    (cid → /api/v1/comms/attachments/…) i pomiar wysokości dokumentu. Ramka bywa
+//    (cid → /api/v1/comms/attachments/…) i pomiar wysokości dokumentu. Tu też idzie
+//    DOMPurify (z zachowanym <style>) i CSP w <meta> ramki. Ramka bywa
 //    ekranami treści, więc dostaje własny scroll i przejście do pełnego podglądu.
 //
 //  • WIADOMOŚĆ GRAFICZNA (sam obrazek, zero tekstu) w wąskiej kolumnie wątku jest
@@ -40,6 +41,11 @@ const Prose = styled.div<{ $size?: 'reader' | 'bubble' }>`
     line-height: ${p => (p.$size === 'bubble' ? '22px' : p.$size === 'reader' ? '24px' : 1.65)};
     color: ${p => p.theme.colors.text};
     overflow-wrap: anywhere;
+    /* Druga warstwa pod hakiem DOMPurify: cokolwiek z treści maila wyjdzie z przepływu
+       (fixed, ujemne marginesy, transform), zostaje w granicach tego pudełka. */
+    position: relative;
+    isolation: isolate;
+    contain: paint;
 
     /* Obcy HTML sprowadzamy do naszego rytmu - bez tego każdy mail ma inną skalę. */
     * { max-width: 100%; font-family: inherit !important; }
@@ -223,10 +229,52 @@ const FRAME_STYLES = `
 const PURIFY_CONFIG = {
     FORBID_TAGS: ['style', 'script', 'iframe', 'object', 'embed', 'form', 'link', 'meta', 'base'],
     FORBID_ATTR: ['srcset', 'formaction'],
-    ADD_ATTR: ['target', 'rel'],
+    ADD_ATTR: ['target'],
 };
 
-const sanitize = (html: string): string => DOMPurify.sanitize(html, PURIFY_CONFIG) as string;
+/** Ramka maila projektowanego: zostaje <style> (układ newslettera), reszta jak wyżej. */
+const FRAME_PURIFY_CONFIG = {
+    FORBID_TAGS: ['script', 'iframe', 'object', 'embed', 'form', 'link', 'meta', 'base'],
+    FORBID_ATTR: ['formaction'],
+    ADD_ATTR: ['target'],
+    FORCE_BODY: true,
+};
+
+/**
+ * Osobne instancje DOMPurify, bo haki są przypięte do instancji - domyślna służy też
+ * podglądowi stopki i nie powinna dziedziczyć reguł dla cudzej poczty.
+ */
+const createMailPurifier = (stripLayoutEscape: boolean) => {
+    const purifier = typeof window === 'undefined' ? DOMPurify : DOMPurify(window);
+    purifier.addHook('afterSanitizeAttributes', (node) => {
+        // Link z target bez noopener dawałby otwartej stronie window.opener do karty CRM.
+        if (node.tagName === 'A' && node.hasAttribute('target')) node.setAttribute('rel', 'noopener noreferrer');
+        // Prosta korespondencja renderuje się WPROST w stronie CRM, a jsoup i DOMPurify
+        // przepuszczają `style`. `position:fixed; inset:0; z-index:…` w mailu od obcego
+        // nadawcy przykrywało całą aplikację - np. fałszywym „Sesja wygasła, zaloguj się"
+        // z linkiem do cudzej strony. W ramce (mail projektowany) to samo zakryje najwyżej
+        // ramkę, więc tam układ zostaje nietknięty.
+        if (stripLayoutEscape && node instanceof HTMLElement && node.hasAttribute('style')) {
+            node.style.removeProperty('position');
+            node.style.removeProperty('z-index');
+            if (!node.getAttribute('style')?.trim()) node.removeAttribute('style');
+        }
+    });
+    return purifier;
+};
+
+const inlinePurifier = createMailPurifier(true);
+const framePurifier = createMailPurifier(false);
+
+const sanitize = (html: string): string => inlinePurifier.sanitize(html, PURIFY_CONFIG) as string;
+const sanitizeFrame = (html: string): string => framePurifier.sanitize(html, FRAME_PURIFY_CONFIG) as string;
+
+/**
+ * Polityka wewnątrz ramki: sandbox i tak nie wpuszcza skryptów, a to domyka resztę -
+ * żadnych ramek, formularzy, połączeń z sieci. Obrazki i style z https zostają, bo bez
+ * nich newsletter się rozsypuje.
+ */
+const FRAME_CSP = "default-src 'none'; img-src https: http: data: 'self'; style-src 'unsafe-inline' https:; font-src https: data:; media-src https: data:";
 
 /** Wysokości zmierzonych ramek - klucz: id wiadomości + stan cytatu. */
 /**
@@ -330,7 +378,7 @@ export function MessageBody({
         const body = quotedShown && quotedHtml
             ? `${mainHtml}<div class="crm-quoted">${quotedHtml}</div>`
             : mainHtml;
-        return `<!doctype html><html><head><meta charset="utf-8">${FRAME_STYLES}</head><body>${body}</body></html>`;
+        return `<!doctype html><html><head><meta charset="utf-8"><meta http-equiv="Content-Security-Policy" content="${FRAME_CSP}">${FRAME_STYLES}</head><body>${sanitizeFrame(body)}</body></html>`;
     }, [mainHtml, quotedHtml, quotedShown]);
 
     const measureKey = cacheKey ? `${cacheKey}:${quotedShown ? 'full' : 'main'}` : null;

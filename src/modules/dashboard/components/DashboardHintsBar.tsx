@@ -19,6 +19,7 @@ import {
     type DashboardHint,
     type DashboardHintKind,
 } from '../hooks/useDashboardHints';
+import { openInNewTab } from '@/common/utils/safeUrl';
 
 const slideIn = keyframes`
   from { opacity: 0; transform: translateY(-4px); }
@@ -137,7 +138,7 @@ export const DashboardHintsBar = ({ hideKinds = [] }: DashboardHintsBarProps) =>
             return;
         }
         if (action.type === 'EXTERNAL' && action.url) {
-            window.open(action.url, '_blank', 'noopener,noreferrer');
+            openInNewTab(action.url);
             return;
         }
         if (action.type === 'DISABLE_WORKTIME') {

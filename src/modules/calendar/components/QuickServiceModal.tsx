@@ -141,7 +141,7 @@ export const QuickServiceModal: React.FC<QuickServiceModalProps> = ({
             });
 
             onClose();
-        } catch (error) {
+        } catch {
             setErrors({ submit: 'Nie udało się zapisać usługi' });
         }
     };

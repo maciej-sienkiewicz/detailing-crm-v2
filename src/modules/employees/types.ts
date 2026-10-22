@@ -144,11 +144,6 @@ export interface CreateEmployeeFormOutput {
     roleId: string | null;
 }
 
-export interface ChangePasswordRequest {
-    newPassword: string;
-    confirmPassword: string;
-}
-
 export interface TerminateEmployeePayload {
     terminationDate: string;
     reason?: string | null;

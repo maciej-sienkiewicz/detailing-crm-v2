@@ -40,6 +40,7 @@ import {
     PHONE, SkeletonLine, View, formatDate, phonesWord,
 } from './devicesLayout';
 import { isNativeApp } from '@/core/native/platform';
+import { assignSafeUrl } from '@/common/utils/safeUrl';
 
 type InstallPath = 'ios-safari' | 'ios-other' | 'desktop';
 
@@ -113,7 +114,7 @@ export function ContactsSyncSection() {
                     // „Pobrano profil". Kartę z dalszymi krokami zostawiamy pod
                     // spodem, bo użytkownik wróci do niej z Ustawień.
                     setProvisioning(result);
-                    window.location.assign(result.installUrl);
+                    assignSafeUrl(result.installUrl);
                 } else {
                     setProvisioning(result);
                 }

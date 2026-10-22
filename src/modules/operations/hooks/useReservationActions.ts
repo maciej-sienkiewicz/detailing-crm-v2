@@ -33,7 +33,7 @@ export const useUpdateReservationDate = () => {
 
 export const useCancelReservation = () => {
     const queryClient = useQueryClient();
-    const { showToast } = useToast();
+    const { showSuccess } = useToast();
 
     const mutation = useMutation({
         mutationFn: (reservationId: string) => operationApi.cancelReservation(reservationId),
@@ -42,7 +42,7 @@ export const useCancelReservation = () => {
             queryClient.invalidateQueries({ queryKey: ['operations'] });
 
             // Pokaż toast z informacją o porzuceniu rezerwacji
-            showToast('Rezerwacja została porzucona', 'success');
+            showSuccess('Rezerwacja została porzucona');
         },
     });
 
@@ -50,50 +50,6 @@ export const useCancelReservation = () => {
         cancelReservation: mutation.mutate,
         isCancelling: mutation.isPending,
         error: mutation.error,
-    };
-};
-
-export const useRestoreAppointment = () => {
-    const queryClient = useQueryClient();
-    const { showToast } = useToast();
-
-    const mutation = useMutation({
-        mutationFn: (appointmentId: string) => operationApi.restoreAppointment(appointmentId),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['operations'] });
-            queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
-            showToast('Rezerwacja została przywrócona', 'success');
-        },
-    });
-
-    return {
-        restoreAppointment: mutation.mutate,
-        restoreAppointmentAsync: mutation.mutateAsync,
-        isRestoring: mutation.isPending,
-        error: mutation.error,
-    };
-};
-
-export const useUpdateAppointmentTitle = () => {
-    const queryClient = useQueryClient();
-    const { showSuccess, showError } = useToast();
-
-    const mutation = useMutation({
-        mutationFn: ({ appointmentId, title }: { appointmentId: string; title: string }) =>
-            appointmentApi.updateTitle(appointmentId, title),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['operations'] });
-            queryClient.invalidateQueries({ queryKey: ['dashboard', 'upcoming-visits'] });
-            showSuccess('Zapisano tytuł rezerwacji');
-        },
-        onError: () => {
-            showError('Nie udało się zapisać tytułu');
-        },
-    });
-
-    return {
-        updateTitle: mutation.mutateAsync,
-        isUpdating: mutation.isPending,
     };
 };
 
@@ -126,23 +82,3 @@ export const useUpdateOperationTitle = () => {
     };
 };
 
-export const useDeleteAppointment = () => {
-    const queryClient = useQueryClient();
-    const { showToast } = useToast();
-
-    const mutation = useMutation({
-        mutationFn: (appointmentId: string) => operationApi.deleteAppointment(appointmentId),
-        onSuccess: () => {
-            queryClient.invalidateQueries({ queryKey: ['operations'] });
-            queryClient.invalidateQueries({ queryKey: ['calendar-events'] });
-            showToast('Rezerwacja została usunięta', 'success');
-        },
-    });
-
-    return {
-        deleteAppointment: mutation.mutate,
-        deleteAppointmentAsync: mutation.mutateAsync,
-        isDeletingAppointment: mutation.isPending,
-        error: mutation.error,
-    };
-};

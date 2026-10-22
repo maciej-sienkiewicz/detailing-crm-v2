@@ -1,9 +1,10 @@
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
 import { render } from '@testing-library/react';
+import type { ComponentType } from 'react';
 import * as icons from './menuIcons';
 
-const all = Object.entries(icons).filter(([name]) => name.endsWith('Icon')) as Array<[string, () => JSX.Element]>;
+const all = Object.entries(icons).filter(([name]) => name.endsWith('Icon')) as Array<[string, ComponentType]>;
 
 describe('menuIcons', () => {
     it('każda ikona to SVG 24×24 w kolorze tekstu, ukryte przed czytnikiem ekranu', () => {

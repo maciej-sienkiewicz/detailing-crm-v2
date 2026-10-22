@@ -5,7 +5,8 @@
 // and the lead conversion flow (/v1/leads/{id}/appointment).
 
 import { isSameLocalDay, toInstant } from '@/common/dateTime';
-import type { QuickEventFormData, AdjustmentType } from '@/modules/calendar/components/QuickEventModal';
+import type { QuickEventFormData } from '@/modules/calendar/components/QuickEventModal';
+import type { AdjustmentType } from '@/common/utils/priceAdjustment';
 import { normalizeVehicleKind, type VehicleKind } from '@/modules/vehicles/vehicleKind';
 
 export interface ServiceLineItemPayload {

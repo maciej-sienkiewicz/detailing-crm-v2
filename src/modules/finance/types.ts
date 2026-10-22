@@ -1,27 +1,16 @@
 // ─── Shared ────────────────────────────────────────────────────────────────────
 
-export type FinancialDocumentId = string;
-
 // ─── Finance: Dokumenty Przychodowe ───────────────────────────────────────────
 
 export enum DocumentType {
   RECEIPT    = 'RECEIPT',
-  INVOICE    = 'INVOICE',
   OTHER      = 'OTHER',
   /** Storno z poprawki rozliczenia albo odbicie faktury korygującej KSeF. */
-  CORRECTION = 'CORRECTION',
-}
+  }
 
 export enum DocumentDirection {
   INCOME  = 'INCOME',
-  EXPENSE = 'EXPENSE',
-}
-
-export enum DocumentStatus {
-  PENDING = 'PENDING',
-  PAID    = 'PAID',
-  OVERDUE = 'OVERDUE',
-}
+  }
 
 export enum PaymentMethod {
   CASH          = 'CASH',
@@ -30,11 +19,6 @@ export enum PaymentMethod {
   BLIK_NA_NUMER = 'BLIK_NA_NUMER',
   BLIK_TERMINAL = 'BLIK_TERMINAL',
   OTHER         = 'OTHER',
-}
-
-export enum DocumentSource {
-  VISIT  = 'VISIT',
-  MANUAL = 'MANUAL',
 }
 
 export interface FinancialDocument {
@@ -79,13 +63,6 @@ export interface FinancialDocument {
   withoutReceipt?:     boolean;
 }
 
-export interface FinancialDocumentListResponse {
-  documents: FinancialDocument[];
-  total:     number;
-  page:      number;
-  pageSize:  number;
-}
-
 export interface CreateDocumentRequest {
   documentType:        string;
   direction:           string;
@@ -117,26 +94,6 @@ export interface UpdateDocumentRequest {
   description?:        string | null;
   counterpartyName?:   string | null;
   counterpartyNip?:    string | null;
-}
-
-export interface UpdateDocumentNumberRequest {
-  documentNumber: string;
-}
-
-export interface UpdateDocumentStatusRequest {
-  status: string;
-}
-
-export interface DocumentListFilters {
-  documentType?:   string;
-  direction?:      string;
-  status?:         string;
-  visitId?:        string;
-  dateFrom?:       string;
-  dateTo?:         string;
-  includeDeleted?: boolean;
-  page:            number;
-  pageSize:        number;
 }
 
 // ─── Finance: Kasa ────────────────────────────────────────────────────────────
@@ -244,7 +201,8 @@ export interface FinanceConfig {
   paymentTrackingEnabled: boolean;
 }
 
-export type ReportGranularity = 'MONTHLY' | 'WEEKLY' | 'DAILY';
+/** Jak `ReportGranularity` w backendzie (PaymentMethodReportHandler) - ten sam zestaw. */
+export type ReportGranularity = 'MONTHLY' | 'QUARTERLY' | 'YEARLY';
 
 export interface PaymentMethodEntry {
   count:      number;

@@ -64,44 +64,6 @@ export const useUpdateDocument = () => {
   });
 };
 
-export const useUpdateDocumentStatus = () => {
-  const invalidate = useInvalidateFinance();
-
-  return useMutation({
-    mutationFn: ({ id, status }: { id: string; status: string }) =>
-      financeApi.updateStatus(id, status),
-    onSuccess: invalidate,
-  });
-};
-
-export const useUpdateDocumentNumber = () => {
-  const invalidate = useInvalidateFinance();
-
-  return useMutation({
-    mutationFn: ({ id, documentNumber }: { id: string; documentNumber: string }) =>
-      financeApi.updateDocumentNumber(id, documentNumber),
-    onSuccess: invalidate,
-  });
-};
-
-export const useDeleteDocument = () => {
-  const invalidate = useInvalidateFinance();
-
-  return useMutation({
-    mutationFn: (id: string) => financeApi.deleteDocument(id),
-    onSuccess: invalidate,
-  });
-};
-
-export const useRestoreDocument = () => {
-  const invalidate = useInvalidateFinance();
-
-  return useMutation({
-    mutationFn: (id: string) => financeApi.restoreDocument(id),
-    onSuccess: invalidate,
-  });
-};
-
 // ── Cash register ─────────────────────────────────────────────────────────────
 
 export const useCashRegister = () => {

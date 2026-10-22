@@ -38,7 +38,3 @@ export const ix = {
     cardShadow: '0 1px 2px rgba(15, 23, 42, 0.06), 0 16px 40px rgba(15, 23, 42, 0.08)',
 } as const;
 
-/** Próg telefonu z makiet: poniżej jedna kolumna na cały ekran. */
-export const PHONE_MAX = 767;
-/** Od tej szerokości okna panel sprawy stoi obok rozmowy (makieta: 1100 px). */
-export const RAIL_MIN = 1100;

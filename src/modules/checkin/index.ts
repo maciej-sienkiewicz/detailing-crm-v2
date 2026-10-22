@@ -13,7 +13,6 @@ export { VehicleDamageMapper } from './components/VehicleDamageMapper';
 
 export { useCheckInWizard } from './hooks/useCheckInWizard';
 export { usePhotoUpload } from './hooks/usePhotoUpload';
-export { useMobilePhotoUpload } from './hooks/useMobilePhotoUpload';
 export { useCheckInValidation } from './hooks/useCheckInValidation';
 export { useCheckinQRToken } from './hooks/useCheckinQRToken';
 export { useCheckinSocket } from './hooks/useCheckinSocket';

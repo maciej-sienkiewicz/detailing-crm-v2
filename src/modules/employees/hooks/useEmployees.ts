@@ -4,7 +4,6 @@ import type {
     EmployeeFilters,
     CreateEmployeePayload,
     UpdateEmployeePayload,
-    TerminateEmployeePayload,
     CreateAccountRequest,
 } from '../types';
 
@@ -67,14 +66,6 @@ export const useUpdateEmployee = () => {
         mutationFn: ({ employeeId, payload }: { employeeId: string; payload: UpdateEmployeePayload }) =>
             employeeApi.updateEmployee(employeeId, payload),
         onSuccess: (_data, { employeeId }) => invalidate(employeeId),
-    });
-};
-
-export const useTerminateEmployee = (employeeId: string) => {
-    const invalidate = useInvalidateEmployees();
-    return useMutation({
-        mutationFn: (payload: TerminateEmployeePayload) => employeeApi.terminateEmployee(employeeId, payload),
-        onSuccess: () => invalidate(employeeId),
     });
 };
 

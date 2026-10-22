@@ -282,7 +282,7 @@ const delay = (ms: number) => new Promise(resolve => setTimeout(resolve, ms));
 
 // ─── View ─────────────────────────────────────────────────────────────────────
 
-export const PublicSigningView = () => {
+const PublicSigningView = () => {
     const { token = '' } = useParams<{ token: string }>();
 
     const [phase, setPhase] = useState<ViewPhase>({ kind: 'loading' });

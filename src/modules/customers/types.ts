@@ -83,11 +83,6 @@ export type CustomerSortField =
 
 export type SortDirection = 'asc' | 'desc';
 
-export interface CustomerSortConfig {
-    field: CustomerSortField;
-    direction: SortDirection;
-}
-
 export type CustomerTypeFilter = 'all' | 'individual' | 'business';
 
 export interface CustomerAdvancedFilters {
@@ -133,8 +128,6 @@ export interface MarketingConsent {
     revokedAt: string | null;
     lastModifiedBy: string;
 }
-
-export type EngineType = 'GASOLINE' | 'DIESEL' | 'HYBRID' | 'ELECTRIC';
 
 export interface Vehicle {
     id: string;

@@ -1,7 +1,6 @@
 export { OperationListView } from './views/OperationListView';
 export { OperationalDataTable } from './components/OperationalDataTable';
 export { OperationStatusBadge } from './components/OperationStatusBadge';
-export { OperationSearchFilter } from './components/OperationSearchFilter';
 export { OperationFilterBar } from './components/OperationFilterBar';
 export { OperationPagination } from './components/OperationPagination';
 

@@ -322,10 +322,6 @@ export const DashboardView = () => {
 
   const {
     stats,
-    revenue,
-    callActivity,
-    instagramPhotos,
-    googleReviews,
     isError,
     refetch,
   } = useDashboard();

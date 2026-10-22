@@ -1,7 +1,6 @@
-import { useState, useCallback } from 'react';
+import { useCallback } from 'react';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { checkinApi } from '../api/checkinApi';
-import type { PhotoSlot } from '../types';
 
 // appointmentId jest opcjonalne: check-in „z marszu" (/checkin/new) robi zdjęcia,
 // zanim istnieje rezerwacja - sesja powstaje wtedy bez powiązania z terminem.

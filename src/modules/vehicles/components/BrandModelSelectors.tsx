@@ -60,21 +60,6 @@ const Caret = styled.span`
   transform: rotate(45deg);
 `;
 
-const Menu = styled.div`
-  position: absolute;
-  top: calc(100% + 6px);
-  left: 0;
-  right: 0;
-  background: ${props => props.theme.colors.surface};
-  border: 1px solid ${props => props.theme.colors.border};
-  border-radius: ${props => props.theme.radii.lg};
-  box-shadow: ${props => props.theme.shadows.lg};
-  padding: ${props => props.theme.spacing.xs} 0;
-  z-index: 20;
-  max-height: 320px;
-  overflow: auto;
-`;
-
 // Portal-based menu to escape clipping by modal scroll containers
 const PortalMenu = styled.div`
   position: fixed;

@@ -4,8 +4,6 @@ import { apiClient } from '@/core';
 import type { OperationListResponse, OperationFilters, Operation, AppointmentStatus, VisitStatus } from '../types';
 import type { RecurrenceEditScope } from '@/modules/appointments/types';
 
-const USE_MOCKS_FOR_VISITS = false; // Wizyty nadal zamockowane
-const USE_MOCKS_FOR_RESERVATIONS = false; // Rezerwacje z serwera
 
 const BASE_PATH = '/operations';
 
@@ -197,124 +195,6 @@ const mapVisitToOperation = (visit: VisitResponse): Operation => {
     };
 };
 
-// Mock data tylko dla wizyt
-const mockVisits = [
-    {
-        id: '1',
-        type: 'VISIT' as const,
-        customerFirstName: 'Jan',
-        customerLastName: 'Kowalski',
-        customerPhone: '+48 123 456 789',
-        status: 'IN_PROGRESS' as const,
-        vehicle: {
-            brand: 'BMW',
-            model: 'X5',
-            licensePlate: 'WA 12345',
-        },
-        startDateTime: '2026-01-11T09:00:00Z',
-        endDateTime: '2026-01-11T12:00:00Z',
-        financials: {
-            netAmount: 2032.52,
-            grossAmount: 2500.00,
-            currency: 'PLN',
-        },
-        lastModification: {
-            timestamp: '2026-01-11T10:30:00Z',
-            performedBy: {
-                firstName: 'Anna',
-                lastName: 'Mechanik',
-            },
-        },
-    },
-    {
-        id: '3',
-        type: 'VISIT' as const,
-        customerFirstName: 'Piotr',
-        customerLastName: 'Wiśniewski',
-        customerPhone: '+48 555 123 456',
-        status: 'READY_FOR_PICKUP' as const,
-        vehicle: {
-            brand: 'Mercedes',
-            model: 'C-Class',
-            licensePlate: 'GD 11111',
-        },
-        startDateTime: '2026-01-10T10:00:00Z',
-        endDateTime: '2026-01-10T13:00:00Z',
-        financials: {
-            netAmount: 2601.63,
-            grossAmount: 3200.00,
-            currency: 'PLN',
-        },
-        lastModification: {
-            timestamp: '2026-01-10T12:15:00Z',
-            performedBy: {
-                firstName: 'Marek',
-                lastName: 'Serwisant',
-            },
-        },
-    },
-    {
-        id: '4',
-        type: 'VISIT' as const,
-        customerFirstName: 'Katarzyna',
-        customerLastName: 'Zielińska',
-        customerPhone: '+48 666 777 888',
-        status: 'COMPLETED' as const,
-        vehicle: {
-            brand: 'Toyota',
-            model: 'Corolla',
-            licensePlate: 'PO 22222',
-        },
-        startDateTime: '2026-01-09T08:00:00Z',
-        endDateTime: '2026-01-09T11:00:00Z',
-        financials: {
-            netAmount: 812.20,
-            grossAmount: 999.00,
-            currency: 'PLN',
-        },
-        lastModification: {
-            timestamp: '2026-01-09T11:30:00Z',
-            performedBy: {
-                firstName: 'Anna',
-                lastName: 'Mechanik',
-            },
-        },
-    },
-];
-
-const mockGetVisits = async (filters: OperationFilters): Promise<OperationListResponse> => {
-    await new Promise(resolve => setTimeout(resolve, 400));
-
-    let filteredData = [...mockVisits];
-
-    if (filters.search) {
-        const searchLower = filters.search.toLowerCase();
-        filteredData = filteredData.filter(op =>
-            op.customerLastName.toLowerCase().includes(searchLower) ||
-            op.customerPhone.includes(filters.search) ||
-            (op.vehicle?.licensePlate?.toLowerCase().includes(searchLower) ?? false)
-        );
-    }
-
-    if (filters.status) {
-        filteredData = filteredData.filter(op => op.status === filters.status);
-    }
-
-    return {
-        data: filteredData,
-        pagination: {
-            currentPage: 1,
-            totalPages: 1,
-            totalItems: filteredData.length,
-            itemsPerPage: 20,
-        },
-    };
-};
-
-const mockDeleteOperation = async (id: string): Promise<void> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-};
-
 export const operationApi = {
     getOperations: async (filters: OperationFilters): Promise<OperationListResponse> => {
         // Usunięte wizyty - osobny endpoint
@@ -348,10 +228,6 @@ export const operationApi = {
 
         // Jeśli filtrujemy tylko wizyty - pobierz z /api/visits
         if (filters.type === 'VISIT') {
-            if (USE_MOCKS_FOR_VISITS) {
-                return mockGetVisits(filters);
-            }
-
             const params = new URLSearchParams({
                 page: filters.page.toString(),
                 size: filters.limit.toString(),
@@ -394,10 +270,6 @@ export const operationApi = {
         // Jeśli filtrujemy tylko rezerwacje - pobierz z /api/v1/appointments
         // Zakładka "Rezerwacje" pokazuje wyłącznie zaplanowane rezerwacje (CREATED)
         if (filters.type === 'RESERVATION') {
-            if (USE_MOCKS_FOR_RESERVATIONS) {
-                return { data: [], pagination: { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: 20 } };
-            }
-
             // Fetch only CREATED appointments for the Reservations tab
             const createdResponse = await apiClient.get<AppointmentsListResponse>(`/v1/appointments`, {
                 params: {
@@ -428,10 +300,6 @@ export const operationApi = {
 
         // Jeśli brak filtru typu - pobierz oba źródła i połącz
         const fetchVisits = async (): Promise<OperationListResponse> => {
-            if (USE_MOCKS_FOR_VISITS) {
-                return mockGetVisits(filters);
-            }
-
             const params = new URLSearchParams({
                 page: filters.page.toString(),
                 size: filters.limit.toString(),
@@ -467,10 +335,6 @@ export const operationApi = {
         };
 
         const fetchReservations = async (): Promise<OperationListResponse> => {
-            if (USE_MOCKS_FOR_RESERVATIONS) {
-                return { data: [], pagination: { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: 20 } };
-            }
-
             // Fetch CREATED, ABANDONED and CANCELLED appointments in parallel
             const [createdResponse, abandonedResponse, cancelledResponse] = await Promise.all([
                 apiClient.get<AppointmentsListResponse>(`/v1/appointments`, {
@@ -569,10 +433,6 @@ export const operationApi = {
     },
 
     deleteOperation: async (id: string): Promise<void> => {
-        if (USE_MOCKS_FOR_VISITS) {
-            return mockDeleteOperation(id);
-        }
-
         await apiClient.delete(`${BASE_PATH}/${id}`);
     },
 

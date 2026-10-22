@@ -4,11 +4,10 @@ A sophisticated yet intuitive UI for managing document protocols in the Detailin
 
 ## 🎯 Overview
 
-The Protocol Documentation System consists of three main views:
+The Protocol Documentation System consists of two main views:
 
 1. **View A: Global Documentation Rules** (`/protocols`) - Settings page for managing protocol templates and rules
 2. **View B: Service-to-Protocol Mapping** - Enhanced service modal with protocol assignment
-3. **View C: Dynamic Protocol Checklist** - Technician/tablet view showing required protocols for a visit
 
 ## 🏗️ Architecture
 
@@ -51,21 +50,16 @@ interface VisitProtocol {
 ```
 src/modules/protocols/
 ├── types.ts                          # TypeScript type definitions
-├── index.ts                          # Module exports and mock setup
 ├── README.md                         # This file
 ├── api/
 │   ├── protocolsApi.ts              # API client methods
-│   ├── useProtocols.ts              # React Query hooks
-│   ├── mockProtocols.ts             # Mock data
-│   └── mockProtocolsInterceptor.ts  # Axios mock interceptor
+│   └── useProtocols.ts              # React Query hooks
 ├── views/
-│   ├── ProtocolRulesView.tsx        # View A: Global rules management
-│   └── ProtocolDemoView.tsx         # Demo page for testing
+│   └── ProtocolRulesView.tsx        # View A: Global rules management
 └── components/
     ├── ProtocolRuleCard.tsx         # Rule display card
     ├── ProtocolTemplateModal.tsx    # Template management modal
-    ├── ProtocolRuleModal.tsx        # Rule creation/editing modal
-    └── ProtocolChecklist.tsx        # View C: Dynamic checklist
+    └── ProtocolRuleModal.tsx        # Rule creation/editing modal
 ```
 
 ## 📱 View A: Global Documentation Rules
@@ -131,52 +125,6 @@ The protocol selection section is automatically included in the `ServiceFormModa
 2. Checkboxes to select required protocols
 3. Stage badges indicating when each protocol applies
 4. Descriptions explaining each protocol
-
-## 📋 View C: Dynamic Protocol Checklist
-
-**Component:** `<ProtocolChecklist />`
-**Demo Route:** `/protocols/demo`
-
-The technician-facing interface displayed during check-in and check-out flows.
-
-### Features
-
-- **Smart Resolution**: Automatically shows the correct protocols based on:
-  - Global rules (always required)
-  - Service-specific rules (based on visit services)
-- **Visual Stepper**: Vertical timeline showing protocol completion status
-- **Status Indicators**:
-  - Red asterisk + alert icon: Mandatory (not yet signed)
-  - Green background + checkmark: Signed
-  - Gray: Optional
-- **Progress Tracking**: Visual progress bar showing completion percentage
-- **Signature Flow**: Individual or bulk signing capability
-- **Responsive Design**: Optimized for both desktop and tablet views
-
-### Usage Example
-
-```tsx
-import { ProtocolChecklist } from '@/modules/protocols';
-
-function CheckInFlow({ visitId }) {
-  return (
-    <ProtocolChecklist
-      visitId={visitId}
-      stage="CHECK_IN"
-    />
-  );
-}
-```
-
-### Protocol Logic
-
-The checklist automatically:
-
-1. Fetches all protocols for the visit
-2. Filters by the current stage (CHECK_IN or CHECK_OUT)
-3. Sorts by mandatory status (mandatory first)
-4. Displays signing interface for unsigned protocols
-5. Prevents proceeding if mandatory protocols are unsigned
 
 ## 🎨 Design System
 
@@ -265,21 +213,6 @@ useSignVisitProtocol()
 useGenerateVisitProtocols()
 ```
 
-## 🧪 Mock Data
-
-The module includes a comprehensive mock system for development and testing:
-
-**Enable/Disable Mocks:**
-```typescript
-// src/modules/protocols/api/mockProtocolsInterceptor.ts
-export const USE_PROTOCOL_MOCKS = true; // Set to false when backend is ready
-```
-
-**Mock Data Includes:**
-- 8 Protocol Templates (regulamin, oświadczenia, zgody, gwarancje)
-- 8 Protocol Rules (4 global, 4 service-specific)
-- Auto-generated Visit Protocols based on visit services
-
 ## 🚀 Getting Started
 
 1. **View the Settings Page:**
@@ -299,15 +232,7 @@ export const USE_PROTOCOL_MOCKS = true; // Set to false when backend is ready
    - Configure mandatory status
    - Save
 
-4. **Test the Checklist:**
-   ```
-   Navigate to /protocols/demo
-   ```
-   - Switch between Check-in and Check-out tabs
-   - Try signing protocols
-   - See the progress update in real-time
-
-5. **Integrate with Services:**
+4. **Integrate with Services:**
    - Edit a service in `/services`
    - Scroll to "Wymagane dokumenty dla tej usługi"
    - Select protocols that should be required
@@ -469,8 +394,7 @@ When extending the protocol system:
 1. Follow the existing component structure
 2. Use the provided TypeScript types
 3. Maintain the Material Design 3 aesthetic
-4. Add mock data for new features
-5. Update this README with changes
+4. Update this README with changes
 
 ## 📄 License
 

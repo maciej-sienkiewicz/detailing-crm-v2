@@ -127,27 +127,6 @@ export const usePrefetchThread = () => {
     );
 };
 
-export const useContactInsights = (email: string | null, threadId?: string) =>
-    useQuery({
-        queryKey: [...COMMS_INSIGHTS_KEY, email, threadId],
-        queryFn: () => commsApi.getInsights(email!, threadId),
-        enabled: email !== null,
-        staleTime: 30_000,
-    });
-
-/**
- * Plakietki nagłówka rozmowy: ile innych wątków z tym adresem i ile notatek.
- * Osobne zapytanie od insights, bo nagłówek musi być gotowy zaraz po kliknięciu,
- * a insights ciągnie wizyty, rezerwacje i leady.
- */
-export const useThreadContactBadges = (threadId: string | null) =>
-    useQuery({
-        queryKey: [...COMMS_BADGES_KEY, threadId],
-        queryFn: () => commsApi.getThreadContactBadges(threadId!),
-        enabled: threadId !== null,
-        staleTime: 60_000,
-    });
-
 /** Pozostałe rozmowy z tym adresem - pobierane dopiero po otwarciu panelu. */
 export const useRelatedThreads = (threadId: string | null, options?: { enabled?: boolean }) =>
     useQuery({

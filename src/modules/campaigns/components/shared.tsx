@@ -12,8 +12,8 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import { Repeat, Send } from 'lucide-react';
 import { PageContainer } from '@/common/components/PageContainer';
-import { KIND_DESCRIPTIONS, KIND_LABELS, STATUS_COLORS, STATUS_LABELS } from '../constants';
-import type { CampaignKind, CampaignStatus } from '../types';
+import { KIND_DESCRIPTIONS, KIND_LABELS } from '../constants';
+import type { CampaignKind } from '../types';
 
 import { PrimaryButton as PrimaryButtonBase } from '@/modules/comms/components/shared';
 
@@ -33,9 +33,6 @@ export const ViewContainer = styled(PageContainer)`
     flex-direction: column;
     gap: 20px;
 `;
-
-/** @deprecated Nazwa z poprzedniego układu - zostaje, żeby nie przepisywać importów naraz. */
-export const Page = ViewContainer;
 
 /**
  * Panel treści. Wariant [$quiet] to materiał pomocniczy: siada na tle aplikacji
@@ -71,17 +68,6 @@ export const Panel = styled.section<{ $quiet?: boolean }>`
     h4 .spacer { flex: 1; }
 `;
 
-/** @deprecated Używaj [Panel] - SectionCard to ta sama rzecz pod starą nazwą. */
-export const SectionCard = Panel;
-
-export const Eyebrow = styled.div`
-    font-size: 11px;
-    font-weight: ${p => p.theme.fontWeights.semibold};
-    text-transform: uppercase;
-    letter-spacing: 0.05em;
-    color: ${p => p.theme.colors.textMuted};
-`;
-
 // ─── Etap kampanii ────────────────────────────────────────────────────────────
 
 /**
@@ -110,15 +96,6 @@ export const StatusDot = styled.span<{ $color: string }>`
     flex-shrink: 0;
     background: ${p => p.$color};
 `;
-
-export function CampaignStatusLine({ status }: { status: CampaignStatus }) {
-    return (
-        <StatusLine>
-            <StatusDot $color={STATUS_COLORS[status]} />
-            {STATUS_LABELS[status]}
-        </StatusLine>
-    );
-}
 
 /**
  * Rodzaj kampanii - ikona i słowo, bez ramki.
@@ -215,9 +192,6 @@ export const Note = styled.div<{ $tone?: 'warn' | 'error' | 'ok' }>`
     svg { width: 15px; height: 15px; flex-shrink: 0; }
     .spacer { flex: 1; }
 `;
-
-/** @deprecated Używaj [Note] z tonem 'warn'. */
-export const InfoBanner = Note;
 
 /**
  * Droga do innego miejsca albo drobna akcja poboczna - odnośnik tekstowy,

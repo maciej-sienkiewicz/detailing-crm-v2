@@ -800,13 +800,13 @@ export const OperationalScorecard = ({ stats }: OperationalScorecardProps) => {
     if (!activeKey || !stats) return null;
     switch (activeKey) {
       case 'inProgress':
-        return { variant: 'inProgress', label: t.dashboard.stats.inProgress, visits: stats.inProgressDetails ?? [], onRowClick: (id, scheduledDate, rect) => { const v = stats.inProgressDetails?.find(x => x.id === id); if (v) navigateToVisitOrCalendar(v, 'inProgress', rect); } };
+        return { variant: 'inProgress', label: t.dashboard.stats.inProgress, visits: stats.inProgressDetails ?? [], onRowClick: (id, _scheduledDate, rect) => { const v = stats.inProgressDetails?.find(x => x.id === id); if (v) navigateToVisitOrCalendar(v, 'inProgress', rect); } };
       case 'readyForPickup':
-        return { variant: 'readyForPickup', label: t.dashboard.stats.readyForPickup, visits: stats.readyForPickupDetails ?? [], onRowClick: (id, scheduledDate, rect) => { const v = stats.readyForPickupDetails?.find(x => x.id === id); if (v) navigateToVisitOrCalendar(v, 'readyForPickup', rect); } };
+        return { variant: 'readyForPickup', label: t.dashboard.stats.readyForPickup, visits: stats.readyForPickupDetails ?? [], onRowClick: (id, _scheduledDate, rect) => { const v = stats.readyForPickupDetails?.find(x => x.id === id); if (v) navigateToVisitOrCalendar(v, 'readyForPickup', rect); } };
       case 'incomingToday':
-        return { variant: 'incomingToday', label: t.dashboard.stats.arrivals, visits: stats.incomingTodayDetails ?? [], onRowClick: (id, scheduledDate, rect) => { const v = stats.incomingTodayDetails?.find(x => x.id === id); if (v) navigateToVisitOrCalendar(v, 'incomingToday', rect); } };
+        return { variant: 'incomingToday', label: t.dashboard.stats.arrivals, visits: stats.incomingTodayDetails ?? [], onRowClick: (id, _scheduledDate, rect) => { const v = stats.incomingTodayDetails?.find(x => x.id === id); if (v) navigateToVisitOrCalendar(v, 'incomingToday', rect); } };
       case 'abandoned':
-        return { variant: 'abandoned', label: t.dashboard.stats.abandoned, subtitle: 'Ostatnie 30 dni, porzucone i anulowane', visits: stats.abandonedDetails ?? [], onRowClick: (id, scheduledDate, rect) => { const v = stats.abandonedDetails?.find(x => x.id === id); if (v) navigateToVisitOrCalendar(v, 'abandoned', rect); }, footerLabel: 'Pokaż rezerwacje', footerPath: '/appointments' };
+        return { variant: 'abandoned', label: t.dashboard.stats.abandoned, subtitle: 'Ostatnie 30 dni, porzucone i anulowane', visits: stats.abandonedDetails ?? [], onRowClick: (id, _scheduledDate, rect) => { const v = stats.abandonedDetails?.find(x => x.id === id); if (v) navigateToVisitOrCalendar(v, 'abandoned', rect); }, footerLabel: 'Pokaż rezerwacje', footerPath: '/appointments' };
       default:
         return null;
     }

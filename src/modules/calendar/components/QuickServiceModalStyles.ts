@@ -9,8 +9,6 @@
  */
 import styled from 'styled-components';
 import {
-    overlayFadeIn,
-    modalScaleIn,
     ModalOverlay,
     ModalBox,
     ModalHeader as SharedModalHeader,
@@ -71,9 +69,6 @@ export const Header = styled(SharedModalHeader)``;
 
 export const TitleGroup = styled(SharedModalTitleGroup)``;
 
-/** Invisible placeholder, kept so existing imports don't break */
-export const DragHandle = styled.div`display: none;`;
-export const DragHandleBar = styled.div`display: none;`;
 
 export const CloseButton = styled(ModalCloseButton)``;
 

@@ -54,9 +54,10 @@ export const createVehicleSchema = z.object({
 
 export type CreateVehicleFormData = z.infer<typeof createVehicleSchema>;
 
-const nullToUndefinedStr = (val: unknown) => (val === null || val === undefined ? undefined : val);
-const nullToUndefinedNum = (val: unknown) =>
-    val === null || val === undefined || Number.isNaN(val as number) ? undefined : val;
+// Typ parametru to zarazem typ pola przed walidacją (z.input) - formularz wie, co trzyma.
+const nullToUndefinedStr = (val: string | null | undefined) => (val === null || val === undefined ? undefined : val);
+const nullToUndefinedNum = (val: number | null | undefined) =>
+    val === null || val === undefined || Number.isNaN(val) ? undefined : val;
 
 export const updateVehicleSchema = z.object({
     // Okno edycji zawsze zna rodzaj (pojazd bez pola w danych to samochód), więc
@@ -92,3 +93,5 @@ export const updateVehicleSchema = z.object({
 });
 
 export type UpdateVehicleFormData = z.infer<typeof updateVehicleSchema>;
+/** Wartości pól przed walidacją - z API przychodzi też null. */
+export type UpdateVehicleFormInput = z.input<typeof updateVehicleSchema>;

@@ -1,4 +1,3 @@
-import { useEffect } from 'react';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import {

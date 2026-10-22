@@ -164,7 +164,7 @@ export const CheckInWizardWrapper = () => {
         retry: 1,
     });
 
-    // Pobierz pełne dane pojazdu (z licensePlate, color, paintType, etc.)
+    // Pobierz pełne dane pojazdu (z licensePlate, color, etc.)
     const vehicleId = reservationData?.vehicleId;
     const { data: vehicleDetailData, isLoading: isLoadingVehicleDetail } = useQuery({
         queryKey: ['vehicleDetail', vehicleId],
@@ -182,8 +182,8 @@ export const CheckInWizardWrapper = () => {
             lastName: reservationData.customer.lastName,
             phone: reservationData.customer.phone,
             email: reservationData.customer.email,
-            // Użyj danych z customerDetailData jeśli są dostępne, w przeciwnym razie null
-            homeAddress: customerDetailData?.customer.homeAddress || null,
+            // Dane z customerDetailData, gdy są (brak zamienia się dalej na null)
+            homeAddress: customerDetailData?.customer.homeAddress || undefined,
             company: customerDetailData?.customer.company ? {
                 name: customerDetailData.customer.company.name || '',
                 nip: customerDetailData.customer.company.nip || '',
@@ -194,7 +194,7 @@ export const CheckInWizardWrapper = () => {
                     postalCode: customerDetailData.customer.company.address?.postalCode || '',
                     country: customerDetailData.customer.company.address?.country || 'Polska',
                 },
-            } : null,
+            } : undefined,
         },
         // Użyj pełnych danych pojazdu z vehicleDetailData jeśli są dostępne
         vehicle: vehicleDetailData?.vehicle ? {

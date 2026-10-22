@@ -1,6 +1,6 @@
 import { createElement, type ComponentProps } from 'react';
 import { createPortal } from 'react-dom';
-import styled, { css, keyframes } from 'styled-components';
+import styled, { css } from 'styled-components';
 
 export const ServicesTableHeader = styled.div`
     display: grid;
@@ -220,22 +220,6 @@ export const DeleteButton = styled.button`
     svg { width: 13px; height: 13px; }
 `;
 
-const slideDown = keyframes`
-    from { max-height: 0; opacity: 0; transform: translateY(-4px); }
-    to   { max-height: 160px; opacity: 1; transform: translateY(0); }
-`;
-
-export const DiscountPanel = styled.div`
-    overflow: hidden;
-    animation: ${slideDown} 200ms ease-out forwards;
-    padding: 8px 10px 10px 14px;
-    background: #fffbeb;
-    border-top: 1px dashed #fde68a;
-    display: flex;
-    flex-direction: column;
-    gap: 7px;
-`;
-
 export const DiscountTypeRow = styled.div`
     display: flex;
     gap: 4px;
@@ -288,45 +272,6 @@ export const DiscountValueSuffix = styled.span`
     font-weight: 600;
     color: #92400e;
     min-width: 20px;
-`;
-
-export const DiscountActionButtons = styled.div`
-    display: flex;
-    align-items: center;
-    gap: 5px;
-    margin-left: auto;
-`;
-
-export const DiscountRemoveButton = styled.button`
-    padding: 3px 9px;
-    font-size: 11px;
-    font-weight: 600;
-    color: #6b7280;
-    background: transparent;
-    border: 1.5px solid #e5e7eb;
-    border-radius: 6px;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all 150ms ease;
-    white-space: nowrap;
-
-    &:hover { color: #ef4444; border-color: #fca5a5; background: #fef2f2; }
-`;
-
-export const DiscountHideButton = styled.button`
-    padding: 3px 9px;
-    font-size: 11px;
-    font-weight: 500;
-    color: #92400e;
-    background: transparent;
-    border: 1.5px solid #fde68a;
-    border-radius: 6px;
-    cursor: pointer;
-    font-family: inherit;
-    transition: all 150ms ease;
-    white-space: nowrap;
-
-    &:hover { background: #fef3c7; }
 `;
 
 export const ServiceNoteContainer = styled.div`

@@ -11,7 +11,6 @@ import type {
     UploadUrlRequest,
     UploadUrlResponse,
     SessionPhotosResponse,
-    PhotoSlot,
     QRTokenResponse,
     MobileCheckinContext,
     MobilePhotoUploadResponse,
@@ -20,8 +19,6 @@ import type {
     DamagePoint,
     MobileSessionStatus,
 } from '../types';
-
-const USE_MOCKS = false;
 
 /**
  * Strips client-only fields (upload status, local preview URLs) and photos
@@ -41,106 +38,10 @@ const BASE_PATH = '/checkin';
 const PHOTO_SESSIONS_PATH = '/photo-sessions';
 const MOBILE_BASE_PATH = '/mobile/checkin';
 
-const mockUploadSession: MobileUploadSession = {
-    sessionId: 'session_123',
-    token: 'mock_jwt_token_abc123',
-    expiresAt: new Date(Date.now() + 3600000).toISOString(),
-};
-
-const mockCreateVisitFromReservation = async (
-    payload: ReservationToVisitPayload
-): Promise<CreateVisitFromReservationResponse> => {
-    await new Promise(resolve => setTimeout(resolve, 1200));
-    return {
-        visitId: `visit_${Date.now()}`,
-        protocols: [
-            {
-                id: `protocol_${Date.now()}_1`,
-                templateId: 'template_1',
-                templateName: 'Protokół przyjęcia pojazdu',
-                stage: 'CHECK_IN',
-                status: 'READY_FOR_SIGNATURE',
-                filledPdfUrl: 'https://example.com/protocol1.pdf'
-            },
-            {
-                id: `protocol_${Date.now()}_2`,
-                templateId: 'template_2',
-                templateName: 'Warunki świadczenia usług',
-                stage: 'CHECK_IN',
-                status: 'READY_FOR_SIGNATURE',
-                filledPdfUrl: 'https://example.com/protocol2.pdf'
-            }
-        ]
-    };
-};
-
-const mockCreateUploadSession = async (
-    appointmentId: string
-): Promise<MobileUploadSession> => {
-    await new Promise(resolve => setTimeout(resolve, 500));
-    return { ...mockUploadSession, sessionId: `session_${appointmentId}` };
-};
-
-const mockGenerateUploadUrl = async (
-    _sessionId: string,
-    _request: UploadUrlRequest
-): Promise<UploadUrlResponse> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-    return {
-        photoId: `photo_${Date.now()}`,
-        uploadUrl: `https://mock-s3.amazonaws.com/upload/${Date.now()}`,
-        expiresAt: new Date(Date.now() + 900000).toISOString(), // 15 min
-    };
-};
-
-const mockGetSessionPhotos = async (
-    _sessionId: string
-): Promise<SessionPhotosResponse> => {
-    await new Promise(resolve => setTimeout(resolve, 400));
-    return {
-        photos: [
-            {
-                id: 'photo_1',
-                fileName: 'vehicle1.jpg',
-                fileSize: 2048576,
-                uploadedAt: new Date().toISOString(),
-                thumbnailUrl: 'https://images.unsplash.com/photo-1552519507-da3b142c6e3d?w=400&q=80',
-                tags: ['przód', 'PPF'],
-            },
-            {
-                id: 'photo_2',
-                fileName: 'vehicle2.jpg',
-                fileSize: 1524288,
-                uploadedAt: new Date().toISOString(),
-                thumbnailUrl: 'https://images.unsplash.com/photo-1544636331-e26879cd4d9b?w=400&q=80',
-                tags: ['tył'],
-            },
-            {
-                id: 'photo_3',
-                fileName: 'vehicle3.jpg',
-                fileSize: 1820000,
-                uploadedAt: new Date().toISOString(),
-                thumbnailUrl: 'https://images.unsplash.com/photo-1494976388531-d1058494cdd8?w=400&q=80',
-                tags: [],
-            },
-        ],
-    };
-};
-
-const mockDeletePhoto = async (
-    _sessionId: string,
-    _photoId: string
-): Promise<void> => {
-    await new Promise(resolve => setTimeout(resolve, 300));
-};
-
 export const checkinApi = {
     createVisitFromReservation: async (
         payload: ReservationToVisitPayload
     ): Promise<CreateVisitFromReservationResponse> => {
-        if (USE_MOCKS) {
-            return mockCreateVisitFromReservation(payload);
-        }
         const response = await apiClient.post(
             `${BASE_PATH}/reservation-to-visit`,
             { ...payload, damagePoints: toDamagePointsPayload(payload.damagePoints) }
@@ -151,9 +52,6 @@ export const checkinApi = {
     createWalkInVisit: async (
         payload: WalkInVisitPayload
     ): Promise<CreateVisitFromReservationResponse> => {
-        if (USE_MOCKS) {
-            return mockCreateVisitFromReservation(payload as any);
-        }
         const response = await apiClient.post(
             `${BASE_PATH}/walk-in`,
             { ...payload, damagePoints: toDamagePointsPayload(payload.damagePoints) }
@@ -185,9 +83,6 @@ export const checkinApi = {
     createUploadSession: async (
         appointmentId?: string
     ): Promise<MobileUploadSession> => {
-        if (USE_MOCKS) {
-            return mockCreateUploadSession(appointmentId ?? 'walk-in');
-        }
         const response = await apiClient.post(
             `${PHOTO_SESSIONS_PATH}`,
             appointmentId ? { appointmentId } : {}
@@ -203,9 +98,6 @@ export const checkinApi = {
         sessionId: string,
         request: UploadUrlRequest
     ): Promise<UploadUrlResponse> => {
-        if (USE_MOCKS) {
-            return mockGenerateUploadUrl(sessionId, request);
-        }
         const response = await apiClient.post(
             `${PHOTO_SESSIONS_PATH}/${sessionId}/upload-url`,
             request
@@ -228,9 +120,6 @@ export const checkinApi = {
      * Returns photos with thumbnailUrl (presigned, valid for 10 min)
      */
     getSessionPhotos: async (sessionId: string): Promise<SessionPhotosResponse> => {
-        if (USE_MOCKS) {
-            return mockGetSessionPhotos(sessionId);
-        }
         const response = await apiClient.get(
             `${PHOTO_SESSIONS_PATH}/${sessionId}/photos`
         );
@@ -241,9 +130,6 @@ export const checkinApi = {
      * Delete a photo from the session
      */
     deletePhoto: async (sessionId: string, photoId: string): Promise<void> => {
-        if (USE_MOCKS) {
-            return mockDeletePhoto(sessionId, photoId);
-        }
         await apiClient.delete(
             `${PHOTO_SESSIONS_PATH}/${sessionId}/photos/${photoId}`
         );

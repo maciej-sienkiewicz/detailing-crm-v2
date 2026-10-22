@@ -46,14 +46,6 @@ export function isSameLocalDay(start: string | Date, end: string | Date): boolea
   return s.getFullYear() === e.getFullYear() && s.getMonth() === e.getMonth() && s.getDate() === e.getDate();
 }
 
-/** Add hours to a date string or Date and return Instant */
-export function addHoursAsInstant(start: string | Date, hours: number): string {
-  const d = typeof start === 'string' ? new Date(start) : new Date(start.getTime());
-  if (isNaN(d.getTime())) throw new Error('addHoursAsInstant: invalid start');
-  d.setHours(d.getHours() + hours);
-  return d.toISOString();
-}
-
 /**
  * Czy termin niesie godzinę, którą ktoś ustalił - czy tylko dzień.
  *

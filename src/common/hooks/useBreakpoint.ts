@@ -33,34 +33,3 @@ export const useBreakpoint = (breakpoint: BreakpointKey): boolean => {
     return isAboveBreakpoint;
 };
 
-export const useCurrentBreakpoint = (): BreakpointKey => {
-    const [currentBreakpoint, setCurrentBreakpoint] = useState<BreakpointKey>('xs');
-
-    useEffect(() => {
-        const checkBreakpoint = () => {
-            const width = window.innerWidth;
-            const breakpointEntries = Object.entries(breakpoints) as [BreakpointKey, string][];
-
-            const sorted = breakpointEntries
-                .map(([key, value]) => ({ key, value: parseInt(value.replace('px', ''), 10) }))
-                .sort((a, b) => b.value - a.value);
-
-            for (const { key, value } of sorted) {
-                if (width >= value) {
-                    setCurrentBreakpoint(key);
-                    return;
-                }
-            }
-            setCurrentBreakpoint('xs');
-        };
-
-        checkBreakpoint();
-        window.addEventListener('resize', checkBreakpoint);
-
-        return () => {
-            window.removeEventListener('resize', checkBreakpoint);
-        };
-    }, []);
-
-    return currentBreakpoint;
-};

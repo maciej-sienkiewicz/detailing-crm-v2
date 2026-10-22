@@ -23,8 +23,6 @@ import type {
  */
 const USE_UNIFIED_CALENDAR_API = true;
 
-const USE_MOCKS = false;
-
 // ---------------------------------------------------------------------------
 // Helpers
 // ---------------------------------------------------------------------------
@@ -197,28 +195,6 @@ const transformVisit = (visit: VisitResponse): CalendarEvent => {
 };
 
 // ---------------------------------------------------------------------------
-// Mock data
-// ---------------------------------------------------------------------------
-
-const mockAppointments: AppointmentResponse[] = [
-    {
-        id: 'appt_1',
-        appointmentTitle: 'Oklejanie PPF',
-        customer: { firstName: 'Jan', lastName: 'Kowalski', phone: '+48 123 456 789', email: 'jan@example.com' },
-        vehicle: { brand: 'BMW', model: 'X5' },
-        services: [
-            { id: '1', serviceId: 's1', serviceName: 'Oklejanie PPF - cały przód', basePriceNet: 400000, vatRate: 23, finalPriceNet: 400000, finalPriceGross: 492000 },
-            { id: '2', serviceId: 's2', serviceName: 'Powłoka ceramiczna', basePriceNet: 95000, vatRate: 23, finalPriceNet: 95000, finalPriceGross: 116850 },
-        ],
-        schedule: { isAllDay: false, startDateTime: '2026-01-20T09:00:00Z', endDateTime: '2026-01-20T15:00:00Z' },
-        appointmentColor: { id: 'c1', name: 'Red', hexColor: '#ef4444' },
-        totalNet: 495000, totalGross: 608850, totalVat: 113850, status: 'CONFIRMED',
-    },
-];
-
-const mockVisits: VisitResponse[] = [];
-
-// ---------------------------------------------------------------------------
 // Fetch strategies
 // ---------------------------------------------------------------------------
 
@@ -232,11 +208,6 @@ const fetchUnified = async (
     visitStatuses: VisitStatus[],
     colorIds: string[],
 ): Promise<CalendarEventsResponse> => {
-    if (USE_MOCKS) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        return { appointments: mockAppointments, visits: mockVisits };
-    }
-
     const params: Record<string, string> = {
         startDate: dateRange.start,
         endDate: dateRange.end,
@@ -265,11 +236,6 @@ const fetchLegacy = async (
     appointmentStatuses: AppointmentStatus[],
     visitStatuses: VisitStatus[],
 ): Promise<{ appointments: AppointmentResponse[]; visits: VisitResponse[] }> => {
-    if (USE_MOCKS) {
-        await new Promise(resolve => setTimeout(resolve, 500));
-        return { appointments: mockAppointments, visits: mockVisits };
-    }
-
     const appointmentRequests = appointmentStatuses.map(status =>
         apiClient.get<{ appointments: AppointmentResponse[] }>('/v1/appointments', {
             params: { startDate: dateRange.start, endDate: dateRange.end, status },
@@ -289,7 +255,7 @@ const fetchLegacy = async (
 
     return {
         appointments: appointmentResponses.flatMap(r => r.data.appointments || []),
-        visits: (visitResponses as Awaited<typeof visitRequests>).flatMap(r => r.data.visits || []),
+        visits: (visitResponses as Awaited<(typeof visitRequests)[number]>[]).flatMap(r => r.data.visits || []),
     };
 };
 

@@ -103,6 +103,3 @@ export interface CreateRoleResponse {
     roleId: string;
 }
 
-export interface AssignRoleRequest {
-    roleId: string | null; // null = remove assignment
-}

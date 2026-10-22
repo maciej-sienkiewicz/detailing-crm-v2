@@ -6,7 +6,9 @@ import tseslint from 'typescript-eslint'
 import { defineConfig, globalIgnores } from 'eslint/config'
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  // android/ i ios/ zawierają kopie wygenerowane przez Capacitora i Gradle (także
+  // build/intermediates), marketing/ - zewnętrzne skrypty filmu promocyjnego.
+  globalIgnores(['dist', 'android', 'ios', 'marketing', 'mobile/www', 'test-results', 'playwright-report']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
@@ -18,6 +20,17 @@ export default defineConfig([
     languageOptions: {
       ecmaVersion: 2020,
       globals: globals.browser,
+    },
+    rules: {
+      // `_` na początku nazwy = świadomie nieużywane (jak noUnusedParameters w tsconfig),
+      // a `const { pole: _, ...reszta } = obiekt` to zwykłe pominięcie pola.
+      '@typescript-eslint/no-unused-vars': ['error', {
+        argsIgnorePattern: '^_',
+        varsIgnorePattern: '^_',
+        caughtErrorsIgnorePattern: '^_',
+        destructuredArrayIgnorePattern: '^_',
+        ignoreRestSiblings: true,
+      }],
     },
   },
 ])

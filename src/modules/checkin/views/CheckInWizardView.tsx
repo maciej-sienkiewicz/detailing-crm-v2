@@ -18,7 +18,7 @@ import type { OpenDraftVisit } from '@/modules/visits/types';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { t } from '@/common/i18n';
 import { Notice } from '@/common/components/ui';
-import type { CheckInFormData, ProtocolResponse } from '../types';
+import type { CheckInFormData, CheckInInitialData, CheckInStep, ProtocolResponse } from '../types';
 import type { AppointmentColor } from '@/modules/appointments/types';
 
 // ─── Animations ───────────────────────────────────────────────────────────────
@@ -253,7 +253,7 @@ const ErrorAlert = styled.div`
 interface CheckInWizardViewProps {
     reservationId?: string;
     qrSessionId?: string;
-    initialData: Partial<CheckInFormData>;
+    initialData: CheckInInitialData;
     colors: AppointmentColor[];
     onComplete: (visitId: string) => void;
     /**
@@ -429,7 +429,6 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
 
     const handleSigningModalConfirm = () => {
         if (signingModalState.visitId) {
-            const visitNumber = signingModalState.visitNumber || signingModalState.visitId.slice(0, 8);
             showSuccess('Wizyta rozpoczęta');
             setSigningModalState({ isOpen: false, isCreating: false, visitId: null, visitNumber: null, protocols: [], hasPhotos: false, hasDamageMap: false });
             onComplete(signingModalState.visitId);
@@ -472,7 +471,7 @@ export const CheckInWizardView = ({ reservationId, qrSessionId, initialData, col
     const visibleErrors = showValidationErrors ? errors : {};
     const hasErrors = showValidationErrors && Object.keys(errors).length > 0;
 
-    const getStepState = (stepId: string): 'done' | 'active' | 'pending' => {
+    const getStepState = (stepId: CheckInStep): 'done' | 'active' | 'pending' => {
         if (completedSteps.includes(stepId)) return 'done';
         if (stepId === currentStep) return 'active';
         return 'pending';

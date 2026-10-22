@@ -45,6 +45,7 @@ import { EditTemplateModal } from './EditTemplateModal';
 import { SettingsHeaderActions } from './shared/SettingsHeaderActions';
 import { STAGE_TITLE, byDisplayOrder, consentsWord, documentsWord, isTemplateOrphanedBy } from './documentsModel';
 import { backendMessage, shownByInterceptor } from './studioErrors';
+import { openInNewTab } from '@/common/utils/safeUrl';
 
 // ─── Wygląd ───────────────────────────────────────────────────────────────────
 
@@ -442,7 +443,7 @@ export function DocumentsSection() {
 
             <ActionMenu anchor={ruleMenu.menu?.anchor ?? null} onClose={ruleMenu.close} label="Akcje dokumentu">
                 {currentRulePreview && (
-                    <MenuItem icon={<Eye />} onClick={() => window.open(currentRulePreview, '_blank', 'noopener,noreferrer')}>
+                    <MenuItem icon={<Eye />} onClick={() => openInNewTab(currentRulePreview)}>
                         Podgląd PDF
                     </MenuItem>
                 )}
@@ -461,7 +462,7 @@ export function DocumentsSection() {
 
             <ActionMenu anchor={consentMenu.menu?.anchor ?? null} onClose={consentMenu.close} label="Akcje zgody">
                 {currentConsentPreview && (
-                    <MenuItem icon={<Eye />} onClick={() => window.open(currentConsentPreview, '_blank', 'noopener,noreferrer')}>
+                    <MenuItem icon={<Eye />} onClick={() => openInNewTab(currentConsentPreview)}>
                         Podgląd PDF
                     </MenuItem>
                 )}

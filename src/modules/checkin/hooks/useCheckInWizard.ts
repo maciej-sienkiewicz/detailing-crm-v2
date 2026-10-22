@@ -7,6 +7,7 @@ import { normalizeVehicleKind } from '@/modules/vehicles/vehicleKind';
 import { defaultSchematicForKind } from '../utils/vehicleSchematics';
 import type {
     CheckInFormData,
+    CheckInInitialData,
     CheckInStep,
     CreateVisitFromReservationResponse,
     ReservationToVisitPayload,
@@ -16,7 +17,7 @@ import type {
 
 const DRAFT_STORAGE_KEY = 'checkin_draft';
 
-export const useCheckInWizard = (reservationId: string | undefined, initialData: Partial<CheckInFormData>, qrCheckinId?: string) => {
+export const useCheckInWizard = (reservationId: string | undefined, initialData: CheckInInitialData, qrCheckinId?: string) => {
     const queryClient = useQueryClient();
     const [currentStep, setCurrentStep] = useState<CheckInStep>('verification');
     const [completedSteps, setCompletedSteps] = useState<CheckInStep[]>([]);
@@ -72,39 +73,17 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
         { id: 'photos', label: 'Zdjęcia i uszkodzenia' },
     ];
 
+    // Szkic przyjęcia w localStorage już nie powstaje - funkcji zapisu nic nie wołało, a
+    // odczyt wczytywał do NOWEGO przyjęcia dane klienta i auta z dawnego szkicu. Taki
+    // szkic mógł zostać w przeglądarce sprzed zmiany: sprzątamy go, zamiast go wczytywać.
     useEffect(() => {
-        const savedDraft = localStorage.getItem(`${DRAFT_STORAGE_KEY}_${reservationId ?? 'walkin'}`);
-        if (savedDraft) {
-            try {
-                const draft = JSON.parse(savedDraft);
-                setFormData(draft.formData);
-                setCurrentStep(draft.currentStep);
-                setCompletedSteps(draft.completedSteps);
-            } catch {
-                // TODO: handled error silently
-            }
-        }
-    }, [reservationId]);
-
-    const saveDraft = () => {
-        const draft = {
-            formData,
-            currentStep,
-            completedSteps,
-            savedAt: new Date().toISOString(),
-        };
-        localStorage.setItem(`${DRAFT_STORAGE_KEY}_${reservationId ?? 'walkin'}`, JSON.stringify(draft));
-    };
-
-    const clearDraft = () => {
         localStorage.removeItem(`${DRAFT_STORAGE_KEY}_${reservationId ?? 'walkin'}`);
-    };
+    }, [reservationId]);
 
     const createVisitMutation = useMutation({
         mutationFn: (payload: ReservationToVisitPayload) =>
             checkinApi.createVisitFromReservation(payload),
         onSuccess: () => {
-            clearDraft();
             queryClient.invalidateQueries({ queryKey: DASHBOARD_STATS_KEY });
         },
     });
@@ -113,7 +92,6 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
         mutationFn: (payload: WalkInVisitPayload) =>
             checkinApi.createWalkInVisit(payload),
         onSuccess: () => {
-            clearDraft();
             queryClient.invalidateQueries({ queryKey: DASHBOARD_STATS_KEY });
         },
     });
@@ -235,7 +213,6 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
             licensePlate: formData.vehicleData!.licensePlate || undefined,
             vin: formData.vehicleData!.vin,
             color: formData.vehicleData!.color,
-            paintType: formData.vehicleData!.paintType,
         };
 
         const vehicleIdentity = (() => {
@@ -255,7 +232,6 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
                         licensePlate: formData.vehicleData!.licensePlate || undefined,
                         vin: formData.vehicleData!.vin,
                         color: formData.vehicleData!.color,
-                        paintType: formData.vehicleData!.paintType,
                     },
                 };
             }
@@ -340,7 +316,6 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
         goToStep,
         submitCheckIn,
         reviseDraft,
-        saveDraft,
         isSubmitting,
         submitError,
     };

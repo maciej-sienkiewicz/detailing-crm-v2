@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
+import { createContext, useEffect, useRef, useState, ReactNode } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 import { useAuth } from './AuthContext';
 import { UserSwitcherPanel } from '@/modules/pin-switcher';
@@ -24,8 +24,6 @@ const IdleTimeoutContext = createContext<IdleTimeoutContextType>({
     resetTimer: () => {},
     isLocked: false,
 });
-
-export const useIdleTimeout = () => useContext(IdleTimeoutContext);
 
 interface Props {
     children: ReactNode;

@@ -14,16 +14,6 @@ export const FormFieldGroup = styled.div`
     gap: 6px;
 `;
 
-export const FormGrid2Col = styled.div`
-    display: grid;
-    grid-template-columns: 1fr;
-    gap: 16px;
-
-    @media (min-width: 560px) {
-        grid-template-columns: 1fr 1fr;
-    }
-`;
-
 // ─── Label ────────────────────────────────────────────────────────────────────
 
 export const FormLabel = styled.label`
@@ -97,45 +87,6 @@ export const FormTextarea = styled.textarea<{ $hasError?: boolean; $accentColor?
 `;
 
 // ─── Select / trigger button ──────────────────────────────────────────────────
-
-export const FormSelectButton = styled.button<{
-    $hasError?: boolean;
-    $hasValue?: boolean;
-    $accentColor?: string;
-}>`
-    width: 100%;
-    display: flex;
-    align-items: center;
-    gap: 10px;
-    padding: 11px 16px;
-    background: #ffffff;
-    border: 1.5px solid ${p => p.$hasError ? '#ef4444' : '#e2e8f0'};
-    border-radius: 10px;
-    text-align: left;
-    cursor: pointer;
-    transition: border-color 180ms ease, box-shadow 180ms ease, background 180ms ease;
-
-    &:hover:not(:disabled) { border-color: #cbd5e1; }
-
-    &:focus {
-        outline: none;
-        border-color: ${p => p.$hasError ? '#ef4444' : (p.$accentColor ?? '#0369a1')};
-        box-shadow: 0 0 0 3px ${p =>
-            p.$hasError ? 'rgba(239,68,68,0.12)' : 'rgba(3, 105, 161, 0.14)'};
-    }
-
-    &:disabled { opacity: 0.5; cursor: not-allowed; }
-
-    span {
-        flex: 1;
-        font-size: 15px;
-        color: ${p => p.$hasValue ? '#0f172a' : '#94a3b8'};
-        font-weight: ${p => p.$hasValue ? 500 : 400};
-        white-space: nowrap;
-        overflow: hidden;
-        text-overflow: ellipsis;
-    }
-`;
 
 // ─── Validation messages ──────────────────────────────────────────────────────
 

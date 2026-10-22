@@ -264,10 +264,6 @@ export const router = createBrowserRouter([
             path: '/protocols',
             ...lazyPage(() => import('@/modules/protocols/views/ProtocolRulesView').then(m => m.ProtocolRulesView), 'VISITS_CREATE'),
         },
-        {
-            path: '/protocols/demo',
-            ...lazyPage(() => import('@/modules/protocols/views/ProtocolDemoView').then(m => m.ProtocolDemoView), 'VISITS_CREATE'),
-        },
 
         // ── Mobile (public, token-based) ─────────────────────────────────────
         {

@@ -42,13 +42,6 @@ export const IconNote = () => (
     </svg>
 );
 
-export const IconTrash = () => (
-    <svg viewBox="0 0 24 24" {...strokeProps}>
-        <polyline points="3 6 5 6 21 6"/>
-        <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"/>
-    </svg>
-);
-
 export const IconX = () => (
     <svg viewBox="0 0 24 24" {...strokeProps}>
         <line x1="18" y1="6" x2="6" y2="18"/>
@@ -93,10 +86,3 @@ export const IconCheck = () => (
     </svg>
 );
 
-export const IconPercent = () => (
-    <svg viewBox="0 0 24 24" {...strokeProps}>
-        <line x1="19" y1="5" x2="5" y2="19"/>
-        <circle cx="6.5" cy="6.5" r="2.5"/>
-        <circle cx="17.5" cy="17.5" r="2.5"/>
-    </svg>
-);
