@@ -1,5 +1,7 @@
 import { apiClient } from '@/core/apiClient';
+import { problemStatus } from '@/core/problem';
 import type {
+    CurrentPushDevice,
     NativePushTransport,
     PushDeviceDto,
     PushDeviceNotifications,
@@ -40,6 +42,26 @@ export const pushApi = {
      */
     sendTestPush: async (endpoint: string): Promise<void> => {
         await apiClient.post(`${BASE_PATH}/devices/test`, { endpoint }, { skipErrorToast: true });
+    },
+
+    /**
+     * Czy serwer uznaje subskrypcję tej przeglądarki za aktywne urządzenie zalogowanej
+     * osoby. Adres subskrypcji w treści, nie w adresie URL. null = backend sprzed tego
+     * pytania (404/405) - wtedy ekran zostaje przy tym, co wie przeglądarka.
+     */
+    getCurrentDevice: async (endpoint: string): Promise<CurrentPushDevice | null> => {
+        try {
+            const { data } = await apiClient.post<CurrentPushDevice>(
+                `${BASE_PATH}/devices/current`,
+                { endpoint },
+                { skipErrorToast: true },
+            );
+            return data;
+        } catch (error) {
+            const status = problemStatus(error);
+            if (status === 404 || status === 405) return null;
+            throw error;
+        }
     },
 
     /** Telefon z aplikacją ze sklepu: token APNs (iPhone) albo FCM (Android). */

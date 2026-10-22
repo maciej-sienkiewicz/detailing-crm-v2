@@ -1,12 +1,16 @@
 // src/modules/statistics/components/ReportNotificationSetting.tsx
 //
-// „Powiadomienie o nowym raporcie" w Ustawieniach → Telefon → Powiadomienia.
-// Ustawienie należy do osoby (trafia na JEJ telefon), więc każdy z dostępem do
-// raportu ustawia je sam. Push przychodzi w dniu, w którym domknął się okres.
+// „Nowy raport" w Ustawieniach → Telefon → Powiadomienia, w sekcji „Raporty
+// i podsumowania". Ustawienie należy do osoby (trafia na JEJ telefon), więc każdy
+// z dostępem do raportu ustawia je sam. Push przychodzi w dniu, w którym domknął się okres.
+//
+// Sam wiersz, bez własnej ramy i nagłówka: stał osobną ramą między „To urządzenie"
+// a kodem QR, z dala od podsumowań reklam - dwa ustawienia „jak często" w dwóch
+// końcach widoku. Ramę i nagłówek daje teraz sekcja, która trzyma je razem.
 
 import styled from 'styled-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { Panel, SectionTitle, Segmented, ui } from '@/common/components/ui';
+import { Segmented, ui } from '@/common/components/ui';
 import { usePermissions } from '@/core/permissions/usePermissions';
 import { ownerReportApi, type ReportFrequency } from '../api/ownerReportApi';
 
@@ -19,9 +23,12 @@ const OPTIONS = [
     { value: 'MONTHLY' as const, label: 'Co miesiąc' },
 ];
 
+/** Uprawnienia, bez których raportu nie ma - sekcja nad wierszem pyta o to samo. */
+export const REPORT_NOTIFICATION_PERMISSIONS = ['STATISTICS_VIEW', 'FINANCE_VIEW_REPORTS'] as const;
+
 export function ReportNotificationSetting() {
     const { can } = usePermissions();
-    if (!can(['STATISTICS_VIEW', 'FINANCE_VIEW_REPORTS'])) return null;
+    if (!can([...REPORT_NOTIFICATION_PERMISSIONS])) return null;
     return <Setting />;
 }
 
@@ -36,8 +43,8 @@ function Setting() {
     const value = update.isPending && update.variables ? update.variables : current.data ?? 'OFF';
 
     return (
-        <Box>
-            <SectionTitle as="h3">Powiadomienie o nowym raporcie</SectionTitle>
+        <Row>
+            <RowTitle>Nowy raport</RowTitle>
             <Segmented
                 label="Powiadomienie o nowym raporcie"
                 size="sm"
@@ -45,19 +52,23 @@ function Setting() {
                 value={value}
                 onChange={frequency => { if (frequency !== value) update.mutate(frequency); }}
             />
-            <Hint>Rano, gdy skończy się tydzień, 2 tygodnie albo miesiąc.</Hint>
-        </Box>
+            <Hint>Przychodzi rano, gdy skończy się wybrany okres: tydzień, 2 tygodnie albo miesiąc.</Hint>
+        </Row>
     );
 }
 
-const Box = styled(Panel)`
+const Row = styled.div`
     display: flex;
     flex-direction: column;
     align-items: flex-start;
-    gap: 10px;
-    padding: 16px 20px;
+    gap: 8px;
+    max-width: 100%;
+`;
 
-    @media (max-width: 767px) { padding: 16px; }
+const RowTitle = styled.span`
+    font-size: 14px;
+    font-weight: 600;
+    color: ${ui.ink};
 `;
 
 const Hint = styled.p`

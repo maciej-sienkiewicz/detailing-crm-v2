@@ -56,9 +56,14 @@ const toastedGlobally = (error: unknown): boolean => {
 interface Props {
     /** Odłączenie własnego urządzenia; cudzych nie odłącza się stąd (tylko na nich samych). */
     onRevoke: (deviceId: string) => Promise<void>;
+    /**
+     * Wiersz urządzenia, na którym otwarto ekran. Bez oznaczenia lista i karta
+     * „To urządzenie" nad nią wyglądały jak dwie niezwiązane rzeczy.
+     */
+    currentDeviceId?: string | null;
 }
 
-export function DeviceNotificationSettings({ onRevoke }: Props) {
+export function DeviceNotificationSettings({ onRevoke, currentDeviceId = null }: Props) {
     const settings = useQuery({
         queryKey: pushQueryKeys.notificationSettings,
         queryFn: pushApi.getNotificationSettings,
@@ -76,8 +81,8 @@ export function DeviceNotificationSettings({ onRevoke }: Props) {
                 <SectionTitle as="h3" count={String(devices.length)}>{title}</SectionTitle>
                 <Lead>
                     {settings.data?.manageAll
-                        ? 'Wybierz, o czym ma dawać znać każdy telefon. Nowe rodzaje powiadomień włączają się same.'
-                        : 'Wybierz, o czym ma dawać znać każdy z Twoich telefonów.'}
+                        ? 'Wybierz, o czym ma dawać znać każde urządzenie. Nowe rodzaje powiadomień włączają się same.'
+                        : 'Wybierz, o czym ma dawać znać każde z Twoich urządzeń.'}
                 </Lead>
             </Head>
             <List>
@@ -85,8 +90,13 @@ export function DeviceNotificationSettings({ onRevoke }: Props) {
                     <DeviceRow
                         key={device.id}
                         device={device}
+                        isCurrent={device.id === currentDeviceId}
                         showOwner={settings.data?.manageAll ?? false}
-                        defaultOpen={devices.length <= 2}
+                        // Rozwinięte tylko jedyne urządzenie na liście. Dwa rozwinięte wiersze to
+                        // kilkanaście przełączników jeden pod drugim, a sekcja „Raporty
+                        // i podsumowania" lądowała ekran niżej - widok się rozłaził. Zwinięty
+                        // wiersz mówi skrótem („4 z 8 rodzajów"), co w nim jest.
+                        defaultOpen={devices.length === 1}
                         onRevoke={onRevoke}
                     />
                 ))}
@@ -97,12 +107,13 @@ export function DeviceNotificationSettings({ onRevoke }: Props) {
 
 interface DeviceRowProps {
     device: PushDeviceNotifications;
+    isCurrent: boolean;
     showOwner: boolean;
     defaultOpen: boolean;
     onRevoke: (deviceId: string) => Promise<void>;
 }
 
-function DeviceRow({ device, showOwner, defaultOpen, onRevoke }: DeviceRowProps) {
+function DeviceRow({ device, isCurrent, showOwner, defaultOpen, onRevoke }: DeviceRowProps) {
     const queryClient = useQueryClient();
     const { showError, showSuccess } = useToast();
     const [open, setOpen] = useState(defaultOpen);
@@ -182,6 +193,7 @@ function DeviceRow({ device, showOwner, defaultOpen, onRevoke }: DeviceRowProps)
                 <DeviceTexts>
                     <DeviceName>{device.deviceName || PLATFORM_LABEL[device.platform]}</DeviceName>
                     <Meta>
+                        {isCurrent && <ThisDevice>To urządzenie</ThisDevice>}
                         {showOwner && <Owner>{device.mine ? 'Ty' : device.userName}</Owner>}
                         <span>{PLATFORM_LABEL[device.platform]}, {channelLabel(device)}</span>
                         <Summary $muted={allOff && available.length > 0}>{summaryOf(device.categories)}</Summary>
@@ -347,6 +359,16 @@ const Meta = styled.span`
 const Owner = styled.span`
     font-weight: 600;
     color: ${ui.inkSoft};
+`;
+
+// Odcień marki jako tło i obwódka, bez wypełnienia - to oznaczenie, nie krok (CLAUDE.md §2).
+const ThisDevice = styled.span`
+    padding: 0 7px;
+    border-radius: 999px;
+    border: 1px solid ${ui.brandLine};
+    background: ${ui.brandTint};
+    color: ${ui.brandInk};
+    font-weight: 600;
 `;
 
 const Summary = styled.span<{ $muted?: boolean }>`

@@ -48,7 +48,7 @@ export const CATEGORY_COPY: Record<string, CategoryCopy> = {
     },
     REPORTS: {
         label: 'Nowy raport',
-        hint: 'Gdy gotowy jest raport za kolejny okres. Jak często, wybierasz wyżej, w „Powiadomieniu o nowym raporcie”.',
+        hint: 'Gdy gotowy jest raport za kolejny okres. Jak często, wybierasz niżej, w sekcji „Raporty i podsumowania”.',
     },
     COMPETITION: {
         label: 'Reklamy konkurencji',

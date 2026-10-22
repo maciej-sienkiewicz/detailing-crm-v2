@@ -12,7 +12,7 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import { QRCodeSVG } from 'qrcode.react';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
-import { ButtonLink, Button, Notice, Segmented, ui } from '@/common/components/ui';
+import { ButtonLink, Button, Notice, Panel, SectionTitle, Segmented, ui } from '@/common/components/ui';
 import { isNativeApp } from '@/core/native/platform';
 import { usePermissions } from '@/core/permissions';
 import { useCapability } from '@/modules/subscription';
@@ -20,6 +20,10 @@ import { PushNotificationsPanel } from '@/modules/push/components/PushNotificati
 import { NativePushPanel } from '@/modules/push/native/NativePushPanel';
 import { isMobileDevice } from '@/modules/push/utils/webPush';
 import { MarketNotificationPreferences } from '@/common/components/notifications';
+// Bezpośrednio z pliku, nie z indeksu modułu: indeks ciągnie widoki Statystyk z wykresami.
+import {
+    REPORT_NOTIFICATION_PERMISSIONS, ReportNotificationSetting,
+} from '@/modules/statistics/components/ReportNotificationSetting';
 import { useMobileShortcutToken, useRotateMobileShortcutToken } from '@/modules/voice-commands/hooks/useMobileShortcutToken';
 import { usePWAInstall } from '@/modules/voice-commands/hooks/usePWAInstall';
 import { ContactsSyncSection } from '../ContactsSyncSection';
@@ -27,18 +31,37 @@ import type { PhoneFeatureId } from './phoneFeatures';
 
 // ─── Powiadomienia i dzwonienie ──────────────────────────────────────────────
 
+/**
+ * Najpierw „gdzie" (urządzenia i co do którego idzie), potem „jak często" - raport
+ * i podsumowania reklam razem, w jednej sekcji. Wcześniej raport stał między
+ * „To urządzenie" a kodem QR, a reklamy osobną ramą pod całością, i nic nie mówiło,
+ * jak te części się łączą.
+ */
 function PushSetup() {
     const { can } = usePermissions();
     // Wiadomości o rynku reklam dostaje tylko marketing, i tylko w pakiecie z modułem
     // Instagrama - komu ich nie wyślemy, temu nie pokazujemy przełącznika bez skutku.
     const instagram = useCapability('INSTAGRAM_MONITOR');
     const showMarketPreferences = can('MARKETING_MANAGE') && instagram.enabled;
+    const showReport = can([...REPORT_NOTIFICATION_PERMISSIONS]);
 
     return (
         <Stack>
             {/* W aplikacji ze sklepu jedna systemowa zgoda zamiast kreatora przeglądarki. */}
             {isNativeApp() ? <NativePushPanel /> : <PushNotificationsPanel />}
-            {showMarketPreferences && <MarketNotificationPreferences />}
+            {(showReport || showMarketPreferences) && (
+                <Summaries>
+                    <SummariesHead>
+                        <SectionTitle as="h3">Raporty i podsumowania</SectionTitle>
+                        <SummariesLead>
+                            Ustaw, jak często mają przychodzić. Na które urządzenia trafiają, wybierasz
+                            wyżej, przy każdym urządzeniu.
+                        </SummariesLead>
+                    </SummariesHead>
+                    {showReport && <ReportNotificationSetting />}
+                    {showMarketPreferences && <MarketNotificationPreferences embedded />}
+                </Summaries>
+            )}
         </Stack>
     );
 }
@@ -222,6 +245,31 @@ const Lead = styled.p`
     font-size: 14px;
     line-height: 1.6;
     color: ${ui.textSecondary};
+`;
+
+// Płasko jak lista urządzeń nad nią: jedyną wyniesioną kartą w kolumnie jest „To urządzenie" (CLAUDE.md §2).
+const Summaries = styled(Panel)`
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 18px;
+    padding: 16px 20px 18px;
+
+    @media (max-width: 767px) { padding: 16px; }
+`;
+
+const SummariesHead = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+`;
+
+const SummariesLead = styled.p`
+    margin: 0;
+    max-width: 68ch;
+    font-size: 13px;
+    line-height: 1.55;
+    color: ${ui.textMuted};
 `;
 
 const QrLayout = styled.div`

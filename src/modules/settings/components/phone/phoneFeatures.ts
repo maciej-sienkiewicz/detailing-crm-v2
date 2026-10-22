@@ -5,6 +5,10 @@
 //
 // Nazwy mówią, co człowiek z tego ma („Kto dzwoni"), a nie jak to działa technicznie
 // („Synchronizacja CardDAV") - wybiera z nich detailer, nie administrator.
+//
+// Opisy są rzeczowe: co funkcja robi i co trzeba ustawić. Pierwsza wersja pisała
+// hasłami reklamowymi („Lead, rezerwacja i przychód trafiają do kieszeni…") - właściciel
+// studia odebrał to jako kicz, a hasło nie mówiło, co tu właściwie się ustawia.
 
 export type PhoneFeatureId = 'push' | 'calls' | 'dial' | 'voice' | 'camera' | 'app';
 
@@ -25,37 +29,37 @@ export const PHONE_FEATURES: Record<PhoneFeatureId, PhoneFeature> = {
     push: {
         id: 'push',
         name: 'Powiadomienia',
-        description: 'Lead, rezerwacja i przychód trafiają do kieszeni, zanim ktoś zajrzy do CRM. Każdy telefon wybiera, o czym chce wiedzieć.',
+        description: 'Bądź na bieżąco ze wszystkimi wydarzeniami. Ustaw, które powiadomienia chcesz otrzymywać.',
         cta: 'Wybierz, co ma przychodzić',
     },
     calls: {
         id: 'calls',
         name: 'Kto dzwoni',
-        description: 'Klienci studia trafiają do kontaktów telefonu. Przy połączeniu widać imię i nazwisko, a nie sam numer.',
+        description: 'Dodaj klientów studia do kontaktów w telefonie. Gdy klient zadzwoni, zobaczysz jego imię i nazwisko zamiast samego numeru.',
         cta: 'Dodaj klientów do kontaktów',
     },
     dial: {
         id: 'dial',
         name: 'Dzwonienie z komputera',
-        description: 'Klikasz numer na karcie klienta, a telefon w kieszeni od razu proponuje połączenie. Bez przepisywania cyfr.',
+        description: 'Kliknij numer telefonu na karcie klienta, a Twój telefon zaproponuje połączenie z tym numerem.',
         cta: 'Sparuj telefon',
     },
     voice: {
         id: 'voice',
         name: 'Lead głosem',
-        description: 'Klient zaczepia na parkingu? Dyktujesz, a lead albo notatka lądują w CRM. Bez logowania i bez pisania.',
+        description: 'Podyktuj leada albo notatkę na telefonie, a zapiszą się w CRM. Skrót działa bez logowania.',
         cta: 'Dodaj skrót na telefon',
     },
     camera: {
         id: 'camera',
         name: 'Aparat dla komputera',
-        description: 'Kod QR na komputerze zamienia telefon w aparat i skaner. Niczego nie ustawiasz: kod pojawia się tam, gdzie jest potrzebny.',
+        description: 'Zrób zdjęcie albo zeskanuj kod telefonem, a wynik trafi na ekran komputera. Kod QR pojawia się wszędzie tam, gdzie można z tego skorzystać.',
         cta: null,
     },
     app: {
         id: 'app',
         name: 'Aplikacja',
-        description: 'CRM na ekranie głównym telefonu otwiera się jak każda aplikacja, bez paska przeglądarki. Na iPhonie tylko tak działają powiadomienia.',
+        description: 'Dodaj CRM do ekranu głównego telefonu, a otworzysz go jak zwykłą aplikację. Na iPhonie powiadomienia działają tylko w ten sposób.',
         cta: 'Dodaj do ekranu',
     },
 };

@@ -26,6 +26,11 @@ export type WizardStage =
     | 'blocked'
     /** Wszystko gotowe do zapytania o zgodę: tu pada „dlaczego warto" i jeden przycisk. */
     | 'ask'
+    /**
+     * Przeglądarka ma subskrypcję, ale serwer jej nie uznaje (odłączona na liście,
+     * wygasła, przejęta przez inne konto) - jedno „Włącz ponownie".
+     */
+    | 'repair'
     /** To urządzenie dostaje powiadomienia. */
     | 'ready';
 
@@ -33,11 +38,13 @@ export interface WizardInput {
     platform: PushPlatform;
     support: PushSupportState;
     isSubscribedHere: boolean | null;
+    /** Subskrypcja jest, serwer jej nie uznaje - patrz usePushDevice. */
+    needsRepair?: boolean;
     /** Konto ma aktywne urządzenie iOS - patrz usePushDevice. */
     appLikelyOnHomeScreen?: boolean;
 }
 
-export const wizardStage = ({ platform, support, isSubscribedHere, appLikelyOnHomeScreen }: WizardInput): WizardStage => {
+export const wizardStage = ({ platform, support, isSubscribedHere, needsRepair, appLikelyOnHomeScreen }: WizardInput): WizardStage => {
     switch (platform.kind) {
         case 'ios-update': return 'update-os';
         case 'open-in-browser': return 'open-in-browser';
@@ -48,6 +55,7 @@ export const wizardStage = ({ platform, support, isSubscribedHere, appLikelyOnHo
     if (support === 'unsupported') return 'unsupported';
     if (support === 'denied') return 'blocked';
     if (isSubscribedHere === null) return 'checking';
+    if (needsRepair) return 'repair';
     return isSubscribedHere ? 'ready' : 'ask';
 };
 
@@ -64,6 +72,7 @@ export const wizardTrailIndex = (stage: WizardStage, platform: PushPlatform): nu
     switch (stage) {
         case 'install': return 0;
         case 'ask':
+        case 'repair':
         case 'blocked':
         case 'checking': return permissionStep;
         case 'ready': return trail.length - 1;

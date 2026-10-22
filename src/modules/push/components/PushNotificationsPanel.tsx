@@ -15,6 +15,11 @@
 // Części panelu nazywały etykiety 11 px wersalikami w szarości - jedyna rama
 // każdej części (CLAUDE.md §2, wycofane). Teraz: „To urządzenie" leży na jedynej
 // wyniesionej powierzchni (to tu się coś robi), kod QR i lista urządzeń płasko.
+//
+// Kolejność to kolejność pytań: czy TO urządzenie odbiera → jak dodać telefon → co
+// przychodzi na które urządzenie. Ustawienie raportu stało tu między „To urządzenie"
+// a kodem QR, a podsumowania reklam pod całością - widok skakał między „gdzie"
+// i „jak często". Ustawienia „jak często" są teraz razem, pod tym panelem (PhoneSetups).
 
 import { useState } from 'react';
 import styled from 'styled-components';
@@ -25,8 +30,6 @@ import { usePushDevice } from '../hooks/usePushDevice';
 import { isMobileDevice } from '../utils/webPush';
 import { PushNotificationWizard } from './PushNotificationWizard';
 import { DeviceNotificationSettings } from './DeviceNotificationSettings';
-// Bezpośrednio z pliku, nie z indeksu modułu: indeks ciągnie widoki Statystyk z wykresami.
-import { ReportNotificationSetting } from '@/modules/statistics/components/ReportNotificationSetting';
 
 const PAIRING_URL_PATH = '/call-device';
 
@@ -56,20 +59,14 @@ export function PushNotificationsPanel() {
             <PairingBlock>
                 <SectionTitle as="h3">To urządzenie</SectionTitle>
                 <PushNotificationWizard push={push} />
-                {!onPhone && !push.isSubscribedHere && push.support === 'supported' && (
-                    <DesktopNote>
-                        Najlepiej działają na telefonie, który nosisz przy sobie.
-                    </DesktopNote>
-                )}
             </PairingBlock>
-
-            <ReportNotificationSetting />
 
             {/* Na telefonie nie da się zeskanować własnego ekranu - kod QR zostaje
                 dla komputera, jako sposób przeniesienia się na telefon. */}
             {!onPhone && (
                 <PhoneBlock>
-                    <SectionTitle as="h3">Twój telefon</SectionTitle>
+                    <SectionTitle as="h3">Dodaj telefon</SectionTitle>
+                    <BlockLead>Powiadomienia najlepiej sprawdzają się na telefonie, który masz przy sobie.</BlockLead>
                     <Layout>
                         <QrPanel>
                             <QrBox>
@@ -86,8 +83,8 @@ export function PushNotificationsPanel() {
 
                         <Steps>
                             <StepList>
-                                <li>Zeskanuj kod telefonem i zaloguj się, jeśli poprosi.</li>
-                                <li>Telefon poprowadzi dalej. Na końcu zezwól na powiadomienia.</li>
+                                <li>Zeskanuj kod aparatem telefonu i zaloguj się, jeśli CRM o to poprosi.</li>
+                                <li>Postępuj według wskazówek na telefonie. Na końcu zezwól na powiadomienia.</li>
                             </StepList>
 
                             <CopyRow>
@@ -101,7 +98,7 @@ export function PushNotificationsPanel() {
             )}
 
             {/* Sparowane urządzenia razem z tym, co do każdego idzie - właściciel widzi całe studio. */}
-            <DeviceNotificationSettings onRevoke={push.revokeDevice} />
+            <DeviceNotificationSettings onRevoke={push.revokeDevice} currentDeviceId={push.currentDeviceId} />
         </Wrap>
     );
 }
@@ -132,7 +129,7 @@ const PhoneBlock = styled(Panel)`
     @media (max-width: 767px) { padding: 16px; }
 `;
 
-const DesktopNote = styled.p`
+const BlockLead = styled.p`
     margin: 0;
     font-size: 13px;
     color: ${ui.textMuted};

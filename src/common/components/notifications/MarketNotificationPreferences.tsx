@@ -25,9 +25,14 @@ interface Props {
     /** Nagłówek sekcji; w module Instagrama może stać inny niż w Ustawieniach. */
     title?: string;
     className?: string;
+    /**
+     * Same wiersze, bez własnej ramy i nagłówka - w Ustawieniach → Telefon stoją
+     * w jednej sekcji z raportem, bo jedno i drugie odpowiada na „jak często".
+     */
+    embedded?: boolean;
 }
 
-export function MarketNotificationPreferences({ title = 'Powiadomienia o reklamach konkurencji', className }: Props) {
+export function MarketNotificationPreferences({ title = 'Powiadomienia o reklamach konkurencji', className, embedded = false }: Props) {
     const queryClient = useQueryClient();
     const { showError } = useToast();
     const preferences = useQuery({
@@ -58,38 +63,51 @@ export function MarketNotificationPreferences({ title = 'Powiadomienia o reklama
 
     if (preferences.isError) return null;
 
+    const rows = MARKET_CATEGORIES.map(({ category, copy }) => {
+        const entry = preferences.data?.find((item) => item.category === category);
+        const value = preferenceValue(preferences.data, category);
+        // Serwer jeszcze nie zna kategorii (starsza wersja) - nie pokazujemy przełącznika bez skutku.
+        if (preferences.data && !entry) return null;
+        const options = (entry?.options ?? Object.keys(copy.labels)).map((option) => ({
+            value: option,
+            label: copy.labels[option] ?? option,
+        }));
+        const hint = value ? copy.hint(value) : null;
+        return (
+            <Setting key={category}>
+                <span className="title">{copy.title}</span>
+                <Segmented
+                    label={copy.title}
+                    size="sm"
+                    options={options}
+                    value={value ?? ''}
+                    onChange={(next) => {
+                        if (next !== value) update.mutate({ category, value: next });
+                    }}
+                />
+                {hint && <Hint>{hint}</Hint>}
+            </Setting>
+        );
+    });
+
+    if (embedded) {
+        return <Rows className={className} aria-busy={preferences.isLoading}>{rows}</Rows>;
+    }
+
     return (
         <Box className={className} aria-busy={preferences.isLoading}>
             <SectionTitle as="h3">{title}</SectionTitle>
-            {MARKET_CATEGORIES.map(({ category, copy }) => {
-                const entry = preferences.data?.find((item) => item.category === category);
-                const value = preferenceValue(preferences.data, category);
-                // Serwer jeszcze nie zna kategorii (starsza wersja) - nie pokazujemy przełącznika bez skutku.
-                if (preferences.data && !entry) return null;
-                const options = (entry?.options ?? Object.keys(copy.labels)).map((option) => ({
-                    value: option,
-                    label: copy.labels[option] ?? option,
-                }));
-                const hint = value ? copy.hint(value) : null;
-                return (
-                    <Setting key={category}>
-                        <span className="title">{copy.title}</span>
-                        <Segmented
-                            label={copy.title}
-                            size="sm"
-                            options={options}
-                            value={value ?? ''}
-                            onChange={(next) => {
-                                if (next !== value) update.mutate({ category, value: next });
-                            }}
-                        />
-                        {hint && <Hint>{hint}</Hint>}
-                    </Setting>
-                );
-            })}
+            {rows}
         </Box>
     );
 }
+
+const Rows = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+`;
 
 const Box = styled(Panel)`
     display: flex;

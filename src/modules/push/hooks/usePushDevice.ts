@@ -1,17 +1,20 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
+import { problemStatus } from '@/core/problem';
 import { pushApi } from '../api/pushApi';
 import {
     describeThisDevice, getPushSupportState, urlBase64ToUint8Array, waitForServiceWorker,
 } from '../utils/webPush';
 import { detectPushPlatform, readPlatformEnv } from '../utils/pushPlatform';
 import { getServiceWorkerVersion } from '../utils/serviceWorkerRegistration';
-import type { PushSupportState } from '../types';
+import type { CurrentPushDevice, PushSupportState } from '../types';
 
 export const pushQueryKeys = {
     devices: ['push', 'devices'] as const,
     /** Pod `devices`, żeby parowanie i odłączanie odświeżały też ustawienia powiadomień. */
     notificationSettings: ['push', 'devices', 'notification-settings'] as const,
+    /** Pod `devices` z tego samego powodu: odłączenie na liście ma zmienić stan „to urządzenie". */
+    current: (endpoint: string) => ['push', 'devices', 'current', endpoint] as const,
     swVersion: ['push', 'sw-version'] as const,
 };
 
@@ -38,13 +41,22 @@ interface Options {
  * Flow: permission → SW registration ready → pushManager.subscribe(VAPID key
  * from the backend) → POST the subscription to /v1/push/devices, where the
  * session cookie ties it to the logged-in user.
+ *
+ * "Receives notifications" needs BOTH sides: the browser holds a subscription
+ * AND the server still counts it as this user's active device. The browser alone
+ * cannot tell - the subscription outlives a revoke on the device list, a 410 from
+ * the push service, and another account switching notifications on in the same
+ * browser (one subscription per browser profile, ownership follows the last
+ * login). Trusting the browser alone, the screen said "odbiera powiadomienia"
+ * while the test push came back "nie jest sparowane".
  */
 export const usePushDevice = ({ withDevices = true }: Options = {}) => {
     const queryClient = useQueryClient();
     const platform = useMemo(() => detectPushPlatform(readPlatformEnv()), []);
     const [support, setSupport] = useState<PushSupportState>(() => getPushSupportState());
-    const [isSubscribedHere, setIsSubscribedHere] = useState<boolean | null>(() =>
-        getPushSupportState() === 'supported' ? null : false,
+    // Subskrypcja tej przeglądarki: undefined = jeszcze sprawdzam, null = brak.
+    const [localEndpoint, setLocalEndpoint] = useState<string | null | undefined>(() =>
+        getPushSupportState() === 'supported' ? undefined : null,
     );
 
     const devicesQuery = useQuery({
@@ -83,10 +95,10 @@ export const usePushDevice = ({ withDevices = true }: Options = {}) => {
         waitForServiceWorker()
             .then(registration => registration.pushManager.getSubscription())
             .then(subscription => {
-                if (!cancelled) setIsSubscribedHere(Boolean(subscription));
+                if (!cancelled) setLocalEndpoint(subscription?.endpoint ?? null);
             })
             .catch(() => {
-                if (!cancelled) setIsSubscribedHere(false);
+                if (!cancelled) setLocalEndpoint(null);
             });
         return () => {
             cancelled = true;
@@ -125,6 +137,30 @@ export const usePushDevice = ({ withDevices = true }: Options = {}) => {
         };
     }, [refreshSubscription]);
 
+    // Druga połowa „odbiera": czy serwer wciąż uznaje tę subskrypcję za urządzenie tej osoby.
+    const currentQuery = useQuery({
+        queryKey: pushQueryKeys.current(localEndpoint ?? ''),
+        queryFn: () => pushApi.getCurrentDevice(localEndpoint as string),
+        enabled: support === 'supported' && Boolean(localEndpoint),
+        staleTime: 60_000,
+        retry: 1,
+    });
+    const serverSays: CurrentPushDevice | null | undefined = currentQuery.data;
+
+    /**
+     * true - odbiera; false - nie; null - jeszcze sprawdzam. Bez odpowiedzi serwera
+     * (backend sprzed tego pytania albo błąd sieci) zostaje stan przeglądarki, jak dawniej:
+     * lepiej wtedy pokazać „odbiera" niż kazać włączać coś, co może działać.
+     */
+    const isSubscribedHere: boolean | null =
+        localEndpoint === undefined ? null
+            : localEndpoint === null ? false
+                : serverSays === undefined && currentQuery.isPending ? null
+                    : serverSays?.paired !== false;
+    /** Przeglądarka ma subskrypcję, a serwer jej nie uznaje - jedno „Włącz ponownie" to naprawia. */
+    const needsRepair = Boolean(localEndpoint) && serverSays?.paired === false;
+    const currentDeviceId = serverSays?.paired ? serverSays.deviceId : null;
+
     const enableMutation = useMutation({
         mutationFn: async (permissionRequest: Promise<NotificationPermission>) => {
             const permission = await permissionRequest;
@@ -135,6 +171,8 @@ export const usePushDevice = ({ withDevices = true }: Options = {}) => {
 
             const registration = await waitForServiceWorker();
             const applicationServerKey = urlBase64ToUint8Array(await pushApi.getVapidPublicKey());
+            // Istniejąca subskrypcja idzie na serwer jeszcze raz: tak „Włącz ponownie"
+            // przywraca urządzenie odłączone na liście i przejmuje je od innego konta.
             const subscription =
                 (await registration.pushManager.getSubscription()) ??
                 (await registration.pushManager.subscribe({
@@ -149,16 +187,18 @@ export const usePushDevice = ({ withDevices = true }: Options = {}) => {
                 throw new Error('subscription-incomplete');
             }
 
-            return pushApi.registerDevice({
+            const device = await pushApi.registerDevice({
                 endpoint: json.endpoint,
                 p256dh: json.keys.p256dh,
                 auth: json.keys.auth,
                 deviceName: describeThisDevice(),
                 userAgent: navigator.userAgent,
             });
+            return { endpoint: json.endpoint, device };
         },
-        onSuccess: () => {
-            setIsSubscribedHere(true);
+        onSuccess: ({ endpoint, device }) => {
+            queryClient.setQueryData<CurrentPushDevice>(pushQueryKeys.current(endpoint), { paired: true, deviceId: device.id });
+            setLocalEndpoint(endpoint);
             queryClient.invalidateQueries({ queryKey: pushQueryKeys.devices });
         },
     });
@@ -173,16 +213,19 @@ export const usePushDevice = ({ withDevices = true }: Options = {}) => {
 
     const disableMutation = useMutation({
         mutationFn: async () => {
-            // Local unsubscribe only. The server row self-heals: the next
-            // call-request gets 410 Gone from the push service and the backend
-            // revokes the row. Explicit server-side revoke stays available per
-            // device via revokeDevice() in the devices list.
+            // Najpierw serwer: lista urządzeń ma od razu przestać pokazywać to urządzenie
+            // jako aktywne. Dawniej znikało z niej dopiero po pierwszym 410 od usługi push,
+            // a do tego czasu lista i „To urządzenie" mówiły co innego. Błąd serwera nie
+            // blokuje wyłączenia tutaj - wiersz i tak wygaśnie przy najbliższym powiadomieniu.
+            if (currentDeviceId) {
+                await pushApi.revokeDevice(currentDeviceId).catch(() => undefined);
+            }
             const registration = await waitForServiceWorker();
             const subscription = await registration.pushManager.getSubscription();
             if (subscription) await subscription.unsubscribe();
         },
         onSuccess: () => {
-            setIsSubscribedHere(false);
+            setLocalEndpoint(null);
             queryClient.invalidateQueries({ queryKey: pushQueryKeys.devices });
         },
     });
@@ -193,6 +236,13 @@ export const usePushDevice = ({ withDevices = true }: Options = {}) => {
             const subscription = await registration.pushManager.getSubscription();
             if (!subscription) throw new Error('not-subscribed');
             await pushApi.sendTestPush(subscription.endpoint);
+        },
+        // „Nie jest sparowane" z serwera to ten sam fakt co odpowiedź na pytanie o urządzenie -
+        // ekran ma od razu pokazać „Włącz ponownie", a nie dalej twierdzić, że odbiera.
+        onError: error => {
+            if (problemStatus(error) === 404 && localEndpoint) {
+                queryClient.setQueryData<CurrentPushDevice>(pushQueryKeys.current(localEndpoint), { paired: false, deviceId: null });
+            }
         },
     });
 
@@ -208,6 +258,9 @@ export const usePushDevice = ({ withDevices = true }: Options = {}) => {
         platform,
         support,
         isSubscribedHere,
+        needsRepair,
+        /** Wiersz tego urządzenia na liście urządzeń (null, póki nie wiadomo albo nie jest sparowane). */
+        currentDeviceId,
         appLikelyOnHomeScreen,
         devices: devicesQuery.data ?? [],
         isLoadingDevices: devicesQuery.isLoading,

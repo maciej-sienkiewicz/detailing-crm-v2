@@ -25,6 +25,8 @@ const pushState = (over: Partial<PushDeviceState>): PushDeviceState => ({
     platform: { kind: 'android', installed: false },
     support: 'supported',
     isSubscribedHere: false,
+    needsRepair: false,
+    currentDeviceId: null,
     appLikelyOnHomeScreen: false,
     devices: [],
     isLoadingDevices: false,
@@ -98,6 +100,20 @@ describe('PushNotificationWizard', () => {
         expect(screen.getByText('Powiadomienia są zablokowane')).toBeTruthy();
         expect(screen.getByText(/Uprawnienia/)).toBeTruthy();
         expect(screen.queryByRole('button', { name: /Włącz powiadomienia/ })).toBeNull();
+    });
+
+    it('subskrypcja, której serwer nie uznaje: „przestało odbierać" i jedno „Włącz ponownie", bez próbnego', () => {
+        // Zgłoszenie: ekran mówił „odbiera powiadomienia", a próbne kończyło się „nie jest sparowane".
+        const push = pushState({ isSubscribedHere: false, needsRepair: true });
+        render(<PushNotificationWizard push={push} />);
+
+        expect(screen.getByText('To urządzenie przestało odbierać powiadomienia z CRM.')).toBeTruthy();
+        expect(screen.queryByText(/odbiera powiadomienia z CRM\.$/)).toBeNull();
+        expect(screen.queryByRole('button', { name: /Wyślij powiadomienie próbne/ })).toBeNull();
+
+        fireEvent.click(screen.getByRole('button', { name: /Włącz ponownie/ }));
+        // Też w obsłudze gestu - na iPhonie po wyczyszczeniu zgody pytanie musi paść od razu.
+        expect(push.enable).toHaveBeenCalledTimes(1);
     });
 
     it('sparowane urządzenie proponuje powiadomienie próbne i mówi uczciwie o dźwięku', () => {

@@ -57,6 +57,15 @@ export interface PushNotificationSettings {
     devices: PushDeviceNotifications[];
 }
 
+/**
+ * Czy serwer zna subskrypcję TEJ przeglądarki jako aktywne urządzenie zalogowanej osoby.
+ * `paired: false` także wtedy, gdy urządzenie odłączono albo należy do innego konta.
+ */
+export interface CurrentPushDevice {
+    paired: boolean;
+    deviceId: string | null;
+}
+
 /** Kanał powiadomień aplikacji ze sklepu: Apple (iPhone) albo Firebase (Android). */
 export type NativePushTransport = 'APNS' | 'FCM';
 

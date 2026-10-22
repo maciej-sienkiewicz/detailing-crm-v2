@@ -17,9 +17,11 @@
 //  3. Komputer            → kod QR z linkiem; aparat iPhone'a otwiera Safari
 //                           prosto w pobranie profilu.
 //
-// Przycisk konfiguracji stoi w nagłówku ramy ustawień (jedyne wypełnienie okna).
-// Odwołanie dostępu pytało wklejonym w wiersz „Potwierdź / Anuluj", a jego błąd
-// kończył się ciszą - teraz ConfirmationModal i dymek.
+// Przycisk konfiguracji stoi w samej sekcji, pod opisem (jedyne wypełnienie okna).
+// Stał w nagłówku strony, a w Ustawieniach → Telefon ten nagłówek jest daleko od
+// sekcji - pusta lista odsyłała do „przycisku w nagłówku", którego nikt nie łączył
+// z tym, co czyta. Odwołanie dostępu pytało wklejonym w wiersz „Potwierdź / Anuluj",
+// a jego błąd kończył się ciszą - teraz ConfirmationModal i dymek.
 
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
@@ -33,7 +35,6 @@ import {
     carddavApi, CARDDAV_ACCOUNTS_KEY, useCreateProvisioning, useRevokeCarddavAccount,
 } from '@/modules/carddav';
 import type { CarddavAccountDto, CarddavProvisioningDto } from '@/modules/carddav';
-import { SettingsHeaderActions } from './shared/SettingsHeaderActions';
 import { serverMessage, toastedGlobally } from './errorToast';
 import {
     DeviceMain, DeviceRow, DeviceSide, DeviceText, EmptyState, Intro, ListCard, ListHead, ListNotice,
@@ -156,13 +157,16 @@ export function ContactsSyncSection() {
 
     return (
         <View>
-            <Intro>Klienci studia w kontaktach iPhone'a, żeby przy połączeniu było widać, kto dzwoni.</Intro>
+            <Intro>
+                Dodaj klientów studia do kontaktów w iPhonie. Gdy klient zadzwoni, zobaczysz jego
+                imię i nazwisko zamiast samego numeru.
+            </Intro>
 
-            <SettingsHeaderActions>
+            <div>
                 <Button variant="primary" size="lg" onClick={startSetup} disabled={createProvisioning.isPending}>
                     <Smartphone aria-hidden="true" />{setupLabel}
                 </Button>
-            </SettingsHeaderActions>
+            </div>
 
             {provisioning && (
                 <InstallPanel aria-label="Instalacja profilu">
@@ -200,13 +204,14 @@ export function ContactsSyncSection() {
                 </InstallPanel>
             )}
 
-            <ListCard aria-label="Telefony z kontaktami">
+            <ListCard aria-label="Telefony z kontaktami klientów">
                 <ListHead>
+                    {/* Licznik tylko, gdy coś liczy - „0 telefonów" obok tytułu pustej listy mówiło to samo dwa razy. */}
                     <SectionTitle
                         as="h3"
-                        count={data ? `${accounts.length} ${phonesWord(accounts.length)}` : undefined}
+                        count={accounts.length > 0 ? `${accounts.length} ${phonesWord(accounts.length)}` : undefined}
                     >
-                        Telefony z kontaktami studia
+                        Telefony z kontaktami klientów
                     </SectionTitle>
                 </ListHead>
 
@@ -228,8 +233,8 @@ export function ContactsSyncSection() {
                     ))
                 ) : accounts.length === 0 ? (
                     <EmptyState>
-                        <strong>Żaden telefon nie ma jeszcze kontaktów studia</strong>
-                        <p>„{setupLabel}" w nagłówku przygotuje profil.</p>
+                        <strong>Żaden telefon nie ma jeszcze kontaktów klientów</strong>
+                        <p>Kliknij „{setupLabel}” wyżej i postępuj według wskazówek.</p>
                     </EmptyState>
                 ) : (
                     accounts.map(account => {

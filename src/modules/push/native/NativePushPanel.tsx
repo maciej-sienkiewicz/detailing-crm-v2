@@ -12,7 +12,6 @@ import { useQueryClient } from '@tanstack/react-query';
 import { App } from '@capacitor/app';
 import { useToast } from '@/common/components/Toast';
 import { Button, Card, SectionTitle, ui } from '@/common/components/ui';
-import { ReportNotificationSetting } from '@/modules/statistics/components/ReportNotificationSetting';
 import { pushApi } from '../api/pushApi';
 import { pushQueryKeys } from '../hooks/usePushDevice';
 import { DeviceNotificationSettings } from '../components/DeviceNotificationSettings';
@@ -91,8 +90,7 @@ export function NativePushPanel() {
                 )}
             </ThisPhone>
 
-            <ReportNotificationSetting />
-
+            {/* Raport i podsumowania stoją pod panelem, w sekcji „Raporty i podsumowania" (PhoneSetups). */}
             <DeviceNotificationSettings onRevoke={revoke} />
         </Wrap>
     );
