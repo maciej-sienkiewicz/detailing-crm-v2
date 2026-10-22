@@ -49,10 +49,13 @@ pipeline {
                         .
                     """
 
-                    // Verify build
+                    // Verify build: metadane wdrożenia leżą poza katalogiem, który wydaje nginx
+                    // (/etc/nginx, nie /usr/share/nginx/html), a konfiguracja nginx musi się wczytać,
+                    // zanim obraz trafi do rejestru - błąd w ngnix.conf zatrzymałby kontener po wdrożeniu.
                     echo "🔍 Verifying build..."
                     sh """
-                      docker run --rm ${IMAGE_NAME}:${tag} cat /usr/share/nginx/html/build-info.txt
+                      docker run --rm ${IMAGE_NAME}:${tag} cat /etc/nginx/build-info.txt
+                      docker run --rm ${IMAGE_NAME}:${tag} nginx -t
                     """
 
                     // Push to registry

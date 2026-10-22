@@ -232,4 +232,19 @@ describe('obraz nie wydaje metadanych wdrożenia', () => {
         expect(DOCKERFILE).not.toMatch(/\/app\/dist\/build-info\.txt/);
         expect(DOCKERFILE).toContain('COPY --from=build-stage /app/build-info.txt /etc/nginx/build-info.txt');
     });
+
+    // Jenkins sprawdza obraz przed wypchnięciem do rejestru. Gdy czytał build-info.txt ze starego
+    // miejsca, build kończył się błędem; bez `nginx -t` zepsuty ngnix.conf wyszedłby dopiero na serwerze.
+    it.each(['Jenkinsfile', 'deploy/build-and-push.sh'])('%s czyta build-info.txt z /etc/nginx', path => {
+        const script = readFileSync(new URL(`../../${path}`, import.meta.url), 'utf8');
+        expect(script).toContain('cat /etc/nginx/build-info.txt');
+        expect(script).not.toContain('/usr/share/nginx/html/build-info.txt');
+    });
+
+    it('Jenkins sprawdza konfigurację nginx w obrazie, zanim go wypchnie', () => {
+        const pipeline = readFileSync(new URL('../../Jenkinsfile', import.meta.url), 'utf8');
+        const verify = pipeline.indexOf('nginx -t');
+        expect(verify).toBeGreaterThan(-1);
+        expect(verify).toBeLessThan(pipeline.indexOf('docker push'));
+    });
 });
