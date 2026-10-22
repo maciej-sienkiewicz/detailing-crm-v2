@@ -14,9 +14,8 @@ export const COMPANY_HELP: HelpContent = {
         {
             id: 'logo',
             label: 'Logo firmy',
-            description: 'Wgraj jeden plik, a przygotujemy wersję do menu i do druku. Najlepiej SVG albo PNG z przezroczystym tłem, dłuższy bok najlepiej 1000 px (co najmniej 300 px), do 5 MB; czy logo trafia na dokumenty, ustawisz w „Dokumenty i podpisy".',
+            description: 'Wgraj jeden plik, a przygotujemy wersję na ekran i do druku. Najlepiej SVG albo PNG z przezroczystym tłem, dłuższy bok najlepiej 1000 px (co najmniej 300 px), do 5 MB; czy logo trafia na dokumenty, ustawisz w „Dokumenty i podpisy".',
             usedIn: [
-                'Menu boczne',
                 'Nagłówek protokołów przyjęcia i wydania',
                 'Nagłówek zgód marketingowych',
                 'Karta wizyty',

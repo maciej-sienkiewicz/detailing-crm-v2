@@ -23,7 +23,7 @@ import { useCompanySettings } from '@/modules/settings/hooks/useCompany';
 import { usePendingLeaveRequestsCount } from '@/modules/employees/hooks/useLeaveRequests';
 import { usePendingCardsCount } from '@/modules/employees/hooks/useWorktimeMonths';
 import { usePendingSheetsCount } from '@/modules/employees/hooks/useAttendanceSheets';
-import { companyDisplayName, companyInitials } from './companyBadge';
+import { companyDisplayName } from './companyBadge';
 import { readCompanyHeader, writeCompanyHeader } from './companyHeaderCache';
 import { SidebarBrand } from './SidebarBrand';
 import {
@@ -129,60 +129,20 @@ export const Sidebar = () => {
     };
 
     /**
-     * Nagłówek rysuje się od pierwszej klatki z zapisu lokalnego, a `GET /v1/company`
-     * tylko go potwierdza. Wcześniej przy każdym odświeżeniu strony przez moment
-     * widać było inicjały, zanim doszło logo - dane nagłówka zmieniają się raz na
-     * ruski rok, więc czekanie na sieć nic nie wnosiło poza tym przeskokiem.
-     *
-     * Odpowiedź serwera ma pierwszeństwo: gdy studio usunęło logo, `company.logoUrl`
-     * jest nullem i zapis lokalny NIE może go wskrzesić - stąd rozróżnienie „mamy już
-     * odpowiedź" od „jeszcze jej nie ma", a nie zwykłe `??`.
+     * Nazwa studia pod logo rysuje się od pierwszej klatki z zapisu lokalnego,
+     * a `GET /v1/company` tylko ją potwierdza - bez tego przy każdym odświeżeniu
+     * strony podpis dochodziłby z opóźnieniem i nagłówek skakał o linię.
      */
     const cachedHeader = useMemo(() => readCompanyHeader(user?.studioId), [user?.studioId]);
 
     useEffect(() => {
         if (company) {
-            writeCompanyHeader(user?.studioId, {
-                name: company.name ?? null,
-                logoUrl: company.logoUrl ?? null,
-                logoNeedsLightPlate: company.logoNeedsLightPlate,
-                logoAspectRatio: company.logoAspectRatio,
-            });
+            writeCompanyHeader(user?.studioId, { name: company.name ?? null });
         }
     }, [company, user?.studioId]);
 
-    // Dopóki nie ma ani odpowiedzi, ani zapisu lokalnego, w nagłówku zostaje nazwa
-    // produktu - pusty pasek albo szkielet migałby przy każdym wejściu do aplikacji.
-    const companyName = (company?.name ?? cachedHeader?.name)?.trim() || 'DetailBoost';
-
-    /**
-     * Studio, które wgrało logo, widzi je w nagłówku zamiast inicjałów - to jego
-     * znak firmowy, a litery były tylko namiastką na czas, gdy loga nie ma.
-     *
-     * Adres logo jest stały (hash treści w ścieżce), więc przeglądarka rysuje je z
-     * pamięci podręcznej od pierwszej klatki. Obrazek nie ma `key` po adresie: gdy
-     * adres się zmieni (nowe logo), stary obraz zostaje na ekranie do chwili wczytania
-     * nowego, zamiast mignięcia pustym miejscem. Gdyby link nie odpowiedział (usunięte
-     * logo, wygasły podpis starego linku), ikona zepsutego obrazka wyglądałaby jak
-     * awaria, dlatego przy błędzie wracamy do inicjałów. Zapamiętujemy ADRES, który
-     * zawiódł, a nie samą flagę: nowy adres jest próbowany od nowa.
-     */
-    const logoUrl = (company ? company.logoUrl : cachedHeader?.logoUrl)?.trim() || null;
-    const [failedLogoUrl, setFailedLogoUrl] = useState<string | null>(null);
-    const showLogo = !!logoUrl && failedLogoUrl !== logoUrl;
-
-    /**
-     * Logo w każdym kształcie stoi na środku nagłówka (SidebarBrand); kształt decyduje
-     * już tylko o zwiniętym menu: poziomy logotyp (szerokość ≥ 1,6 × wysokość) nie
-     * zmieści się czytelnie w 36-pikselowym kafelku, więc tam ustępuje inicjałom.
-     * Podkładka pod logo tylko wtedy, gdy backend uznał, że bez niej logo zniknie na
-     * ciemnym pasku (przezroczyste tło + ciemny tusz); logo sprzed tej analizy (brak
-     * proporcji) zachowuje dawny wygląd: białą podkładkę.
-     */
-    const logoSource = company ?? cachedHeader;
-    const logoAspectRatio = logoSource?.logoAspectRatio ?? null;
-    const logoNeedsPlate = logoSource?.logoNeedsLightPlate ?? true;
-    const isWideLogo = logoAspectRatio !== null && logoAspectRatio >= 1.6;
+    // Dopóki nie ma ani odpowiedzi, ani zapisu lokalnego, pod logo nie ma podpisu.
+    const companyName = (company?.name ?? cachedHeader?.name)?.trim() || null;
 
     const displayName = user
         ? `${user.firstName ?? ''} ${user.lastName ?? ''}`.trim() || user.email
@@ -203,13 +163,8 @@ export const Sidebar = () => {
                 <SidebarHeader $isCollapsed={isCollapsed}>
                     <SidebarBrand
                         isCollapsed={isCollapsed}
-                        companyName={companyDisplayName(companyName)}
+                        companyName={companyName && companyDisplayName(companyName)}
                         legalName={companyName}
-                        initials={companyInitials(company?.name)}
-                        logoUrl={showLogo ? logoUrl : null}
-                        logoNeedsPlate={logoNeedsPlate}
-                        isWideLogo={isWideLogo}
-                        onLogoError={() => setFailedLogoUrl(logoUrl)}
                         actions={
                             <HeaderActions>
                                 <CollapseButton

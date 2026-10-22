@@ -327,7 +327,7 @@ export function CompanySection() {
         try {
             await uploadLogoMutation.mutateAsync(file);
             setFailedLogoUrl(null);
-            showSuccess('Logo zapisane', 'Przygotowaliśmy wersję do menu i wersję do druku.');
+            showSuccess('Logo zapisane', 'Przygotowaliśmy wersję na ekran i wersję do druku.');
         } catch (err) {
             // Backend odrzuca m.in. za małe rastry i uszkodzone pliki z konkretnym
             // powodem - pokazujemy go zamiast ogólnego „nie udało się".
@@ -340,7 +340,7 @@ export function CompanySection() {
     const handleLogoDelete = async () => {
         try {
             await deleteLogoMutation.mutateAsync();
-            showSuccess('Logo usunięte', 'Dokumenty i menu pokażą odtąd samą nazwę firmy.');
+            showSuccess('Logo usunięte', 'Dokumenty pokażą odtąd samą nazwę firmy.');
         } catch (err) {
             if (!shownByInterceptor(err)) {
                 showError('Nie udało się usunąć logo', backendMessage(err) ?? 'Spróbuj ponownie za chwilę.');
@@ -374,13 +374,11 @@ export function CompanySection() {
     // Co backend ustalił przy wgraniu; null proporcji = logo sprzed analizy.
     const logoAnalyzed = company?.logoAspectRatio != null;
     const logoPlain = logoAnalyzed && !company?.logoNeedsLightPlate;
-    const logoStatus = !logoUrl
-        ? 'Na protokołach i w nagłówku maili. PNG albo SVG, najlepiej z przezroczystym tłem.'
-        : !logoAnalyzed
-            ? 'Wgraj logo jeszcze raz, żeby dobrze wyglądało w menu.'
-            : logoPlain
-                ? 'Logo ma własne tło, w menu stoi bez podkładki.'
-                : 'Logo ma przezroczyste tło, w menu stoi na jasnej podkładce.';
+    // W menu bocznym stoi logo DetailBoost, nie logo studia - status mówi więc tylko,
+    // gdzie logo trafia, a nie jak wygląda w menu.
+    const logoStatus = logoUrl
+        ? 'Na protokołach i w nagłówku maili.'
+        : 'Na protokołach i w nagłówku maili. PNG albo SVG, najlepiej z przezroczystym tłem.';
     const logoUploading = uploadLogoMutation.isPending;
 
     const renderField = (
@@ -552,7 +550,7 @@ export function CompanySection() {
             <ConfirmationModal
                 isOpen={confirmLogoDelete}
                 title="Usunąć logo studia?"
-                message="Logo zniknie z menu, nagłówków maili oraz z nowych protokołów i zgód. Wcześniej wygenerowane dokumenty zostaną bez zmian."
+                message="Logo zniknie z nagłówków maili oraz z nowych protokołów i zgód. Wcześniej wygenerowane dokumenty zostaną bez zmian."
                 variant="danger"
                 confirmText="Usuń logo"
                 cancelText="Zostaw"

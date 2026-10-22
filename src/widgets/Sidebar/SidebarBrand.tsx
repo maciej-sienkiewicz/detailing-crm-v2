@@ -1,91 +1,55 @@
 import type { ReactNode } from 'react';
 import {
-    Logo,
-    CollapsedInitials,
+    BrandMark,
+    BrandWordmark,
+    CollapsedMark,
     LogoCaption,
     LogoCornerActions,
-    LogoIcon,
-    LogoImage,
     LogoStack,
-    LogoText,
-    LogoWide,
 } from './SidebarStyles';
+
+/** Te same pliki co na ekranie logowania (AuthLayout) - jasny tusz pod ciemny pasek. */
+const WORDMARK_SRC = '/brand/detailboost-horizontal-white.svg';
+const MARK_SRC = '/brand/detailboost-mark-white.svg';
 
 interface SidebarBrandProps {
     isCollapsed: boolean;
-    /** Nazwa do nagłówka, bez formy prawnej. */
-    companyName: string;
-    /** Pełna nazwa z rejestru - w podpowiedzi i jako tekst alternatywny logo. */
-    legalName?: string;
-    initials: string;
-    /** Adres logo studia; null = studio nie ma logo albo logo się nie wczytało. */
-    logoUrl: string | null;
-    logoNeedsPlate: boolean;
-    /** Poziomy logotyp - szersza podkładka, a w zwiniętym menu inicjały zamiast kafelka z logo. */
-    isWideLogo: boolean;
-    onLogoError: () => void;
+    /** Nazwa studia do podpisu pod logo, bez formy prawnej; null = jeszcze jej nie znamy. */
+    companyName: string | null;
+    /** Pełna nazwa z rejestru - w podpowiedzi. */
+    legalName?: string | null;
     /** Przyciski zwijania (desktop) i zamykania (telefon) menu. */
     actions: ReactNode;
 }
 
 /**
- * Nagłówek menu: logo i nazwa studia.
+ * Nagłówek menu: logo DetailBoost, pod nim nazwa studia.
  *
- * Logo wgrane przez studio stoi na środku nagłówka, a nazwa firmy pod nim - także
- * wyśrodkowana, drobniej i ciszej niż logo, bo zwykle je powtarza. Przycisk zwijania
- * siedzi w prawym górnym rogu, bez ramki. Wcześniej stał w wierszu z nazwą: obrysowany
- * kwadrat miał wagę samej nazwy, zabierał jej szerokość i nazwa z rejestru
- * („LEATHER MASTER Hu…") kończyła się wielokropkiem w pół imienia właściciela.
+ * Na górze menu stoi znak produktu, a nie logo wgrane przez studio (decyzja biznesu).
+ * Logo studia zostaje tam, gdzie widzi je klient: na protokołach, wydrukach i w mailach.
+ * Nazwa studia zostaje pod znakiem, drobniej i ciszej - przy kilku kontach na jednym
+ * urządzeniu (przełącznik PIN) tylko ona mówi, w czyim studiu się jest.
  *
- * Bez logo zostaje dawny wiersz: kafelek z inicjałami, nazwa i przycisk po prawej.
+ * Przycisk zwijania siedzi w prawym górnym rogu, bez ramki. Wcześniej stał w wierszu
+ * z nazwą: obrysowany kwadrat miał wagę samej nazwy, zabierał jej szerokość i nazwa
+ * z rejestru („LEATHER MASTER Hu…") kończyła się wielokropkiem w pół imienia właściciela.
  *
- * W zwiniętym menu (desktop, 64 px) zostaje sam kafelek: logo zbliżone do kwadratu
- * mieści się w nim czytelnie, poziomy logotyp nie - wtedy inicjały.
+ * W zwiniętym menu (desktop, 64 px) poziomy logotyp się nie mieści - zostaje sam sygnet.
  */
 export const SidebarBrand = ({
     isCollapsed,
     companyName,
     legalName = companyName,
-    initials,
-    logoUrl,
-    logoNeedsPlate,
-    isWideLogo,
-    onLogoError,
     actions,
-}: SidebarBrandProps) => {
-    if (!logoUrl) {
-        return (
-            <>
-                <Logo $isCollapsed={isCollapsed}>
-                    <LogoIcon>{initials}</LogoIcon>
-                    <LogoText $isCollapsed={isCollapsed} title={legalName}>
-                        {companyName}
-                    </LogoText>
-                </Logo>
-                {actions}
-            </>
-        );
-    }
-
-    return (
-        <>
-            <LogoStack $isCollapsed={isCollapsed}>
-                <LogoWide
-                    src={logoUrl}
-                    alt={companyName}
-                    title={legalName}
-                    $plate={logoNeedsPlate}
-                    $wide={isWideLogo}
-                    onError={onLogoError}
-                />
-                <LogoCaption title={legalName}>{companyName}</LogoCaption>
-            </LogoStack>
-            <LogoCornerActions $isCollapsed={isCollapsed}>{actions}</LogoCornerActions>
-            <CollapsedInitials $isCollapsed={isCollapsed}>
-                {isWideLogo
-                    ? <LogoIcon>{initials}</LogoIcon>
-                    : <LogoImage src={logoUrl} alt={companyName} $plate={logoNeedsPlate} onError={onLogoError} />}
-            </CollapsedInitials>
-        </>
-    );
-};
+}: SidebarBrandProps) => (
+    <>
+        <LogoStack $isCollapsed={isCollapsed}>
+            <BrandWordmark src={WORDMARK_SRC} alt="DetailBoost" width={684} height={81} />
+            {companyName && <LogoCaption title={legalName ?? companyName}>{companyName}</LogoCaption>}
+        </LogoStack>
+        <LogoCornerActions $isCollapsed={isCollapsed}>{actions}</LogoCornerActions>
+        <CollapsedMark $isCollapsed={isCollapsed}>
+            <BrandMark src={MARK_SRC} alt="DetailBoost" width={32} height={32} />
+        </CollapsedMark>
+    </>
+);

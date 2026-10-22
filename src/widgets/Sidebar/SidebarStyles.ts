@@ -92,69 +92,18 @@ export const SidebarHeader = styled.div<{ $isCollapsed: boolean }>`
     }
 `;
 
-export const Logo = styled.div<{ $isCollapsed: boolean }>`
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    overflow: hidden;
-    flex: 1;
-    min-width: 0;
-`;
-
-/* Kafelek z inicjałami to znak studia, nie przycisk: bez poświaty i bez błękitu.
-   Błękitny gradient był najgłośniejszą rzeczą w całym menu, głośniejszą niż pozycja,
-   na której się jest — a to ona ma mówić „tu jesteś". Grafit odróżnia kafelek od
-   tła paska i nie konkuruje z kolorem aktywnej pozycji. */
-export const LogoIcon = styled.div`
-    width: 36px;
-    height: 36px;
-    background: #1e293b;
-    border-radius: 10px;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    color: #e2e8f0;
-    font-size: 15px;
-    font-weight: 800;
-    letter-spacing: -0.5px;
-    flex-shrink: 0;
-    box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.1);
-`;
-
 /**
- * Kafelek z logo studia w zwiniętym menu (sygnet, logo zbliżone do kwadratu).
- *
- * Jasna podkładka NIE jest domyślna: pasek jest ciemny (#0f172a), więc czarny
- * logotyp na przezroczystym tle by na nim zniknął, ale logo z własnym tłem
- * (biały napis na czarnym prostokącie) wygląda w białej ramce jak znaczek
- * pocztowy. O podkładce decyduje backend po analizie pliku
- * (`logoNeedsLightPlate`), a nie założenie z góry.
- */
-export const LogoImage = styled.img<{ $plate: boolean }>`
-    width: 36px;
-    height: 36px;
-    border-radius: 10px;
-    flex-shrink: 0;
-    object-fit: contain;
-    background: ${p => (p.$plate ? '#ffffff' : 'transparent')};
-    padding: ${p => (p.$plate ? '3px' : '0')};
-    box-shadow: ${p => (p.$plate ? '0 4px 12px rgba(15, 23, 42, 0.35)' : 'none')};
-`;
-
-/**
- * Logo studia na środku nagłówka, nazwa firmy pod nim: logo dostaje całą szerokość
- * nagłówka, nazwa jedną linię pod nim. Samo logo nie wystarcza: ogranicza je wysokość,
- * więc bywa niskie i nagłówek bez nazwy wyglądał na pusty. W zwiniętym menu (64 px)
- * całość ustępuje kafelkowi (CollapsedInitials).
+ * Logo DetailBoost na środku nagłówka, nazwa studia pod nim. W zwiniętym menu (64 px)
+ * całość ustępuje sygnetowi (CollapsedMark).
  */
 export const LogoStack = styled.div<{ $isCollapsed: boolean }>`
     display: flex;
     flex-direction: column;
     align-items: center;
-    gap: 8px;
+    gap: 10px;
     flex: 1;
     min-width: 0;
-    /* Miejsce na przycisk w rogu: szeroki logotyp nie może na niego wjechać. */
+    /* Miejsce na przycisk w rogu: logotyp nie może na niego wjechać. */
     padding: 0 26px;
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
@@ -162,29 +111,17 @@ export const LogoStack = styled.div<{ $isCollapsed: boolean }>`
     }
 `;
 
-/**
- * Logo na całą szerokość nagłówka, w każdym kształcie. Obraz ma rozmiar samego logo
- * (szerokość i wysokość auto, z zachowaniem proporcji), a na środek stawia go kolumna
- * LogoStack - dzięki temu podkładka obejmuje logo, a nie pusty pas po bokach. Pod
- * poziomym logotypem podkładka ma szersze boki, pod sygnetem zostaje kwadratowa.
- */
-export const LogoWide = styled.img<{ $plate: boolean; $wide: boolean }>`
+/** Poziomy logotyp (sygnet + napis): szerokość kolumny, wysokość z proporcji pliku. */
+export const BrandWordmark = styled.img`
     display: block;
-    max-width: 100%;
-    max-height: 48px;
-    width: auto;
+    width: 100%;
+    max-width: 176px;
     height: auto;
-    object-fit: contain;
-    border-radius: 10px;
-    background: ${p => (p.$plate ? '#ffffff' : 'transparent')};
-    /* Podkładka z oddechem: przy 4 px logo z własną ramką stykało się z krawędzią
-       podkładki i wyglądało jak ramka w ramce. */
-    padding: ${p => (!p.$plate ? '0' : p.$wide ? '6px 10px' : '6px')};
 `;
 
 /**
- * Nazwa firmy pod logo: drobniej i ciszej niż logo (zwykle je powtarza), do dwóch linii
- * na środku. Jedna linia z wielokropkiem ucinała nazwy z rejestru w pół słowa.
+ * Nazwa studia pod logo: drobniej i ciszej niż logo, do dwóch linii na środku. Jedna
+ * linia z wielokropkiem ucinała nazwy z rejestru w pół słowa.
  */
 export const LogoCaption = styled.span`
     color: #94a3b8;
@@ -200,8 +137,8 @@ export const LogoCaption = styled.span`
     overflow-wrap: anywhere;
 `;
 
-/** Kafelek widoczny tylko w zwiniętym menu na desktopie, w miejscu ukrytego logo. */
-export const CollapsedInitials = styled.div<{ $isCollapsed: boolean }>`
+/** Sygnet widoczny tylko w zwiniętym menu na desktopie, w miejscu ukrytego logotypu. */
+export const CollapsedMark = styled.div<{ $isCollapsed: boolean }>`
     display: none;
 
     @media (min-width: ${p => p.theme.breakpoints.md}) {
@@ -209,27 +146,10 @@ export const CollapsedInitials = styled.div<{ $isCollapsed: boolean }>`
     }
 `;
 
-// Nazwa firmy z rejestru bywa długa („CARSLAB SPÓŁKA Z OGRANICZONĄ
-// ODPOWIEDZIALNOŚCIĄ"), więc zamiast ucinać ją w jednej linii łamiemy do dwóch
-// i dopiero tam przycinamy wielokropkiem.
-export const LogoText = styled.span<{ $isCollapsed: boolean }>`
-    color: #f1f5f9;
-    font-size: 15px;
-    font-weight: 700;
-    letter-spacing: -0.3px;
-    line-height: 1.25;
-    display: -webkit-box;
-    -webkit-line-clamp: 2;
-    -webkit-box-orient: vertical;
-    overflow: hidden;
-    overflow-wrap: anywhere;
-    max-width: 160px;
-
-    @media (min-width: ${p => p.theme.breakpoints.md}) {
-        opacity: ${p => p.$isCollapsed ? 0 : 1};
-        max-width: ${p => p.$isCollapsed ? '0px' : '160px'};
-        transition: opacity 220ms ease, max-width 260ms cubic-bezier(0.4, 0, 0.2, 1);
-    }
+export const BrandMark = styled.img`
+    display: block;
+    width: 32px;
+    height: 32px;
 `;
 
 export const HeaderActions = styled.div`
