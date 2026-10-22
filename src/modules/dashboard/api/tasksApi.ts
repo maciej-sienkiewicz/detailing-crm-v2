@@ -26,8 +26,6 @@ import { apiClient } from '@/core';
 import type { DashboardTask, CreateTaskPayload, UpdateTaskPayload, ArchivedTask, TaskVisibilityOptions } from '../types';
 import type { Page } from '@/core/page';
 
-// ─── In-memory store ──────────────────────────────────────────────────────────
-
 /** MediaRecorder oddaje Blob bez nazwy; serwer rozpoznaje kontener po rozszerzeniu. */
 const voiceFilename = (mimeType: string): string => {
   if (mimeType.startsWith('audio/mp4')) return 'task-note.m4a';

@@ -78,7 +78,7 @@ docker run -d \
 docker ps | grep automotive-crm
 
 # Check build info
-docker exec automotive-crm cat /usr/share/nginx/html/build-info.txt
+docker exec automotive-crm cat /etc/nginx/build-info.txt
 
 # Test in browser - check DevTools Console for errors
 ```
@@ -94,9 +94,9 @@ After deployment, users need to do **hard refresh** to clear cached CSS:
 
 ### CSS still looks wrong after deployment
 
-1. Check if build info is updated:
+1. Check if build info is updated (the file is not served over HTTP):
    ```bash
-   curl http://your-server/build-info.txt
+   docker exec automotive-crm cat /etc/nginx/build-info.txt
    ```
 
 2. Check if CSS file is correct size (~30KB):
@@ -133,7 +133,7 @@ The `build:prod` script bypasses TypeScript checking. If you need type safety:
 - **Always use build arguments** (`BUILD_DATE` and `GIT_COMMIT`) when building Docker images
 - Build args ensure CSS is regenerated even if source files haven't changed
 - Run `./deploy/verify-build.sh` before deployment
-- Check `build-info.txt` after deployment to confirm new build
+- Check `/etc/nginx/build-info.txt` in the container after deployment to confirm new build
 - Use `--no-cache` as a last resort if build args don't work
 
 ## Logi dostępu bez query stringa (audyt HTTP, P2-20)

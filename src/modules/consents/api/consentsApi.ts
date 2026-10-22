@@ -10,6 +10,7 @@ import type {
     CreateConsentRequest,
     AddVersionRequest,
 } from '../types';
+import { putToPresignedUrl } from '@/common/utils/presignedUpload';
 
 const BASE_PATH = '/v1/consents';
 
@@ -58,30 +59,11 @@ export const addConsentVersion = async (
 };
 
 /**
- * Upload PDF file to S3 using presigned URL.
- *
- * `fetch` nie rzuca przy odpowiedzi 4xx/5xx - bez sprawdzenia `response.ok`
- * odrzucony upload (wygasły link, zły Content-Type) kończył się „sukcesem", a zgoda
- * zostawała z wersją bez pliku. Rzucamy więc błąd ze zdaniem, które da się pokazać
- * użytkownikowi, także przy braku sieci (wtedy fetch rzuca „Failed to fetch").
+ * PDF zgody prosto do S3 pod adres podpisany przez serwer - tą samą drogą co każdy inny
+ * upload (`putToPresignedUrl`: odrzucona wysyłka rzuca błąd, a nie kończy się „sukcesem").
  */
-export const uploadFileToS3 = async (uploadUrl: string, file: File): Promise<void> => {
-    let response: Response;
-    try {
-        response = await fetch(uploadUrl, {
-            method: 'PUT',
-            body: file,
-            headers: {
-                'Content-Type': 'application/pdf',
-            },
-        });
-    } catch {
-        throw new Error('Nie udało się wysłać pliku PDF. Sprawdź połączenie z internetem i spróbuj ponownie.');
-    }
-    if (!response.ok) {
-        throw new Error('Nie udało się wgrać pliku PDF. Spróbuj ponownie.');
-    }
-};
+export const uploadFileToS3 = (uploadUrl: string, file: File): Promise<void> =>
+    putToPresignedUrl(uploadUrl, file, 'application/pdf');
 
 export const consentsApi = {
     // Admin operations

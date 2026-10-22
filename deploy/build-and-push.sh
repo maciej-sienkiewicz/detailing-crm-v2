@@ -29,7 +29,7 @@ echo "✅ Build complete!"
 
 # Verify build
 echo "🔍 Verifying build..."
-docker run --rm $REGISTRY/$IMAGE_NAME:$TAG cat /usr/share/nginx/html/build-info.txt
+docker run --rm $REGISTRY/$IMAGE_NAME:$TAG cat /etc/nginx/build-info.txt
 
 # Push to registry
 echo "📤 Pushing to registry..."

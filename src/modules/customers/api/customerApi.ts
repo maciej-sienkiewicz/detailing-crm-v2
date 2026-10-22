@@ -4,7 +4,6 @@ import type {
     Customer,
     CustomerFilters,
     CreateCustomerPayload,
-    
 } from '../types';
 
 const CUSTOMERS_BASE_PATH = '/v1/customers';

@@ -1,4 +1,3 @@
-import axios from 'axios';
 import { apiClient } from '../../../core/apiClient';
 import type {
   ProtocolTemplate,
@@ -10,6 +9,7 @@ import type {
   CreateProtocolRuleDto,
   SignProtocolDto,
 } from '../types';
+import { putToPresignedUrl } from '@/common/utils/presignedUpload';
 
 export interface CreateProtocolTemplateResult {
   template: ProtocolTemplate;
@@ -42,11 +42,7 @@ class ProtocolsApi {
     // content type, so send the canonical one for the chosen format.
     const contentType = data.fileFormat === 'HTML' ? 'text/html' : 'application/pdf';
     try {
-      await axios.put(template.templateUrl, file, {
-        headers: {
-          'Content-Type': contentType,
-        },
-      });
+      await putToPresignedUrl(template.templateUrl, file, contentType);
     } catch (uploadError) {
       // CRITICAL: If upload fails, delete the template to prevent orphaned records
       // This is a temporary frontend solution. Ideally, backend should handle this

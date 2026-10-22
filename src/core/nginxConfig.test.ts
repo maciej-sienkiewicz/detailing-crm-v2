@@ -189,3 +189,47 @@ describe('nginx nie zapisuje query stringa w logu dostępu', () => {
         expect(nested.every(d => d.args[0] === 'off' || d.args[1] === 'no_query')).toBe(true);
     });
 });
+
+/**
+ * Porządki w serwerze (audyt HTTP, P2-22): bez wersji nginx w odpowiedziach obu bloków,
+ * z kompresją JSON-a i zasobów, a `Connection: upgrade` tylko dla WebSocketu - zwykłe /api
+ * nie prosi backendu o zmianę protokołu przy każdym zapytaniu.
+ */
+describe('nginx: wersja, kompresja i Connection', () => {
+    const top = parse(tokenize(CONFIG));
+    const directive = (name: string) => top.find(d => d.name === name)?.args;
+    const header = (location: Directive | undefined, name: string) =>
+        location?.block?.find(d => d.name === 'proxy_set_header' && d.args[0].toLowerCase() === name)?.args[1];
+
+    it('server_tokens off obejmuje oba bloki serwera, a żaden go nie włącza', () => {
+        expect(directive('server_tokens')).toEqual(['off']);
+        for (const server of servers) {
+            expect(server.block?.find(d => d.name === 'server_tokens')?.args ?? ['off']).toEqual(['off']);
+        }
+    });
+
+    it('kompresuje JSON (także problem+json), skrypty i style', () => {
+        expect(directive('gzip')).toEqual(['on']);
+        expect(directive('gzip_types')).toEqual(expect.arrayContaining([
+            'application/json', 'application/problem+json', 'application/javascript', 'text/css',
+        ]));
+    });
+
+    it.each(cases)('blok %s: /api bez Upgrade, /ws-registry z upgrade z mapy', (_, server) => {
+        const api = locationFor(server, '/api/v1/visits');
+        expect(header(api, 'connection')).toBe('');
+        expect(header(api, 'upgrade')).toBeUndefined();
+        const ws = locationFor(server, '/ws-registry/info');
+        expect(header(ws, 'upgrade')).toBe('$http_upgrade');
+        expect(header(ws, 'connection')).toBe('$connection_upgrade');
+    });
+});
+
+describe('obraz nie wydaje metadanych wdrożenia', () => {
+    const DOCKERFILE = readFileSync(new URL('../../deploy/Dockerfile', import.meta.url), 'utf8');
+
+    it('build-info.txt leży poza katalogiem, który wydaje nginx', () => {
+        expect(DOCKERFILE).not.toMatch(/\/app\/dist\/build-info\.txt/);
+        expect(DOCKERFILE).toContain('COPY --from=build-stage /app/build-info.txt /etc/nginx/build-info.txt');
+    });
+});

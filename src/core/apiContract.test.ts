@@ -17,7 +17,9 @@ import { describe, expect, it } from 'vitest';
  *  - błąd to `ApiProblem` z `@/core/problem` (P2-19) - ekran nie czyta ciała błędu sam
  *    i nie rzutuje go na własny kształt, tylko pyta `problemDetail`, `problemCode`…,
  *  - adres e-mail ani telefon nie idą w URL-u (P2-20): trafiały do logów proxy i historii
- *    przeglądarki - kontakt wskazuje się id rozmowy, sprawy albo klienta.
+ *    przeglądarki - kontakt wskazuje się id rozmowy, sprawy albo klienta,
+ *  - w kodzie produkcyjnym nie ma atrap (`USE_MOCKS`, dane testowe), a plik do S3 idzie
+ *    jedną drogą: `putToPresignedUrl` (P2-22).
  */
 
 const SRC = fileURLToPath(new URL('..', import.meta.url));
@@ -63,6 +65,12 @@ const OLD_PAGINATION = /^\s+pagination\??:[ \t]*(?!PageMeta\b)\S/gm;
 
 /** `?email=`, `&phone=`, `{ params: { email } }` w konfiguracji axiosa - dane osobowe w adresie żądania. */
 const PERSONAL_DATA_IN_URL = /[?&](e-?mail|phone|phoneNumber|number|contactIdentifier)=|[{,]\s*params:\s*\{[^{}]*\b(email|phone|phoneNumber|contactIdentifier)\b/;
+
+/** Przełączniki atrap sprzed podłączenia backendu - gałąź z danymi testowymi w produkcji. */
+const MOCK_SWITCH = /\b(USE_\w*MOCKS\w*|MOCK_MODE)\b/;
+/** Własny PUT pliku pod podpisany adres - z pominięciem `putToPresignedUrl`. */
+const RAW_UPLOAD = /method:\s*'PUT'|\baxios\.put\(/;
+const UPLOAD_HELPER = 'common/utils/presignedUpload.ts';
 
 /** Jedyne miejsca, które czytają surowe ciało błędu. */
 const ERROR_BODY_READERS = [
@@ -150,6 +158,18 @@ describe('kontrakt API', () => {
 
     it('błąd API czyta się jednym typem - ApiProblem z @/core/problem', () => {
         expect(scanErrors()).toEqual([]);
+    });
+
+    it('kod produkcyjny nie ma atrap, a plik do S3 idzie jedną drogą', () => {
+        const violations = sourceFiles(SRC).flatMap(file => {
+            const where = relative(SRC, file);
+            const source = readFileSync(file, 'utf8');
+            return [
+                ...(MOCK_SWITCH.test(source) ? [`${where}: przełącznik atrap`] : []),
+                ...(where !== UPLOAD_HELPER && RAW_UPLOAD.test(source) ? [`${where}: własny upload - użyj putToPresignedUrl`] : []),
+            ];
+        });
+        expect(violations).toEqual([]);
     });
 
     it('numer z powiadomienia o połączeniu idzie do /call.html we fragmencie, nie w query stringu', () => {
