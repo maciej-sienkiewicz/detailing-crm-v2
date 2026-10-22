@@ -262,7 +262,7 @@ export const VehicleListView = () => {
         () => ({
             search: debouncedSearch,
             page,
-            limit,
+            pageSize: limit,
             sortBy: 'lastActivity' as const,
             sortDirection: 'desc' as const,
             ...appliedFilters,
@@ -271,7 +271,7 @@ export const VehicleListView = () => {
         [debouncedSearch, page, limit, appliedFilters, showDeleted]
     );
 
-    const { vehicles, pagination, isLoading, isError, refetch } = useVehicles(filters);
+    const { vehicles, pageMeta, isLoading, isError, refetch } = useVehicles(filters);
 
     const handleRowClick = useCallback((vehicleId: string) => {
         navigate(`/vehicles/${vehicleId}`);
@@ -362,8 +362,8 @@ export const VehicleListView = () => {
                     subtitle={
                         <>
                             {t.vehicles.subtitle}
-                            {pagination && (
-                                <PageHeaderCount>{pagination.totalItems} {pluralPl(pagination.totalItems, 'pojazd', 'pojazdy', 'pojazdów')}</PageHeaderCount>
+                            {pageMeta && (
+                                <PageHeaderCount>{pageMeta.totalItems} {pluralPl(pageMeta.totalItems, 'pojazd', 'pojazdy', 'pojazdów')}</PageHeaderCount>
                             )}
                         </>
                     }
@@ -381,8 +381,8 @@ export const VehicleListView = () => {
                 <MobilePageHeader
                     icon={<Car />}
                     title={t.vehicles.title}
-                    subtitle={pagination
-                        ? <><MobilePageHeaderCountValue>{pagination.totalItems}</MobilePageHeaderCountValue> {pluralPl(pagination.totalItems, 'pojazd', 'pojazdy', 'pojazdów')}</>
+                    subtitle={pageMeta
+                        ? <><MobilePageHeaderCountValue>{pageMeta.totalItems}</MobilePageHeaderCountValue> {pluralPl(pageMeta.totalItems, 'pojazd', 'pojazdy', 'pojazdów')}</>
                         : 'Wczytywanie…'}
                     actions={canCreate &&
                         <MobilePageHeaderButton onClick={handleAddVehicle}>
@@ -434,9 +434,9 @@ export const VehicleListView = () => {
 
                 {renderContent()}
 
-                {pagination && pagination.totalPages > 1 && (
+                {pageMeta && pageMeta.totalPages > 1 && (
                     <VehiclePagination
-                        pagination={pagination}
+                        pagination={pageMeta}
                         onPageChange={goToPage}
                     />
                 )}

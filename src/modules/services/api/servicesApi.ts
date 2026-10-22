@@ -1,12 +1,12 @@
 // src/modules/services/api/servicesApi.ts
 import { apiClient } from '@/core';
+import { mapPage, type Page } from '@/core/page';
 import { isCatalogServiceId } from '@/common/utils/catalogServiceId';
 import { catalogGross } from '../utils/priceCalculator';
 import type {
     Service,
     ServiceDto,
     ServiceListFilters,
-    ServiceListResponse,
     CreateServiceRequest,
     UpdateServiceRequest,
     CreatePackageRequest,
@@ -31,21 +31,20 @@ export const toService = (dto: ServiceDto): Service => ({
     basePriceGross: catalogGross(dto),
 });
 
-
 export const servicesApi = {
-    getServices: async (filters: ServiceListFilters, signal?: AbortSignal): Promise<ServiceListResponse> => {
+    getServices: async (filters: ServiceListFilters, signal?: AbortSignal): Promise<Page<Service>> => {
         const params = new URLSearchParams({
             search: filters.search,
             page: String(filters.page),
-            limit: String(filters.limit),
+            pageSize: String(filters.pageSize),
             showInactive: String(filters.showInactive || false),
         });
         if (filters.sortBy) params.append('sortBy', filters.sortBy);
         if (filters.sortDirection) params.append('sortDirection', filters.sortDirection);
         if (filters.isPackage !== undefined) params.append('isPackage', String(filters.isPackage));
 
-        const response = await apiClient.get<{ services: ServiceDto[]; pagination: ServiceListResponse['pagination'] }>(`${BASE_PATH}?${params}`, { signal });
-        return { ...response.data, services: (response.data.services ?? []).map(toService) };
+        const response = await apiClient.get<Page<ServiceDto>>(`${BASE_PATH}?${params}`, { signal });
+        return mapPage(response.data, toService);
     },
 
     createService: async (data: CreateServiceRequest): Promise<Service> => {

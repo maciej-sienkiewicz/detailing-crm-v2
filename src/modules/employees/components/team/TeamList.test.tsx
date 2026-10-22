@@ -70,7 +70,7 @@ const roles = [
 
 const listOf = (items: EmployeeListItem[]) => ({
     items,
-    pagination: { currentPage: 1, totalPages: 1, totalItems: items.length, itemsPerPage: 20 },
+    page: { number: 1, size: 20, totalItems: items.length, totalPages: 1 },
 });
 
 const renderSection = () => {

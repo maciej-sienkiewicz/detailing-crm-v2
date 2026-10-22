@@ -91,7 +91,7 @@ export function VisitProductsSection({ visitId, canUsage, canManageProducts, can
     const [open, setOpen] = useState(false);
     const [adding, setAdding] = useState<Adding>(null);
     const debounced = useDebounce(search, 250);
-    const { products, isLoading } = useProducts({ search: debounced, page: 1, limit: 8 });
+    const { products, isLoading } = useProducts({ search: debounced, page: 1, pageSize: 8 });
     const wrapRef = useRef<HTMLDivElement>(null);
     const menuRef = useRef<HTMLDivElement>(null);
 

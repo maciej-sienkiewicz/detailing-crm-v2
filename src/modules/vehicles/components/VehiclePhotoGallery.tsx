@@ -140,10 +140,10 @@ export const VehiclePhotoGallery = ({ vehicleId, readOnly, id }: Props) => {
     const [toDelete, setToDelete] = useState<VehiclePhoto | null>(null);
     const [wrapRef, width] = useContainerWidth<HTMLDivElement>();
 
-    const { photos, pagination, isLoading } = useVehiclePhotoGallery(vehicleId, page, PAGE_SIZE);
+    const { photos, pageMeta, isLoading } = useVehiclePhotoGallery(vehicleId, page, PAGE_SIZE);
     const { deletePhoto, isDeleting } = useDeleteVehiclePhoto(vehicleId);
 
-    const total = pagination?.total ?? photos.length;
+    const total = pageMeta?.totalItems ?? photos.length;
     const cols = width !== null && width < NARROW_MAX_WIDTH ? 4 : 8;
     const collapsed = !expanded && photos.length > cols;
     const shown = collapsed ? photos.slice(0, cols - 1) : photos;
@@ -200,16 +200,16 @@ export const VehiclePhotoGallery = ({ vehicleId, readOnly, id }: Props) => {
                     </Grid>
                 )}
 
-                {expanded && (photos.length > cols || (pagination?.totalPages ?? 1) > 1) && (
+                {expanded && (photos.length > cols || (pageMeta?.totalPages ?? 1) > 1) && (
                     <Footer>
                         <Button variant="ghost" size="sm" onClick={() => setExpanded(false)}><ChevronUp />Zwiń</Button>
-                        {pagination && pagination.totalPages > 1 && (
+                        {pageMeta && pageMeta.totalPages > 1 && (
                             <>
                                 <Button variant="ghost" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
                                     <ChevronLeft />Poprzednie
                                 </Button>
-                                <span>strona {page} z {pagination.totalPages}</span>
-                                <Button variant="ghost" size="sm" disabled={page === pagination.totalPages} onClick={() => setPage(p => p + 1)}>
+                                <span>strona {page} z {pageMeta.totalPages}</span>
+                                <Button variant="ghost" size="sm" disabled={page === pageMeta.totalPages} onClick={() => setPage(p => p + 1)}>
                                     Następne<ChevronRight />
                                 </Button>
                             </>

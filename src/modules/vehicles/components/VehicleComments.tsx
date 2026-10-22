@@ -124,10 +124,10 @@ interface Props {
 export function VehicleComments({ vehicleId, id }: Props) {
     const [page, setPage] = useState(1);
     const navigate = useNavigate();
-    const { comments, pagination, isLoading } = useVehicleComments(vehicleId, page, PAGE_SIZE);
+    const { comments, pageMeta, isLoading } = useVehicleComments(vehicleId, page, PAGE_SIZE);
 
-    const totalPages = pagination?.totalPages ?? 1;
-    const totalItems = pagination?.totalItems ?? comments.length;
+    const totalPages = pageMeta?.totalPages ?? 1;
+    const totalItems = pageMeta?.totalItems ?? comments.length;
 
     return (
         <Panel id={id} aria-labelledby="vehicle-comments-title">

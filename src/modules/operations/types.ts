@@ -85,16 +85,6 @@ export interface Operation {
     } | null;
 }
 
-export interface OperationListResponse {
-    data: Operation[];
-    pagination: {
-        currentPage: number;
-        totalPages: number;
-        totalItems: number;
-        itemsPerPage: number;
-    };
-}
-
 export interface OperationAdvancedFilters {
     serviceCountMin?: number | null;
     serviceCountMax?: number | null;
@@ -110,7 +100,7 @@ export interface OperationAdvancedFilters {
 export interface OperationFilters {
     search: string;
     page: number;
-    limit: number;
+    pageSize: number;
     type?: OperationType;
     status?: OperationStatus;
     scheduledDate?: string;

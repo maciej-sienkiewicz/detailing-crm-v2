@@ -6,6 +6,7 @@
 
 import type { VehicleKind } from '@/modules/vehicles/vehicleKind';
 import type { SignatureDesign } from './utils/signatureTemplates';
+import type { Page } from '@/core/page';
 export type MailAccountStatus = 'ACTIVE' | 'AUTH_FAILED' | 'DISABLED';
 
 export interface MailAccountState {
@@ -102,11 +103,8 @@ export type CommThreadScreening = 'SPAM' | 'INTERNAL';
  */
 export type MailFolder = 'INBOX' | 'SENT' | 'REJECTED';
 
-export interface CommThreadPage {
-    items: CommThread[];
-    total: number;
-    page: number;
-    pageSize: number;
+/** Strona wątków (`Page<CommThread>`, jak każda lista) z liczbą nieprzeczytanych w całej skrzynce. */
+export interface CommThreadPage extends Page<CommThread> {
     totalUnread: number;
 }
 
@@ -443,13 +441,6 @@ export interface BulkStatusResult {
     /** Ile spraw ma teraz docelowy status (także te, które już go miały). */
     changed: number;
     skipped: { leadId: string; reason: string }[];
-}
-
-export interface LeadPage {
-    items: Lead[];
-    total: number;
-    page: number;
-    pageSize: number;
 }
 
 /**

@@ -66,13 +66,13 @@ describe('servicesApi - normalizacja odpowiedzi', () => {
     it('lista: każda pozycja ma brutto, zapisane przechodzi bez zmian', async () => {
         get.mockResolvedValue({
             data: {
-                services: [dto({}), dto({ id: 's2', basePriceNet: 50000, basePriceGross: 0 })],
-                pagination: { currentPage: 1, totalPages: 1, totalItems: 2, itemsPerPage: 15 },
+                items: [dto({}), dto({ id: 's2', basePriceNet: 50000, basePriceGross: 0 })],
+                page: { number: 1, size: 15, totalItems: 2, totalPages: 1 },
             },
         });
-        const res = await servicesApi.getServices({ search: '', page: 1, limit: 15 });
-        expect(res.services.map(s => s.basePriceGross)).toEqual([190000, 61500]);
-        expect(res.pagination.totalItems).toBe(2);
+        const res = await servicesApi.getServices({ search: '', page: 1, pageSize: 15 });
+        expect(res.items.map(s => s.basePriceGross)).toEqual([190000, 61500]);
+        expect(res.page.totalItems).toBe(2);
     });
 
     it('zapis: odpowiedź bez brutta dostaje brutto z netta', async () => {

@@ -1,5 +1,6 @@
 import { apiClient } from '@/core';
 import { LEGAL_VERSION } from '@/modules/legal/documents';
+import type { Page } from '@/core/page';
 import type {
     EntitlementsResponse,
     MyPlanResponse,
@@ -11,7 +12,7 @@ import type {
     AddOnPreview,
     AddOnKey,
     PlanKey,
-    PaymentHistoryResponse,
+    PaymentHistoryEntry,
     CheckoutRequest,
     CheckoutResponse,
     PaymentOrder,
@@ -123,8 +124,9 @@ export const newSubscriptionApi = {
     },
 
     // ── Payment history ──────────────────────────────────────────────────────────
-    getPaymentHistory: async (page = 0, pageSize = 20): Promise<PaymentHistoryResponse> => {
-        const res = await apiClient.get<PaymentHistoryResponse>(`${BASE}/payment-history`, {
+    /** [page] od 1. */
+    getPaymentHistory: async (page = 1, pageSize = 20): Promise<Page<PaymentHistoryEntry>> => {
+        const res = await apiClient.get<Page<PaymentHistoryEntry>>(`${BASE}/payment-history`, {
             params: { page, pageSize },
         });
         return res.data;

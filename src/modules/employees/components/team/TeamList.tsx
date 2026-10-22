@@ -63,8 +63,8 @@ export function TeamList({ onGoToRoles }: TeamListProps = {}) {
     const [savingEdit, setSavingEdit] = useState(false);
     const menu = useActionMenu<EmployeeListItem>();
 
-    const filters = { search: '', page, limit: PAGE_SIZE };
-    const { employees: items, pagination, isLoading, isError, refetch } = useEmployees(filters);
+    const filters = { search: '', page, pageSize: PAGE_SIZE };
+    const { employees: items, pageMeta, isLoading, isError, refetch } = useEmployees(filters);
     const invalidateEmployees = useInvalidateEmployees();
 
     const createEmployee = useCreateEmployee();
@@ -73,8 +73,8 @@ export function TeamList({ onGoToRoles }: TeamListProps = {}) {
     const resendInvitation = useResendInvitation();
     const { roles } = useRoles();
 
-    const totalItems = pagination?.totalItems ?? 0;
-    const totalPages = pagination?.totalPages ?? 1;
+    const totalItems = pageMeta?.totalItems ?? 0;
+    const totalPages = pageMeta?.totalPages ?? 1;
 
     /**
      * Moduł Czasu pracy jest cechą ROLI (`trackWorkTime`), nie pracownika - lista

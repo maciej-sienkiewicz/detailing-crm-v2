@@ -24,7 +24,7 @@ const base: ArchivedTask = {
 
 let items: ArchivedTask[] = [];
 vi.mock('../hooks/useTaskArchive', () => ({
-  useTaskArchive: () => ({ items, pagination: undefined, isLoading: false, isError: false }),
+  useTaskArchive: () => ({ items, pageMeta: undefined, isLoading: false, isError: false }),
 }));
 
 const renderArchive = () =>

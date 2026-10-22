@@ -641,13 +641,13 @@ export const GalleryView = () => {
         pageSize,
     }), [activeTags, brand, model, page, pageSize]);
 
-    const { photos, pagination, availableTags, isLoading, isPlaceholderData, error } = useGallery(filters);
+    const { photos, pageMeta, availableTags, isLoading, isPlaceholderData, error } = useGallery(filters);
 
     // Podgląd przechodzi strzałkami przez całą galerię, także przez granicę strony
     // (patrz lightboxNavigation) - strona siatki idzie za nim.
     const pageView: GalleryPageView = {
         page,
-        totalPages: pagination?.totalPages ?? page,
+        totalPages: pageMeta?.totalPages ?? page,
         photos,
         isPlaceholderData,
     };
@@ -706,9 +706,9 @@ export const GalleryView = () => {
         sectionRef.current?.scrollIntoView({ block: 'start', behavior: 'smooth' });
     };
 
-    const pageNumbers = pagination ? buildPageNumbers(page, pagination.totalPages) : [];
+    const pageNumbers = pageMeta ? buildPageNumbers(page, pageMeta.totalPages) : [];
     const hasFilters = activeTags.length > 0 || !!brand || !!model;
-    const total = pagination?.total ?? 0;
+    const total = pageMeta?.totalItems ?? 0;
     const rangeStart = total === 0 ? 0 : (page - 1) * pageSize + 1;
     const rangeEnd = Math.min(page * pageSize, total);
     const totalLabel = `${total} ${pluralPl(total, 'zdjęcie', 'zdjęcia', 'zdjęć')}`;
@@ -760,7 +760,7 @@ export const GalleryView = () => {
                         subtitle={
                             <>
                                 Zdjęcia z wizyt, pojazdów i zleceń zbiorczych
-                                {pagination && <PageHeaderCount>{totalLabel}</PageHeaderCount>}
+                                {pageMeta && <PageHeaderCount>{totalLabel}</PageHeaderCount>}
                             </>
                         }
                     />
@@ -768,7 +768,7 @@ export const GalleryView = () => {
                     <MobilePageHeader
                         icon={<Images />}
                         title="Galeria"
-                        subtitle={pagination
+                        subtitle={pageMeta
                             ? <><MobilePageHeaderCountValue>{total}</MobilePageHeaderCountValue> {pluralPl(total, 'zdjęcie', 'zdjęcia', 'zdjęć')}</>
                             : 'Wczytywanie…'}
                     />
@@ -818,7 +818,7 @@ export const GalleryView = () => {
 
                     <GridArea>{renderContent()}</GridArea>
 
-                    {pagination && pagination.totalPages > 1 && (
+                    {pageMeta && pageMeta.totalPages > 1 && (
                         <PaginationBar aria-label="Strony galerii">
                             <PageBtn
                                 type="button"
@@ -848,13 +848,13 @@ export const GalleryView = () => {
                                 )}
                             </PageNumbers>
                             <PageCompact>
-                                Strona <strong>{page}</strong> z {pagination.totalPages}
+                                Strona <strong>{page}</strong> z {pageMeta.totalPages}
                             </PageCompact>
 
                             <PageBtn
                                 type="button"
-                                onClick={() => goToPage(Math.min(pagination.totalPages, page + 1))}
-                                disabled={page === pagination.totalPages}
+                                onClick={() => goToPage(Math.min(pageMeta.totalPages, page + 1))}
+                                disabled={page === pageMeta.totalPages}
                                 aria-label="Następna strona"
                             >
                                 <NavLabel>Następna</NavLabel>
@@ -872,9 +872,9 @@ export const GalleryView = () => {
                     onClose={() => setLightbox(null)}
                     onPrev={stepPrev ? () => applyStep(stepPrev) : undefined}
                     onNext={stepNext ? () => applyStep(stepNext) : undefined}
-                    position={pagination ? {
+                    position={pageMeta ? {
                         index: photoPosition(lightboxPhoto, pageView, pageSize),
-                        total: pagination.total,
+                        total: pageMeta.totalItems,
                     } : undefined}
                     preload={[photos[lightboxIndex - 1], photos[lightboxIndex + 1]]
                         .filter((p): p is GalleryPhoto => !!p && lightboxIndex >= 0)

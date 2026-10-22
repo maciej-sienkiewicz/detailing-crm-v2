@@ -1,5 +1,6 @@
 // src/modules/comms/api/leadsApi.ts
 import { apiClient } from '@/core/apiClient';
+import type { Page } from '@/core/page';
 import type { VehicleKind } from '@/modules/vehicles/vehicleKind';
 import type {
     BulkDeleteResult,
@@ -9,7 +10,6 @@ import type {
     DictionaryEntry,
     LeadDictionaries,
     LeadNote,
-    LeadPage,
     LeadServiceItemInput,
     LeadSortDirection,
     LeadStatus,
@@ -38,16 +38,16 @@ export const leadsApi = {
         sortDirection?: LeadSortDirection;
         page?: number;
         pageSize?: number;
-    }, signal?: AbortSignal): Promise<LeadPage> => {
+    }, signal?: AbortSignal): Promise<Page<Lead>> => {
         const params = new URLSearchParams();
         const statuses = filters.status === undefined ? [] : ([] as LeadStatus[]).concat(filters.status);
         if (statuses.length) params.set('status', statuses.join(','));
         if (filters.query) params.set('search', filters.query);
         if (filters.awaitingReply) params.set('awaitingReply', 'true');
         if (filters.sortDirection) params.set('sortDirection', filters.sortDirection);
-        params.set('page', String(filters.page ?? 0));
+        params.set('page', String(filters.page ?? 1));
         params.set('pageSize', String(filters.pageSize ?? 25));
-        const { data } = await apiClient.get(`/v1/leads?${params}`, { signal });
+        const { data } = await apiClient.get<Page<Lead>>(`/v1/leads?${params}`, { signal });
         return data;
     },
 

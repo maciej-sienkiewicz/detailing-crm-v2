@@ -60,18 +60,6 @@ export interface Customer {
     updatedAt: string;
 }
 
-export interface CustomerListResponse {
-    data: Customer[];
-    pagination: PaginationMeta;
-}
-
-export interface PaginationMeta {
-    currentPage: number;
-    totalPages: number;
-    totalItems: number;
-    itemsPerPage: number;
-}
-
 export type CustomerSortField =
     | 'lastName'
     | 'lastVisitDate'
@@ -101,7 +89,7 @@ export interface CustomerAdvancedFilters {
 export interface CustomerFilters extends CustomerAdvancedFilters {
     search: string;
     page: number;
-    limit: number;
+    pageSize: number;
     sortBy?: CustomerSortField;
     sortDirection?: SortDirection;
 }
@@ -224,7 +212,6 @@ export interface CustomerVehiclesResponse {
 export interface CustomerVisitsResponse {
     visits: Visit[];
     communications?: CommunicationLog[];
-    pagination: PaginationMeta;
     reservations?: Reservation[];
 }
 

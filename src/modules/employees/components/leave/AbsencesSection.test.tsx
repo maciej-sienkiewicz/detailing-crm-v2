@@ -51,7 +51,7 @@ beforeEach(() => {
             { id: 'a', firstName: 'Anna', lastName: 'Nowak', fullName: 'Anna Nowak', email: null, phone: null, hasAccount: true },
             { id: 'p', firstName: 'Piotr', lastName: 'Lis', fullName: 'Piotr Lis', email: null, phone: null, hasAccount: true },
         ],
-        pagination: { currentPage: 1, totalPages: 1, totalItems: 2, itemsPerPage: 100 },
+        page: { number: 1, size: 100, totalItems: 2, totalPages: 1 },
     });
     vi.mocked(employeeApi.getLeaveCalendar).mockResolvedValue([
         { date: day(3), count: 1, employees: [{ id: 'p', fullName: 'Piotr Lis' }] },

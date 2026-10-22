@@ -257,14 +257,14 @@ export const ServiceAutocomplete = ({ onSelect, onAddNew }: ServiceAutocompleteP
         queryFn: ({ signal }) => servicesApi.getServices({
             search: debouncedQuery,
             page: 1,
-            limit: 50,
+            pageSize: 50,
             showInactive: false,
         }, signal),
         // Dopiero gdy lista jest otwarta albo coś wpisano - nie przy samym zamontowaniu pola.
         enabled: isOpen || debouncedQuery !== '',
     });
 
-    const services = servicesResponse?.services || [];
+    const services = servicesResponse?.items || [];
 
     useEffect(() => {
         const handleClickOutside = (event: MouseEvent) => {

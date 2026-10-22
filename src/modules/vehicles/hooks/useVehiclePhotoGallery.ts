@@ -12,8 +12,8 @@ export const useVehiclePhotoGallery = (vehicleId: string, page: number = 1, page
     });
 
     return {
-        photos: query.data?.photos ?? [],
-        pagination: query.data?.pagination ?? null,
+        photos: query.data?.items ?? [],
+        pageMeta: query.data?.page ?? null,
         isLoading: query.isLoading,
         isError: query.isError,
         refetch: query.refetch,

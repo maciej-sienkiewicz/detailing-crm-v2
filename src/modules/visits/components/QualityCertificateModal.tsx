@@ -288,7 +288,7 @@ function ProductPicker({ placeholder, catalog, onPick }: {
     const [open, setOpen] = useState(false);
     const debounced = useDebounce(search, 250);
     const { products, isLoading } = useProducts(
-        { search: debounced, page: 1, limit: 8 },
+        { search: debounced, page: 1, pageSize: 8 },
         { enabled: catalog && debounced.trim().length > 0 },
     );
     const wrapRef = useRef<HTMLDivElement>(null);

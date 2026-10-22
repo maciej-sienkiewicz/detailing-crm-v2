@@ -154,7 +154,7 @@ describe('EditableServicesTable', () => {
     beforeEach(() => {
         vi.clearAllMocks();
         layoutWidth.value = 0;
-        mockUseQuery.mockReturnValue({ data: { services: [] }, isLoading: false });
+        mockUseQuery.mockReturnValue({ data: { items: [] }, isLoading: false });
     });
 
     // ── cennik obok tabeli ───────────────────────────────────────────────────
@@ -163,7 +163,7 @@ describe('EditableServicesTable', () => {
         it('pokazuje cennik i dodaje pozycję kliknięciem w usługę', async () => {
             layoutWidth.value = 1000;
             mockUseQuery.mockReturnValue({
-                data: { services: [NORMAL_SERVICE], pagination: { totalItems: 1 } },
+                data: { items: [NORMAL_SERVICE], page: { number: 1, size: 50, totalItems: 1, totalPages: 1 } },
                 isLoading: false,
             });
             const user = userEvent.setup();
@@ -206,7 +206,7 @@ describe('EditableServicesTable', () => {
         });
 
         it('pojawia się na dole listy gdy są wyniki', async () => {
-            mockUseQuery.mockReturnValue({ data: { services: [NORMAL_SERVICE] }, isLoading: false });
+            mockUseQuery.mockReturnValue({ data: { items: [NORMAL_SERVICE] }, isLoading: false });
             const user = userEvent.setup();
             renderTable([]);
 
@@ -279,7 +279,7 @@ describe('EditableServicesTable', () => {
 
     describe('dodawanie usługi ze standardową ceną', () => {
         it('dodaje usługę do listy bez otwierania dodatkowego modalu', async () => {
-            mockUseQuery.mockReturnValue({ data: { services: [NORMAL_SERVICE] }, isLoading: false });
+            mockUseQuery.mockReturnValue({ data: { items: [NORMAL_SERVICE] }, isLoading: false });
             const user = userEvent.setup();
             const { onChange } = renderTable([]);
 
@@ -304,7 +304,7 @@ describe('EditableServicesTable', () => {
 
     describe('usługa NIESTANDARDOWA: modal wpisania ceny', () => {
         it('otwiera modal zamiast od razu dodawać usługę', async () => {
-            mockUseQuery.mockReturnValue({ data: { services: [CUSTOM_PRICE_SERVICE] }, isLoading: false });
+            mockUseQuery.mockReturnValue({ data: { items: [CUSTOM_PRICE_SERVICE] }, isLoading: false });
             const user = userEvent.setup();
             const { onChange } = renderTable([]);
 
@@ -317,7 +317,7 @@ describe('EditableServicesTable', () => {
         });
 
         it('pokazuje nazwę usługi jako pole zablokowane do edycji', async () => {
-            mockUseQuery.mockReturnValue({ data: { services: [CUSTOM_PRICE_SERVICE] }, isLoading: false });
+            mockUseQuery.mockReturnValue({ data: { items: [CUSTOM_PRICE_SERVICE] }, isLoading: false });
             const user = userEvent.setup();
             renderTable([]);
 
@@ -330,7 +330,7 @@ describe('EditableServicesTable', () => {
         });
 
         it('daje wybór stawki VAT oraz parę pól: cena netto i cena brutto', async () => {
-            mockUseQuery.mockReturnValue({ data: { services: [CUSTOM_PRICE_SERVICE] }, isLoading: false });
+            mockUseQuery.mockReturnValue({ data: { items: [CUSTOM_PRICE_SERVICE] }, isLoading: false });
             const user = userEvent.setup();
             renderTable([]);
 
@@ -344,7 +344,7 @@ describe('EditableServicesTable', () => {
         });
 
         it('po wpisaniu ceny netto wylicza brutto od netto', async () => {
-            mockUseQuery.mockReturnValue({ data: { services: [CUSTOM_PRICE_SERVICE] }, isLoading: false });
+            mockUseQuery.mockReturnValue({ data: { items: [CUSTOM_PRICE_SERVICE] }, isLoading: false });
             const user = userEvent.setup();
             const { onChange } = renderTable([]);
 
@@ -367,7 +367,7 @@ describe('EditableServicesTable', () => {
         });
 
         it('po wpisaniu ceny brutto wylicza netto od brutto', async () => {
-            mockUseQuery.mockReturnValue({ data: { services: [CUSTOM_PRICE_SERVICE] }, isLoading: false });
+            mockUseQuery.mockReturnValue({ data: { items: [CUSTOM_PRICE_SERVICE] }, isLoading: false });
             const user = userEvent.setup();
             const { onChange } = renderTable([]);
 
@@ -388,7 +388,7 @@ describe('EditableServicesTable', () => {
         });
 
         it('zmiana stawki VAT przelicza brutto od wpisanego netto', async () => {
-            mockUseQuery.mockReturnValue({ data: { services: [CUSTOM_PRICE_SERVICE] }, isLoading: false });
+            mockUseQuery.mockReturnValue({ data: { items: [CUSTOM_PRICE_SERVICE] }, isLoading: false });
             const user = userEvent.setup();
             const { onChange } = renderTable([]);
 
@@ -412,7 +412,7 @@ describe('EditableServicesTable', () => {
             // Część usług ustalanych indywidualnie bywa darmowa. 0 zł to poprawna cena,
             // nie brak ceny - przycisk musi być aktywny, a potwierdzenie ma dodać pozycję
             // za zero, a nie zostać zablokowane.
-            mockUseQuery.mockReturnValue({ data: { services: [CUSTOM_PRICE_SERVICE] }, isLoading: false });
+            mockUseQuery.mockReturnValue({ data: { items: [CUSTOM_PRICE_SERVICE] }, isLoading: false });
             const user = userEvent.setup();
             const { onChange } = renderTable([]);
 

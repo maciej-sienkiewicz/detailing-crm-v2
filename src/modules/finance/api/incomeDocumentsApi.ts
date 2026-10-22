@@ -1,9 +1,10 @@
 import { apiClient } from '@/core';
+import type { Page } from '@/core/page';
 import type {
   BulkPaymentStatusResult,
   BulkPaymentStatusTarget,
   IncomeDocumentFilters,
-  IncomeDocumentListResponse,
+  IncomeDocument,
   IncomeDocumentRef,
   IncomeSourceKind,
   UpdateIncomeNoteRequest,
@@ -16,10 +17,10 @@ const BASE = '/v1/finance/income-documents';
  * razem z paragonami i dokumentami „inne" z modułu finansowego.
  */
 export const incomeDocumentsApi = {
-  getDocuments: async (filters: IncomeDocumentFilters): Promise<IncomeDocumentListResponse> => {
+  getDocuments: async (filters: IncomeDocumentFilters): Promise<Page<IncomeDocument>> => {
     const params = new URLSearchParams({
       page: String(filters.page),
-      size: String(filters.pageSize),
+      pageSize: String(filters.pageSize),
     });
     if (filters.documentType)  params.append('documentType',  filters.documentType);
     if (filters.paymentStatus) params.append('paymentStatus', filters.paymentStatus);
@@ -30,7 +31,7 @@ export const incomeDocumentsApi = {
     if (filters.includeExcluded) params.append('includeExcluded', 'true');
     if (filters.onlyExcluded)    params.append('onlyExcluded',    'true');
 
-    const response = await apiClient.get(`${BASE}?${params}`);
+    const response = await apiClient.get<Page<IncomeDocument>>(`${BASE}?${params}`);
     return response.data;
   },
 

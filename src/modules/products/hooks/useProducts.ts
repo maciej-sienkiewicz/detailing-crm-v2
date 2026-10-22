@@ -21,8 +21,8 @@ export const useProducts = (filters: ProductListFilters, options?: { enabled?: b
         enabled: options?.enabled ?? true,
     });
     return {
-        products: data?.products ?? [],
-        pagination: data?.pagination,
+        products: data?.items ?? [],
+        pageMeta: data?.page,
         isLoading,
         isError,
         refetch,
@@ -102,7 +102,7 @@ export const useProductRating = (id: string) => {
 /** Lista „Wykorzystano podczas wizyty" — stronicowana i z wyszukiwarką. */
 export const useProductVisits = (
     id: string | undefined,
-    params: { search: string; page: number; limit: number },
+    params: { search: string; page: number; pageSize: number },
 ) => {
     const { data, isLoading, isError } = useQuery({
         queryKey: [KEY, 'visits', id, params],
@@ -112,9 +112,9 @@ export const useProductVisits = (
     });
     return {
         items: data?.items ?? [],
-        totalItems: data?.totalItems ?? 0,
-        totalPages: data?.totalPages ?? 0,
-        currentPage: data?.currentPage ?? params.page,
+        totalItems: data?.page.totalItems ?? 0,
+        totalPages: data?.page.totalPages ?? 0,
+        currentPage: data?.page.number ?? params.page,
         isLoading,
         isError,
     };

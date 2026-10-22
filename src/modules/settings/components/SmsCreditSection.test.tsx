@@ -61,7 +61,7 @@ beforeEach(() => {
         availableCredits: 1240, totalPurchased: 3000, totalUsed: 1760, updatedAt: '2026-09-20T10:00:00Z',
     });
     vi.mocked(smsCreditApi.getPackages).mockResolvedValue(PACKAGES);
-    vi.mocked(smsCreditApi.getTransactions).mockResolvedValue({ items: [], total: 0, page: 0, size: 20 });
+    vi.mocked(smsCreditApi.getTransactions).mockResolvedValue({ items: [], page: { number: 1, size: 20, totalItems: 0, totalPages: 1 } });
     vi.mocked(smsCreditApi.purchaseCredits).mockResolvedValue({ availableCredits: 3240, message: 'ok' });
 });
 

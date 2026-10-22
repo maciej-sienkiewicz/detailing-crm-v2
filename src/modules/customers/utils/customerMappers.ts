@@ -195,10 +195,4 @@ export const mapCalendarVisitToVisit = (v: VisitResponse): Visit => {
 export const mapCalendarVisitsToCustomerVisitsResponse = (visits: VisitResponse[]): CustomerVisitsResponse => ({
     visits: visits.map(mapCalendarVisitToVisit),
     communications: [],
-    pagination: {
-        currentPage: 1,
-        totalPages: 1,
-        totalItems: visits.length,
-        itemsPerPage: visits.length,
-    },
 });

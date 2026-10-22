@@ -307,7 +307,7 @@ export const TaskArchiveModal = ({ isOpen, onClose }: Props) => {
   const [debouncedSearch, setDebouncedSearch] = useState('');
   const debounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const { items, pagination, isLoading } = useTaskArchive(page, debouncedSearch, isOpen);
+  const { items, pageMeta, isLoading } = useTaskArchive(page, debouncedSearch, isOpen);
 
   useEffect(() => {
     if (!isOpen) {
@@ -374,11 +374,11 @@ export const TaskArchiveModal = ({ isOpen, onClose }: Props) => {
           </ArchiveList>
         )}
 
-        {pagination && pagination.totalPages > 1 && (
+        {pageMeta && pageMeta.totalPages > 1 && (
           <Pagination>
             <PaginationInfo>
-              {pagination.total} {pluralPl(pagination.total, 'zadanie', 'zadania', 'zadań')}, strona {pagination.page} z{' '}
-              {pagination.totalPages}
+              {pageMeta.totalItems} {pluralPl(pageMeta.totalItems, 'zadanie', 'zadania', 'zadań')}, strona {pageMeta.number} z{' '}
+              {pageMeta.totalPages}
             </PaginationInfo>
             <PaginationBtns>
               <PageBtn
@@ -389,7 +389,7 @@ export const TaskArchiveModal = ({ isOpen, onClose }: Props) => {
                 <ChevronLeft />
               </PageBtn>
               <PageBtn
-                disabled={page >= pagination.totalPages}
+                disabled={page >= pageMeta.totalPages}
                 onClick={() => setPage(p => p + 1)}
                 aria-label="Następna strona"
               >

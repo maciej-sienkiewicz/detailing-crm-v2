@@ -28,7 +28,7 @@ export const useGallery = (filters: GalleryFilters) => {
     });
 
     // Warm the next page in the background so paging forward is instant.
-    const totalPages = data?.pagination?.totalPages ?? 0;
+    const totalPages = data?.page?.totalPages ?? 0;
     useEffect(() => {
         if (isPlaceholderData || filters.page >= totalPages) return;
         const nextFilters = { ...filters, page: filters.page + 1 };
@@ -40,8 +40,8 @@ export const useGallery = (filters: GalleryFilters) => {
     }, [queryClient, isPlaceholderData, totalPages, filters]);
 
     return {
-        photos: data?.photos ?? EMPTY_PHOTOS,
-        pagination: data?.pagination,
+        photos: data?.items ?? EMPTY_PHOTOS,
+        pageMeta: data?.page,
         availableTags: data?.availableTags ?? EMPTY_TAGS,
         isLoading,
         isFetching,

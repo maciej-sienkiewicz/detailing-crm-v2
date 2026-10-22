@@ -9,11 +9,11 @@ export const APPOINTMENT_COLORS_KEY = ['appointment-colors'] as const;
 /**
  * Aktywne kolory do wyboru przy rezerwacji, przyjęciu i w filtrach kalendarza. Dawniej
  * leżały pod czterema kluczami (`appointment-colors`, `appointmentColors`,
- * `appointments/colors` i z filtrem `limit: 100`), więc ta sama lista szła z serwera
+ * `appointments/colors` i z filtrem `pageSize: 100`), więc ta sama lista szła z serwera
  * kilka razy, a nowy kolor dodany w kreatorze nie trafiał do filtrów kalendarza.
  */
 export const appointmentColorsQuery = () => queryOptions({
     queryKey: [...APPOINTMENT_COLORS_KEY, 'active'],
-    queryFn: async () => (await appointmentColorApi.getColors({ limit: 100 })).colors,
+    queryFn: async () => (await appointmentColorApi.getColors({ pageSize: 100 })).items,
     staleTime: STALE_TIME.catalog,
 });

@@ -13,8 +13,8 @@ export const useCustomers = (filters: CustomerFilters) => {
     });
 
     return {
-        customers: query.data?.data ?? [],
-        pagination: query.data?.pagination ?? null,
+        customers: query.data?.items ?? [],
+        pageMeta: query.data?.page ?? null,
         isLoading: query.isLoading,
         isError: query.isError,
         error: query.error,

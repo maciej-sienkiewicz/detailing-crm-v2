@@ -23,7 +23,7 @@ export function useSentEmail(enabled: boolean) {
         queryKey: [...KEY, 'sent'],
         queryFn: ({ pageParam }) => scheduledEmailApi.sent(pageParam),
         initialPageParam: null as string | null,
-        getNextPageParam: last => last.nextBefore,
+        getNextPageParam: last => last.nextCursor,
         enabled,
     });
 }

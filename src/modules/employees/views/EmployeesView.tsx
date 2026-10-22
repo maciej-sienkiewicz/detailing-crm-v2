@@ -46,7 +46,7 @@ export function EmployeesView() {
 
     // Te same filtry, od których startuje lista zespołu: licznik przy zakładce czyta
     // ten sam wpis cache, zamiast wysyłać drugie żądanie.
-    const { pagination } = useEmployees({ search: '', page: 1, limit: TEAM_PAGE_SIZE }, { enabled: canManage });
+    const { pageMeta } = useEmployees({ search: '', page: 1, pageSize: TEAM_PAGE_SIZE }, { enabled: canManage });
     // Karty czekające na decyzję i niezatwierdzone listy - te same liczby co w panelu bocznym.
     const pendingCards = usePendingCardsCount(canManage);
     const pendingSheets = usePendingSheetsCount(canManage);
@@ -60,7 +60,7 @@ export function EmployeesView() {
     };
 
     const tabs: TabDefinition<EmployeesTab>[] = visibleTabs.map(t => {
-        if (t.key === 'team') return { key: t.key, label: t.label, count: pagination?.totalItems };
+        if (t.key === 'team') return { key: t.key, label: t.label, count: pageMeta?.totalItems };
         if (t.key === 'leaves') return { key: t.key, label: t.label, count: pendingLeaves > 0 ? pendingLeaves : undefined };
         // Liczniki pokazują tylko to, co czeka na decyzję - pusto, gdy nic nie czeka.
         if (t.key === 'worktime') return { key: t.key, label: t.label, count: pendingCards > 0 ? pendingCards : undefined };

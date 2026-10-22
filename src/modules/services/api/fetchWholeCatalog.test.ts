@@ -6,7 +6,7 @@ vi.mock('@/core', () => ({ apiClient: { get } }));
 import { fetchWholeCatalog } from './fetchWholeCatalog';
 
 const page = (names: string[], totalPages: number) => ({
-    data: { services: names.map(name => ({ name })), pagination: { totalPages } },
+    data: { items: names.map(name => ({ name })), page: { number: 1, size: 500, totalItems: names.length, totalPages } },
 });
 
 beforeEach(() => get.mockReset());
@@ -24,7 +24,7 @@ describe('fetchWholeCatalog', () => {
         expect(services.map(s => s.name)).toEqual(['Mycie', 'PPF - Full body (pakiet)']);
         expect(get).toHaveBeenCalledTimes(2);
         expect(get).toHaveBeenLastCalledWith('/v1/services', {
-            params: { page: 2, limit: 500, sortBy: 'name', sortDirection: 'asc' },
+            params: { page: 2, pageSize: 500, sortBy: 'name', sortDirection: 'asc' },
         });
     });
 

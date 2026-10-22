@@ -72,7 +72,7 @@ beforeEach(() => {
         { key: 'CLIENT_COMMUNICATION', name: 'Komunikacja', description: 'SMS i e-mail', monthlyPriceGrossCents: 4900, features: [], isAvailable: true },
         { key: 'FINANCE', name: 'Finanse', description: 'Faktury', monthlyPriceGrossCents: 6900, features: [], isAvailable: true },
     ] as Awaited<ReturnType<typeof newSubscriptionApi.getAddOns>>);
-    vi.mocked(newSubscriptionApi.getPaymentHistory).mockResolvedValue({ entries: [], total: 0, page: 0, pageSize: 20 });
+    vi.mocked(newSubscriptionApi.getPaymentHistory).mockResolvedValue({ items: [], page: { number: 1, size: 20, totalItems: 0, totalPages: 1 } });
     vi.mocked(newSubscriptionApi.checkout).mockResolvedValue({
         orderId: 'o1', status: 'PENDING', amountCents: 17200, currency: 'PLN', description: '', paymentUrl: null,
     });
@@ -210,7 +210,7 @@ describe('SubscriptionSettingsPage', () => {
             currency: 'PLN', transactionId: `t${i}`, plan: null, addOn: null,
         } as PaymentHistoryEntry);
         vi.mocked(newSubscriptionApi.getPaymentHistory).mockResolvedValue({
-            entries: Array.from({ length: 20 }, (_, i) => entry(i)), total: 400, page: 0, pageSize: 20,
+            items: Array.from({ length: 20 }, (_, i) => entry(i)), page: { number: 1, size: 20, totalItems: 400, totalPages: 20 },
         });
         renderPage();
 

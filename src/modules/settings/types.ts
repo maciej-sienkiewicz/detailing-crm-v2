@@ -134,13 +134,6 @@ export interface SmsCreditTransaction {
     createdAt: string;
 }
 
-export interface SmsCreditTransactionPage {
-    items: SmsCreditTransaction[];
-    total: number;
-    page: number;
-    size: number;
-}
-
 export interface PurchaseCreditsResponse {
     availableCredits: number;
     message: string;

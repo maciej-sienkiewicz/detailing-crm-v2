@@ -370,12 +370,12 @@ function CreditsCard({ isOwner }: { isOwner: boolean }) {
 const PAGE_SIZE = 20;
 
 function TransactionsPanel() {
-    const [page, setPage] = useState(0);
+    const [page, setPage] = useState(1);
     const { data, isLoading, isError, refetch } = useSmsCreditTransactions(page, PAGE_SIZE);
 
     const items = data?.items ?? [];
-    const total = data?.total ?? 0;
-    const totalPages = Math.ceil(total / PAGE_SIZE);
+    const total = data?.page.totalItems ?? 0;
+    const totalPages = data?.page.totalPages ?? 1;
 
     return (
         <HistoryPanel>
@@ -424,10 +424,10 @@ function TransactionsPanel() {
 
                     {totalPages > 1 && (
                         <Pager>
-                            <span>Strona {page + 1} z {totalPages}</span>
+                            <span>Strona {page} z {totalPages}</span>
                             <PagerButtons>
-                                <Button size="sm" onClick={() => setPage(p => p - 1)} disabled={page === 0}>Poprzednia</Button>
-                                <Button size="sm" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages - 1}>Następna</Button>
+                                <Button size="sm" onClick={() => setPage(p => p - 1)} disabled={page === 1}>Poprzednia</Button>
+                                <Button size="sm" onClick={() => setPage(p => p + 1)} disabled={page >= totalPages}>Następna</Button>
                             </PagerButtons>
                         </Pager>
                     )}

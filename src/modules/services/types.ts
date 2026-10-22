@@ -56,23 +56,11 @@ export type ServiceDto = Omit<Service, 'basePriceGross'> & {
 export interface ServiceListFilters {
     search: string;
     page: number;
-    limit: number;
+    pageSize: number;
     sortBy?: 'name' | 'basePriceNet';
     sortDirection?: 'asc' | 'desc';
     showInactive?: boolean;
     isPackage?: boolean;
-}
-
-export interface ServicePagination {
-    currentPage: number;
-    totalPages: number;
-    totalItems: number;
-    itemsPerPage: number;
-}
-
-export interface ServiceListResponse {
-    services: Service[];
-    pagination: ServicePagination;
 }
 
 export interface CreateServiceRequest {

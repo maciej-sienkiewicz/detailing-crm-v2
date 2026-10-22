@@ -1,3 +1,5 @@
+import type { Page } from '@/core/page';
+
 // ─── Shared ────────────────────────────────────────────────────────────────────
 
 // ─── Finance: Dokumenty Przychodowe ───────────────────────────────────────────
@@ -130,11 +132,8 @@ export interface CashHistoryFilters {
   direction?: CashDirection;
 }
 
-export interface CashHistoryResponse {
-  operations: CashOperation[];
-  total:      number;
-  page:       number;
-  pageSize:   number;
+/** Strona historii kasy (`Page<CashOperation>`, jak każda lista) z sumami całego okresu obok. */
+export interface CashHistoryPage extends Page<CashOperation> {
   /**
    * Sumy w groszach za cały wybrany okres - obie dodatnie i obie niezależne od
    * `direction`. Filtr kierunku zawęża listę, nie podsumowanie.
@@ -444,13 +443,6 @@ export interface KsefExpenseDetail {
   linkedVisit?:        KsefExpenseLinkedVisit | null;
 }
 
-export interface KsefExpenseListResponse {
-  expenses: KsefExpense[];
-  total:    number;
-  page:     number;
-  pageSize: number;
-}
-
 export interface KsefExpenseListFilters {
   page:             number;
   pageSize:         number;
@@ -577,13 +569,6 @@ export type IncomeSettlementState = 'CANCELLED' | 'ZEROED' | 'SUPERSEDED';
 
 export interface UpdateIncomeNoteRequest {
   note: string;
-}
-
-export interface IncomeDocumentListResponse {
-  documents: IncomeDocument[];
-  total:     number;
-  page:      number;
-  pageSize:  number;
 }
 
 export interface IncomeDocumentFilters {
@@ -731,13 +716,6 @@ export interface RevenueInvoice {
   exemptionLegalBasis?: string | null;
   /** Faktura do paragonu (FP = 1). */
   invoiceToReceipt?:  boolean;
-}
-
-export interface RevenueInvoiceListResponse {
-  invoices: RevenueInvoice[];
-  total:    number;
-  page:     number;
-  pageSize: number;
 }
 
 export interface RevenueInvoiceListFilters {

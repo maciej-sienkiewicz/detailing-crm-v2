@@ -291,17 +291,17 @@ export function ServiceCatalogPanel({
         queryFn: ({ signal }) => servicesApi.getServices({
             search: debouncedQuery,
             page: 1,
-            limit: PAGE_SIZE,
+            pageSize: PAGE_SIZE,
             showInactive: false,
             sortBy: 'name',
             sortDirection: 'asc',
         }, signal),
     });
 
-    const services = useMemo(() => data?.services ?? [], [data]);
+    const services = useMemo(() => data?.items ?? [], [data]);
     // Łańcuch opcjonalny na całej drodze: odpowiedź bez stronicowania nie jest
     // błędem do wysypania widoku, tylko brakiem liczby do pokazania.
-    const total = data?.pagination?.totalItems ?? 0;
+    const total = data?.page?.totalItems ?? 0;
 
     // Pakiety na górze: to one są gotową odpowiedzią na „ile za całość", a pojedyncze
     // usługi dokłada się do nich, a nie odwrotnie.

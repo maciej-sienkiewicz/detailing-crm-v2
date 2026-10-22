@@ -231,8 +231,8 @@ export function GalleryPhotoPicker({
         page: 1,
         pageSize,
     };
-    const { photos, pagination, isLoading, error } = useGallery(filters);
-    const total = pagination?.total ?? photos.length;
+    const { photos, pageMeta, isLoading, error } = useGallery(filters);
+    const total = pageMeta?.totalItems ?? photos.length;
 
     const selectedKeys = new Set(selected.map(galleryPhotoKey));
     const limitReached = selected.length >= maxSelectable;

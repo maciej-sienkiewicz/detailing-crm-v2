@@ -19,10 +19,10 @@ export const useIncomeDocuments = (filters: IncomeDocumentFilters) => {
   });
 
   return {
-    documents: data?.documents ?? [],
-    total:     data?.total     ?? 0,
-    page:      data?.page      ?? 1,
-    pageSize:  data?.pageSize  ?? 20,
+    documents: data?.items           ?? [],
+    total:     data?.page.totalItems ?? 0,
+    page:      data?.page.number     ?? 1,
+    pageSize:  data?.page.size       ?? 20,
     isLoading,
     isError,
     refetch,

@@ -24,7 +24,7 @@ afterEach(() => {
 
 describe('appointmentColorsQuery', () => {
     it('kilka widoków naraz pyta serwer raz', async () => {
-        http.get.mockResolvedValue({ data: { colors: [{ id: 'c1' }], pagination: {} } });
+        http.get.mockResolvedValue({ data: { items: [{ id: 'c1' }], page: { number: 1, size: 100, totalItems: 1, totalPages: 1 } } });
         const wrapper = wrapperWith(new QueryClient());
 
         const { result } = renderHook(() => [
@@ -35,12 +35,12 @@ describe('appointmentColorsQuery', () => {
 
         await waitFor(() => expect(result.current[0].data).toEqual([{ id: 'c1' }]));
         expect(http.get).toHaveBeenCalledTimes(1);
-        expect(http.get).toHaveBeenCalledWith('/v1/appointment-colors', { params: { page: 1, limit: 100 } });
+        expect(http.get).toHaveBeenCalledWith('/v1/appointment-colors', { params: { page: 1, pageSize: 100 } });
     });
 
     it('nowy kolor z Ustawień odświeża listę do wyboru', async () => {
-        http.get.mockResolvedValueOnce({ data: { colors: [{ id: 'c1' }], pagination: {} } });
-        http.get.mockResolvedValueOnce({ data: { colors: [{ id: 'c1' }, { id: 'c2' }], pagination: {} } });
+        http.get.mockResolvedValueOnce({ data: { items: [{ id: 'c1' }], page: { number: 1, size: 100, totalItems: 1, totalPages: 1 } } });
+        http.get.mockResolvedValueOnce({ data: { items: [{ id: 'c1' }, { id: 'c2' }], page: { number: 1, size: 100, totalItems: 1, totalPages: 1 } } });
         http.post.mockResolvedValue({ data: { id: 'c2' } });
         const wrapper = wrapperWith(new QueryClient());
 

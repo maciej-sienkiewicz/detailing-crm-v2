@@ -146,7 +146,7 @@ export const VehicleSearchModal = ({
         queryFn: ({ signal }) => vehicleApi.getVehicles({
             search: debouncedQuery,
             page: 1,
-            limit: 50,
+            pageSize: 50,
         }, signal),
         enabled: isOpen && mode === 'search' && hasQuery,
         // Keep the previous matches visible while the next query runs, so typing does not
@@ -226,7 +226,7 @@ export const VehicleSearchModal = ({
             ? 'Wybierz inny pojazd dla tej wizyty lub dodaj nowy.'
             : 'Znajdź pojazd po marce, modelu lub numerze rejestracyjnym.');
 
-    const vehicles = vehicleResponse?.data || [];
+    const vehicles = vehicleResponse?.items || [];
     // Before anything is typed the list shows the customer's own cars; after that it shows
     // the search. Either way it is one list in one region, so the window never resizes.
     const isStale = hasQuery && isPlaceholderData;

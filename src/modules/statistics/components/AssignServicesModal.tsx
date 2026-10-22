@@ -106,7 +106,7 @@ export const AssignServicesModal = ({ isOpen, onClose, category }: AssignService
     const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
     const [isSaving, setIsSaving] = useState(false);
 
-    const { services } = useServices({ search: '', page: 1, limit: 200, showInactive: false });
+    const { services } = useServices({ search: '', page: 1, pageSize: 200, showInactive: false });
     const assignMutation = useAssignService();
     const unassignMutation = useUnassignService();
 

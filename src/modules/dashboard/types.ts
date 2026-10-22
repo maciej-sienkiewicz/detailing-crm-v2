@@ -205,15 +205,6 @@ export interface ArchivedTask {
   archivedAutomatically?: boolean;
 }
 
-export interface TaskArchivePage {
-  items: ArchivedTask[];
-  pagination: {
-    total: number;
-    page: number;
-    pageSize: number;
-    totalPages: number;
-  };
-}
 
 /**
  * Odpowiedź GET /v1/dashboard/stats - same kafelki stanu. Przychód, połączenia i opinie

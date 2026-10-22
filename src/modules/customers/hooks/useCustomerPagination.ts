@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import type { PaginationMeta } from '../types';
+import type { PageMeta } from '@/core/page';
 
 const DEFAULT_PAGE = 1;
 const DEFAULT_LIMIT = 10;
@@ -17,8 +17,8 @@ export const useCustomerPagination = (options: UsePaginationOptions = {}) => {
         setPage(Math.max(1, newPage));
     }, []);
 
-    const goToNextPage = useCallback((pagination: PaginationMeta | null) => {
-        if (pagination && page < pagination.totalPages) {
+    const goToNextPage = useCallback((pageMeta: PageMeta | null) => {
+        if (pageMeta && page < pageMeta.totalPages) {
             setPage(prev => prev + 1);
         }
     }, [page]);

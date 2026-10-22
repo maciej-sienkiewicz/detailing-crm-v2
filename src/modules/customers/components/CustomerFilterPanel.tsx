@@ -447,7 +447,7 @@ interface ServiceMultiSelectProps {
 }
 
 export const ServiceMultiSelect = ({ selectedIds, onChange }: ServiceMultiSelectProps) => {
-    const { services, isLoading } = useServices({ search: '', page: 1, limit: 200, showInactive: false });
+    const { services, isLoading } = useServices({ search: '', page: 1, pageSize: 200, showInactive: false });
 
     const [open, setOpen] = useState(false);
     const [query, setQuery] = useState('');

@@ -614,13 +614,13 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
 
     const { data } = useQuery({
         queryKey: serviceKeys.search('inline', debouncedQuery),
-        queryFn: ({ signal }) => servicesApi.getServices({ search: debouncedQuery, page: 1, limit: 8, showInactive: false }, signal),
+        queryFn: ({ signal }) => servicesApi.getServices({ search: debouncedQuery, page: 1, pageSize: 8, showInactive: false }, signal),
         // The mobile sheet opens before anything is typed, so it needs the first
         // page of the catalog to have a list to show.
         enabled: open && (isMobile || debouncedQuery.trim().length >= 1),
     });
 
-    const suggestions: Service[] = data?.services ?? [];
+    const suggestions: Service[] = data?.items ?? [];
 
     // Lista na desktopie (na telefonie arkusz). Ma szerokość pola; efekt szerokości stoi
     // PRZED useFloatingPanel, bo pozycję liczy się z szerokości panelu - najpierw

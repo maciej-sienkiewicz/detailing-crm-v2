@@ -79,14 +79,14 @@ export function ServicesSection({ kind, onKindChange, switcher }: Props) {
 
     const isPackage = kind === 'packages';
     const list = useServices({
-        search: debouncedSearch, page, limit: PAGE_SIZE, showInactive, isPackage,
+        search: debouncedSearch, page, pageSize: PAGE_SIZE, showInactive, isPackage,
     });
     // Liczba archiwalnych = wszystkie danego rodzaju minus aktywne. Dwa zapytania po
-    // jednej pozycji - odpowiedź niesie samą liczbę w `pagination`.
-    const activeCount = useServices({ search: '', page: 1, limit: 1, showInactive: false, isPackage });
-    const allCount = useServices({ search: '', page: 1, limit: 1, showInactive: true, isPackage });
-    const archivedCount = allCount.pagination && activeCount.pagination
-        ? Math.max(0, allCount.pagination.totalItems - activeCount.pagination.totalItems)
+    // jednej pozycji - odpowiedź niesie samą liczbę w `page.totalItems`.
+    const activeCount = useServices({ search: '', page: 1, pageSize: 1, showInactive: false, isPackage });
+    const allCount = useServices({ search: '', page: 1, pageSize: 1, showInactive: true, isPackage });
+    const archivedCount = allCount.pageMeta && activeCount.pageMeta
+        ? Math.max(0, allCount.pageMeta.totalItems - activeCount.pageMeta.totalItems)
         : 0;
 
     const { instructions: careInstructions } = useCareInstructions();
@@ -102,8 +102,8 @@ export function ServicesSection({ kind, onKindChange, switcher }: Props) {
         return map;
     }, [careInstructions]);
 
-    const totalItems = list.pagination?.totalItems ?? 0;
-    const totalPages = list.pagination?.totalPages ?? 1;
+    const totalItems = list.pageMeta?.totalItems ?? 0;
+    const totalPages = list.pageMeta?.totalPages ?? 1;
     const actionsDisabled = editor !== null || archive.isPending;
 
     // Każda akcja z menu sprawdza blokadę jeszcze raz: menu otwarte przed otwarciem

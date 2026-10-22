@@ -89,8 +89,8 @@ export const useCashHistory = (
   });
 
   return {
-    operations: data?.operations ?? [],
-    total:      data?.total      ?? 0,
+    operations: data?.items           ?? [],
+    total:      data?.page.totalItems ?? 0,
     totalIn:    data?.totalIn    ?? 0,
     totalOut:   data?.totalOut   ?? 0,
     isLoading,

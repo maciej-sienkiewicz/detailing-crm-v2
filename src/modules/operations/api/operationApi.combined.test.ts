@@ -7,7 +7,7 @@ vi.mock('@/core', () => ({ apiClient: http }));
 
 import { operationApi } from './operationApi';
 
-const page = { currentPage: 2, totalPages: 5, totalItems: 98, itemsPerPage: 20 };
+const page = { number: 2, size: 20, totalItems: 98, totalPages: 5 };
 
 afterEach(() => vi.clearAllMocks());
 
@@ -15,22 +15,22 @@ const paramsOf = (call: number) => new URL(`http://x${http.get.mock.calls[call][
 
 describe('operationApi.getOperations - wizyty i rezerwacje razem', () => {
     it('„Wszystkie": jedno zapytanie, paginacja z serwera', async () => {
-        http.get.mockResolvedValue({ data: { items: [], pagination: page } });
+        http.get.mockResolvedValue({ data: { items: [], page } });
 
-        const result = await operationApi.getOperations({ search: ' Kowalski ', page: 2, limit: 20 });
+        const result = await operationApi.getOperations({ search: ' Kowalski ', page: 2, pageSize: 20 });
 
         expect(http.get).toHaveBeenCalledTimes(1);
         expect(http.get.mock.calls[0][0]).toMatch(/^\/v1\/operations\?/);
         expect(paramsOf(0).get('appointmentStatuses')).toBe('CREATED,ABANDONED,CANCELLED');
         expect(paramsOf(0).get('visitStatus')).toBeNull();
         expect(paramsOf(0).get('search')).toBe('Kowalski');
-        expect(result.pagination).toEqual(page);
+        expect(result.page).toEqual(page);
     });
 
     it('„Odrzucone": status wizyt filtruje serwer, rezerwacje porzucone i anulowane', async () => {
-        http.get.mockResolvedValue({ data: { items: [], pagination: page } });
+        http.get.mockResolvedValue({ data: { items: [], page } });
 
-        await operationApi.getOperations({ search: '', page: 1, limit: 20, status: 'REJECTED' });
+        await operationApi.getOperations({ search: '', page: 1, pageSize: 20, status: 'REJECTED' });
 
         expect(http.get).toHaveBeenCalledTimes(1);
         expect(paramsOf(0).get('visitStatus')).toBe('REJECTED');

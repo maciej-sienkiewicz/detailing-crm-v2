@@ -1,7 +1,7 @@
 import { apiClient } from '@/core/apiClient';
+import type { Page } from '@/core/page';
 import type {
     Customer,
-    CustomerListResponse,
     CustomerFilters,
     CreateCustomerPayload,
     
@@ -10,10 +10,10 @@ import type {
 const CUSTOMERS_BASE_PATH = '/v1/customers';
 
 export const customerApi = {
-    getCustomers: async (filters: CustomerFilters, signal?: AbortSignal): Promise<CustomerListResponse> => {
+    getCustomers: async (filters: CustomerFilters, signal?: AbortSignal): Promise<Page<Customer>> => {
         const params = new URLSearchParams({
             page: filters.page.toString(),
-            limit: filters.limit.toString(),
+            pageSize: filters.pageSize.toString(),
         });
 
         if (filters.search) params.append('search', filters.search);
@@ -39,7 +39,7 @@ export const customerApi = {
         if (filters.minVisits != null) params.append('minVisits', filters.minVisits.toString());
         if (filters.maxVisits != null) params.append('maxVisits', filters.maxVisits.toString());
 
-        const response = await apiClient.get<CustomerListResponse>(
+        const response = await apiClient.get<Page<Customer>>(
             `${CUSTOMERS_BASE_PATH}?${params.toString()}`,
             { signal },
         );
@@ -77,7 +77,7 @@ export const customerApi = {
     },
 
     exportCustomers: async (
-        filters: Omit<CustomerFilters, 'page' | 'limit'>
+        filters: Omit<CustomerFilters, 'page' | 'pageSize'>
     ): Promise<void> => {
         const params = new URLSearchParams();
 

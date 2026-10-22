@@ -203,7 +203,7 @@ type SectionId = 'visits' | 'revenue' | 'services' | 'vehicles' | 'customer';
 
 export function useServiceCatalog() {
   // Te same parametry co filtry list klientów i pojazdów - jeden wpis w cache zamiast dwóch.
-  const { services } = useServices({ search: '', page: 1, limit: 200, showInactive: false });
+  const { services } = useServices({ search: '', page: 1, pageSize: 200, showInactive: false });
   const names = new Map(services.map((s) => [s.id, s.name]));
   return { services, serviceNames: names };
 }

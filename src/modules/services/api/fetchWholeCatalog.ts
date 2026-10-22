@@ -1,4 +1,5 @@
 import { apiClient } from '@/core';
+import type { Page } from '@/core/page';
 
 /** Największa strona, jaką oddaje GET /v1/services. */
 const PAGE_SIZE = 500;
@@ -16,12 +17,12 @@ const PAGE_SIZE = 500;
 export const fetchWholeCatalog = async <T>(): Promise<T[]> => {
     const services: T[] = [];
     for (let page = 1; ; page++) {
-        const { data } = await apiClient.get<{ services?: T[]; pagination?: { totalPages?: number } }>(
+        const { data } = await apiClient.get<Page<T>>(
             '/v1/services',
-            { params: { page, limit: PAGE_SIZE, sortBy: 'name', sortDirection: 'asc' } },
+            { params: { page, pageSize: PAGE_SIZE, sortBy: 'name', sortDirection: 'asc' } },
         );
-        const batch = data.services ?? [];
+        const batch = data.items ?? [];
         services.push(...batch);
-        if (batch.length === 0 || page >= (data.pagination?.totalPages ?? 1)) return services;
+        if (batch.length === 0 || page >= (data.page?.totalPages ?? 1)) return services;
     }
 };

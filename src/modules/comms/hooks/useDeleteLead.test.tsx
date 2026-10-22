@@ -23,7 +23,8 @@ import { renderHook, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { useDeleteLead, LEADS_KEY } from './useLeads';
 import { leadsApi } from '../api/leadsApi';
-import type { LeadPage } from '../types';
+import type { Page } from '@/core/page';
+import type { Lead } from '../types';
 
 const LEAD_ID = 'e2b2320a-ecf8-4d43-a76f-dfe96772ce31';
 
@@ -40,19 +41,17 @@ vi.mock('../api/leadsApi', () => ({
 
 const deleteLeadApi = vi.mocked(leadsApi.deleteLead);
 
-const listKey = [...LEADS_KEY, 'list', { status: undefined, page: 0 }];
+const listKey = [...LEADS_KEY, 'list', { status: undefined, page: 1 }];
 /** Klucz plakietki — ten sam prefiks `list`, ale dane to liczba, nie strona. */
 const attentionCountKey = [...LEADS_KEY, 'list', 'attention-count'];
 
-const page = (): LeadPage => ({
+const page = (): Page<Lead> => ({
     items: [
         { id: LEAD_ID, contactIdentifier: 'klient@example.com' },
         { id: 'inny-lead', contactIdentifier: 'ktos@example.com' },
     ],
-    total: 2,
-    page: 0,
-    pageSize: 20,
-} as unknown as LeadPage);
+    page: { number: 1, size: 20, totalItems: 2, totalPages: 1 },
+} as unknown as Page<Lead>);
 
 const setup = (attentionCount: number) => {
     const queryClient = new QueryClient({
@@ -84,9 +83,9 @@ describe('useDeleteLead', () => {
         await waitFor(() => expect(showSuccess).toHaveBeenCalled());
         expect(showError).not.toHaveBeenCalled();
 
-        const updated = queryClient.getQueryData<LeadPage>(listKey)!;
+        const updated = queryClient.getQueryData<Page<Lead>>(listKey)!;
         expect(updated.items.map((item) => item.id)).toEqual(['inny-lead']);
-        expect(updated.total).toBe(1);
+        expect(updated.page.totalItems).toBe(1);
     });
 
     it('nie rusza licznika plakietki, mimo że stoi pod tym samym prefiksem', async () => {
@@ -106,7 +105,7 @@ describe('useDeleteLead', () => {
         result.current.mutate({ leadId: LEAD_ID });
 
         await waitFor(() => expect(showSuccess).toHaveBeenCalled());
-        expect(queryClient.getQueryData<LeadPage>(listKey)!.items).toHaveLength(1);
+        expect(queryClient.getQueryData<Page<Lead>>(listKey)!.items).toHaveLength(1);
     });
 
     it('prawdziwa odmowa serwera nadal daje komunikat błędu', async () => {
@@ -126,6 +125,6 @@ describe('useDeleteLead', () => {
         );
         expect(showSuccess).not.toHaveBeenCalled();
         // Wiersz zostaje: serwer go nie usunął.
-        expect(queryClient.getQueryData<LeadPage>(listKey)!.items).toHaveLength(2);
+        expect(queryClient.getQueryData<Page<Lead>>(listKey)!.items).toHaveLength(2);
     });
 });

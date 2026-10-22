@@ -89,7 +89,7 @@ export function AddLeaveModal({ onClose, employeeId: presetEmployeeId }: Props) 
 
     // ── Krok 1: pracownik - bez siebie (własny wniosek składa się w zakładce Urlop) ──
     const { employees: all, isLoading: employeesLoading, isError: employeesFailed, refetch: refetchEmployees } =
-        useEmployees({ search: '', page: 1, limit: 100 });
+        useEmployees({ search: '', page: 1, pageSize: 100 });
     const employees = useMemo(() => all.filter(e => e.id !== selfEmployeeId), [all, selfEmployeeId]);
     const employee: EmployeeListItem | null = employees.find(e => e.id === employeeId) ?? null;
     const name = employee?.fullName ?? 'Pracownik';

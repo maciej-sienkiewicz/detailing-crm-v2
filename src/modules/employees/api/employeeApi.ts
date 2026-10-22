@@ -1,7 +1,8 @@
 import { apiClient } from '@/core/apiClient';
+import type { Page } from '@/core/page';
 import type {
     EmployeeFilters,
-    EmployeeListResponse,
+    EmployeeListItem,
     EmployeeDetail,
     CreateEmployeePayload,
     UpdateEmployeePayload,
@@ -36,13 +37,13 @@ const BASE = '/v1/employees';
 export const employeeApi = {
     // ─── Employees ───────────────────────────────────────────────────────────
 
-    listEmployees: async (filters: EmployeeFilters): Promise<EmployeeListResponse> => {
+    listEmployees: async (filters: EmployeeFilters): Promise<Page<EmployeeListItem>> => {
         const params = new URLSearchParams({
             page: filters.page.toString(),
-            limit: filters.limit.toString(),
+            pageSize: filters.pageSize.toString(),
         });
         if (filters.search.trim()) params.append('search', filters.search.trim());
-        const res = await apiClient.get<EmployeeListResponse>(`${BASE}?${params}`);
+        const res = await apiClient.get<Page<EmployeeListItem>>(`${BASE}?${params}`);
         return res.data;
     },
 

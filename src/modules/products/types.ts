@@ -108,21 +108,9 @@ export interface ProductListFilters {
     onlyFavourite?: boolean;
     includeHidden?: boolean;
     page: number;
-    limit: number;
+    pageSize: number;
     sortBy?: ProductSortKey;
     sortDirection?: 'asc' | 'desc';
-}
-
-export interface ProductPagination {
-    currentPage: number;
-    totalPages: number;
-    totalItems: number;
-    itemsPerPage: number;
-}
-
-export interface ProductListResponse {
-    products: ProductListItem[];
-    pagination: ProductPagination;
 }
 
 export interface PriceInput {
@@ -225,14 +213,6 @@ export interface ProductVisitUsage {
     note: string | null;
     addedByName: string;
     addedAt: string;
-}
-
-export interface ProductVisitUsagePage {
-    items: ProductVisitUsage[];
-    currentPage: number;
-    totalPages: number;
-    totalItems: number;
-    itemsPerPage: number;
 }
 
 export interface ScanSession {

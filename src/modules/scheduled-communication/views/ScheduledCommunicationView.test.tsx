@@ -106,12 +106,12 @@ beforeEach(() => {
         dispatchEvent: vi.fn(),
     }));
     vi.mocked(scheduledSmsApi.list).mockResolvedValue(overview([reminder, campaign, cancelled]));
-    vi.mocked(scheduledSmsApi.sent).mockResolvedValue({ items: [sentReminder, sentFailed, sentCampaign], nextBefore: olderCursor });
+    vi.mocked(scheduledSmsApi.sent).mockResolvedValue({ items: [sentReminder, sentFailed, sentCampaign], nextCursor: olderCursor });
     vi.mocked(scheduledSmsApi.update).mockResolvedValue();
     vi.mocked(scheduledSmsApi.cancel).mockResolvedValue();
     vi.mocked(scheduledSmsApi.resume).mockResolvedValue();
     vi.mocked(scheduledEmailApi.list).mockResolvedValue({ items: [welcomeMail, mailCampaign], sendWindowOpensAt: '12:00', sendWindowClosesAt: '18:00' });
-    vi.mocked(scheduledEmailApi.sent).mockResolvedValue({ items: [sentMail], nextBefore: null });
+    vi.mocked(scheduledEmailApi.sent).mockResolvedValue({ items: [sentMail], nextCursor: null });
     vi.mocked(scheduledEmailApi.update).mockResolvedValue();
     vi.mocked(scheduledEmailApi.cancel).mockResolvedValue();
     vi.mocked(scheduledEmailApi.resume).mockResolvedValue();

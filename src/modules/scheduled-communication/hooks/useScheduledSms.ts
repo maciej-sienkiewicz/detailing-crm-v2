@@ -30,7 +30,7 @@ export function useSentSms(enabled: boolean) {
         queryKey: [...KEY, 'sent'],
         queryFn: ({ pageParam }) => scheduledSmsApi.sent(pageParam),
         initialPageParam: null as string | null,
-        getNextPageParam: last => last.nextBefore,
+        getNextPageParam: last => last.nextCursor,
         enabled,
     });
 }

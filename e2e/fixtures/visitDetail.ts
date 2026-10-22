@@ -152,7 +152,7 @@ export async function stubVisitDetailApi(
             if (path.endsWith('/attendance-sheets')) return json(route, []);
             if (path.endsWith('/technical-note/history')) return json(route, { entries: [] });
             if (path.startsWith('/v1/audit/feed')) {
-                return json(route, { items: [], total: 0, page: 0, pageSize: 20 });
+                return json(route, { items: [], nextCursor: null, hasMore: false });
             }
             if (path === '/v1/audit/filters') return json(route, { actors: [], types: [] });
 

@@ -2,7 +2,7 @@
 
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import type { OperationListResponse } from '../types';
+import type { PageMeta } from '@/core/page';
 
 const Container = styled.div`
     display: flex;
@@ -97,12 +97,12 @@ const Ellipsis = styled.span`
 `;
 
 interface OperationPaginationProps {
-    pagination: OperationListResponse['pagination'];
+    pagination: PageMeta;
     onPageChange: (page: number) => void;
 }
 
 export const OperationPagination = ({ pagination, onPageChange }: OperationPaginationProps) => {
-    const { currentPage, totalPages, totalItems, itemsPerPage } = pagination;
+    const { number: currentPage, totalPages, totalItems, size: itemsPerPage } = pagination;
 
     const startItem = (currentPage - 1) * itemsPerPage + 1;
     const endItem = Math.min(currentPage * itemsPerPage, totalItems);

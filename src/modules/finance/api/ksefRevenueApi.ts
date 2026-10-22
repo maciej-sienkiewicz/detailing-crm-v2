@@ -1,7 +1,7 @@
 import { apiClient } from '@/core';
+import type { Page } from '@/core/page';
 import type {
   RevenueInvoice,
-  RevenueInvoiceListResponse,
   RevenueInvoiceListFilters,
   IssueInvoiceRequest,
   IssueCorrectionRequest,
@@ -47,17 +47,17 @@ export const ksefRevenueApi = {
 
   // ── Listowanie / szczegóły ─────────────────────────────────────────────────
 
-  getInvoices: async (filters: RevenueInvoiceListFilters): Promise<RevenueInvoiceListResponse> => {
+  getInvoices: async (filters: RevenueInvoiceListFilters): Promise<Page<RevenueInvoice>> => {
     const params = new URLSearchParams({
       page: String(filters.page),
-      size: String(filters.pageSize),
+      pageSize: String(filters.pageSize),
     });
     if (filters.source)          params.append('source',          filters.source);
     if (filters.ksefStatus)      params.append('ksefStatus',      filters.ksefStatus);
     if (filters.duplicateStatus) params.append('duplicateStatus', filters.duplicateStatus);
     if (filters.dateFrom)        params.append('from',        filters.dateFrom);
     if (filters.dateTo)          params.append('to',          filters.dateTo);
-    const response = await apiClient.get(`${BASE}/invoices?${params}`);
+    const response = await apiClient.get<Page<RevenueInvoice>>(`${BASE}/invoices?${params}`);
     return response.data;
   },
 

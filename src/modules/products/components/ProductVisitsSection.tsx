@@ -66,7 +66,7 @@ export function ProductVisitsSection({ productId }: { productId: string }) {
     const { items, totalItems, totalPages, isLoading } = useProductVisits(productId, {
         search: debounced,
         page,
-        limit: PAGE_SIZE,
+        pageSize: PAGE_SIZE,
     });
 
     const onSearch = (value: string) => {

@@ -63,9 +63,9 @@ export const commsApi = {
         if (filters.onlyLeads) params.set('onlyLeads', 'true');
         if (filters.folder) params.set('folder', filters.folder);
         if (filters.query) params.set('search', filters.query);
-        params.set('page', String(filters.page ?? 0));
+        params.set('page', String(filters.page ?? 1));
         params.set('pageSize', String(filters.pageSize ?? 30));
-        const { data } = await apiClient.get(`/v1/comms/threads?${params}`, { signal });
+        const { data } = await apiClient.get<CommThreadPage>(`/v1/comms/threads?${params}`, { signal });
         return data;
     },
 

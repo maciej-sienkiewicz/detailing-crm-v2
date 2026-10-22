@@ -79,9 +79,9 @@ const responses = (options: Required<AppApiOptions>): Array<[RegExp, unknown]> =
     [/^\/v1\/me\/badges$/, {
         leadsAttention: 0, unreadMail: 0, pendingLeaveRequests: 0, pendingWorkTimeCards: 0, pendingAttendanceSheets: 0,
     }],
-    [/^\/v1\/comms\/threads$/, { items: [], total: 0, page: 0, pageSize: 30, totalUnread: 0 }],
+    [/^\/v1\/comms\/threads$/, { items: [], page: { number: 1, size: 30, totalItems: 0, totalPages: 1 }, totalUnread: 0 }],
     [/^\/v1\/comms\/accounts$/, []],
-    [/^\/v1\/my\/tasks\/summary$/, { total: 0, unread: 0 }],
+    [/^\/v1\/me\/tasks\/summary$/, { total: 0, unread: 0 }],
 
     // Pulpit.
     [/^\/v1\/dashboard\/stats$/, {
@@ -97,7 +97,7 @@ const responses = (options: Required<AppApiOptions>): Array<[RegExp, unknown]> =
     }],
     [/^\/v1\/dashboard\/appointment-summary$/, { currentMonth: { count: 0 }, previousMonth: { count: 0 }, deltaPercentage: 0, buckets: [] }],
     [/^\/v1\/dashboard\/hints$/, { hints: [] }],
-    [/^\/v1\/tasks\/archive$/, { items: [], pagination: { total: 0, page: 1, pageSize: 20, totalPages: 1 } }],
+    [/^\/v1\/tasks\/archive$/, { items: [], page: { number: 1, size: 20, totalItems: 0, totalPages: 1 } }],
     [/^\/v1\/tasks$/, []],
 
     // Kalendarz.
@@ -105,9 +105,9 @@ const responses = (options: Required<AppApiOptions>): Array<[RegExp, unknown]> =
     [/^\/v1\/calendar\/custom-events$/, []],
     [/^\/v1\/calendar\/door-to-door$/, []],
     [/^\/v1\/employees\/leaves\/calendar$/, []],
-    [/^\/v1\/appointment-colors$/, { colors: [], pagination: { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: 100 } }],
-    [/^\/v1\/customers$/, { data: [], pagination: { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: 50 } }],
-    [/^\/v1\/services$/, { services: [], pagination: { currentPage: 1, totalPages: 1, totalItems: 0, itemsPerPage: 500 } }],
+    [/^\/v1\/appointment-colors$/, { items: [], page: { number: 1, size: 100, totalItems: 0, totalPages: 1 } }],
+    [/^\/v1\/customers$/, { items: [], page: { number: 1, size: 50, totalItems: 0, totalPages: 1 } }],
+    [/^\/v1\/services$/, { items: [], page: { number: 1, size: 500, totalItems: 0, totalPages: 1 } }],
     [/^\/v1\/settings\/visit-card$/, { enabled: false, sendByDefault: false }],
     [/^\/v1\/sms-campaigns\/automation$/, {}],
     [/^\/v1\/email-campaigns\/automation$/, {}],

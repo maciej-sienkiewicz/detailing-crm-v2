@@ -30,9 +30,9 @@ export function ServicesAndCareSection({ subView, onSubViewChange }: Props) {
     const [kind, setKind] = useState<CatalogKind>('services');
 
     // Liczniki przy przełączniku: same aktywne, bez wyszukiwania. Zapytania po jednej
-    // pozycji - liczba przychodzi w `pagination`, a lista pobiera się osobno.
-    const servicesCount = useServices({ search: '', page: 1, limit: 1, showInactive: false, isPackage: false });
-    const packagesCount = useServices({ search: '', page: 1, limit: 1, showInactive: false, isPackage: true });
+    // pozycji - liczba przychodzi w `page.totalItems`, a lista pobiera się osobno.
+    const servicesCount = useServices({ search: '', page: 1, pageSize: 1, showInactive: false, isPackage: false });
+    const packagesCount = useServices({ search: '', page: 1, pageSize: 1, showInactive: false, isPackage: true });
     const { instructions } = useCareInstructions();
 
     const value: SwitchValue = subView === 'care' ? 'care' : kind;
@@ -52,8 +52,8 @@ export function ServicesAndCareSection({ subView, onSubViewChange }: Props) {
             value={value}
             onChange={change}
             options={[
-                { value: 'services', label: 'Usługi', count: servicesCount.pagination?.totalItems ?? null },
-                { value: 'packages', label: 'Pakiety', count: packagesCount.pagination?.totalItems ?? null },
+                { value: 'services', label: 'Usługi', count: servicesCount.pageMeta?.totalItems ?? null },
+                { value: 'packages', label: 'Pakiety', count: packagesCount.pageMeta?.totalItems ?? null },
                 {
                     value: 'care',
                     label: <><Wide>Instrukcje pielęgnacji</Wide><Narrow>Instrukcje</Narrow></>,

@@ -47,7 +47,8 @@ export const useAddOns = (options?: { enabled?: boolean }) => {
     });
 };
 
-export const usePaymentHistory = (page = 0) => {
+/** [page] od 1. */
+export const usePaymentHistory = (page = 1) => {
     return useQuery({
         queryKey: [...PAYMENT_HISTORY_KEY, page],
         queryFn: () => newSubscriptionApi.getPaymentHistory(page),

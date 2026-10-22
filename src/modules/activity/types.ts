@@ -6,6 +6,8 @@
 // names, field labels or colours. Anything that needs translating is translated
 // server-side; here we only decide layout.
 
+import type { CursorPage } from '@/core/page';
+
 /** Stable icon key. The mapping to an actual glyph lives in `ActivityIcon`. */
 export type ActivityIconKey =
     | 'CREATE' | 'EDIT' | 'DELETE' | 'STATUS' | 'PHOTO' | 'DOCUMENT' | 'COMMENT'
@@ -102,10 +104,8 @@ export interface ActivityItem {
     ipAddress: string | null;
 }
 
-export interface ActivityFeedPage {
-    items: ActivityItem[];
-    /** Pass back as `cursor` for the next page; null at the end of the feed. */
-    nextCursor: string | null;
+/** Lista kursorowa (`CursorPage`, jak historia wysłanych wiadomości) z flagą końca obok. */
+export interface ActivityFeedPage extends CursorPage<ActivityItem> {
     hasMore: boolean;
 }
 

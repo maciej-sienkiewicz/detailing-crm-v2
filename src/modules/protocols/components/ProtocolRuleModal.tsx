@@ -161,7 +161,7 @@ export const ProtocolRuleModal = ({
     const { services, isLoading: isLoadingServices } = useServices({
         search: '',
         page: 1,
-        limit: 100,
+        pageSize: 100,
         showInactive: false,
     });
 

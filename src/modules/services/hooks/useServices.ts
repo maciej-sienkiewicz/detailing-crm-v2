@@ -28,8 +28,8 @@ export const useServices = (filters: ServiceListFilters & { enabled?: boolean; k
     });
 
     return {
-        services: data?.services || [],
-        pagination: data?.pagination,
+        services: data?.items || [],
+        pageMeta: data?.page,
         isLoading,
         isError,
         refetch,

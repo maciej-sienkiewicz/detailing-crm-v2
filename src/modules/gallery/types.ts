@@ -1,4 +1,5 @@
 // src/modules/gallery/types.ts
+import type { Page } from '@/core/page';
 
 export type GalleryPhotoSource = 'VEHICLE' | 'VISIT' | 'BATCH_ORDER';
 
@@ -39,15 +40,7 @@ export interface GalleryFilters {
     pageSize: number;
 }
 
-export interface GalleryPagination {
-    total: number;
-    page: number;
-    pageSize: number;
-    totalPages: number;
-}
-
-export interface GalleryResponse {
-    photos: GalleryPhoto[];
-    pagination: GalleryPagination;
+/** Strona galerii (`Page<GalleryPhoto>`, jak każda lista) z tagami do filtra obok. */
+export interface GalleryPage extends Page<GalleryPhoto> {
     availableTags: string[];
 }

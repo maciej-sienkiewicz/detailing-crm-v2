@@ -58,7 +58,7 @@ describe('OperationListView', () => {
     it('pokazuje w tabeli wiersze z zapytania z filtrami zaawansowanymi', async () => {
         useOperations.mockImplementation((filters: OperationFilters) => ({
             operations: filters.minAmount ? FILTERED : ALL,
-            pagination: { currentPage: 1, totalPages: 1, totalItems: 1, itemsPerPage: 20 },
+            pageMeta: { number: 1, size: 20, totalItems: 1, totalPages: 1 },
             isLoading: false,
         }));
 
@@ -73,7 +73,7 @@ describe('OperationListView', () => {
     });
 
     it('wywołuje useOperations raz na render, z tymi samymi filtrami co licznik', () => {
-        useOperations.mockReturnValue({ operations: ALL, pagination: undefined, isLoading: true });
+        useOperations.mockReturnValue({ operations: ALL, pageMeta: undefined, isLoading: true });
 
         renderView();
 

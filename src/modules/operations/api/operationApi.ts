@@ -1,9 +1,9 @@
 // src/modules/operations/api/operationApi.ts
 
 import { apiClient } from '@/core';
-import type { OperationListResponse, OperationFilters, Operation, AppointmentStatus, VisitStatus } from '../types';
+import { mapPage, type Page } from '@/core/page';
+import type { OperationFilters, Operation, AppointmentStatus, VisitStatus } from '../types';
 import type { RecurrenceEditScope } from '@/modules/appointments/types';
-
 
 // Typ dla odpowiedzi z backendu - Rezerwacje
 interface AppointmentResponse {
@@ -53,16 +53,6 @@ interface AppointmentResponse {
     } | null;
 }
 
-interface AppointmentsListResponse {
-    appointments: AppointmentResponse[];
-    pagination?: {
-        currentPage: number;
-        totalPages: number;
-        totalItems: number;
-        itemsPerPage: number;
-    };
-}
-
 // Typ dla odpowiedzi z backendu - Wizyty
 interface VisitCustomerInfo {
     firstName: string;
@@ -105,19 +95,11 @@ interface VisitResponse {
 }
 
 /** GET /v1/operations: wizyty i rezerwacje w kształcie ich własnych list. */
-interface CombinedOperationsResponse {
-    items: Array<{ type: 'VISIT' | 'RESERVATION'; visit?: VisitResponse; appointment?: AppointmentResponse }>;
-    pagination: OperationListResponse['pagination'];
-}
-
-interface VisitsListResponse {
-    visits: VisitResponse[];
-    pagination: {
-        total: number;
-        page: number;
-        pageSize: number;
-        totalPages: number;
-    };
+/** Pozycja wspólnej listy GET /v1/operations: wizyta albo rezerwacja. */
+interface OperationListItem {
+    type: 'VISIT' | 'RESERVATION';
+    visit?: VisitResponse;
+    appointment?: AppointmentResponse;
 }
 
 // Funkcja mapująca dane z backendu na format frontend - Rezerwacje
@@ -200,42 +182,28 @@ const mapVisitToOperation = (visit: VisitResponse): Operation => {
 };
 
 export const operationApi = {
-    getOperations: async (filters: OperationFilters, signal?: AbortSignal): Promise<OperationListResponse> => {
+    getOperations: async (filters: OperationFilters, signal?: AbortSignal): Promise<Page<Operation>> => {
         // Usunięte wizyty - ta sama lista wizyt z filtrem `deleted=only`
         if (filters.deleted) {
             const params = new URLSearchParams({
                 page: filters.page.toString(),
-                size: filters.limit.toString(),
+                pageSize: filters.pageSize.toString(),
                 deleted: 'only',
             });
             if (filters.search) params.append('search', filters.search);
             if (filters.scheduledDate) params.append('scheduledDate', filters.scheduledDate);
 
-            const response = await apiClient.get<VisitsListResponse>(
+            const response = await apiClient.get<Page<VisitResponse>>(
                 `/v1/visits?${params.toString()}`
             );
-
-            const p = response.data.pagination as any;
-            const mappedData = response.data.visits.map(v =>
-                mapVisitToOperation({ ...v, deletedAt: (v as any).deletedAt ?? null })
-            );
-
-            return {
-                data: mappedData,
-                pagination: {
-                    currentPage: p.page ?? p.currentPage ?? 1,
-                    totalPages: p.totalPages ?? 1,
-                    totalItems: p.total ?? p.totalItems ?? mappedData.length,
-                    itemsPerPage: p.pageSize ?? p.itemsPerPage ?? filters.limit,
-                },
-            };
+            return mapPage(response.data, v => mapVisitToOperation({ ...v, deletedAt: v.deletedAt ?? null }));
         }
 
         // Jeśli filtrujemy tylko wizyty - pobierz z /api/visits
         if (filters.type === 'VISIT') {
             const params = new URLSearchParams({
                 page: filters.page.toString(),
-                size: filters.limit.toString(),
+                pageSize: filters.pageSize.toString(),
             });
 
             if (filters.status) params.append('status', filters.status);
@@ -251,36 +219,25 @@ export const operationApi = {
             if (filters.vehicleModel) params.append('vehicleModel', filters.vehicleModel);
             if (filters.serviceIds?.length) filters.serviceIds.forEach(id => params.append('serviceIds', id));
 
-            const response = await apiClient.get<VisitsListResponse>(
+            const response = await apiClient.get<Page<VisitResponse>>(
                 `/v1/visits?${params.toString()}`
             );
-
-            // Mapuj dane z backendu na format frontend
-            const mappedData = response.data.visits.map(mapVisitToOperation);
 
             // Wyszukiwanie robi serwer (parametr `search`). Dawniej filtrowano tu lokalnie
             // tylko bieżącą stronę - wizyta z drugiej strony była „nie do znalezienia",
             // a „Jan Kowalski" nie pasował, bo imię i nazwisko porównywano osobno.
-            return {
-                data: mappedData,
-                pagination: {
-                    currentPage: response.data.pagination.page,
-                    totalPages: response.data.pagination.totalPages,
-                    totalItems: response.data.pagination.total,
-                    itemsPerPage: response.data.pagination.pageSize,
-                },
-            };
+            return mapPage(response.data, mapVisitToOperation);
         }
 
         // Jeśli filtrujemy tylko rezerwacje - pobierz z /api/v1/appointments
         // Zakładka "Rezerwacje" pokazuje wyłącznie zaplanowane rezerwacje (CREATED)
         if (filters.type === 'RESERVATION') {
             // Fetch only CREATED appointments for the Reservations tab
-            const createdResponse = await apiClient.get<AppointmentsListResponse>(`/v1/appointments`, {
+            const createdResponse = await apiClient.get<Page<AppointmentResponse>>(`/v1/appointments`, {
                 params: {
                     ...(filters.search?.trim() && { search: filters.search.trim() }),
                     page: filters.page.toString(),
-                    limit: filters.limit.toString(),
+                    pageSize: filters.pageSize.toString(),
                     status: 'CREATED',
                     ...(filters.scheduledDate && { scheduledDate: filters.scheduledDate }),
                     ...(filters.sortBy && { sortBy: filters.sortBy }),
@@ -288,19 +245,8 @@ export const operationApi = {
                 }
             });
 
-            const mappedData = (createdResponse.data.appointments || []).map(mapAppointmentToOperation);
             // Paginacja z serwera: na sztywno „1 strona" ukrywała rezerwacje spoza pierwszej strony.
-            const p = createdResponse.data.pagination;
-
-            return {
-                data: mappedData,
-                pagination: {
-                    currentPage: p?.currentPage ?? filters.page,
-                    totalPages: p?.totalPages ?? 1,
-                    totalItems: p?.totalItems ?? mappedData.length,
-                    itemsPerPage: p?.itemsPerPage ?? filters.limit,
-                },
-            };
+            return mapPage(createdResponse.data, mapAppointmentToOperation);
         }
 
         // „Wszystkie" i „Odrzucone": wizyty i rezerwacje razem, scalone i stronicowane przez
@@ -312,7 +258,7 @@ export const operationApi = {
         const rejected = filters.status === 'REJECTED';
         const params = new URLSearchParams({
             page: filters.page.toString(),
-            limit: filters.limit.toString(),
+            pageSize: filters.pageSize.toString(),
             appointmentStatuses: (rejected ? ['ABANDONED', 'CANCELLED'] : ['CREATED', 'ABANDONED', 'CANCELLED']).join(','),
         });
         if (filters.status) params.append('visitStatus', filters.status);
@@ -328,12 +274,9 @@ export const operationApi = {
         if (filters.vehicleModel) params.append('vehicleModel', filters.vehicleModel);
         if (filters.serviceIds?.length) filters.serviceIds.forEach(id => params.append('serviceIds', id));
 
-        const response = await apiClient.get<CombinedOperationsResponse>(`/v1/operations?${params}`, { signal });
-        return {
-            data: response.data.items.map(item =>
-                item.visit ? mapVisitToOperation(item.visit) : mapAppointmentToOperation(item.appointment!)),
-            pagination: response.data.pagination,
-        };
+        const response = await apiClient.get<Page<OperationListItem>>(`/v1/operations?${params}`, { signal });
+        return mapPage(response.data, item =>
+            item.visit ? mapVisitToOperation(item.visit) : mapAppointmentToOperation(item.appointment!));
     },
 
     deleteVisit: async (visitId: string): Promise<void> => {

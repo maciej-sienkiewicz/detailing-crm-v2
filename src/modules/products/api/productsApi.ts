@@ -1,9 +1,10 @@
 // src/modules/products/api/productsApi.ts
 import { apiClient } from '@/core';
+import type { Page } from '@/core/page';
 import type {
     Product,
     ProductListFilters,
-    ProductListResponse,
+    ProductListItem,
     CreateProductRequest,
     UpdateProductRequest,
     UpdateProductStudioRequest,
@@ -12,25 +13,25 @@ import type {
     ProductNote,
     ProductRating,
     VisitProductLink,
-    ProductVisitUsagePage,
+    ProductVisitUsage,
     ScanSession,
 } from '../types';
 
 const BASE = '/v1/products';
 
 export const productsApi = {
-    list: async (filters: ProductListFilters): Promise<ProductListResponse> => {
+    list: async (filters: ProductListFilters): Promise<Page<ProductListItem>> => {
         const params = new URLSearchParams({
             search: filters.search,
             page: String(filters.page),
-            limit: String(filters.limit),
+            pageSize: String(filters.pageSize),
             onlyFavourite: String(filters.onlyFavourite ?? false),
             includeHidden: String(filters.includeHidden ?? false),
             rating: filters.rating ?? '',
         });
         if (filters.sortBy) params.append('sortBy', filters.sortBy);
         if (filters.sortDirection) params.append('sortDirection', filters.sortDirection);
-        const { data } = await apiClient.get(`${BASE}?${params}`);
+        const { data } = await apiClient.get<Page<ProductListItem>>(`${BASE}?${params}`);
         return data;
     },
 
@@ -111,14 +112,14 @@ export const productsApi = {
     // ── Gdzie używaliśmy ──
     productVisits: async (
         id: string,
-        params: { search: string; page: number; limit: number },
-    ): Promise<ProductVisitUsagePage> => {
+        params: { search: string; page: number; pageSize: number },
+    ): Promise<Page<ProductVisitUsage>> => {
         const query = new URLSearchParams({
             search: params.search,
             page: String(params.page),
-            limit: String(params.limit),
+            pageSize: String(params.pageSize),
         });
-        const { data } = await apiClient.get(`${BASE}/${id}/visits?${query}`);
+        const { data } = await apiClient.get<Page<ProductVisitUsage>>(`${BASE}/${id}/visits?${query}`);
         return data;
     },
 

@@ -84,7 +84,7 @@ export function PackageEditorModal({ target, onClose, onSaved }: Props) {
 
     const searchTerm = useDebounce(query.trim(), SEARCH_DEBOUNCE_MS);
     const { services: pickerServices } = useServices({
-        search: searchTerm, page: 1, limit: 50, showInactive: false, isPackage: false, keepPrevious: true,
+        search: searchTerm, page: 1, pageSize: 50, showInactive: false, isPackage: false, keepPrevious: true,
     });
     const available = pickerServices.filter(s => !s.isPackage && !members.some(m => m.id === s.id));
 

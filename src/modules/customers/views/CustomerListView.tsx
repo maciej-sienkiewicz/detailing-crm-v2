@@ -242,7 +242,7 @@ export const CustomerListView = () => {
         () => ({
             search: debouncedSearch,
             page,
-            limit,
+            pageSize: limit,
             sortBy,
             sortDirection,
             ...appliedFilters,
@@ -250,7 +250,7 @@ export const CustomerListView = () => {
         [debouncedSearch, page, limit, sortBy, sortDirection, appliedFilters]
     );
 
-    const { customers, pagination, isLoading, isError, refetch } = useCustomers(filters);
+    const { customers, pageMeta, isLoading, isError, refetch } = useCustomers(filters);
 
     const handleOpenModal = useCallback(() => setIsModalOpen(true), []);
     const handleCloseModal = useCallback(() => setIsModalOpen(false), []);
@@ -318,8 +318,8 @@ export const CustomerListView = () => {
                     subtitle={
                         <>
                             {t.customers.subtitle}
-                            {pagination && (
-                                <PageHeaderCount>{pagination.totalItems} {pluralPl(pagination.totalItems, 'klient', 'klientów', 'klientów')}</PageHeaderCount>
+                            {pageMeta && (
+                                <PageHeaderCount>{pageMeta.totalItems} {pluralPl(pageMeta.totalItems, 'klient', 'klientów', 'klientów')}</PageHeaderCount>
                             )}
                         </>
                     }
@@ -337,8 +337,8 @@ export const CustomerListView = () => {
                 <MobilePageHeader
                     icon={<Users />}
                     title={t.customers.title}
-                    subtitle={pagination
-                        ? <><MobilePageHeaderCountValue>{pagination.totalItems}</MobilePageHeaderCountValue> {pluralPl(pagination.totalItems, 'klient', 'klientów', 'klientów')}</>
+                    subtitle={pageMeta
+                        ? <><MobilePageHeaderCountValue>{pageMeta.totalItems}</MobilePageHeaderCountValue> {pluralPl(pageMeta.totalItems, 'klient', 'klientów', 'klientów')}</>
                         : 'Wczytywanie…'}
                     actions={canCreate &&
                         <MobilePageHeaderButton onClick={handleOpenModal}>
@@ -392,9 +392,9 @@ export const CustomerListView = () => {
 
                 {renderContent()}
 
-                {pagination && pagination.totalPages > 1 && (
+                {pageMeta && pageMeta.totalPages > 1 && (
                     <CustomerPagination
-                        pagination={pagination}
+                        pagination={pageMeta}
                         onPageChange={goToPage}
                     />
                 )}
@@ -435,7 +435,7 @@ export const CustomerListView = () => {
                     sortDirection,
                     ...appliedFilters,
                 }}
-                filteredCount={pagination?.totalItems ?? 0}
+                filteredCount={pageMeta?.totalItems ?? 0}
             />
 
             {/* Usunięcie = anonimizacja RODO. Komunikat mówi wprost, co znika,

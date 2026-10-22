@@ -1,5 +1,5 @@
 import styled from 'styled-components';
-import type { PaginationMeta } from '../types';
+import type { PageMeta } from '@/core/page';
 import { t } from '@/common/i18n';
 
 const PaginationContainer = styled.nav`
@@ -57,7 +57,7 @@ const PageButton = styled.button<{ $isActive?: boolean }>`
 `;
 
 interface CustomerPaginationProps {
-    pagination: PaginationMeta;
+    pagination: PageMeta;
     onPageChange: (page: number) => void;
 }
 
@@ -65,7 +65,7 @@ export const CustomerPagination = ({
                                        pagination,
                                        onPageChange,
                                    }: CustomerPaginationProps) => {
-    const { currentPage, totalPages, totalItems, itemsPerPage } = pagination;
+    const { number: currentPage, totalPages, totalItems, size: itemsPerPage } = pagination;
 
     const startItem = (currentPage - 1) * itemsPerPage + 1;
     const endItem = Math.min(currentPage * itemsPerPage, totalItems);

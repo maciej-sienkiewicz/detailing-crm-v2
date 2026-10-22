@@ -453,8 +453,8 @@ export function ContactCardPopover({
         setSearching(true);
         const timer = window.setTimeout(async () => {
             try {
-                const page = await customerApi.getCustomers({ search: term, page: 1, limit: 8 });
-                if (!cancelled) setCandidates(page.data);
+                const page = await customerApi.getCustomers({ search: term, page: 1, pageSize: 8 });
+                if (!cancelled) setCandidates(page.items);
             } catch {
                 if (!cancelled) setCandidates([]);
             } finally {

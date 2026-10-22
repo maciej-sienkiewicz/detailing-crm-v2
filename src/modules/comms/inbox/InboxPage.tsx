@@ -274,7 +274,7 @@ export default function InboxPage() {
         archived: false,
         folder,
         query: tab !== 'sprawy' ? mailQuery || undefined : undefined,
-        page: 0,
+        page: 1,
         pageSize: mailPageSize,
     });
     const { data: formSources } = useFormMailSources();
@@ -452,7 +452,7 @@ export default function InboxPage() {
                         folder={folder}
                         query={query}
                         loaded={Boolean(threadPage)}
-                        hasMore={(threadPage?.total ?? 0) > threads.length}
+                        hasMore={(threadPage?.page.totalItems ?? 0) > threads.length}
                         onMore={() => setMailPageSize((size) => size + MAIL_PAGE)}
                         activeId={threadId}
                         phone={phone}

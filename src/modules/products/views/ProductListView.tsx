@@ -68,12 +68,12 @@ export function ProductListView() {
     const [adding, setAdding] = useState(false);
     const debounced = useDebounce(search, 300);
 
-    const { products, pagination, isLoading } = useProducts({
-        search: debounced, rating, page, limit: 50, sortBy, sortDirection,
+    const { products, pageMeta, isLoading } = useProducts({
+        search: debounced, rating, page, pageSize: 50, sortBy, sortDirection,
     });
 
     const open = (id: string) => navigate(`/products/${id}`);
-    const total = pagination?.totalItems ?? products.length;
+    const total = pageMeta?.totalItems ?? products.length;
 
     return (
         <ViewContainer>

@@ -5,7 +5,8 @@ import type {
     RecurrenceEditScope, CreateRecurringAppointmentResponse, RecurrenceSeriesResponse,
     SeriesEditScope, SeriesEditImpact, AppointmentUpdateResponse,
 } from '../types';
-import type { Customer as CustomerFull, CustomerListResponse } from '@/modules/customers/types';
+import type { Customer as CustomerFull } from '@/modules/customers/types';
+import type { Page } from '@/core/page';
 
 export const appointmentApi = {
     createAppointment: async (data: AppointmentCreateRequest): Promise<{ id: string }> => {
@@ -23,17 +24,17 @@ export const appointmentApi = {
     },
 
     searchCustomers: async (query: string, signal?: AbortSignal): Promise<Customer[]> => {
-        const response = await apiClient.get<CustomerListResponse>('/v1/customers', {
+        const response = await apiClient.get<Page<CustomerFull>>('/v1/customers', {
             params: {
                 search: query,
                 page: 1,
-                limit: 50
+                pageSize: 50
             },
             signal,
         });
 
         // Mapuj pełny Customer z backendu na prosty Customer dla appointments
-        return response.data.data.map((customer: CustomerFull) => ({
+        return response.data.items.map((customer: CustomerFull) => ({
             id: customer.id,
             firstName: customer.firstName,
             lastName: customer.lastName,

@@ -12,8 +12,8 @@ export const useVehicles = (filters: VehicleFilters) => {
     });
 
     return {
-        vehicles: query.data?.data ?? [],
-        pagination: query.data?.pagination ?? null,
+        vehicles: query.data?.items ?? [],
+        pageMeta: query.data?.page ?? null,
         isLoading: query.isLoading,
         isError: query.isError,
         refetch: query.refetch,

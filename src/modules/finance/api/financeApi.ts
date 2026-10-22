@@ -5,7 +5,7 @@ import type {
   UpdateDocumentRequest,
   CashRegister,
   CashHistoryFilters,
-  CashHistoryResponse,
+  CashHistoryPage,
   CashAdjustRequest,
   FinanceSummary,
   FinanceConfig,
@@ -63,12 +63,12 @@ export const financeApi = {
     page: number,
     pageSize: number,
     filters: CashHistoryFilters = {},
-  ): Promise<CashHistoryResponse> => {
-    const params = new URLSearchParams({ page: String(page), size: String(pageSize) });
+  ): Promise<CashHistoryPage> => {
+    const params = new URLSearchParams({ page: String(page), pageSize: String(pageSize) });
     if (filters.dateFrom)  params.append('from',  filters.dateFrom);
     if (filters.dateTo)    params.append('to',    filters.dateTo);
     if (filters.direction) params.append('direction', filters.direction);
-    const response = await apiClient.get(`${BASE}/cash/history?${params}`);
+    const response = await apiClient.get<CashHistoryPage>(`${BASE}/cash/history?${params}`);
     return response.data;
   },
 

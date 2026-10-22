@@ -24,8 +24,8 @@ export const useAppointmentColors = (filters: AppointmentColorFilters) => {
     });
 
     return {
-        colors: data?.colors || [],
-        pagination: data?.pagination,
+        colors: data?.items || [],
+        pageMeta: data?.page,
         isLoading,
         isError,
         refetch,

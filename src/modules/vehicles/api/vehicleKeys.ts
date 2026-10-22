@@ -18,7 +18,7 @@ export const vehicleKeys = {
     gallery: (vehicleId: string) => ['vehicle', vehicleId, 'photos', 'gallery'],
     galleryPage: (vehicleId: string, page: number, pageSize: number) =>
         [...vehicleKeys.gallery(vehicleId), page, pageSize],
-    comments: (vehicleId: string, page: number, limit: number) => ['vehicle', vehicleId, 'comments', page, limit],
+    comments: (vehicleId: string, page: number, pageSize: number) => ['vehicle', vehicleId, 'comments', page, pageSize],
     documents: (vehicleId: string) => ['vehicle', vehicleId, 'documents'] as const,
     notes: (vehicleId: string) => ['vehicle', vehicleId, 'notes'] as const,
     appointments: (vehicleId: string, page: number) => ['vehicle', vehicleId, 'appointments', page],

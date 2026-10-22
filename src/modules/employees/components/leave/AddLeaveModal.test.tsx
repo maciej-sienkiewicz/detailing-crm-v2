@@ -136,7 +136,7 @@ beforeEach(() => {
     vi.setSystemTime(new Date('2026-10-01T10:00:00'));
     vi.mocked(employeeApi.listEmployees).mockResolvedValue({
         items: [person('emp-self', 'Jan Kowalski'), person('emp-piotr', 'Piotr Lis', false), person('emp-anna', 'Anna Nowak')],
-        pagination: { currentPage: 1, totalPages: 1, totalItems: 3, itemsPerPage: 100 },
+        page: { number: 1, size: 100, totalItems: 3, totalPages: 1 },
     });
     vi.mocked(employeeApi.getLeaveCalendar).mockResolvedValue([
         { date: '2026-10-08', count: 1, employees: [{ id: 'emp-anna', fullName: 'Anna Nowak' }] },

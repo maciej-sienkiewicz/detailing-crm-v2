@@ -1,37 +1,38 @@
 // src/modules/vehicles/api/vehicleApi.ts
 
 import { putToPresignedUrl } from '@/common/utils/presignedUpload';
+import type { Page } from '@/core/page';
 import { apiClient } from '@/core/apiClient';
 import type {
-    VehicleListResponse,
     VehicleDetailResponse,
     VehicleFilters,
     CreateVehiclePayload,
     UpdateVehiclePayload,
     AssignOwnerPayload,
-    VehiclePhotoGalleryResponse,
     UploadVehiclePhotoPayload,
     UploadVehiclePhotoResponse,
     Vehicle,
-    VehicleVisitsResponse,
-    VehicleAppointmentsResponse,
+    VehicleListItem,
     VehicleDocument,
     VehicleDocumentUploadResponse,
     UploadVehicleDocumentPayload,
     VehicleNote,
     CreateVehicleNotePayload,
     UpdateVehicleNotePayload,
-    VehicleCommentsResponse,
+    VehiclePhoto,
+    VehicleVisit,
+    VehicleAppointment,
+    VehicleComment,
 } from '../types';
 import type { CalendarEventsResponse } from '@/modules/calendar/types';
 
 const BASE_PATH = '/v1/vehicles';
 
 export const vehicleApi = {
-    getVehicles: async (filters: VehicleFilters, signal?: AbortSignal): Promise<VehicleListResponse> => {
+    getVehicles: async (filters: VehicleFilters, signal?: AbortSignal): Promise<Page<VehicleListItem>> => {
         const params = new URLSearchParams({
             page: filters.page.toString(),
-            limit: filters.limit.toString(),
+            pageSize: filters.pageSize.toString(),
             ...(filters.search && { search: filters.search }),
             ...(filters.sortBy && { sortBy: filters.sortBy }),
             ...(filters.sortDirection && { sortDirection: filters.sortDirection }),
@@ -50,7 +51,7 @@ export const vehicleApi = {
             ...(filters.notServicedSinceDays != null && { notServicedSinceDays: filters.notServicedSinceDays.toString() }),
             ...(filters.includeDeleted && { includeDeleted: 'true' }),
         });
-        const response = await apiClient.get(`${BASE_PATH}?${params}`, { signal });
+        const response = await apiClient.get<Page<VehicleListItem>>(`${BASE_PATH}?${params}`, { signal });
         return response.data;
     },
 
@@ -128,8 +129,8 @@ export const vehicleApi = {
     },
 
     // New photo gallery endpoints
-    getPhotoGallery: async (vehicleId: string, page: number = 1, pageSize: number = 20): Promise<VehiclePhotoGalleryResponse> => {
-        const response = await apiClient.get(`${BASE_PATH}/${vehicleId}/photos/gallery`, {
+    getPhotoGallery: async (vehicleId: string, page: number = 1, pageSize: number = 20): Promise<Page<VehiclePhoto>> => {
+        const response = await apiClient.get<Page<VehiclePhoto>>(`${BASE_PATH}/${vehicleId}/photos/gallery`, {
             params: { page, pageSize },
         });
         return response.data;
@@ -171,31 +172,31 @@ export const vehicleApi = {
         await apiClient.delete(`${BASE_PATH}/${vehicleId}/notes/${noteId}`);
     },
 
-    getVisits: async (vehicleId: string, page = 1, limit = 50): Promise<VehicleVisitsResponse> => {
-        const response = await apiClient.get<VehicleVisitsResponse>(
+    getVisits: async (vehicleId: string, page = 1, pageSize = 50): Promise<Page<VehicleVisit>> => {
+        const response = await apiClient.get<Page<VehicleVisit>>(
             `${BASE_PATH}/${vehicleId}/visits`,
-            { params: { page, limit } }
+            { params: { page, pageSize } }
         );
         return response.data;
     },
 
-    getAppointments: async (vehicleId: string, page = 1, limit = 50): Promise<VehicleAppointmentsResponse> => {
-        const response = await apiClient.get<VehicleAppointmentsResponse>(
+    getAppointments: async (vehicleId: string, page = 1, pageSize = 50): Promise<Page<VehicleAppointment>> => {
+        const response = await apiClient.get<Page<VehicleAppointment>>(
             `${BASE_PATH}/${vehicleId}/appointments`,
-            { params: { page, limit } }
+            { params: { page, pageSize } }
         );
         return response.data;
     },
 
-    getComments: async (vehicleId: string, page = 1, limit = 20): Promise<VehicleCommentsResponse> => {
-        const response = await apiClient.get<VehicleCommentsResponse>(
+    getComments: async (vehicleId: string, page = 1, pageSize = 20): Promise<Page<VehicleComment>> => {
+        const response = await apiClient.get<Page<VehicleComment>>(
             `${BASE_PATH}/${vehicleId}/comments`,
-            { params: { page, limit } }
+            { params: { page, pageSize } }
         );
         return response.data;
     },
 
-    getDeletedVisits: async (vehicleId: string): Promise<{ visits: Array<{ id: string; title?: string | null; description: string; date: string; customerName: string; status: string; totalCost: { grossAmount: number; currency: string } | null; deletedAt?: string | null }> }> => {
+    getDeletedVisits: async (vehicleId: string): Promise<Page<{ id: string; title?: string | null; description: string; date: string; customerName: string; status: string; totalCost: { grossAmount: number; currency: string } | null; deletedAt?: string | null }>> => {
         const response = await apiClient.get(`${BASE_PATH}/${vehicleId}/visits`, {
             params: { deleted: 'only' },
         });

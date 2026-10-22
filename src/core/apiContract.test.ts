@@ -11,7 +11,9 @@ import { describe, expect, it } from 'vitest';
  *  - zmiana stanu to POST na akcji (`/archive`, `/restore`, `/cancel`, `/complete`…),
  *    zmiana statusu to PATCH,
  *  - żadnej ze starych ścieżek z listy [LEGACY_PATHS],
- *  - zakres dat to `from`/`to` (nie `dateFrom`, `startDate`…), fraza to `search`.
+ *  - zakres dat to `from`/`to` (nie `dateFrom`, `startDate`…), fraza to `search`,
+ *  - lista to `Page<T>` z `@/core/page` (P2-18) - żaden typ nie trzyma już dawnych kształtów
+ *    stron (`pagination`, `itemsPerPage`, `nextBefore`, springowe `totalElements`).
  */
 
 const SRC = fileURLToPath(new URL('..', import.meta.url));
@@ -50,13 +52,24 @@ const PARAM_WRITE = /\b(?:append|set)\(\s*['"](\w+)['"]|\bparams\.(\w+)\s*=/g;
 /** Klucze obiektu `params: { … }` przekazanego do apiClient. */
 const PARAMS_OBJECT = /\bparams:\s*\{([^{}]*)\}/g;
 
+/** Pola dawnych kształtów stron w deklaracjach typów i obiektach. */
+const OLD_PAGE_FIELD = /^\s+(itemsPerPage|nextBefore|totalElements)\??:/m;
+/** `pagination` wolno tylko jako właściwość komponentu typu `PageMeta`. */
+const OLD_PAGINATION = /^\s+pagination\??:[ \t]*(?!PageMeta\b)\S/gm;
+
 const scan = () => {
     const violations: string[] = [];
     let calls = 0;
     for (const file of sourceFiles(SRC)) {
         const source = readFileSync(file, 'utf8');
-        if (!source.includes('apiClient') && !source.includes('vinApiAt(')) continue;
         const where = relative(SRC, file);
+        if (!where.startsWith('common/i18n/')) {
+            const field = source.match(OLD_PAGE_FIELD);
+            if (field) violations.push(`${where}: pole ${field[1]} - lista to Page<T>`);
+            if (OLD_PAGINATION.test(source)) violations.push(`${where}: pole pagination - lista to Page<T>`);
+            OLD_PAGINATION.lastIndex = 0;
+        }
+        if (!source.includes('apiClient') && !source.includes('vinApiAt(')) continue;
         const isApiModule = /\/api\//.test(file);
         for (const [, method, , url] of source.matchAll(CALL)) {
             calls += 1;

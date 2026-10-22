@@ -92,11 +92,6 @@ export interface SentSmsItem {
     campaign: SentSmsCampaign | null;
 }
 
-export interface SentSmsPage {
-    items: SentSmsItem[];
-    /** Kursor następnej strony („starsze niż"); null, gdy starszych już nie ma. */
-    nextBefore: string | null;
-}
 
 // ── Zakładka „E-maile" - GET /api/scheduled-email ────────────────────────────
 
@@ -155,10 +150,6 @@ export interface SentEmailItem {
     campaign: SentSmsCampaign | null;
 }
 
-export interface SentEmailPage {
-    items: SentEmailItem[];
-    nextBefore: string | null;
-}
 
 // ── Wspólne dla obu kanałów ──────────────────────────────────────────────────
 

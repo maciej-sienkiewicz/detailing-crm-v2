@@ -26,7 +26,7 @@ describe('vehicleKeys', () => {
     it('nowe zdjęcie: jedna galeria i jedne szczegóły, bez drugiego pobrania galerii', async () => {
         api.uploadVehiclePhoto.mockResolvedValue({ uploadUrl: 'https://s3/put', photoId: 'p1' });
         const detail = vi.fn(async () => ({}));
-        const gallery = vi.fn(async () => ({ photos: [] }));
+        const gallery = vi.fn(async () => ({ items: [], page: { number: 1, size: 20, totalItems: 0, totalPages: 1 } }));
         const client = new QueryClient();
         const wrapper = ({ children }: { children: ReactNode }) => (
             <QueryClientProvider client={client}>{children}</QueryClientProvider>

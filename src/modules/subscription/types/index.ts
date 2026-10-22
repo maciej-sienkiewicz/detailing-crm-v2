@@ -297,9 +297,4 @@ export interface PaymentHistoryEntry {
     addOn: { key: AddOnKey; name: string } | null;
 }
 
-export interface PaymentHistoryResponse {
-    entries: PaymentHistoryEntry[];
-    total: number;
-    page: number;
-    pageSize: number;
-}
+/** Historia płatności to `Page<PaymentHistoryEntry>` (`@/core/page`). */

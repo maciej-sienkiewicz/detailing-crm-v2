@@ -30,7 +30,7 @@ vi.mock('../api/employeeApi', () => ({
     employeeApi: {
         listEmployees: vi.fn().mockResolvedValue({
             items: [],
-            pagination: { currentPage: 1, totalPages: 1, totalItems: 4, itemsPerPage: 20 },
+            page: { number: 1, size: 20, totalItems: 4, totalPages: 1 },
         }),
     },
 }));

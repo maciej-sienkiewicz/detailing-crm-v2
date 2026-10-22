@@ -3,6 +3,7 @@ import { setPiiAccessFromHeader } from '@/common/pii';
 import { isRateLimited, shouldAnnounceRateLimit } from './rateLimit';
 import { SESSION_LOCKED_EVENT, isSessionLockedResponse } from './sessionLock';
 import { isPublicAppPath } from './publicPaths';
+import { PAGE_FORMAT, PAGE_FORMAT_HEADER } from './page';
 
 /**
  * Per-request opt-out from the global error toast.
@@ -46,6 +47,8 @@ export const apiClient = axios.create({
     timeout: DEFAULT_TIMEOUT_MS,
     headers: {
         'Content-Type': 'application/json',
+        // Listy w jednym formacie `{ items, page }` - bez nagłówka backend oddaje dawne kształty (P2-18).
+        [PAGE_FORMAT_HEADER]: PAGE_FORMAT,
     },
 });
 

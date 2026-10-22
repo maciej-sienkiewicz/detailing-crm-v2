@@ -25,19 +25,9 @@ export interface AppointmentColorUpdateRequest {
     hexColor: string;
 }
 
-export interface AppointmentColorListResponse {
-    colors: AppointmentColor[];
-    pagination: {
-        currentPage: number;
-        totalPages: number;
-        totalItems: number;
-        itemsPerPage: number;
-    };
-}
-
 export interface AppointmentColorFilters {
     search?: string;
     page?: number;
-    limit?: number;
+    pageSize?: number;
     showInactive?: boolean;
 }

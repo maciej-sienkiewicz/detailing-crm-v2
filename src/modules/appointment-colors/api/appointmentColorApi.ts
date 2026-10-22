@@ -1,18 +1,18 @@
 // src/modules/appointment-colors/api/appointmentColorApi.ts
 import { apiClient } from '@/core';
+import type { Page } from '@/core/page';
 import type {
     AppointmentColor,
     AppointmentColorCreateRequest,
     AppointmentColorUpdateRequest,
-    AppointmentColorListResponse,
     AppointmentColorFilters,
 } from '../types';
 
 export const appointmentColorApi = {
-    getColors: async (filters: AppointmentColorFilters): Promise<AppointmentColorListResponse> => {
+    getColors: async (filters: AppointmentColorFilters): Promise<Page<AppointmentColor>> => {
         const params: Record<string, string | number | boolean> = {
             page: filters.page || 1,
-            limit: filters.limit || 50,
+            pageSize: filters.pageSize || 50,
         };
 
         if (filters.search) {
@@ -23,7 +23,7 @@ export const appointmentColorApi = {
             params.showInactive = filters.showInactive;
         }
 
-        const response = await apiClient.get<AppointmentColorListResponse>(
+        const response = await apiClient.get<Page<AppointmentColor>>(
             '/v1/appointment-colors',
             { params }
         );

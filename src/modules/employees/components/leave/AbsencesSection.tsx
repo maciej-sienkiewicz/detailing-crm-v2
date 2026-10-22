@@ -59,7 +59,7 @@ export function AbsencesSection() {
 
     const holidays = useMemo(() => getPolishHolidays(Number(month.slice(0, 4))), [month]);
     const { leaveDayMap, isLoading } = useLeaveCalendar(from, to);
-    const { employees } = useEmployees({ search: '', page: 1, limit: 100 });
+    const { employees } = useEmployees({ search: '', page: 1, pageSize: 100 });
     const pending = useLeaveRequestQueue('PENDING', { enabled: canApprove });
 
     const rows = useMemo<PersonRow[]>(() => {

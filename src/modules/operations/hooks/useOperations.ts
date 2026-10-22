@@ -8,7 +8,7 @@ export const operationsQueryKey = (filters: OperationFilters) => [
     'operations',
     filters.search,
     filters.page,
-    filters.limit,
+    filters.pageSize,
     filters.type,
     filters.status,
     filters.scheduledDate,
@@ -33,8 +33,8 @@ export const useOperations = (filters: OperationFilters) => {
     });
 
     return {
-        operations: data?.data ?? [],
-        pagination: data?.pagination,
+        operations: data?.items ?? [],
+        pageMeta: data?.page,
         isLoading,
         isError,
         refetch,

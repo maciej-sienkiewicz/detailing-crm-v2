@@ -168,10 +168,10 @@ export const useKsefExpenses = (filters: KsefExpenseListFilters) => {
   });
 
   return {
-    expenses: data?.expenses ?? [],
-    total:    data?.total    ?? 0,
-    page:     data?.page     ?? 1,
-    pageSize: data?.pageSize ?? 20,
+    expenses: data?.items           ?? [],
+    total:    data?.page.totalItems ?? 0,
+    page:     data?.page.number     ?? 1,
+    pageSize: data?.page.size       ?? 20,
     isLoading,
     isError,
     refetch,

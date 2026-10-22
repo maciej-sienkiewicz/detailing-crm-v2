@@ -19,7 +19,6 @@ import type {
     DashboardSocketEvent,
     Lead,
     LeadBoardStage,
-    LeadPage,
     LeadServiceItemInput,
     LeadSortDirection,
     LeadStatus,
@@ -27,6 +26,7 @@ import type {
 } from '../types';
 
 import { LEADS_KEY, LEAD_ANALYTICS_KEY, LEAD_DICTIONARIES_KEY, LEAD_OVERVIEW_KEY, invalidateLead } from '../api/leadKeys';
+import type { Page } from '@/core/page';
 
 export { LEADS_KEY, LEAD_ANALYTICS_KEY, LEAD_DICTIONARIES_KEY, LEAD_OVERVIEW_KEY };
 
@@ -72,7 +72,7 @@ export const useLeadsByStatuses = (
         status: statuses,
         query: options.query || undefined,
         sortDirection: options.sortDirection,
-        page: 0,
+        page: 1,
         pageSize: BUNDLE_PAGE_SIZE,
     };
     const { data, isLoading } = useQuery({
@@ -84,9 +84,9 @@ export const useLeadsByStatuses = (
 
     return useMemo(() => ({
         items: data?.items ?? [],
-        total: data?.total ?? 0,
+        total: data?.page.totalItems ?? 0,
         isLoading: statuses.length > 0 && isLoading,
-        truncated: (data?.total ?? 0) > (data?.items.length ?? 0),
+        truncated: (data?.page.totalItems ?? 0) > (data?.items.length ?? 0),
     }), [data, isLoading, statuses.length]);
 };
 
@@ -259,10 +259,10 @@ export const useNewLeadsCount = (options?: { enabled?: boolean }): number =>
  */
 const updateLeadPages = (
     queryClient: QueryClient,
-    update: (page: LeadPage) => LeadPage
+    update: (list: Page<Lead>) => Page<Lead>
 ): void => {
-    queryClient.setQueriesData<LeadPage>({ queryKey: [...LEADS_KEY, 'list'] }, (cached) =>
-        cached && Array.isArray((cached as LeadPage).items) ? update(cached) : cached
+    queryClient.setQueriesData<Page<Lead>>({ queryKey: [...LEADS_KEY, 'list'] }, (cached) =>
+        cached && Array.isArray((cached as Page<Lead>).items) ? update(cached) : cached
     );
 };
 
@@ -325,12 +325,11 @@ export const useDeleteLead = () => {
         mutationFn: ({ leadId, deleteAppointment }: { leadId: string; deleteAppointment?: boolean }) =>
             leadsApi.deleteLead(leadId, deleteAppointment ?? false),
         onSuccess: (_result, { leadId, deleteAppointment }) => {
-            updateLeadPages(queryClient, (page) => {
-                if (!page.items.some((item) => item.id === leadId)) return page;
+            updateLeadPages(queryClient, (list) => {
+                if (!list.items.some((item) => item.id === leadId)) return list;
                 return {
-                    ...page,
-                    items: page.items.filter((item) => item.id !== leadId),
-                    total: Math.max(0, page.total - 1),
+                    items: list.items.filter((item) => item.id !== leadId),
+                    page: { ...list.page, totalItems: Math.max(0, list.page.totalItems - 1) },
                 };
             });
             queryClient.removeQueries({ queryKey: [...LEADS_KEY, 'detail', leadId] });
@@ -375,13 +374,12 @@ export const useBulkDeleteLeads = () => {
             const removed = new Set(ids.filter((id) => !skippedIds.has(id)));
 
             if (removed.size > 0) {
-                updateLeadPages(queryClient, (page) => {
-                    const items = page.items.filter((item) => !removed.has(item.id));
-                    if (items.length === page.items.length) return page;
+                updateLeadPages(queryClient, (list) => {
+                    const items = list.items.filter((item) => !removed.has(item.id));
+                    if (items.length === list.items.length) return list;
                     return {
-                        ...page,
                         items,
-                        total: Math.max(0, page.total - (page.items.length - items.length)),
+                        page: { ...list.page, totalItems: Math.max(0, list.page.totalItems - (list.items.length - items.length)) },
                     };
                 });
                 removed.forEach((id) =>
@@ -530,12 +528,12 @@ export function useLeadsSocket(): void {
             const merged = (previous: Lead | undefined) =>
                 mergeMaskedPii(previous, lead, LEAD_PII_FIELDS);
 
-            updateLeadPages(queryClient, (page) => {
-                const index = page.items.findIndex((item) => item.id === lead.id);
-                if (index === -1) return page;
-                const items = [...page.items];
-                items[index] = merged(page.items[index]);
-                return { ...page, items };
+            updateLeadPages(queryClient, (list) => {
+                const index = list.items.findIndex((item) => item.id === lead.id);
+                if (index === -1) return list;
+                const items = [...list.items];
+                items[index] = merged(list.items[index]);
+                return { ...list, items };
             });
 
             const detailKey = [...LEADS_KEY, 'detail', lead.id];
@@ -622,12 +620,12 @@ export const usePatchLeadCache = () => {
     const queryClient = useQueryClient();
     return useCallback(
         (lead: Lead) => {
-            updateLeadPages(queryClient, (page) => {
-                const index = page.items.findIndex((item) => item.id === lead.id);
-                if (index === -1) return page;
-                const items = [...page.items];
+            updateLeadPages(queryClient, (list) => {
+                const index = list.items.findIndex((item) => item.id === lead.id);
+                if (index === -1) return list;
+                const items = [...list.items];
                 items[index] = lead;
-                return { ...page, items };
+                return { ...list, items };
             });
             queryClient.setQueryData<Lead>([...LEADS_KEY, 'detail', lead.id], (cached) => (cached ? { ...cached, ...lead } : cached));
         },

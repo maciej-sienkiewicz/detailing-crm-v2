@@ -38,12 +38,13 @@ function eventTone(type: PaymentEventType): PillTone {
 }
 
 export function PaymentHistoryTable() {
+    // Indeks od 0 dla okna numerów stron (pageWindow); API liczy strony od 1.
     const [page, setPage] = useState(0);
-    const { data, isLoading, isError, refetch } = usePaymentHistory(page);
+    const { data, isLoading, isError, refetch } = usePaymentHistory(page + 1);
 
-    const entries = data?.entries ?? [];
-    const total = data?.total ?? 0;
-    const totalPages = Math.ceil(total / PAGE_SIZE);
+    const entries = data?.items ?? [];
+    const total = data?.page.totalItems ?? 0;
+    const totalPages = data?.page.totalPages ?? 1;
     const from = page * PAGE_SIZE + 1;
     const to = Math.min((page + 1) * PAGE_SIZE, total);
 

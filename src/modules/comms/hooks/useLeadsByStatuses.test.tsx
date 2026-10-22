@@ -24,7 +24,7 @@ const wrapper = ({ children }: { children: ReactNode }) => (
 
 describe('useLeadsByStatuses', () => {
     it('otwarte sprawy jednym zapytaniem z listą statusów', async () => {
-        http.get.mockResolvedValue({ data: { items: [{ id: 'l1' }], total: 1, page: 0, pageSize: 100 } });
+        http.get.mockResolvedValue({ data: { items: [{ id: 'l1' }], page: { number: 1, size: 100, totalItems: 1, totalPages: 1 } } });
         const { result } = renderHook(() => useLeadsByStatuses(OPEN_LEAD_STATUSES, { sortDirection: 'ASC' }), { wrapper });
 
         await waitFor(() => expect(result.current.items).toHaveLength(1));
@@ -37,7 +37,7 @@ describe('useLeadsByStatuses', () => {
     });
 
     it('wynik większy niż strona jest oznaczony jako niepełny', async () => {
-        http.get.mockResolvedValue({ data: { items: [{ id: 'l1' }], total: 140, page: 0, pageSize: 100 } });
+        http.get.mockResolvedValue({ data: { items: [{ id: 'l1' }], page: { number: 1, size: 100, totalItems: 140, totalPages: 2 } } });
         const { result } = renderHook(() => useLeadsByStatuses(['COMPLETED']), { wrapper });
 
         await waitFor(() => expect(result.current.truncated).toBe(true));

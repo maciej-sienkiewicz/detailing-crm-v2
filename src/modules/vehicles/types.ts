@@ -17,7 +17,6 @@ export type ActivityType =
     | 'notes_updated'
     | 'mileage_updated';
 
-
 export interface VehicleOwner {
     customerId: string;
     customerName: string;
@@ -77,18 +76,6 @@ export interface VehicleListItem {
     updatedAt: string;
 }
 
-export interface VehicleListResponse {
-    data: VehicleListItem[];
-    pagination: PaginationMeta;
-}
-
-export interface PaginationMeta {
-    currentPage: number;
-    totalPages: number;
-    totalItems: number;
-    itemsPerPage: number;
-}
-
 export type VehicleSortField =
     | 'licensePlate'
     | 'brand'
@@ -119,7 +106,7 @@ export interface VehicleAdvancedFilters {
 export interface VehicleFilters {
     search: string;
     page: number;
-    limit: number;
+    pageSize: number;
     sortBy?: VehicleSortField;
     sortDirection?: SortDirection;
     status?: VehicleStatus;
@@ -255,11 +242,6 @@ export interface VehicleVisit {
     notes: string;
 }
 
-export interface VehicleVisitsResponse {
-    visits: VehicleVisit[];
-    pagination: PaginationMeta;
-}
-
 export type VehicleAppointmentStatus = 'scheduled' | 'CREATED' | 'ABANDONED' | 'CANCELLED' | 'CONVERTED' | 'completed' | 'cancelled';
 
 export interface VehicleAppointment {
@@ -281,27 +263,11 @@ export interface VehicleAppointment {
     createdAt: string;
 }
 
-export interface VehicleAppointmentsResponse {
-    appointments: VehicleAppointment[];
-    pagination: PaginationMeta;
-}
-
 export interface VehicleDetailResponse {
     vehicle: Vehicle;
     recentVisits: VehicleVisitSummary[];
     activities: VehicleActivity[];
     photos: VehiclePhoto[];
-}
-
-
-export interface VehiclePhotoGalleryResponse {
-    photos: VehiclePhoto[];
-    pagination: {
-        total: number;
-        page: number;
-        pageSize: number;
-        totalPages: number;
-    };
 }
 
 export interface UploadVehiclePhotoPayload {
@@ -345,7 +311,3 @@ export interface VehicleComment {
     visitDate: string;
 }
 
-export interface VehicleCommentsResponse {
-    comments: VehicleComment[];
-    pagination: PaginationMeta;
-}

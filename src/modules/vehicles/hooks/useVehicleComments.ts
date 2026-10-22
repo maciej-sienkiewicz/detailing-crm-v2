@@ -2,15 +2,15 @@ import { useQuery } from '@tanstack/react-query';
 import { vehicleApi } from '../api/vehicleApi';
 import { vehicleKeys } from '../api/vehicleKeys';
 
-export const useVehicleComments = (vehicleId: string, page = 1, limit = 20) => {
+export const useVehicleComments = (vehicleId: string, page = 1, pageSize = 20) => {
     const { data, isLoading, isError } = useQuery({
-        queryKey: vehicleKeys.comments(vehicleId, page, limit),
-        queryFn: () => vehicleApi.getComments(vehicleId, page, limit),
+        queryKey: vehicleKeys.comments(vehicleId, page, pageSize),
+        queryFn: () => vehicleApi.getComments(vehicleId, page, pageSize),
         enabled: !!vehicleId,
     });
     return {
-        comments: data?.comments ?? [],
-        pagination: data?.pagination,
+        comments: data?.items ?? [],
+        pageMeta: data?.page,
         isLoading,
         isError,
     };

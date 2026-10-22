@@ -23,7 +23,8 @@
  */
 
 import { apiClient } from '@/core';
-import type { DashboardTask, CreateTaskPayload, UpdateTaskPayload, TaskArchivePage, TaskVisibilityOptions } from '../types';
+import type { DashboardTask, CreateTaskPayload, UpdateTaskPayload, ArchivedTask, TaskVisibilityOptions } from '../types';
+import type { Page } from '@/core/page';
 
 // ─── In-memory store ──────────────────────────────────────────────────────────
 
@@ -78,8 +79,8 @@ export const tasksApi = {
 // ─── Archive API ──────────────────────────────────────────────────────────────
 
 export const taskArchiveApi = {
-  list: async (params: { page: number; size: number; search?: string }, signal?: AbortSignal): Promise<TaskArchivePage> => {
-    const response = await apiClient.get('/v1/tasks/archive', { params, signal });
+  list: async (params: { page: number; pageSize: number; search?: string }, signal?: AbortSignal): Promise<Page<ArchivedTask>> => {
+    const response = await apiClient.get<Page<ArchivedTask>>('/v1/tasks/archive', { params, signal });
     return response.data;
   },
 };

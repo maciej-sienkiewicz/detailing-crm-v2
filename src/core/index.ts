@@ -1,4 +1,6 @@
 export { apiClient } from './apiClient';
+export type { Page, PageMeta, CursorPage } from './page';
+export { emptyPage, mapPage } from './page';
 export { router } from './router';
 export { AuthProvider, useAuth } from './context/AuthContext';
 export { ProtectedRoute } from './components/ProtectedRoute';

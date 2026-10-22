@@ -104,7 +104,7 @@ export const OwnerSelect = ({ selectedOwnerIds, onChange }: OwnerSelectProps) =>
     const filters = useMemo(() => ({
         search: searchTerm,
         page: 1,
-        limit: 50,
+        pageSize: 50,
     }), [searchTerm]);
 
     const { customers, isLoading } = useCustomers(filters);

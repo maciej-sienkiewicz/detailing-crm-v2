@@ -97,7 +97,7 @@ interface SetupProps {
 export const LeaveSetupModal: React.FC<SetupProps> = ({ onConfirm, onClose }) => {
     // Lista pracowników mieści się w jednym wywołaniu — warsztat detailingowy to
     // kilkanaście osób, nie korporacja; paginacja byłaby tu ceremonią bez treści.
-    const { employees, isLoading } = useEmployees({ search: '', page: 1, limit: 100 });
+    const { employees, isLoading } = useEmployees({ search: '', page: 1, pageSize: 100 });
     const [employeeId, setEmployeeId] = useState('');
     const [leaveType, setLeaveType] = useState<LeaveType>('ANNUAL');
 

@@ -7,13 +7,13 @@ const PAGE_SIZE = 20;
 export const useTaskArchive = (page: number, search: string, enabled = true) => {
   const { data, isLoading, isError } = useQuery({
     queryKey: ['tasks', 'archive', page, search],
-    queryFn: ({ signal }) => taskArchiveApi.list({ page, size: PAGE_SIZE, search: search || undefined }, signal),
+    queryFn: ({ signal }) => taskArchiveApi.list({ page, pageSize: PAGE_SIZE, search: search || undefined }, signal),
     enabled,
   });
 
   return {
     items: data?.items ?? [],
-    pagination: data?.pagination,
+    pageMeta: data?.page,
     isLoading,
     isError,
   };

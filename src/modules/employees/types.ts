@@ -40,18 +40,6 @@ export interface EmployeeListItem {
     lastSeenAt?: string | null;
 }
 
-export interface EmployeePaginationInfo {
-    currentPage: number;
-    totalPages: number;
-    totalItems: number;
-    itemsPerPage: number;
-}
-
-export interface EmployeeListResponse {
-    items: EmployeeListItem[];
-    pagination: EmployeePaginationInfo;
-}
-
 export interface EmployeeAccountInfo {
     userId: string;
     roleId: string | null;
@@ -152,7 +140,7 @@ export interface TerminateEmployeePayload {
 export interface EmployeeFilters {
     search: string;
     page: number;
-    limit: number;
+    pageSize: number;
 }
 
 // ─── Contracts ────────────────────────────────────────────────────────────────

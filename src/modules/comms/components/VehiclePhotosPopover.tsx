@@ -206,8 +206,8 @@ export function VehiclePhotosPopover({ vehicleId, label, anchor, onClose }: Vehi
         staleTime: 5 * 60_000,
     });
 
-    const photos = data?.photos ?? [];
-    const total = data?.pagination?.total ?? photos.length;
+    const photos = data?.items ?? [];
+    const total = data?.page.totalItems ?? photos.length;
     const current = photos[Math.min(index, Math.max(0, photos.length - 1))];
 
     const go = useCallback(

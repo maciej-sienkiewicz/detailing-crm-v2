@@ -19,7 +19,6 @@ export type {
     AppointmentStatus,
     OperationType,
     OperationFilters,
-    OperationListResponse,
     LastModification,
     FilterStatus,
 } from './types';

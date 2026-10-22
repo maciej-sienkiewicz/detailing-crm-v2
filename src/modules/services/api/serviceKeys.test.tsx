@@ -21,7 +21,7 @@ afterEach(() => {
 
 describe('serviceKeys', () => {
     it('nowa usługa odświeża wyszukiwarkę w wierszu wizyty jednym zapytaniem', async () => {
-        api.getServices.mockResolvedValue({ services: [], pagination: {} });
+        api.getServices.mockResolvedValue({ items: [], page: { number: 1, size: 8, totalItems: 0, totalPages: 1 } });
         api.createService.mockResolvedValue({ id: 's1' });
         const client = new QueryClient();
         const wrapper = ({ children }: { children: ReactNode }) => (
@@ -30,7 +30,7 @@ describe('serviceKeys', () => {
         const { result } = renderHook(() => ({
             inline: useQuery({
                 queryKey: serviceKeys.search('inline', 'pol'),
-                queryFn: () => api.getServices({ search: 'pol', page: 1, limit: 8 }),
+                queryFn: () => api.getServices({ search: 'pol', page: 1, pageSize: 8 }),
             }),
             create: useCreateService(),
         }), { wrapper });

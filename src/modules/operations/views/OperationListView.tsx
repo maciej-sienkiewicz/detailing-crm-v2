@@ -97,7 +97,7 @@ export const OperationListView = () => {
         () => ({
             search: debouncedSearch,
             page,
-            limit,
+            pageSize: limit,
             type: apiFilters.type,
             status: apiFilters.status,
             deleted: apiFilters.deleted,
@@ -110,7 +110,7 @@ export const OperationListView = () => {
     );
 
     // Jedno zapytanie dla licznika, stronicowania i wierszy tabeli - z filtrami zaawansowanymi.
-    const { operations, pagination, isLoading } = useOperations(filters);
+    const { operations, pageMeta, isLoading } = useOperations(filters);
 
     const handleFilterChangeWithReset = (filter: typeof selectedFilter) => {
         handleFilterChange(filter);
@@ -129,7 +129,7 @@ export const OperationListView = () => {
                 <PageHeader
                     title="Wizyty i rezerwacje"
                     subtitle={
-                        pagination ? <PageHeaderCount>{pagination.totalItems} {pluralPl(pagination.totalItems, 'wynik', 'wyniki', 'wyników')}</PageHeaderCount> : undefined
+                        pageMeta ? <PageHeaderCount>{pageMeta.totalItems} {pluralPl(pageMeta.totalItems, 'wynik', 'wyniki', 'wyników')}</PageHeaderCount> : undefined
                     }
                     actions={canCreateVisit ? (
                         <PageHeaderPrimaryButton onClick={() => navigate('/checkin/new')}>
@@ -147,8 +147,8 @@ export const OperationListView = () => {
                 <MobilePageHeader
                     icon={<CalendarCheck />}
                     title="Wizyty i rezerwacje"
-                    subtitle={pagination
-                        ? <><MobilePageHeaderCountValue>{pagination.totalItems}</MobilePageHeaderCountValue> {pluralPl(pagination.totalItems, 'wynik', 'wyniki', 'wyników')}</>
+                    subtitle={pageMeta
+                        ? <><MobilePageHeaderCountValue>{pageMeta.totalItems}</MobilePageHeaderCountValue> {pluralPl(pageMeta.totalItems, 'wynik', 'wyniki', 'wyników')}</>
                         : 'Wczytywanie…'}
                     actions={canCreateVisit ? (
                         <MobilePageHeaderButton onClick={() => navigate('/checkin/new')}>
@@ -194,9 +194,9 @@ export const OperationListView = () => {
                     seriesId={seriesIdFilter ?? undefined}
                 />
 
-                {pagination && pagination.totalPages > 1 && (
+                {pageMeta && pageMeta.totalPages > 1 && (
                     <OperationPagination
-                        pagination={pagination}
+                        pagination={pageMeta}
                         onPageChange={goToPage}
                     />
                 )}

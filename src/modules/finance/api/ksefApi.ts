@@ -1,4 +1,5 @@
 import { apiClient } from '@/core';
+import type { Page } from '@/core/page';
 import type {
   KsefCredentials,
   KsefInvoicingStatus,
@@ -11,7 +12,6 @@ import type {
   KsefExpense,
   KsefExpenseDetail,
   KsefExpenseTransfer,
-  KsefExpenseListResponse,
   KsefExpenseListFilters,
   CreateExpenseRequest,
   UpdateExpensePaymentStatusRequest,
@@ -91,10 +91,10 @@ export const ksefApi = {
 
   // ── Expenses ───────────────────────────────────────────────────────────────
 
-  getExpenses: async (filters: KsefExpenseListFilters): Promise<KsefExpenseListResponse> => {
+  getExpenses: async (filters: KsefExpenseListFilters): Promise<Page<KsefExpense>> => {
     const params = new URLSearchParams({
       page: String(filters.page),
-      size: String(filters.pageSize),
+      pageSize: String(filters.pageSize),
     });
     if (filters.source)          params.append('source',          filters.source);
     if (filters.paymentStatus)   params.append('paymentStatus',   filters.paymentStatus);
@@ -104,7 +104,7 @@ export const ksefApi = {
     if (filters.includeExcluded) params.append('includeExcluded', 'true');
     if (filters.onlyExcluded)    params.append('onlyExcluded',    'true');
     if (filters.search)          params.append('search',          filters.search);
-    const response = await apiClient.get(`${BASE}/expenses?${params}`);
+    const response = await apiClient.get<Page<KsefExpense>>(`${BASE}/expenses?${params}`);
     return response.data;
   },
 

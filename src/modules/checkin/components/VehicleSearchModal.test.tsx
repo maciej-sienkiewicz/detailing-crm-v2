@@ -84,10 +84,11 @@ describe('VehicleSearchModal - rodzaj pojazdu', () => {
 
     it('pojazd z wyszukiwarki przenosi swój rodzaj', async () => {
         apis.getVehicles.mockResolvedValue({
-            data: [{
+            items: [{
                 id: 'moto-2', kind: 'MOTORCYCLE', brand: 'Honda', model: 'Africa Twin', yearOfProduction: 2020,
                 licensePlate: 'WA 7777B', owners: [{ customerId: 'cust-9', customerName: 'Anna Nowak' }],
             }],
+            page: { number: 1, size: 50, totalItems: 1, totalPages: 1 },
         });
         const user = userEvent.setup();
         const { onSelect } = renderModal();

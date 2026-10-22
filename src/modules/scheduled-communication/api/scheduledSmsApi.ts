@@ -1,5 +1,6 @@
 import { apiClient } from '@/core';
-import type { ScheduledSmsItem, ScheduledSmsOverview, SentSmsPage, UpdateScheduledSmsPayload } from '../types';
+import type { CursorPage } from '@/core/page';
+import type { ScheduledSmsItem, ScheduledSmsOverview, SentSmsItem, UpdateScheduledSmsPayload } from '../types';
 import type { BackgroundRequestConfig } from '@/core/backgroundRequest';
 
 const BASE = '/v1/scheduled-sms';
@@ -16,9 +17,9 @@ export const scheduledSmsApi = {
         return data;
     },
 
-    /** Historia wysłanych, od najnowszych; `before` to kursor z poprzedniej strony. */
-    async sent(before: string | null): Promise<SentSmsPage> {
-        const { data } = await apiClient.get<SentSmsPage>(`${BASE}/sent`, { params: before ? { before } : {} });
+    /** Historia wysłanych, od najnowszych; `cursor` to `nextCursor` poprzedniej strony. */
+    async sent(cursor: string | null): Promise<CursorPage<SentSmsItem>> {
+        const { data } = await apiClient.get<CursorPage<SentSmsItem>>(`${BASE}/sent`, { params: cursor ? { cursor } : {} });
         return data;
     },
 

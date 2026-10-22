@@ -21,8 +21,8 @@ vi.mock('../shared/settingsChrome', () => ({ useSettingsDirty: () => undefined }
 import { PackageEditorModal } from './PackageEditorModal';
 
 const page = (names: string[]) => ({
-    services: names.map((name, i) => ({ id: `s-${name}-${i}`, name, isPackage: false })),
-    pagination: { currentPage: 1, totalPages: 1, totalItems: names.length, itemsPerPage: 50 },
+    items: names.map((name, i) => ({ id: `s-${name}-${i}`, name, isPackage: false })),
+    page: { number: 1, size: 50, totalItems: names.length, totalPages: 1 },
 });
 
 afterEach(() => { cleanup(); vi.clearAllMocks(); });

@@ -154,7 +154,7 @@ export const DoorToDoorModal = ({
 
     /* Lista kierowców = pracownicy studia. Jeden strzał na 100 pozycji: studio
        detailingowe nie ma tylu ludzi, żeby potrzebna była paginacja w tym oknie. */
-    const { employees } = useEmployees({ search: '', page: 1, limit: 100 });
+    const { employees } = useEmployees({ search: '', page: 1, pageSize: 100 });
 
     const update = (patch: Partial<DoorToDoorInfo>) => setData(d => ({ ...d, ...patch }));
 

@@ -134,7 +134,7 @@ export const EditOwnersModal = ({ isOpen, onClose, vehicleId, owners }: EditOwne
     const [role, setRole] = useState<OwnershipRole>('CO_OWNER');
 
     const debounced = useDebounce(search, 250);
-    const filters = useMemo(() => ({ search: debounced, page: 1, limit: 20 }), [debounced]);
+    const filters = useMemo(() => ({ search: debounced, page: 1, pageSize: 20 }), [debounced]);
     const { customers, isLoading } = useCustomers(filters);
     const ownerIds = new Set(owners.map(o => o.customerId));
     const candidates = customers.filter(c => !ownerIds.has(c.id));

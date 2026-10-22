@@ -1,9 +1,10 @@
 import { LEGAL_VERSION } from '@/modules/legal/documents';
 import { apiClient } from '@/core';
+import type { Page } from '@/core/page';
 import type {
     SmsCreditBalance,
     SmsCreditPackage,
-    SmsCreditTransactionPage,
+    SmsCreditTransaction,
     PurchaseCreditsResponse,
 } from '../types';
 
@@ -32,9 +33,10 @@ export const smsCreditApi = {
         return res.data;
     },
 
-    getTransactions: async (page = 0, size = 20): Promise<SmsCreditTransactionPage> => {
-        const res = await apiClient.get<SmsCreditTransactionPage>(`${BASE_PATH}/transactions`, {
-            params: { page, size },
+    /** [page] od 1. */
+    getTransactions: async (page = 1, pageSize = 20): Promise<Page<SmsCreditTransaction>> => {
+        const res = await apiClient.get<Page<SmsCreditTransaction>>(`${BASE_PATH}/transactions`, {
+            params: { page, pageSize },
         });
         return res.data;
     },

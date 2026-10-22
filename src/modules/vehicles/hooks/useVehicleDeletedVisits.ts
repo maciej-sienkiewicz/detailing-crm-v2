@@ -10,7 +10,7 @@ export const useVehicleDeletedVisits = (vehicleId: string, enabled: boolean) => 
         enabled: !!vehicleId && enabled,
     });
 
-    const events: (VehicleHistoryEvent & { deletedAt: string })[] = (data?.visits ?? []).map(v => ({
+    const events: (VehicleHistoryEvent & { deletedAt: string })[] = (data?.items ?? []).map(v => ({
         id: v.id,
         type: 'VISIT' as const,
         date: v.date,

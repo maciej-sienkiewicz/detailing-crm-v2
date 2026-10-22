@@ -25,7 +25,7 @@ const catalog = [{
 
 vi.mock('@/modules/services/api/servicesApi', () => ({
     servicesApi: {
-        getServices: vi.fn(async () => ({ services: catalog, pagination: { total: 1 } })),
+        getServices: vi.fn(async () => ({ items: catalog, page: { number: 1, size: 8, totalItems: 1, totalPages: 1 } })),
     },
 }));
 

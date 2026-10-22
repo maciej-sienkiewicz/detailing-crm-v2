@@ -22,7 +22,7 @@ export const useEmployees = (filters: EmployeeFilters, options?: { enabled?: boo
     });
     return {
         employees: data?.items ?? [],
-        pagination: data?.pagination ?? null,
+        pageMeta: data?.page ?? null,
         isLoading,
         isError,
         isFetching,

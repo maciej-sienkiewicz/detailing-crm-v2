@@ -175,7 +175,7 @@ export function AppointmentColorsSection() {
     // Jedno zapytanie po wszystkie kolory (także archiwalne) - rozdzielamy je w
     // pamięci, żeby przełącznik „Pokaż archiwalne" nie kosztował rundy do API.
     const { colors, isLoading, isError, refetch } = useAppointmentColors(
-        useMemo(() => ({ page: 1, limit: 200, showInactive: true }), [])
+        useMemo(() => ({ page: 1, pageSize: 200, showInactive: true }), [])
     );
 
     const active = colors.filter(c => c.isActive);

@@ -44,7 +44,7 @@ function yearOptions(): number[] {
 }
 
 /** Backend oddaje najwyżej 500 osób na stronę - studio ma ich kilka, kilkanaście. */
-const ALL_EMPLOYEES = { search: '', page: 1, limit: 500 } as const;
+const ALL_EMPLOYEES = { search: '', page: 1, pageSize: 500 } as const;
 
 interface Props {
     onClose: () => void;

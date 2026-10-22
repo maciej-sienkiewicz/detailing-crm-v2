@@ -31,7 +31,7 @@ const VEHICLES: Record<string, Vehicle[]> = {
 vi.mock('@/core', () => ({
     apiClient: {
         get: (url: string) => (url.includes('appointment-colors')
-            ? Promise.resolve({ data: { colors: [{ id: 'c1', name: 'Niebieski', hexColor: '#3b82f6' }] } })
+            ? Promise.resolve({ data: { items: [{ id: 'c1', name: 'Niebieski', hexColor: '#3b82f6' }], page: { number: 1, size: 100, totalItems: 1, totalPages: 1 } } })
             : never()),
     },
 }));

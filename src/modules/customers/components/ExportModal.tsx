@@ -21,13 +21,13 @@ type ExportScope = 'all' | 'filtered';
 interface Props {
     isOpen: boolean;
     onClose: () => void;
-    currentFilters: Omit<CustomerFilters, 'page' | 'limit'>;
+    currentFilters: Omit<CustomerFilters, 'page' | 'pageSize'>;
     filteredCount: number;
 }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-const hasActiveFilters = (f: Omit<CustomerFilters, 'page' | 'limit'>): boolean =>
+const hasActiveFilters = (f: Omit<CustomerFilters, 'page' | 'pageSize'>): boolean =>
     !!f.search ||
     (!!f.customerType && f.customerType !== 'all') ||
     !!f.services?.length ||
