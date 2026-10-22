@@ -36,19 +36,44 @@ export const useAdDetail = (adId: string | null) =>
         placeholderData: keepPreviousData,
     });
 
+/** Ile razy pytamy ponownie, gdy serwer odpowiada „zajęty" (BUSY), i co ile. */
+export const CREATIVE_BUSY_RETRIES = 8;
+export const CREATIVE_BUSY_PAUSE_MS = 8_000;
+
+/** Pauza przerywana razem z zapytaniem - zamknięte okno nie odpytuje serwera dalej. */
+const pause = (ms: number, signal: AbortSignal) =>
+    new Promise<void>((resolve, reject) => {
+        if (signal.aborted) return reject(signal.reason);
+        const timer = setTimeout(resolve, ms);
+        signal.addEventListener('abort', () => {
+            clearTimeout(timer);
+            reject(signal.reason);
+        }, { once: true });
+    });
+
 /**
  * Grafika albo film reklamy. Dochodzi po szczegółach - okno otwiera się od razu z tekstem.
- * Gdy serwer jest zajęty inną reklamą (BUSY), pytamy ponownie co kilka sekund.
+ *
+ * Gdy serwer jest zajęty inną reklamą (BUSY - np. poprzedni wariant tej kampanii jeszcze
+ * się wczytuje), pytamy ponownie co kilka sekund, ale z limitem: dawniej odpytywanie trwało
+ * bez końca i właściciel patrzył na „Wczytuję grafikę reklamy…" przez minuty. Po limicie
+ * zostaje wynik BUSY, okno mówi, że grafiki nie udało się teraz wczytać, a ponowne otwarcie
+ * reklamy pyta od nowa (BUSY nie jest świeży ani chwili).
  */
 export const useAdCreative = (adId: string | null) =>
     useQuery({
         queryKey: [ADS_KEYS.detail, adId, 'creative'],
-        queryFn: context => instagramApi.getAdCreative(adId!, backgroundRequest(context)),
+        queryFn: async context => {
+            for (let retry = 0; ; retry++) {
+                const creative = await instagramApi.getAdCreative(adId!, backgroundRequest(context));
+                if (creative.status !== 'BUSY' || retry >= CREATIVE_BUSY_RETRIES) return creative;
+                await pause(CREATIVE_BUSY_PAUSE_MS, context.signal);
+            }
+        },
         enabled: !!adId,
         // Adresy plików Meta żyją kilka dni, a serwer i tak pilnuje ich wygaśnięcia.
-        staleTime: 30 * 60_000,
+        staleTime: query => (query.state.data?.status === 'BUSY' ? 0 : 30 * 60_000),
         retry: false,
-        refetchInterval: query => (query.state.data?.status === 'BUSY' ? 8_000 : false),
     });
 
 /**

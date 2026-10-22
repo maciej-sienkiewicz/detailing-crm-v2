@@ -32,14 +32,19 @@ describe('AdCreativeMediaView', () => {
         expect(screen.queryByRole('img')).toBeNull();
     });
 
-    it('w trakcie odczytu i przy zajętym serwerze - komunikat, bez kreacji nic', () => {
+    it('w trakcie odczytu - komunikat, bez kreacji nic', () => {
         const { rerender, container } = render(<AdCreativeMediaView creative={undefined} loading />);
         expect(screen.getByRole('status').textContent).toBe('Wczytuję grafikę reklamy…');
 
-        rerender(<AdCreativeMediaView creative={{ status: 'BUSY', media: [] }} loading={false} />);
-        expect(screen.getByRole('status')).toBeTruthy();
-
         rerender(<AdCreativeMediaView creative={{ status: 'EMPTY', media: [] }} loading={false} />);
+        expect(container.innerHTML).toBe('');
+    });
+
+    it('BUSY po wyczerpaniu ponowień to koniec czekania, nie wieczne „wczytuję"', () => {
+        // Hak czeka na zajęty serwer sam (useAds.test.tsx). BUSY, które tu dociera, znaczy,
+        // że limit minął - okno mówi wtedy, że grafiki nie udało się wczytać.
+        const { container } = render(<AdCreativeMediaView creative={{ status: 'BUSY', media: [] }} loading={false} />);
+        expect(screen.queryByRole('status')).toBeNull();
         expect(container.innerHTML).toBe('');
     });
 });
