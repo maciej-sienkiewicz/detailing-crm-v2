@@ -524,7 +524,6 @@ export interface UpdateDamageMapResponse {
 
 import type { CommunicationEntry } from '@/common/types/communication';
 export type { CommunicationChannel, CommunicationStatus, CommunicationEntry } from '@/common/types/communication';
-import type { CommunicationEntry } from '@/common/types/communication';
 
 export interface VisitCommunicationResponse {
     visitId: string;

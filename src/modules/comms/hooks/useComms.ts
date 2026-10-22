@@ -36,7 +36,7 @@ export const COMMS_FORM_SOURCES_KEY = [...COMMS_KEY, 'form-sources'];
 export const useMailAccounts = (options?: { enabled?: boolean }) =>
     useQuery({
         queryKey: COMMS_ACCOUNTS_KEY,
-        queryFn: commsApi.getAccounts,
+        queryFn: () => commsApi.getAccounts(),
         enabled: options?.enabled ?? true,
     });
 

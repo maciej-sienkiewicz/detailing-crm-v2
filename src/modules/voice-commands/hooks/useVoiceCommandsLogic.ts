@@ -2,6 +2,7 @@
 
 import { useState, useRef, useEffect, useCallback } from 'react';
 import { voiceCommandsApi } from '../api/voiceCommandsApi';
+import { problemStatus } from '@/core/problem';
 import type { VoiceMode, VoiceScreen, RecordingState, SendStatus, SessionState } from '../types';
 
 function pickMimeType(): string {
@@ -166,7 +167,7 @@ export function useVoiceCommandsLogic(token: string): VoiceCommandsLogic {
         } catch (err) {
             // Skrót obrócony albo wyłączony w ustawieniach: to nie problem z siecią,
             // tylko koniec tego linku - pokazujemy ekran „Link nieaktywny".
-            const status = (err as { response?: { status?: number } })?.response?.status;
+            const status = problemStatus(err);
             if (status === 401 || status === 403) { setSessionState('error'); return; }
             setSendStatus('error');
         }

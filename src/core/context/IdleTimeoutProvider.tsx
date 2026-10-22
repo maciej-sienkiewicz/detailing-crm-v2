@@ -1,4 +1,4 @@
-import { createContext, useContext, useEffect, useRef, useState, ReactNode } from 'react';
+import { createContext, useEffect, useRef, useState, ReactNode } from 'react';
 import { focusManager, useQueryClient } from '@tanstack/react-query';
 import { useAuth } from './AuthContext';
 import { UserSwitcherPanel } from '@/modules/pin-switcher';

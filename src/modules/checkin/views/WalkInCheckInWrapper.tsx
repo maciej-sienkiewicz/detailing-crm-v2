@@ -6,7 +6,6 @@ import styled from 'styled-components';
 import { CheckInWizardView } from './CheckInWizardView';
 import { t } from '@/common/i18n';
 import { appointmentColorsQuery, pickInitialColorId } from '@/modules/appointment-colors';
-import { appointmentApi } from '@/modules/appointments';
 import { fromInstantToLocalInput } from '@/common/dateTime';
 import type { VehicleKind } from '@/modules/vehicles/vehicleKind';
 

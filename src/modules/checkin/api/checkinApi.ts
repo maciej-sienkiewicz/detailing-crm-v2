@@ -314,7 +314,7 @@ export const checkinApi = {
      * zatrzymuje zamykania okna - sesja i tak wygaśnie sama.
      */
     endMobileSession: async (token: string, reason: 'FINISHED' | 'CANCELLED' = 'FINISHED'): Promise<void> => {
-        await apiClient.post('/mobile-sessions/end', { token, reason }, { skipErrorToast: true });
+        await apiClient.post('/v1/mobile-sessions/end', { token, reason }, { skipErrorToast: true });
     },
 
     /**
@@ -322,11 +322,11 @@ export const checkinApi = {
      * (kreator nie trzyma tokenu, trzyma go panel z kodem QR).
      */
     endCheckinMobileSession: async (checkinId: string): Promise<void> => {
-        await apiClient.post(`/checkin/${checkinId}/upload-session/end`, null, { skipErrorToast: true });
+        await apiClient.post(`/v1/checkin/${checkinId}/upload-session/end`, null, { skipErrorToast: true });
     },
 
     /** Okno VIN zamknięte: ten sam kod ma zadziałać po ponownym otwarciu okna. */
     pauseMobileSession: async (token: string): Promise<void> => {
-        await apiClient.post('/mobile-sessions/pause', { token }, { skipErrorToast: true });
+        await apiClient.post('/v1/mobile-sessions/pause', { token }, { skipErrorToast: true });
     },
 };
