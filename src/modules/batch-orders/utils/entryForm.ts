@@ -37,6 +37,12 @@ const hasPrice = (s: ServiceFormItem) => inputToCents(s.netDisplay) > 0 || input
  * bez nazwy, więc dawniej taka cena po prostu znikała przy zapisie - wpis wracał
  * tańszy, niż go wpisano, bez słowa wyjaśnienia.
  */
+/** Indeks pozycji, której dotyczy błąd z [validateServices] - do obramowania jej w oknie; null bez błędu pozycji. */
+export function firstInvalidServiceIndex(services: ServiceFormItem[]): number | null {
+    const idx = services.findIndex(s => !s.name.trim() && hasPrice(s));
+    return idx >= 0 ? idx : null;
+}
+
 export function validateServices(services: ServiceFormItem[]): string | null {
     const unnamedWithPrice = services.find(s => !s.name.trim() && hasPrice(s));
     if (unnamedWithPrice) {

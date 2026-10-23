@@ -9,21 +9,20 @@ import type {
 } from '../types';
 
 export const CONTRACTORS_KEY = ['batch-orders', 'contractors'] as const;
-export const OVERVIEW_KEY = ['batch-orders', 'overview'] as const;
+export const ARCHIVED_CONTRACTORS_KEY = ['batch-orders', 'contractors', 'archived'] as const;
 export const ENTRIES_KEY = (contractorId: string) => ['batch-orders', 'entries', contractorId] as const;
 export const ENTRY_PHOTOS_KEY = (entryId: string) => ['batch-orders', 'entry-photos', entryId] as const;
 export const SETTLEMENT_HISTORY_KEY = (contractorId: string) => ['batch-orders', 'settlement-history', contractorId] as const;
 export const BATCH_SERVICES_KEY = ['batch-orders', 'services'] as const;
 
 /**
- * Każda zmiana wpisu przesuwa kwotę „do rozliczenia" w DWÓCH miejscach: w nagłówku
- * kontrahenta i przy jego nazwie na liście. Unieważnianie tylko listy wpisów
- * zostawiało na liście kontrahentów starą kwotę obok nowej - dwie różne sumy za
- * ten sam okres na jednym ekranie.
+ * Każda zmiana auta przesuwa kwotę „do rozliczenia" w DWÓCH miejscach: na karcie
+ * kontrahenta i w jego sumie nierozliczonych aut (ostrzeżenie przed archiwizacją,
+ * które przychodzi z listy kontrahentów).
  */
 function invalidateContractorMoney(qc: QueryClient, contractorId: string) {
     qc.invalidateQueries({ queryKey: ENTRIES_KEY(contractorId) });
-    qc.invalidateQueries({ queryKey: OVERVIEW_KEY });
+    qc.invalidateQueries({ queryKey: CONTRACTORS_KEY });
 }
 
 export function useContractors() {
@@ -48,9 +47,9 @@ export function useContractorEntries(
     });
 }
 
+/** Lista kontrahentów i archiwum mają wspólny prefiks klucza - jedno unieważnienie łapie oba. */
 function invalidateContractorLists(qc: QueryClient) {
     qc.invalidateQueries({ queryKey: CONTRACTORS_KEY });
-    qc.invalidateQueries({ queryKey: OVERVIEW_KEY });
 }
 
 export function useCreateContractor() {
@@ -107,11 +106,29 @@ export function useDeleteEntry(contractorId: string) {
     });
 }
 
-export function useReopenEntry(contractorId: string) {
+/** Poprawka rozliczonego auta - odblokowanie dzieje się dopiero razem z zapisem zmian. */
+export function useCorrectEntry(contractorId: string) {
     const qc = useQueryClient();
     return useMutation({
-        mutationFn: (entryId: string) => batchOrderApi.reopenEntry(entryId),
+        mutationFn: ({ entryId, data }: { entryId: string; data: EntryRequest }) =>
+            batchOrderApi.correctEntry(entryId, data),
         onSuccess: () => invalidateContractorMoney(qc, contractorId),
+    });
+}
+
+export function useArchivedContractors(enabled: boolean) {
+    return useQuery({
+        queryKey: ARCHIVED_CONTRACTORS_KEY,
+        queryFn: batchOrderApi.listArchivedContractors,
+        enabled,
+    });
+}
+
+export function useRestoreContractor() {
+    const qc = useQueryClient();
+    return useMutation({
+        mutationFn: (contractorId: string) => batchOrderApi.restoreContractor(contractorId),
+        onSuccess: () => invalidateContractorLists(qc),
     });
 }
 

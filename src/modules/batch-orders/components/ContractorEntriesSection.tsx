@@ -5,8 +5,9 @@
 // aut), więc wraca WYGLĄD, a logika zostaje nowa:
 //   - kliknięcie w auto otwiera okno edycji (dawne EntryFormModal) - dawniej wiersz nic nie robił,
 //     od czego zaczęło się zgłoszenie „nie da się edytować cen";
-//   - rozliczonego auta nie zmienia się wprost: menu proponuje „Odblokuj do korekty"
-//     (backend odrzuca zapis rozliczonego wpisu, żeby praca nie poszła drugi raz);
+//   - rozliczone auto otwiera się do odczytu, a „Popraw auto" odblokowuje je do korekty
+//     dopiero razem z zapisem zmian (dawniej samo kliknięcie zdejmowało rozliczenie
+//     i „Anuluj" zostawiał korektę, którą następne zestawienie wysyłało drugi raz);
 //   - zestawienie, historia i PDF to te same okna co w nowym widoku;
 //   - rozliczone auta są zawsze na liście (pod nierozliczonymi, z zieloną poświatą
 //     i ikoną z wyjaśnieniem pod dotknięciem) - przełącznik „Pokaż rozliczone” chował
@@ -18,14 +19,15 @@ import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useToast } from '@/common/components/Toast';
 import { applyFloatingPlacement } from '@/common/utils/floatingPlacement';
 import { pluralPl } from '@/common/utils/plural';
-import { useContractorEntries, useDeleteEntry, useReopenEntry } from '../hooks/useBatchOrders';
+import { useContractorEntries, useDeleteEntry } from '../hooks/useBatchOrders';
 import { EntryFormModal } from './EntryFormModal';
 import { BatchOrderPhotoSection } from './BatchOrderPhotoSection';
 import { SettlementModal } from './SettlementModal';
 import { SettlementHistoryModal } from './SettlementHistoryModal';
 import { DateRangeFilter } from './DateRangeFilter';
 import { TapInfo } from '@/common/components/InfoTooltip';
-import { currentMonthPeriod } from '../utils/period';
+import { currentMonthPeriod, formatDay, monthPeriod, parseIsoDate, periodPhrase } from '../utils/period';
+import { formatMoney } from '../utils/format';
 import { batchOrderApi } from '../api/batchOrderApi';
 import type { BatchContractor, BatchOrderEntry } from '../types';
 import { problemDetail } from '@/core/problem';
@@ -387,9 +389,12 @@ const TableWrapper = styled.div`
     }
 `;
 
+/* Stałe szerokości kolumn: każda karta to osobna tabela, a przy szerokościach liczonych
+   z treści „Usługi" i kwoty stały w każdej karcie gdzie indziej. */
 const Table = styled.table`
     width: 100%;
     min-width: 680px;
+    table-layout: fixed;
     border-collapse: collapse;
     background: ${p => p.theme.colors.surface};
 
@@ -397,6 +402,7 @@ const Table = styled.table`
         display: block;
         min-width: 0;
         tbody { display: block; }
+        colgroup { display: none; }
     }
 `;
 
@@ -530,11 +536,11 @@ const StatusMark = styled.span<{ $tone: 'settled' | 'correction' }>`
 
 const SETTLED_EXPLANATION =
     'Rozliczone: to auto jest już w zestawieniu dla kontrahenta i nie trafi do kolejnego zestawienia. ' +
-    'Żeby coś w nim zmienić, dotknij wiersza i odblokuj je do korekty.';
+    'Żeby coś w nim zmienić, dotknij wiersza i wybierz „Popraw auto”.';
 
 const CORRECTION_EXPLANATION =
     'Korekta: to auto było już rozliczone i zostało odblokowane do poprawki. ' +
-    'Trafi do najbliższego zestawienia jako korekta, a wcześniejsze zestawienie zostaje bez zmian.';
+    'Trafi do najbliższego zestawienia jako korekta, pełną kwotą, a wcześniejsze zestawienie zostaje bez zmian.';
 
 /* ── Vehicle cell ── */
 const VehicleCell = styled.div`
@@ -601,6 +607,47 @@ const VinTag = styled.span`
     letter-spacing: 0.05em;
     font-family: 'JetBrains Mono', 'Fira Code', 'Consolas', monospace;
     line-height: 1.6;
+`;
+
+/* Liczba zdjęć przy aucie - dotąd nigdzie nie było widać, które auto ma dokumentację.
+   Klik rozwija zdjęcia pod wierszem, bez otwierania okna auta. */
+const PhotoCountBtn = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 4px;
+    margin-left: 6px;
+    padding: 2px 7px;
+    border: 1px solid ${p => p.theme.colors.border};
+    border-radius: ${p => p.theme.radii.full};
+    background: transparent;
+    color: ${p => p.theme.colors.textMuted};
+    font-family: inherit;
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.4;
+    cursor: pointer;
+    vertical-align: middle;
+
+    svg { width: 12px; height: 12px; }
+    &:hover { color: ${p => p.theme.colors.text}; border-color: ${p => p.theme.colors.textMuted}; }
+`;
+
+const PhotoRow = styled.tr`
+    @media (max-width: 767px) { display: block; }
+
+    > td {
+        padding: 10px 20px 14px;
+        border-bottom: 1px solid ${p => p.theme.colors.surfaceAlt};
+
+        @media (max-width: 767px) { display: block; padding: 8px 14px 12px; }
+    }
+`;
+
+const PhotoRowTitle = styled.div`
+    margin-bottom: 8px;
+    font-size: 12px;
+    font-weight: ${p => p.theme.fontWeights.semibold};
+    color: ${p => p.theme.colors.textSecondary};
 `;
 
 /* ── Services list ── */
@@ -868,10 +915,6 @@ const EmptyRow = styled.div`
     font-size: ${p => p.theme.fontSizes.sm};
 `;
 
-function formatMoney(cents: number) {
-    return new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(cents / 100);
-}
-
 /** 1 auto, 2-4 auta, 5+ aut. */
 function entryCountLabel(count: number) {
     return pluralPl(count, 'auto', 'auta', 'aut');
@@ -888,20 +931,26 @@ interface Props {
     onDelete: () => void;
 }
 
-type DrawerState = { entry: BatchOrderEntry | null; focusPrice?: boolean } | null;
+type DrawerState = { entry: BatchOrderEntry | null } | null;
 
 function vehicleName(entry: BatchOrderEntry): string {
     return [entry.vehicleMake, entry.vehicleModel].filter(Boolean).join(' ') || entry.vehicleLicensePlate || 'Auto';
 }
 
+/** Które auto znika i co razem z nim - dawniej okno mówiło tylko „Auto zniknie z listy". */
+function deleteMessage(entry: BatchOrderEntry): string {
+    const name = [vehicleName(entry), entry.vehicleLicensePlate].filter((v, i, all) => v && all.indexOf(v) === i).join(', ');
+    const photos = entry.photoCount > 0 ? ` Razem z nim znikną zdjęcia (${entry.photoCount}).` : '';
+    return `${name}, ${formatDay(entry.serviceDate)}, ${formatMoney(entry.grossAmountCents)}.${photos} Tego nie da się cofnąć.`;
+}
+
 export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props) {
-    const { showSuccess, showError } = useToast();
+    const { showSuccess, showError, showInfo } = useToast();
     const initial = currentMonthPeriod();
     const [filterFrom, setFilterFrom] = useState(initial.from);
     const [filterTo, setFilterTo] = useState(initial.to);
     const [drawer, setDrawer] = useState<DrawerState>(null);
     const [confirmDelete, setConfirmDelete] = useState<BatchOrderEntry | null>(null);
-    const [confirmReopen, setConfirmReopen] = useState<BatchOrderEntry | null>(null);
     const [downloading, setDownloading] = useState(false);
     const [expandedPhotoEntryId, setExpandedPhotoEntryId] = useState<string | null>(null);
     const [showSettlement, setShowSettlement] = useState(false);
@@ -928,7 +977,6 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
     // serwer liczy niezależnie od filtra.
     const { data, isLoading, isError } = useContractorEntries(contractor.id, filterFrom, filterTo, 'ALL');
     const deleteEntry = useDeleteEntry(contractor.id);
-    const reopenEntry = useReopenEntry(contractor.id);
 
     function openMenu(e: React.MouseEvent<HTMLButtonElement>, entryId: string) {
         e.stopPropagation();
@@ -963,14 +1011,17 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
         }
     }
 
-    async function handleReopen(entry: BatchOrderEntry) {
-        try {
-            const reopened = await reopenEntry.mutateAsync(entry.id);
-            showSuccess('Auto odblokowane do korekty', 'Po zapisie trafi do następnego zestawienia.');
-            setDrawer({ entry: reopened, focusPrice: true });
-        } catch (e) {
-            showError('Nie udało się odblokować auta', problemDetail(e, 'Spróbuj ponownie.'));
-        }
+    /**
+     * Auto zapisane z datą spoza widocznego okresu znikało z karty, choć komunikat mówił
+     * „czeka na zestawienie". Teraz karta przechodzi na miesiąc auta i mówi to wprost.
+     */
+    function showSavedEntry(saved: BatchOrderEntry) {
+        if (saved.serviceDate >= filterFrom && saved.serviceDate <= filterTo) return;
+        const day = parseIsoDate(saved.serviceDate);
+        const month = monthPeriod(day.getFullYear(), day.getMonth());
+        setFilterFrom(month.from);
+        setFilterTo(month.to);
+        showInfo('Karta pokazuje teraz inny okres', `Auto ma datę ${formatDay(saved.serviceDate)}, więc widać ${periodPhrase(month)}.`);
     }
 
     // Nierozliczone (także odblokowane do korekty) zawsze na górze: to z nimi jest
@@ -979,6 +1030,10 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
     // Nagłówek i stopka mówią, ile czeka na rozliczenie. Lista pokazuje też auta już
     // rozliczone, więc suma listy byłaby inną liczbą pod tym samym podpisem.
     const summary = data?.openSummary ?? data?.summary;
+    // Rozliczone auta okresu też mają swoją sumę: przy liście za 5407 zł stopka z samymi
+    // zerami („do rozliczenia 0") wyglądała jak błąd.
+    const settledSummary = data?.settledSummary;
+    const hasSettled = (settledSummary?.entryCount ?? 0) > 0;
     const openEntry = entries.find(e => e.id === openMenuEntryId) ?? null;
 
     return (
@@ -1008,10 +1063,21 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                             {contractor.phone && <span>{contractor.phone}</span>}
                         </ContractorMeta>
                         <MobileMeta>
-                            <MobileMetaTotal>{formatMoney(summary?.totalGrossCents ?? 0)}</MobileMetaTotal>
-                            <span>
-                                do rozliczenia, {summary?.entryCount ?? 0} {entryCountLabel(summary?.entryCount ?? 0)}
-                            </span>
+                            {(summary?.entryCount ?? 0) === 0 && hasSettled ? (
+                                <>
+                                    <MobileMetaTotal>{formatMoney(settledSummary!.totalGrossCents)}</MobileMetaTotal>
+                                    <span>
+                                        rozliczono, {settledSummary!.entryCount} {entryCountLabel(settledSummary!.entryCount)}
+                                    </span>
+                                </>
+                            ) : (
+                                <>
+                                    <MobileMetaTotal>{formatMoney(summary?.totalGrossCents ?? 0)}</MobileMetaTotal>
+                                    <span>
+                                        do rozliczenia, {summary?.entryCount ?? 0} {entryCountLabel(summary?.entryCount ?? 0)}
+                                    </span>
+                                </>
+                            )}
                         </MobileMeta>
                     </div>
                     <HeaderActions>
@@ -1112,6 +1178,15 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                     <>
                         <TableWrapper>
                             <Table>
+                                <colgroup>
+                                    <col style={{ width: 112 }} />
+                                    <col style={{ width: '22%' }} />
+                                    <col />
+                                    <col style={{ width: 120 }} />
+                                    <col style={{ width: 120 }} />
+                                    <col style={{ width: '15%' }} />
+                                    <col style={{ width: 48 }} />
+                                </colgroup>
                                 <TableHead>
                                     <tr>
                                         <Th>Data</Th>
@@ -1128,13 +1203,13 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                         <Fragment key={entry.id}>
                                             <Tr
                                                 $closed={entry.isClosed}
-                                                // Rozliczonego auta nie edytuje się wprost - najpierw decyzja
-                                                // o korekcie, inaczej praca trafia do kontrahenta drugi raz.
-                                                onClick={() => (entry.isClosed ? setConfirmReopen(entry) : setDrawer({ entry }))}
+                                                // Rozliczone auto otwiera się do odczytu - poprawka to osobna
+                                                // decyzja w oknie, a nie skutek kliknięcia w wiersz.
+                                                onClick={() => setDrawer({ entry })}
                                             >
                                                 <Td style={{ whiteSpace: 'nowrap' }} data-cell="date">
                                                     <RowSubText>
-                                                        {new Date(entry.serviceDate).toLocaleDateString('pl-PL')}
+                                                        {formatDay(entry.serviceDate)}
                                                     </RowSubText>
                                                 </Td>
                                                 <Td data-cell="vehicle">
@@ -1169,6 +1244,24 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                                                 <VinTag>VIN {entry.vehicleVin}</VinTag>
                                                             )}
                                                         </VehicleIdent>
+                                                    )}
+                                                    {entry.photoCount > 0 && (
+                                                        <PhotoCountBtn
+                                                            type="button"
+                                                            onClick={e => {
+                                                                e.stopPropagation();
+                                                                setExpandedPhotoEntryId(expandedPhotoEntryId === entry.id ? null : entry.id);
+                                                            }}
+                                                            title="Pokaż zdjęcia"
+                                                            aria-label={`Zdjęcia: ${entry.photoCount}`}
+                                                            aria-expanded={expandedPhotoEntryId === entry.id}
+                                                        >
+                                                            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" aria-hidden="true">
+                                                                <path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z" />
+                                                                <circle cx="12" cy="13" r="4" />
+                                                            </svg>
+                                                            {entry.photoCount}
+                                                        </PhotoCountBtn>
                                                     )}
                                                 </Td>
                                                 <Td data-cell="services">
@@ -1213,11 +1306,12 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                                 </Td>
                                             </Tr>
                                             {expandedPhotoEntryId === entry.id && (
-                                                <tr>
-                                                    <td colSpan={7} style={{ padding: 0 }}>
+                                                <PhotoRow>
+                                                    <td colSpan={7}>
+                                                        <PhotoRowTitle>Zdjęcia: {vehicleName(entry)}</PhotoRowTitle>
                                                         <BatchOrderPhotoSection entryId={entry.id} contractorId={contractor.id} />
                                                     </td>
-                                                </tr>
+                                                </PhotoRow>
                                             )}
                                         </Fragment>
                                     ))}
@@ -1229,7 +1323,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                             <SummaryBar>
                                 <SummaryItem>
                                     <SummaryLabel>Do rozliczenia</SummaryLabel>
-                                    <SummaryValue>{summary.entryCount}</SummaryValue>
+                                    <SummaryValue>{summary.entryCount} {entryCountLabel(summary.entryCount)}</SummaryValue>
                                 </SummaryItem>
                                 <SummaryItem>
                                     <SummaryLabel>Netto</SummaryLabel>
@@ -1239,6 +1333,14 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                     <SummaryLabel>Brutto</SummaryLabel>
                                     <SummaryValue>{formatMoney(summary.totalGrossCents)}</SummaryValue>
                                 </SummaryItem>
+                                {hasSettled && (
+                                    <SummaryItem style={{ marginLeft: 'auto' }}>
+                                        <SummaryLabel>Rozliczono</SummaryLabel>
+                                        <SummaryValue>
+                                            {settledSummary!.entryCount} {entryCountLabel(settledSummary!.entryCount)}, {formatMoney(settledSummary!.totalGrossCents)}
+                                        </SummaryValue>
+                                    </SummaryItem>
+                                )}
                             </SummaryBar>
                         )}
                     </>
@@ -1268,19 +1370,18 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                         Dokumentacja zdjęciowa
                     </MenuItem>
                     {openEntry.isClosed ? (
-                        // Rozliczonego wpisu nie zmienia się wprost - zmiana musi być
-                        // decyzją, inaczej praca trafia do kontrahenta drugi raz.
+                        // Rozliczone auto: podgląd, a poprawka to osobny przycisk w oknie.
                         <MenuItem
                             onClick={() => {
-                                setConfirmReopen(openEntry);
+                                setDrawer({ entry: openEntry });
                                 setOpenMenuEntryId(null);
                             }}
                         >
                             <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" width="13" height="13">
-                                <rect x="3" y="11" width="18" height="11" rx="2" />
-                                <path d="M7 11V7a5 5 0 0 1 9.9-1" />
+                                <path d="M2 12s3.5-7 10-7 10 7 10 7-3.5 7-10 7S2 12 2 12Z" />
+                                <circle cx="12" cy="12" r="3" />
                             </svg>
-                            Odblokuj do korekty
+                            Podgląd i poprawka
                         </MenuItem>
                     ) : (
                         <>
@@ -1324,30 +1425,20 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                     contractorId={contractor.id}
                     contractorName={contractor.name}
                     initial={drawer.entry}
-                    focusPrice={drawer.focusPrice}
+                    onSaved={showSavedEntry}
                     onClose={() => setDrawer(null)}
                 />
             )}
 
             <ConfirmationModal
                 isOpen={confirmDelete !== null}
-                title="Usuń auto"
-                message="Auto zniknie z listy. Tego nie da się cofnąć."
+                title="Usunąć auto?"
+                message={confirmDelete ? deleteMessage(confirmDelete) : ''}
                 variant="danger"
-                confirmText="Usuń"
+                confirmText="Usuń auto"
                 cancelText="Anuluj"
                 onConfirm={() => { if (confirmDelete) handleDelete(confirmDelete); }}
                 onCancel={() => setConfirmDelete(null)}
-            />
-            <ConfirmationModal
-                isOpen={confirmReopen !== null}
-                title="Odblokować auto do korekty?"
-                message="Auto wróci do listy nierozliczonych i trafi do następnego zestawienia jako korekta. Zestawienie, które już powstało, zostaje bez zmian."
-                variant="warning"
-                confirmText="Odblokuj"
-                cancelText="Anuluj"
-                onConfirm={() => { if (confirmReopen) handleReopen(confirmReopen); }}
-                onCancel={() => setConfirmReopen(null)}
             />
 
             {showSettlement && (

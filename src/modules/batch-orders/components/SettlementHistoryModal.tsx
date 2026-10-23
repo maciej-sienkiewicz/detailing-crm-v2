@@ -10,8 +10,8 @@ import { useToast } from '@/common/components/Toast';
 import { useSettlementHistory } from '../hooks/useBatchOrders';
 import { batchOrderApi } from '../api/batchOrderApi';
 import type { BatchContractor, SettlementHistoryRecord } from '../types';
-import { carsLabel } from '../utils/format';
-import { formatDay } from '../utils/period';
+import { carsLabel, formatMoney } from '../utils/format';
+import { formatDay, formatInstantDay } from '../utils/period';
 
 const EmptyMsg = styled.p`
     text-align: center;
@@ -21,7 +21,8 @@ const EmptyMsg = styled.p`
     margin: 0;
 `;
 
-const Card = styled.div`
+const Card = styled.div<{ $superseded?: boolean }>`
+    opacity: ${p => p.$superseded ? 0.72 : 1};
     border: 1px solid ${p => p.theme.colors.border};
     border-radius: 10px;
     padding: 14px 16px;
@@ -68,7 +69,7 @@ const MetaRow = styled.div`
     gap: 8px;
 `;
 
-const Badge = styled.span<{ $ok?: boolean; $warn?: boolean; $neutral?: boolean }>`
+const Badge = styled.span<{ $ok?: boolean; $warn?: boolean; $neutral?: boolean; $notice?: boolean }>`
     display: inline-flex;
     align-items: center;
     gap: 4px;
@@ -76,15 +77,18 @@ const Badge = styled.span<{ $ok?: boolean; $warn?: boolean; $neutral?: boolean }
     border-radius: 20px;
     font-size: 11px;
     font-weight: 600;
-    white-space: nowrap;
+    /* Przyczyna niewysłania bywa długa - zawija się zamiast wyjeżdżać za kartę. */
+    white-space: normal;
     background: ${
         p => p.$ok ? 'rgba(34, 197, 94, 0.1)'
            : p.$warn ? 'rgba(239, 68, 68, 0.08)'
+           : p.$notice ? '#fffbeb'
            : 'rgba(0,0,0,0.05)'
     };
     color: ${
         p => p.$ok ? '#16a34a'
            : p.$warn ? '#dc2626'
+           : p.$notice ? '#b45309'
            : p.theme.colors.textMuted
     };
 `;
@@ -118,10 +122,6 @@ const AmountValue = styled.span`
     font-variant-numeric: tabular-nums;
 `;
 
-function formatMoney(cents: number) {
-    return new Intl.NumberFormat('pl-PL', { style: 'currency', currency: 'PLN' }).format(cents / 100);
-}
-
 function formatDateTime(iso: string) {
     return new Date(iso).toLocaleString('pl-PL', {
         day: '2-digit', month: '2-digit', year: 'numeric',
@@ -151,16 +151,21 @@ function HistoryCard({ record, contractorName }: { record: SettlementHistoryReco
     }
 
     const period = record.periodFrom && record.periodTo
-        ? `${formatDate(record.periodFrom)}-${formatDate(record.periodTo)}`
+        ? `${formatDate(record.periodFrom)}–${formatDate(record.periodTo)}`
         : null;
 
-    const modeLabel = record.mode === 'NEW_ONLY' ? 'Tylko nowe auta' : 'Z autami z wcześniejszych zestawień';
+    // „Pełne za okres" mówi to, co zrobiło; dawniej „z autami z wcześniejszych zestawień"
+    // stało także przy zestawieniu, do którego żadne wcześniejsze auto nie weszło.
+    const modeLabel = record.mode === 'NEW_ONLY' ? 'Tylko nowe auta' : 'Pełne za okres';
+    const superseded = !!record.supersededByHistoryId;
 
     return (
-        <Card>
+        <Card $superseded={superseded}>
             <CardTop>
                 <DateInfo>
-                    <ClosedAt>{formatDateTime(record.closedAt)}</ClosedAt>
+                    <ClosedAt>
+                        {record.documentNumber ? `${record.documentNumber}, ` : ''}{formatDateTime(record.closedAt)}
+                    </ClosedAt>
                     {period && <PeriodLabel>Okres: {period}</PeriodLabel>}
                     {record.closedByUserName && (
                         <ClosedBy>Utworzył(a): {record.closedByUserName}</ClosedBy>
@@ -173,6 +178,14 @@ function HistoryCard({ record, contractorName }: { record: SettlementHistoryReco
             </CardTop>
 
             <MetaRow>
+                {/* Zastąpione zestawienie zostaje w historii (kontrahent je dostał), ale nie
+                    obowiązuje - inaczej dwa zestawienia za ten sam okres wyglądały na dwie płatności. */}
+                {superseded && (
+                    // Bursztyn = „przeczytaj": to informacja, nie błąd (czerwień znaczy „nieodwracalne").
+                    <Badge $notice>
+                        Zastąpione{record.supersededAt ? ` zestawieniem z ${formatInstantDay(record.supersededAt)}` : ''}
+                    </Badge>
+                )}
                 <Badge $neutral>{carsLabel(record.entryCount)}</Badge>
                 <Badge $neutral>{modeLabel}</Badge>
                 {/* Bez plakietki „finanse": serwer nigdy nie tworzył wpisu finansowego,
@@ -181,7 +194,9 @@ function HistoryCard({ record, contractorName }: { record: SettlementHistoryReco
                 {record.emailRequested ? (
                     record.emailSent
                         ? <Badge $ok>✓ Wysłane e-mailem{record.emailRecipient ? ` na ${record.emailRecipient}` : ''}</Badge>
-                        : <Badge $warn>✗ E-mail nie wyszedł, pobierz PDF i wyślij ręcznie</Badge>
+                        : <Badge $warn title={record.emailError ?? undefined}>
+                            ✗ E-mail nie wyszedł{record.emailError ? `: ${record.emailError}` : ''}
+                        </Badge>
                 ) : (
                     <Badge $neutral>Bez wysyłki e-mailem</Badge>
                 )}

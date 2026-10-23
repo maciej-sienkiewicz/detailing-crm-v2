@@ -9,8 +9,21 @@ export interface BatchContractor {
     notes: string | null;
     isActive: boolean;
     entryCount: number;
+    /**
+     * Nierozliczone auta od zawsze, niezależnie od okresu karty - ostrzeżenie przed
+     * przeniesieniem do archiwum. Brak u starszego serwera - wtedy 0.
+     */
+    openEntryCount?: number;
+    openGrossCents?: number;
     createdAt: string;
     updatedAt: string;
+}
+
+/** Kontrahent w archiwum: z liczbą zestawień, do których da się zajrzeć. */
+export interface ArchivedContractor {
+    contractor: BatchContractor;
+    settlementCount: number;
+    lastSettledAt: string | null;
 }
 
 export interface ServiceItem {
@@ -37,7 +50,7 @@ export interface BatchOrderEntry {
      * rozliczenia i do tego czasu nosi oznaczenie, żeby nikt nie wziął go za zwykły nowy wpis.
      */
     isCorrection: boolean;
-    /** Rozliczenie, w którym wpis został ujęty; null dla wpisu otwartego. */
+    /** Zestawienie, w którym auto zostało ujęte; null dla auta nierozliczonego. */
     closeHistoryId: string | null;
     photoCount: number;
     createdAt: string;
@@ -76,19 +89,6 @@ export interface ContractorEntriesResponse {
     /** Co w okresie już rozliczono - niezależnie od filtra. */
     settledSummary: EntrySummary;
     /** Kiedy ostatnio rozliczono ten okres (ISO); null, gdy nigdy. */
-    lastSettledAt: string | null;
-}
-
-/** Pozycja listy kontrahentów: ile każdy ma do rozliczenia w wybranym okresie. */
-export interface ContractorOverview {
-    contractor: BatchContractor;
-    openCount: number;
-    openNetCents: number;
-    openGrossCents: number;
-    settledCount: number;
-    /** Sumy aut okresu już w zestawieniach. Brak u starszego serwera - wtedy 0. */
-    settledNetCents?: number;
-    settledGrossCents?: number;
     lastSettledAt: string | null;
 }
 
@@ -174,7 +174,9 @@ export interface PhotoUploadResponse {
 }
 
 /**
- * Which entries a settlement covers. `NEW_ONLY` skips anything already settled.
+ * Which entries a settlement covers. `NEW_ONLY` skips anything already settled;
+ * `ALL` is the full, corrected statement for the period and supersedes the earlier ones
+ * it takes cars from.
  *
  * The wire names (and the endpoint, `close-month`) still say "close"; the concept
  * they encode is settling a period of any length, which is what the UI now calls it.
@@ -199,11 +201,17 @@ export interface SettlementResult {
     totalGrossCents: number;
     emailRequested: boolean;
     emailSent: boolean;
+    /** Dlaczego e-mail nie wyszedł; null, gdy wyszedł albo nikt nie prosił. */
+    emailError?: string | null;
+    /** Numer zestawienia w PDF, ZZ/RRRR/NNNN. */
+    documentNumber?: string | null;
     historyId: string;
 }
 
 export interface SettlementHistoryRecord {
     id: string;
+    /** Null przy zestawieniach sprzed numeracji. */
+    documentNumber?: string | null;
     closedAt: string;
     periodFrom: string | null;
     periodTo: string | null;
@@ -215,5 +223,9 @@ export interface SettlementHistoryRecord {
     emailRequested: boolean;
     emailSent: boolean;
     emailRecipient: string | null;
+    emailError?: string | null;
     closedByUserName: string | null;
+    /** Nowsze zestawienie „pełne za okres", które zastąpiło to; null, gdy obowiązuje. */
+    supersededByHistoryId?: string | null;
+    supersededAt?: string | null;
 }

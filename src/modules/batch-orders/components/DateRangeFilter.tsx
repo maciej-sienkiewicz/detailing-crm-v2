@@ -4,9 +4,14 @@
 // (wygląd sprzed przebudowy z 25.09, logika nowa). Daty liczone
 // lokalnie - `new Date('2026-09-01')` to północ UTC, na zachód od Greenwich
 // już poprzedni dzień.
+//
+// Filtr jest sterowany okresem karty: aktywny chip wynika z `from`/`to`, a nie z własnej
+// kopii stanu. Dawniej „Wybierz zakres" zapalał się od razu, choć lista dalej pokazywała
+// poprzedni okres, a karta przełączona z zewnątrz (zapis auta z innego miesiąca)
+// zostawiała zapalony stary chip.
 import { useState } from 'react';
 import styled from 'styled-components';
-import { parseIsoDate } from '../utils/period';
+import { parseIsoDate, periodPhrase } from '../utils/period';
 
 interface Props {
     from: string;
@@ -180,82 +185,95 @@ const ApplyBtn = styled.button`
     font-size: ${p => p.theme.fontSizes.xs};
     font-weight: 600;
     cursor: pointer;
+    /* Bez wypełnienia: krokiem następnym okna jest „+ Kontrahent" w nagłówku, a ten
+       przycisk powtarza się przy każdej karcie (CLAUDE.md §2). */
     border: 1px solid var(--brand-ink);
-    background: var(--brand-ink);
-    color: #fff;
+    background: transparent;
+    color: var(--brand-ink);
     min-height: 32px;
 
-    &:hover { opacity: 0.9; }
+    &:hover:not(:disabled) { background: color-mix(in srgb, var(--brand-ink) 8%, transparent); }
+    &:disabled { opacity: 0.45; cursor: not-allowed; }
 
     @media (hover: none) and (pointer: coarse) { min-height: 40px; }
 `;
 
+const RangeHint = styled.span`
+    flex-basis: 100%;
+    font-size: ${p => p.theme.fontSizes.xs};
+    color: ${p => p.theme.colors.error};
+`;
+
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function DateRangeFilter({ onChange }: Props) {
-    const [activePreset, setActivePreset] = useState<ActivePreset>('current');
-    const [selectedMonth, setSelectedMonth] = useState(() => {
-        const now = new Date();
-        return `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-    });
-    const [customFrom, setCustomFrom] = useState('');
-    const [customTo, setCustomTo] = useState('');
+const monthValue = (iso: string) => iso.slice(0, 7);
+
+/** Który chip odpowiada okresowi karty. */
+function presetFor(from: string, to: string, now: Date = new Date()): { preset: ActivePreset; month?: string } {
+    const current = monthRange(now.getFullYear(), now.getMonth());
+    if (from === current.from && to === current.to) return { preset: 'current' };
+    const previous = monthRange(now.getFullYear(), now.getMonth() - 1);
+    if (from === previous.from && to === previous.to) return { preset: 'previous' };
+    const start = parseIsoDate(from);
+    const month = monthRange(start.getFullYear(), start.getMonth());
+    if (from === month.from && to === month.to) return { preset: 'pick-month', month: monthValue(from) };
+    return { preset: 'custom' };
+}
+
+export function DateRangeFilter({ from, to, onChange }: Props) {
+    const applied = presetFor(from, to);
+    // Pola własnego zakresu i lista miesięcy są otwarte, zanim ktoś wybierze - same
+    // nie zmieniają okresu karty ani zapalonego chipa.
+    const [editingCustom, setEditingCustom] = useState(false);
+    const [pickingMonth, setPickingMonth] = useState(false);
+    const [customFrom, setCustomFrom] = useState(applied.preset === 'custom' ? from : '');
+    const [customTo, setCustomTo] = useState(applied.preset === 'custom' ? to : '');
     const [mobileExpanded, setMobileExpanded] = useState(false);
 
     const monthOptions = generateMonthOptions();
+    const selectedMonth = applied.month ?? monthValue(from);
+    if (!monthOptions.some(o => o.value === selectedMonth)) {
+        const d = parseIsoDate(`${selectedMonth}-01`);
+        monthOptions.unshift({ value: selectedMonth, label: `${MONTHS_PL[d.getMonth()]} ${d.getFullYear()}`, year: d.getFullYear(), month: d.getMonth() });
+    }
+
+    const customInverted = !!customFrom && !!customTo && customFrom > customTo;
+    const canApply = !!customFrom && !!customTo && !customInverted;
+    const showMonthSelect = pickingMonth || applied.preset === 'pick-month';
+    const showCustomInputs = editingCustom || applied.preset === 'custom';
 
     function activePeriodLabel(): string {
-        switch (activePreset) {
+        switch (applied.preset) {
             case 'current':   return 'Bieżący miesiąc';
             case 'previous':  return 'Poprzedni miesiąc';
-            case 'pick-month': {
-                const opt = monthOptions.find(o => o.value === selectedMonth);
-                return opt?.label ?? 'Wybrany miesiąc';
-            }
-            case 'custom':
-                if (customFrom && customTo) {
-                    const fmt = (s: string) => parseIsoDate(s).toLocaleDateString('pl-PL', { day: '2-digit', month: 'short' });
-                    return `${fmt(customFrom)}-${fmt(customTo)}`;
-                }
-                return 'Własny zakres';
+            case 'pick-month': return monthOptions.find(o => o.value === selectedMonth)?.label ?? periodPhrase({ from, to });
+            case 'custom':    return periodPhrase({ from, to });
         }
     }
 
-    function selectCurrent() {
-        const r = currentMonthRange();
-        setActivePreset('current');
-        onChange(r.from, r.to);
+    function apply(range: { from: string; to: string }) {
+        setEditingCustom(false);
+        setPickingMonth(false);
+        onChange(range.from, range.to);
         setMobileExpanded(false);
+    }
+
+    function selectCurrent() {
+        apply(currentMonthRange());
     }
 
     function selectPrevious() {
         const now = new Date();
-        const r = monthRange(now.getFullYear(), now.getMonth() - 1);
-        setActivePreset('previous');
-        onChange(r.from, r.to);
-        setMobileExpanded(false);
-    }
-
-    function handlePickMonthChip() {
-        setActivePreset('pick-month');
-        const [y, m] = selectedMonth.split('-').map(Number);
-        const r = monthRange(y, m - 1);
-        onChange(r.from, r.to);
-        setMobileExpanded(false);
+        apply(monthRange(now.getFullYear(), now.getMonth() - 1));
     }
 
     function handleMonthSelect(value: string) {
-        setSelectedMonth(value);
         const [y, m] = value.split('-').map(Number);
-        const r = monthRange(y, m - 1);
-        onChange(r.from, r.to);
+        apply(monthRange(y, m - 1));
     }
 
     function handleCustomApply() {
-        if (customFrom && customTo) {
-            onChange(customFrom, customTo);
-            setMobileExpanded(false);
-        }
+        if (canApply) apply({ from: customFrom, to: customTo });
     }
 
     return (
@@ -283,45 +301,62 @@ export function DateRangeFilter({ onChange }: Props) {
 
             {/* All options: always visible on desktop, shown on mobile only when expanded */}
             <FilterOptions $open={mobileExpanded}>
-                <Chip $active={activePreset === 'current'} onClick={selectCurrent}>
+                <Chip $active={applied.preset === 'current'} aria-pressed={applied.preset === 'current'} onClick={selectCurrent}>
                     Bieżący miesiąc
                 </Chip>
 
-                <Chip $active={activePreset === 'previous'} onClick={selectPrevious}>
+                <Chip $active={applied.preset === 'previous'} aria-pressed={applied.preset === 'previous'} onClick={selectPrevious}>
                     Poprzedni miesiąc
                 </Chip>
 
-                <Chip $active={activePreset === 'pick-month'} onClick={handlePickMonthChip}>
+                <Chip
+                    $active={applied.preset === 'pick-month'}
+                    aria-pressed={applied.preset === 'pick-month'}
+                    onClick={() => { setPickingMonth(true); setEditingCustom(false); }}
+                    aria-expanded={showMonthSelect}
+                >
                     Wybierz miesiąc
                 </Chip>
-                {activePreset === 'pick-month' && (
+                {showMonthSelect && (
                     <MonthSelect
-                        value={selectedMonth}
+                        aria-label="Miesiąc"
+                        value={applied.preset === 'pick-month' ? selectedMonth : ''}
                         onChange={e => handleMonthSelect(e.target.value)}
                     >
+                        {applied.preset !== 'pick-month' && <option value="" disabled>Wybierz…</option>}
                         {monthOptions.map(o => (
                             <option key={o.value} value={o.value}>{o.label}</option>
                         ))}
                     </MonthSelect>
                 )}
 
-                <Chip $active={activePreset === 'custom'} onClick={() => setActivePreset('custom')}>
+                <Chip
+                    $active={applied.preset === 'custom'}
+                    aria-pressed={applied.preset === 'custom'}
+                    onClick={() => { setEditingCustom(true); setPickingMonth(false); }}
+                    aria-expanded={showCustomInputs}
+                >
                     Wybierz zakres
                 </Chip>
-                {activePreset === 'custom' && (
+                {showCustomInputs && (
                     <>
                         <DateInput
                             type="date"
+                            aria-label="Od"
                             value={customFrom}
+                            max={customTo || undefined}
                             onChange={e => setCustomFrom(e.target.value)}
                         />
                         <Dash>-</Dash>
                         <DateInput
                             type="date"
+                            aria-label="Do"
                             value={customTo}
+                            min={customFrom || undefined}
                             onChange={e => setCustomTo(e.target.value)}
                         />
-                        <ApplyBtn onClick={handleCustomApply}>Zastosuj</ApplyBtn>
+                        <ApplyBtn onClick={handleCustomApply} disabled={!canApply}>Zastosuj</ApplyBtn>
+                        {customInverted && <RangeHint role="alert">Data „od” jest po dacie „do”. Zamień je miejscami.</RangeHint>}
                     </>
                 )}
 

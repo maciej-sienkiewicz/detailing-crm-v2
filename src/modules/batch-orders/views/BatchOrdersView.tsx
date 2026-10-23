@@ -11,12 +11,13 @@
 
 import { useState } from 'react';
 import styled from 'styled-components';
-import { Layers, Settings } from 'lucide-react';
+import { Archive, Layers, MoreHorizontal, Tag } from 'lucide-react';
 import { PageContainer } from '@/common/components/PageContainer';
 import { PageHeader, PageHeaderPrimaryButton, PageHeaderGhostButton } from '@/common/components/PageHeader/PageHeader';
 import { MobilePageHeader, MobilePageHeaderButton, MobilePageHeaderIconButton, MobilePageHeaderCountValue } from '@/common/components/PageHeader';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { SharedButton } from '@/common/styles';
+import { ActionMenu, MenuItem, useActionMenu } from '@/common/components/ui';
 import { useToast } from '@/common/components/Toast';
 import { useBreakpoint } from '@/common/hooks';
 import {
@@ -25,7 +26,9 @@ import {
 import { ContractorEntriesSection } from '../components/ContractorEntriesSection';
 import { ContractorFormModal } from '../components/ContractorFormModal';
 import { BatchServicesModal } from '../components/BatchServicesModal';
+import { ArchivedContractorsModal } from '../components/ArchivedContractorsModal';
 import type { BatchContractor, ContractorRequest } from '../types';
+import { carsLabel, formatMoney } from '../utils/format';
 import { problemDetail } from '@/core/problem';
 
 const ViewContainer = styled(PageContainer)`
@@ -61,6 +64,15 @@ const StateBox = styled.div<{ $error?: boolean }>`
     p { margin: 0; max-width: 420px; line-height: 1.5; }
 `;
 
+/** Kontrahent idzie do archiwum; nierozliczone auta nie trafią do zestawienia, dopóki tam jest. */
+function archiveMessage(contractor: BatchContractor): string {
+    const open = contractor.openEntryCount ?? 0;
+    const unsettled = open > 0
+        ? ` Ma ${carsLabel(open)} za ${formatMoney(contractor.openGrossCents ?? 0)} poza zestawieniami - nie trafią do zestawienia, dopóki go nie przywrócisz.`
+        : '';
+    return `„${contractor.name}” zniknie z listy. Jego auta i zestawienia zobaczysz w archiwum, skąd go przywrócisz.${unsettled}`;
+}
+
 export function BatchOrdersView() {
     const { showSuccess, showError } = useToast();
     const isDesktop = useBreakpoint('md');
@@ -74,6 +86,8 @@ export function BatchOrdersView() {
     const [editContractor, setEditContractor] = useState<BatchContractor | null>(null);
     const [confirmDelete, setConfirmDelete] = useState<BatchContractor | null>(null);
     const [showServices, setShowServices] = useState(false);
+    const [showArchive, setShowArchive] = useState(false);
+    const moreMenu = useActionMenu();
 
     async function handleCreate(data: ContractorRequest) {
         const created = await createContractor.mutateAsync(data);
@@ -89,9 +103,9 @@ export function BatchOrdersView() {
     async function handleDelete(contractor: BatchContractor) {
         try {
             await deleteContractor.mutateAsync(contractor.id);
-            showSuccess('Kontrahent usunięty z listy', contractor.name);
+            showSuccess('Kontrahent w archiwum', `${contractor.name}. Przywrócisz go z archiwum u góry strony.`);
         } catch (e) {
-            showError('Nie udało się usunąć kontrahenta', problemDetail(e, 'Spróbuj ponownie.'));
+            showError('Nie udało się przenieść kontrahenta do archiwum', problemDetail(e, 'Spróbuj ponownie.'));
         }
     }
 
@@ -116,7 +130,7 @@ export function BatchOrdersView() {
                     Dodaj pierwszego kontrahenta, żeby zapisywać jego auta i rozliczać je jednym
                     zestawieniem.
                 </p>
-                <SharedButton $variant="primary" type="button" onClick={() => setShowCreate(true)}>Dodaj kontrahenta</SharedButton>
+                <SharedButton $variant="secondary" type="button" onClick={() => setShowCreate(true)}>Dodaj kontrahenta</SharedButton>
             </StateBox>
         );
     } else {
@@ -142,8 +156,11 @@ export function BatchOrdersView() {
                     subtitle="Kontrahenci flotowi i ich miesięczne zestawienia"
                     actions={
                         <>
+                            <PageHeaderGhostButton onClick={() => setShowArchive(true)} title="Archiwum kontrahentów">
+                                Archiwum
+                            </PageHeaderGhostButton>
                             <PageHeaderGhostButton onClick={() => setShowServices(true)} title="Cennik usług">
-                                Usługi
+                                Cennik
                             </PageHeaderGhostButton>
                             <PageHeaderPrimaryButton onClick={() => setShowCreate(true)} title="Dodaj kontrahenta">
                                 + Kontrahent
@@ -160,8 +177,16 @@ export function BatchOrdersView() {
                         : 'Wczytywanie…'}
                     actions={
                         <>
-                            <MobilePageHeaderIconButton onClick={() => setShowServices(true)} title="Cennik usług" aria-label="Cennik usług">
-                                <Settings />
+                            {/* Cennik i Archiwum w jednym menu: dwie ikony obok „+ Kontrahent"
+                                ucinały tytuł przy 375 px do „Zle…". */}
+                            <MobilePageHeaderIconButton
+                                type="button"
+                                aria-label="Więcej akcji"
+                                aria-haspopup="menu"
+                                aria-expanded={moreMenu.isOpen()}
+                                onClick={e => moreMenu.toggle(e, null)}
+                            >
+                                <MoreHorizontal />
                             </MobilePageHeaderIconButton>
                             <MobilePageHeaderButton onClick={() => setShowCreate(true)}>
                                 <span aria-hidden="true">+</span>
@@ -171,10 +196,17 @@ export function BatchOrdersView() {
                     }
                 />
             )}
+            {!isDesktop && (
+                <ActionMenu anchor={moreMenu.menu?.anchor ?? null} onClose={moreMenu.close} label="Więcej akcji">
+                    <MenuItem icon={<Tag />} onClick={() => setShowServices(true)}>Cennik usług</MenuItem>
+                    <MenuItem icon={<Archive />} onClick={() => setShowArchive(true)}>Archiwum kontrahentów</MenuItem>
+                </ActionMenu>
+            )}
 
             {content}
 
             {showServices && <BatchServicesModal onClose={() => setShowServices(false)} />}
+            {showArchive && <ArchivedContractorsModal onClose={() => setShowArchive(false)} />}
 
             {showCreate && (
                 <ContractorFormModal onSave={handleCreate} onClose={() => setShowCreate(false)} />
@@ -193,10 +225,10 @@ export function BatchOrdersView() {
                 wpisy") straszył czymś, co się nie działo. */}
             <ConfirmationModal
                 isOpen={confirmDelete !== null}
-                title="Usunąć kontrahenta z listy?"
-                message={`„${confirmDelete?.name ?? ''}” zniknie z listy zleceń zbiorczych. Jego auta i zestawienia zostaną zachowane.`}
+                title="Przenieść kontrahenta do archiwum?"
+                message={confirmDelete ? archiveMessage(confirmDelete) : ''}
                 variant="danger"
-                confirmText="Usuń z listy"
+                confirmText="Przenieś do archiwum"
                 cancelText="Anuluj"
                 onConfirm={() => { if (confirmDelete) handleDelete(confirmDelete); }}
                 onCancel={() => setConfirmDelete(null)}

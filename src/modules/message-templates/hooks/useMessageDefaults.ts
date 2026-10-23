@@ -17,6 +17,12 @@ export interface MessageDefaults {
     /** undefined = ustawienia jeszcze się wczytują albo są niedostępne (brak uprawnień, modułu, starszy backend). */
     sms: (key: SmsRuleKey) => boolean | undefined;
     email: (key: EmailRuleKey) => boolean | undefined;
+    /**
+     * Czy wiadomość jest w ogóle włączona. „Domyślnie zaznacz" przy wyłączonej wiadomości
+     * kończy się wysyłką, której serwer nie zrobi - okno zestawienia zaznaczało wtedy
+     * pole, a po zapisie mówiło tylko „e-mail nie wyszedł". undefined jak przy [email].
+     */
+    emailEnabled: (key: EmailRuleKey) => boolean | undefined;
 }
 
 /** `enabled: false` - okno jest zamknięte i jeszcze nie potrzebuje ustawień. */
@@ -32,7 +38,8 @@ export function useMessageDefaults(options?: { enabled?: boolean }): MessageDefa
     // wraca wtedy do swojego dotychczasowego stanu, zamiast po cichu go zmienić.
     const smsDefault = useCallback((key: SmsRuleKey) => sms?.[key]?.checkedByDefault, [sms]);
     const emailDefault = useCallback((key: EmailRuleKey) => email?.[key]?.checkedByDefault, [email]);
-    return { sms: smsDefault, email: emailDefault };
+    const emailEnabled = useCallback((key: EmailRuleKey) => email?.[key]?.enabled, [email]);
+    return { sms: smsDefault, email: emailDefault, emailEnabled };
 }
 
 /**
