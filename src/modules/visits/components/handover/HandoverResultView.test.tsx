@@ -68,9 +68,9 @@ describe('handoverLead', () => {
             { ...base, totalGross: 1_100_000, invoiceGross: 1_000_000, paymentMethod: 'CARD', remainderGross: 100_000, remainderPaymentMethod: 'CASH', totalGrossBeforeHandover: 1_200_000 },
             1_100_000, 'Karta', fmt
         )).toEqual([
-            'Faktura 10000,00 zł, karta.',
-            'Inny dokument 1000,00 zł, gotówka, bez paragonu i bez VAT.',
-            'Cena wizyty zmieniona przy wydaniu: 12000,00 zł → 11000,00 zł.',
+            'Faktura 10000,00 zł brutto, karta.',
+            'Inny dokument 1000,00 zł bez VAT, gotówka.',
+            'Cena wizyty zmieniona przy wydaniu: 12000,00 zł → 11000,00 zł brutto.',
         ]);
     });
 

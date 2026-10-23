@@ -5,35 +5,49 @@
 // (ten sam, który potem wykonuje) - okno pokazuje tylko, czy da się ją zrobić,
 // a jeśli nie, to dlaczego.
 //
+// Wygląd jak krok płatności „Wydanie pojazdu” (decyzja biznesu z 23.10.2026): te same
+// klocki (HandoverKit), ta sama tabela cen, ten sam wybór dokumentu i płatności, nabywca
+// w podsumowaniu ze „Zmień”, jeden zielony przycisk w stopce. Dwa okna jednej czynności
+// trzeba było poznawać osobno. Poprawka ma ponad wydanie tylko to, czego wydanie nie
+// zna: obecne dokumenty, skutek dla faktury w KSeF, klienta i kasy, i historię.
+//
 // Nic nie jest usuwane: stare dokumenty zostają w historii wizyty obok korekt.
-// Otwarty edytor przejmuje okno, więc „Zatwierdź poprawkę” jest jedynym wypełnieniem
-// (CLAUDE.md §2, wyjątek edytora).
 
 import { useEffect, useMemo, useState } from 'react';
 import styled from 'styled-components';
+import { ArrowRight, FileCheck2 } from 'lucide-react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import {
-    ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalSubtitle, ModalContent, ModalFooter, CloseBtn,
+    ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalSubtitle, ModalContent, CloseBtn,
 } from '@/common/components/ModalKit';
-import { Button, Notice, SectionTitle, Segmented, StatusPill, ui } from '@/common/components/ui';
+import { BareInput, BareTextArea, InputShell, InputShellTextArea } from '@/common/components/Form';
+import { Button, Notice, StatusPill, ui } from '@/common/components/ui';
 import { useToast } from '@/common/components/Toast';
 import { formatCurrency } from '@/common/utils';
 import { isPiiMasked } from '@/common/pii';
 import { localIsoDate } from '@/common/utils/localDate';
-import { MAX_2_DECIMALS } from '@/common/utils/moneyInput';
 import {
     settlementApi,
+    type SettlementBuyer,
     type SettlementCorrectionRequest,
     type SettlementDocumentType,
+    type SettlementKsefAction,
     type SettlementView,
 } from '../api/settlementApi';
 import {
-    SETTLEMENT_VAT_RATES, changedServiceLines, lineChanged, lineFromService, totalGrossCents,
-    withLineGross, withLineNet, withLineVatRate, type SettlementLineDraft,
+    changedServiceLines, lineFromService, priceOfLine, totalGrossCents, totalNetCents, withPriceChange,
+    type SettlementLineDraft,
 } from '../utils/settlementLines';
-import { BuyerEditor } from './handover/BuyerEditor';
+import {
+    ActionIcon, ActionText, Box, DecisionField, DecisionStack, DecisionTitle, GhostAction, Muted, Pill, PillRow,
+    PrimaryAction, Review, ReviewRow, ReviewTitle, SettlementFooter, SettlementGrid, SummaryAmount, SummaryAside,
+    SummaryProblems,
+} from './handover/HandoverKit';
+import { BuyerModal } from './handover/InvoiceSection';
 import { PaymentMethodPicker } from './handover/PaymentMethodPicker';
-import type { HandoverBuyer } from '../types/handover';
+import { PricesSection } from './handover/PricesSection';
+import { paymentMethods } from './handover/paymentOptions';
+import { formatNip, normalizeNip, type HandoverBuyer } from '../types/handover';
 import type { PaymentMethod } from '../types/stateTransitions';
 import { visitKeys } from '../hooks';
 import { settlementDocumentRows } from '../utils/settlementDocumentRows';
@@ -41,9 +55,14 @@ import { problemDetail } from '@/core/problem';
 
 const pln = (cents: number) => formatCurrency(cents / 100);
 
-const DOCUMENT_TYPES: Array<{ value: SettlementDocumentType; label: string }> = [
+/** Kwota dokumentu z tym, czym jest: inny dokument przy podziale jest bez VAT. */
+const documentAmount = (cents: number, withoutReceipt: boolean | undefined) =>
+    `${pln(cents)} ${withoutReceipt ? 'bez VAT' : 'brutto'}`;
+
+/** Te same nazwy co „Dokument dla klienta” na ekranie wydania. */
+const DOCUMENT_CHOICES: Array<{ value: SettlementDocumentType; label: string }> = [
     { value: 'RECEIPT', label: 'Paragon' },
-    { value: 'INVOICE', label: 'Faktura' },
+    { value: 'INVOICE', label: 'Faktura VAT' },
     { value: 'OTHER', label: 'Inny dokument' },
 ];
 
@@ -58,101 +77,71 @@ const INVOICE_STATUS: Record<string, { label: string; tone: 'ok' | 'info' | 'war
     CANCELLED: { label: 'Anulowana', tone: 'neutral' },
 };
 
+/**
+ * Co poprawka zrobi z fakturą - wiersz podsumowania przed zatwierdzeniem. Faktury
+ * przyjętej w KSeF nie da się usunąć, a korekty cofnąć: tego skutku nie wolno zostawić
+ * w zdaniach planu, których okno nie pokazuje. NONE nie ma wiersza.
+ */
+const KSEF_LINE: Partial<Record<SettlementKsefAction, { text: string; note?: string }>> = {
+    KEEP: { text: 'Zostaje bez zmian' },
+    CANCEL: { text: 'Anulowanie', note: 'Faktura nie trafiła do KSeF. Jej numer zostaje zajęty.' },
+    CANCEL_AND_REISSUE: { text: 'Anulowanie i nowa faktura', note: 'Faktura nie trafiła do KSeF. Jej numer zostaje zajęty.' },
+    CORRECT: { text: 'Korekta do zera w KSeF', note: 'Korekty w KSeF nie da się cofnąć.' },
+    CORRECT_AND_REISSUE: { text: 'Korekta do zera i nowa faktura', note: 'Inny nabywca dostaje nową fakturę. Korekty w KSeF nie da się cofnąć.' },
+    // Zmiana ceny przy tym samym nabywcy: faktura zostaje, KSeF dostaje korektę o różnicę.
+    CORRECT_DIFFERENCE: { text: 'Korekta o różnicę', note: 'Faktura zostaje, nowa nie powstaje. Korekty w KSeF nie da się cofnąć.' },
+    ISSUE: { text: 'Nowa faktura' },
+    INVOICE_TO_RECEIPT: { text: 'Faktura do paragonu', note: 'Paragon zostaje, sprzedaż liczy się raz.' },
+    EXTERNAL_INVOICE: { text: 'Wystawia księgowość', note: 'CRM nie tworzy faktury.' },
+    EXTERNAL_INVOICE_TO_RECEIPT: { text: 'Do paragonu wystawia księgowość', note: 'CRM nie tworzy faktury.' },
+};
+
+const methodLabel = (method: string | null | undefined): string =>
+    paymentMethods.find(m => m.value === method)?.label ?? 'Inna metoda';
+
 // ─── Wygląd ───────────────────────────────────────────────────────────────────
 
-const Section = styled.section`
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-
-    & + & { margin-top: 22px; }
-`;
-
+/** Obecne dokumenty: jedna sprzedaż = jeden wiersz (settlementDocumentRows). */
 const DocList = styled.ul`
     list-style: none;
     margin: 0;
-    padding: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
+    padding: 2px 14px;
+    border: 1px solid ${ui.line};
+    border-radius: 14px;
+    background: ${ui.surface};
 `;
 
-const DocRow = styled.li<{ $muted?: boolean }>`
+const DocRow = styled.li`
     display: flex;
     align-items: center;
     flex-wrap: wrap;
     gap: 6px 12px;
+    padding: 10px 0;
     font-size: 13.5px;
-    color: ${p => p.$muted ? ui.textMuted : ui.ink};
-
-    strong { font-weight: 600; font-variant-numeric: tabular-nums; }
-    .amount { margin-left: auto; font-variant-numeric: tabular-nums; font-weight: 600; }
-`;
-
-const Lines = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
-`;
-
-const Line = styled.div<{ $changed: boolean }>`
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) auto;
-    gap: 8px 12px;
-    padding: 12px 14px;
-    border-radius: 12px;
-    border: 1px solid ${p => p.$changed ? ui.brandLine : ui.line};
-    background: ${p => p.$changed ? ui.brandTint : ui.surface};
-
-    @media (max-width: 560px) { grid-template-columns: minmax(0, 1fr); }
-`;
-
-const LineName = styled.div`
-    font-size: 14px;
-    font-weight: 600;
-    color: ${ui.ink};
-    align-self: center;
-`;
-
-const Amounts = styled.div`
-    grid-column: 1 / -1;
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-    gap: 10px;
-`;
-
-const Field = styled.label`
-    display: flex;
-    flex-direction: column;
-    gap: 4px;
-    font-size: 12.5px;
-    font-weight: 600;
     color: ${ui.inkSoft};
 
-    input, textarea {
-        font: inherit;
-        font-size: 14px;
-        font-weight: 500;
-        color: ${ui.ink};
-        padding: 9px 11px;
-        border: 1px solid ${ui.line};
-        border-radius: 10px;
-        background: #fff;
-        min-height: 40px;
-        width: 100%;
-        min-width: 0;
-        box-sizing: border-box;
-    }
-    textarea { min-height: 64px; resize: vertical; }
-    input:focus-visible, textarea:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: 1px; }
+    & + & { border-top: 1px solid ${ui.lineFaint}; }
+    strong { color: ${ui.ink}; font-weight: 700; font-variant-numeric: tabular-nums; }
+    .amount { margin-left: auto; color: ${ui.ink}; font-weight: 600; font-variant-numeric: tabular-nums; }
 `;
 
-const Totals = styled.p`
+/** Dokument z formą płatności przy wizycie z podziałem: nazwa, kwota, usługi, forma. */
+const DocHead = styled.p`
     margin: 0;
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    gap: 4px 12px;
     font-size: 14px;
     color: ${ui.inkSoft};
+    font-variant-numeric: tabular-nums;
 
-    strong { color: ${ui.ink}; font-variant-numeric: tabular-nums; }
+    strong { color: ${ui.ink}; }
+`;
+
+const ReasonArea = styled(BareTextArea)`
+    min-height: 64px;
+    font-size: 13.5px;
 `;
 
 const History = styled.details`
@@ -164,38 +153,14 @@ const History = styled.details`
     p { margin: 2px 0; }
 `;
 
-/** Formy płatności przy dokumentach wizyty z podziałem: dokument, kwota i jego forma. */
-const DocMethods = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+const ProblemItem = styled.div`
+    p { margin: 2px 0 0; }
 `;
 
-const DocMethod = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 8px;
-    padding: 12px;
-    border: 1px solid ${ui.line};
-    border-radius: 12px;
-
-    > span { font-size: 14px; color: ${ui.inkSoft}; font-variant-numeric: tabular-nums; }
-    strong { color: ${ui.ink}; }
-    small { display: block; font-size: 12.5px; color: ${ui.textMuted}; }
-`;
-
-/** Skutki poprawki dla pieniędzy: kwota dla klienta i zmiana kasy. */
-const Effects = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    gap: 6px 20px;
-    padding: 10px 12px;
-    border-radius: 10px;
-    background: ${ui.surfaceSoft};
+const Loading = styled.p`
+    margin: 0;
     font-size: 14px;
     color: ${ui.inkSoft};
-
-    strong { color: ${ui.ink}; font-variant-numeric: tabular-nums; }
 `;
 
 // ─── Komponent ────────────────────────────────────────────────────────────────
@@ -209,6 +174,8 @@ interface Props {
      * poprawka, ale z wybraną fakturą i językiem tego zadania, a nie „poprawiania".
      */
     intent?: Intent;
+    /** Auto i klient, jak pod tytułem „Wydanie pojazdu”. */
+    subtitle?: string;
     onClose: () => void;
 }
 
@@ -216,20 +183,18 @@ const titleOf = (intent: Intent, view: SettlementView | undefined): string =>
     intent === 'correct' ? 'Popraw rozliczenie'
         : view?.documentType === 'RECEIPT' ? 'Faktura do paragonu' : 'Wystaw fakturę';
 
-export const SettlementCorrectionModal = ({ visitId, intent = 'correct', onClose }: Props) => {
+export const SettlementCorrectionModal = ({ visitId, intent = 'correct', subtitle, onClose }: Props) => {
     const { data, isLoading, isError, refetch } = useQuery({
         queryKey: ['settlement', visitId],
         queryFn: () => settlementApi.get(visitId),
     });
 
     return (
-        <ModalShell isOpen onClose={onClose} size="lg">
+        <ModalShell isOpen onClose={onClose} maxWidth="1080px">
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>{titleOf(intent, data)}</ModalTitle>
-                    <ModalSubtitle>
-                        {data ? `Wizyta wydana, ${pln(data.totalGross)} brutto` : 'Wczytywanie rozliczenia'}
-                    </ModalSubtitle>
+                    <ModalSubtitle>{subtitle || (data ? 'Wizyta wydana' : 'Wczytywanie rozliczenia')}</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
@@ -244,7 +209,7 @@ export const SettlementCorrectionModal = ({ visitId, intent = 'correct', onClose
                     </Notice>
                 </ModalContent>
             )}
-            {isLoading && <ModalContent><Totals>Wczytywanie…</Totals></ModalContent>}
+            {isLoading && <ModalContent><Loading>Wczytywanie…</Loading></ModalContent>}
             {data && <CorrectionForm view={data} visitId={visitId} intent={intent} onClose={onClose} />}
         </ModalShell>
     );
@@ -260,6 +225,15 @@ const plusDays = (days: number): string => {
     date.setDate(date.getDate() + days);
     return localIsoDate(date);
 };
+
+/** Nabywca z żądania taki sam jak ten, z którym okno się otworzyło. */
+const sameBuyer = (a: SettlementBuyer, b: HandoverBuyer): boolean =>
+    normalizeNip(a.nip ?? '') === normalizeNip(b.nip) && (a.name ?? '').trim() === b.name.trim() &&
+    (a.addressLine1 ?? '').trim() === b.addressLine1.trim() && (a.addressLine2 ?? '').trim() === b.addressLine2.trim() &&
+    (a.email ?? '').trim() === b.email.trim();
+
+const dateLabel = (iso: string) =>
+    new Date(`${iso}T12:00:00`).toLocaleDateString('pl-PL', { day: '2-digit', month: '2-digit', year: 'numeric' });
 
 function CorrectionForm({ view, visitId, intent, onClose }: { view: SettlementView; visitId: string; intent: Intent; onClose: () => void }) {
     const queryClient = useQueryClient();
@@ -285,16 +259,18 @@ function CorrectionForm({ view, visitId, intent, onClose }: { view: SettlementVi
     // Termin z obowiązującej faktury, a bez niej typowe 14 dni - wcześniej pole było
     // puste, a poprawka blokowała się na „Płatność przelewem wymaga terminu".
     const [dueDate, setDueDate] = useState(view.paymentDueDate ?? plusDays(14));
-    // Nabywca z faktury, a bez niej z karty klienta (serwer podaje oba): podpis pod
-    // polami mówi „Dane pochodzą z karty klienta", więc pola nie mogą być puste.
-    const [buyer, setBuyer] = useState<HandoverBuyer>(() => ({
+    // Nabywca z faktury, a bez niej z karty klienta (serwer podaje oba): podsumowanie
+    // pokazuje go od razu, a „Zmień” otwiera to samo okno nabywcy co przy wydaniu.
+    const initialBuyer = useMemo<HandoverBuyer>(() => ({
         ...emptyBuyer,
         nip: safe(view.buyer?.nip),
         name: safe(view.buyer?.name),
         addressLine1: safe(view.buyer?.addressLine1),
         addressLine2: safe(view.buyer?.addressLine2),
         email: safe(view.buyer?.email),
-    }));
+    }), [view.buyer]);
+    const [buyer, setBuyer] = useState<HandoverBuyer>(initialBuyer);
+    const [isBuyerOpen, setBuyerOpen] = useState(false);
     const [exemption, setExemption] = useState(view.exemptionLegalBasis ?? '');
     const [reason, setReason] = useState(toReceipt ? 'Klient poprosił o fakturę do paragonu' : '');
 
@@ -329,7 +305,10 @@ function CorrectionForm({ view, visitId, intent, onClose }: { view: SettlementVi
         debounced.documentType === (view.documentType ?? 'RECEIPT') &&
         debounced.paymentMethod === (view.paymentMethod ?? 'CASH') &&
         Object.entries(debounced.documentPaymentMethods ?? {}).every(([id, m]) => initialDocMethods[id] === m) &&
-        debounced.buyer === null;
+        // Przy fakturze nabywca jedzie zawsze - zmianą jest dopiero inny nabywca. Porównanie
+        // z `null` sprawiało, że wizyta z fakturą od progu pytała serwer i witała czerwonym
+        // „nie da się”.
+        (!debounced.buyer || sameBuyer(debounced.buyer, initialBuyer));
     const preview = useQuery({
         queryKey: ['settlement-preview', visitId, debounced],
         queryFn: () => settlementApi.preview(visitId, debounced),
@@ -352,221 +331,322 @@ function CorrectionForm({ view, visitId, intent, onClose }: { view: SettlementVi
             } else if (intent === 'invoice') {
                 showSuccess('Faktura wystawiona', toReceipt
                     ? 'Paragon zostaje w historii wizyty, sprzedaż liczy się raz.'
-                    : 'Znajdziesz ją w Finansach i w podglądzie wizyty.');
+                    : 'Faktura jest w Finansach i w podglądzie wizyty.');
             } else {
-                showSuccess('Rozliczenie poprawione', 'Stare dokumenty zostały w historii wizyty obok korekt.');
+                showSuccess('Rozliczenie poprawione', 'Stare dokumenty zostają w historii wizyty obok korekt.');
             }
             onClose();
         },
     });
 
-    const updateLine = (id: string, change: (line: SettlementLineDraft) => SettlementLineDraft) =>
-        setLines(prev => prev.map(line => (line.id === id ? change(line) : line)));
+    const prices = useMemo(() => lines.map(priceOfLine), [lines]);
+    const changePrice = (serviceId: string, changes: Parameters<typeof withPriceChange>[1]) =>
+        setLines(prev => prev.map(line => (line.id === serviceId ? withPriceChange(line, changes) : line)));
+    const newGross = totalGrossCents(lines);
+    const newNet = totalNetCents(lines);
+    const originalGross = view.services.reduce((sum, s) => sum + s.grossCents, 0);
 
     const documentRows = settlementDocumentRows(view);
+    const rowOfDocument = new Map(documentRows.map(row => [row.key, row]));
     const blockReason = preview.data?.blockReason ?? null;
+    // Poprzedni podgląd zostaje na ekranie, dopóki serwer nie odpowie na nowy - „bez zmian”
+    // mignięte w trakcie pisania ceny czytało się jak wynik.
+    const effects = !pristine && preview.data && !blockReason ? preview.data : null;
     const canSubmit = !pristine && upToDate && !!preview.data && !blockReason && !correct.isPending;
+    const ksefLine = effects?.ksefAction ? KSEF_LINE[effects.ksefAction] : undefined;
+    // Ile klient płaci: kwoty dokumentów, jak „Do zapłaty” przy wydaniu. Przy „Faktura + inny
+    // dokument” to mniej niż brutto usług - inny dokument jest bez VAT. Różnicę po poprawce
+    // liczy serwer z tych samych dokumentów (customerDifference).
+    const payableNow = activeDocuments.length > 0
+        ? activeDocuments.reduce((sum, d) => sum + d.totalGross, 0)
+        : view.totalGross;
+    const payable = payableNow + (effects?.customerDifference ?? 0);
+    const payableDetail = payable !== payableNow ? `było ${pln(payableNow)}`
+        : activeDocuments.some(d => d.withoutReceipt)
+            ? activeDocuments
+                .map(d => `${d.type === 'INVOICE' ? 'faktura' : d.typeLabel.toLowerCase()} ${documentAmount(d.totalGross, d.withoutReceipt)}`)
+                .join(' + ')
+            : `netto ${pln(newNet)}, VAT ${pln(newGross - newNet)}`;
+
+    const documentLine = perDocument ? 'Faktura VAT + inny dokument'
+        : documentType === 'INVOICE'
+            ? (external ? 'Faktura od księgowości' : toReceipt ? 'Faktura do paragonu' : 'Faktura VAT')
+            : DOCUMENT_CHOICES.find(c => c.value === documentType)!.label;
+    const difference = effects?.customerDifference ?? 0;
+    const differenceText = difference > 0 ? `dopłaca ${pln(difference)}`
+        : difference < 0 ? `dostaje zwrot ${pln(-difference)}` : 'bez zmian';
+    const cashText = !effects || effects.cashDelta === 0 ? 'bez zmian'
+        : `${effects.cashDelta > 0 ? '+' : '−'}${pln(Math.abs(effects.cashDelta))}`;
+    const nip = normalizeNip(buyer.nip);
+
+    // Druga linia przycisku: skutek, który się klika (jak „Wydaj auto…”), a gdy kliknąć
+    // się nie da - dlaczego.
+    const actionDetail = pristine ? 'Nic się jeszcze nie zmieniło'
+        : !upToDate ? 'Sprawdzanie poprawki…'
+            : blockReason || preview.isError ? 'Tej poprawki nie da się teraz wykonać'
+                : [
+                    documentLine,
+                    perDocument ? null : methodLabel(effectiveMethod).toLowerCase(),
+                    difference > 0 ? `klient dopłaca ${pln(difference)}` : difference < 0 ? `zwrot ${pln(-difference)}` : null,
+                ].filter(Boolean).join(', ');
+
+    const problems = [
+        blockReason && !pristine ? { title: 'Tej poprawki nie da się teraz wykonać', detail: blockReason } : null,
+        preview.isError ? { title: 'Nie udało się sprawdzić poprawki', detail: problemDetail(preview.error, 'Spróbuj ponownie za chwilę.') } : null,
+        correct.isError ? { title: 'Poprawka nie została zapisana', detail: problemDetail(correct.error, 'Spróbuj ponownie.') } : null,
+    ].filter((p): p is { title: string; detail: string } => p !== null);
 
     return (
         <>
             <ModalContent>
-                <Section aria-labelledby="settlement-now">
-                    <SectionTitle id="settlement-now" as="h3">Obecne rozliczenie</SectionTitle>
-                    {documentRows.length === 0 ? (
-                        <Totals>Wizyta nie ma dokumentu rozliczenia.</Totals>
-                    ) : (
-                        <DocList>
-                            {documentRows.map(row => (
-                                <DocRow key={row.key}>
-                                    <strong>{row.number}</strong>
-                                    {row.label && <span>{row.label}</span>}
-                                    {row.paymentMethodLabel && <span>{row.paymentMethodLabel}</span>}
-                                    {row.ksefStatus && (
-                                        <StatusPill $tone={INVOICE_STATUS[row.ksefStatus]?.tone ?? 'neutral'}>
-                                            {INVOICE_STATUS[row.ksefStatus]?.label ?? row.ksefStatus}
-                                        </StatusPill>
-                                    )}
-                                    <span className="amount">{pln(row.totalGross)}</span>
-                                </DocRow>
-                            ))}
-                        </DocList>
-                    )}
-                </Section>
-
-                <Section aria-labelledby="settlement-services">
-                    <SectionTitle id="settlement-services" as="h3" count={lines.length}>Usługi</SectionTitle>
-                    <Lines>
-                        {lines.map(line => (
-                            <Line key={line.id} $changed={lineChanged(line)}>
-                                <LineName>{line.name}</LineName>
-                                <Segmented
-                                    label={`Stawka VAT: ${line.name}`}
-                                    size="sm"
-                                    options={SETTLEMENT_VAT_RATES}
-                                    value={String(line.vatRate)}
-                                    onChange={rate => updateLine(line.id, l => withLineVatRate(l, Number(rate)))}
-                                />
-                                <Amounts>
-                                    <Field>
-                                        Netto
-                                        <input
-                                            inputMode="decimal"
-                                            value={line.net}
-                                            aria-label={`Netto: ${line.name}`}
-                                            onChange={e => MAX_2_DECIMALS.test(e.target.value) &&
-                                                updateLine(line.id, l => withLineNet(l, e.target.value))}
-                                        />
-                                    </Field>
-                                    <Field>
-                                        Brutto
-                                        <input
-                                            inputMode="decimal"
-                                            value={line.gross}
-                                            aria-label={`Brutto: ${line.name}`}
-                                            onChange={e => MAX_2_DECIMALS.test(e.target.value) &&
-                                                updateLine(line.id, l => withLineGross(l, e.target.value))}
-                                        />
-                                    </Field>
-                                </Amounts>
-                            </Line>
-                        ))}
-                    </Lines>
-                    <Totals>
-                        Razem <strong>{pln(totalGrossCents(lines))}</strong> brutto, było {pln(view.totalGross)}.
-                    </Totals>
-                </Section>
-
-                <Section aria-labelledby="settlement-document">
-                    <SectionTitle id="settlement-document" as="h3">Dokument i płatność</SectionTitle>
-                    <Segmented
-                        label="Rodzaj dokumentu"
-                        options={DOCUMENT_TYPES}
-                        value={documentType}
-                        onChange={setDocumentType}
-                    />
-                    {toReceipt && documentType === 'INVOICE' && (
-                        <Notice tone="info" title="Paragon zostaje">
-                            Faktura powstanie na kwotę z paragonu i zostanie oznaczona jako faktura do
-                            paragonu, więc sprzedaż nie policzy się drugi raz. Fakturę na firmę wystawisz
-                            tylko wtedy, gdy NIP nabywcy był na paragonie.
-                        </Notice>
-                    )}
-                    {documentType === 'INVOICE' && <BuyerEditor buyer={buyer} onChange={setBuyer} />}
-                    {documentType === 'INVOICE' && external && (
-                        <Notice tone="info" title="Fakturę wystawia księgowość">
-                            CRM nie tworzy faktury. Jeśli księgowość wystawiła już fakturę do tej wizyty,
-                            korektę też wystawia ona: przekaż jej tę zmianę.
-                        </Notice>
-                    )}
-                    {needsExemption && (
-                        <Field>
-                            Podstawa zwolnienia z VAT
-                            <input value={exemption} onChange={e => setExemption(e.target.value)} placeholder="np. art. 113 ust. 1 ustawy o VAT" />
-                        </Field>
-                    )}
-                    {perDocument ? (
-                        <DocMethods>
-                            {activeDocuments.map(doc => (
-                                <DocMethod key={doc.id}>
-                                    <span>
-                                        <strong>{doc.typeLabel} {doc.number}</strong> {pln(doc.totalGross)}
-                                        {doc.services && doc.services.length > 0 && (
-                                            <small>{doc.services.map(sv => sv.name).join(', ')}</small>
-                                        )}
-                                    </span>
-                                    <PaymentMethodPicker
-                                        value={docMethods[doc.id] ?? (doc.paymentMethod as PaymentMethod)}
-                                        onChange={method => setDocMethods(prev => ({ ...prev, [doc.id]: method }))}
-                                    />
-                                </DocMethod>
-                            ))}
-                            <Totals>Zmiana ceny usługi poprawi tylko dokument, na którym ta usługa jest.</Totals>
-                        </DocMethods>
-                    ) : (
-                        <PaymentMethodPicker value={paymentMethod} onChange={setPaymentMethod} />
-                    )}
-                    {effectiveMethod === 'TRANSFER' && (
-                        <Field>
-                            Termin płatności
-                            <input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
-                        </Field>
-                    )}
-                    <Field>
-                        Powód (nieobowiązkowo)
-                        <textarea
-                            value={reason}
-                            maxLength={500}
-                            onChange={e => setReason(e.target.value)}
-                            placeholder="np. rabat po odbiorze, klient poprosił o fakturę"
-                        />
-                    </Field>
-                </Section>
-
-                {/* Bez listy kroków (decyzja biznesu), ale skutek dla pieniędzy zawsze na wierzchu:
-                    kwota dla klienta i zmiana kasy. Poprawka po podziale potrafiła po cichu zabrać
-                    z kasy całą gotówkową resztę - tę liczbę trzeba zobaczyć przed zatwierdzeniem. */}
-                {!pristine && preview.data && !blockReason && (
-                    <Section aria-live="polite">
-                        <Effects>
-                            {preview.data.customerDifference !== 0 && (
-                                <span>
-                                    {preview.data.customerDifference > 0 ? 'Klient dopłaca ' : 'Klient dostaje zwrot '}
-                                    <strong>{pln(Math.abs(preview.data.customerDifference))}</strong>
-                                </span>
+                <SettlementGrid>
+                    <DecisionStack>
+                        <DecisionField aria-labelledby="settlement-now">
+                            <DecisionTitle id="settlement-now">Obecne rozliczenie</DecisionTitle>
+                            {documentRows.length === 0 ? (
+                                <Muted>Wizyta nie ma dokumentu rozliczenia.</Muted>
+                            ) : (
+                                <DocList>
+                                    {documentRows.map(row => (
+                                        <DocRow key={row.key}>
+                                            <strong>{row.number}</strong>
+                                            {row.label && <span>{row.label}</span>}
+                                            {row.paymentMethodLabel && <span>{row.paymentMethodLabel}</span>}
+                                            {row.ksefStatus && (
+                                                <StatusPill $tone={INVOICE_STATUS[row.ksefStatus]?.tone ?? 'neutral'}>
+                                                    {INVOICE_STATUS[row.ksefStatus]?.label ?? row.ksefStatus}
+                                                </StatusPill>
+                                            )}
+                                            <span className="amount">{documentAmount(row.totalGross, row.withoutReceipt)}</span>
+                                        </DocRow>
+                                    ))}
+                                </DocList>
                             )}
-                            <span>
-                                Kasa: <strong>{preview.data.cashDelta === 0 ? 'bez zmian' : `${preview.data.cashDelta > 0 ? '+' : '−'}${pln(Math.abs(preview.data.cashDelta))}`}</strong>
-                            </span>
-                        </Effects>
-                    </Section>
-                )}
+                        </DecisionField>
 
-                {(blockReason && !pristine) || preview.isError || correct.isError ? (
-                    <Section aria-live="polite">
-                        {blockReason && !pristine && (
-                            <Notice tone="warn" title="Tej poprawki nie da się teraz wykonać">{blockReason}</Notice>
-                        )}
-                        {preview.isError && (
-                            <Notice tone="danger" title="Nie udało się sprawdzić poprawki">
-                                {problemDetail(preview.error, 'Spróbuj ponownie za chwilę.')}
-                            </Notice>
-                        )}
-                        {correct.isError && (
-                            <Notice tone="danger" title="Poprawka nie została zapisana">
-                                {problemDetail(correct.error, 'Spróbuj ponownie.')}
-                            </Notice>
-                        )}
-                    </Section>
-                ) : null}
+                        <DecisionField id="settlement-document">
+                            <DecisionTitle>Dokument dla klienta</DecisionTitle>
+                            <PillRow role="group" aria-label="Dokument dla klienta">
+                                {DOCUMENT_CHOICES.map(choice => (
+                                    <Pill
+                                        key={choice.value}
+                                        type="button"
+                                        $selected={documentType === choice.value}
+                                        aria-pressed={documentType === choice.value}
+                                        onClick={() => setDocumentType(choice.value)}
+                                    >
+                                        {choice.label}
+                                    </Pill>
+                                ))}
+                            </PillRow>
+                            {toReceipt && documentType === 'INVOICE' && (
+                                <Notice tone="info" title="Paragon zostaje">
+                                    Faktura powstaje na kwotę z paragonu jako faktura do paragonu, więc sprzedaż
+                                    nie liczy się drugi raz. Fakturę na firmę wystawisz tylko wtedy, gdy NIP
+                                    nabywcy był na paragonie.
+                                </Notice>
+                            )}
+                            {documentType === 'INVOICE' && external && (
+                                <Notice tone="info" title="Fakturę wystawia księgowość">
+                                    CRM nie tworzy faktury. Jeśli księgowość wystawiła już fakturę do tej wizyty,
+                                    korektę też wystawia ona. Przekaż jej tę zmianę.
+                                </Notice>
+                            )}
+                        </DecisionField>
 
-                {view.history.length > 0 && (
-                    <Section>
-                        <History>
-                            <summary>Historia rozliczenia ({view.history.length})</summary>
-                            {view.history.map(entry => (
-                                <article key={entry.id}>
-                                    <p>
-                                        <strong>{new Date(entry.createdAt).toLocaleString('pl-PL')}</strong>
-                                        {entry.createdByName ? `, ${entry.createdByName}` : ''}
-                                    </p>
-                                    <p>Kwota {pln(entry.totalGrossBefore)} → {pln(entry.totalGrossAfter)}.</p>
-                                    {/* Etykieta z serwera ma własną wielką literę i skróty („KSeF"):
-                                        `toLowerCase()` robił z niej „bez faktury ksef". */}
-                                    <p>{entry.ksefAction}.</p>
-                                    {entry.reason && <p>Powód: {entry.reason}</p>}
-                                    {entry.ksefError && <p style={{ color: ui.dangerInk }}>{entry.ksefError}</p>}
-                                </article>
-                            ))}
-                        </History>
-                    </Section>
-                )}
+                        {needsExemption && (
+                            <DecisionField>
+                                <DecisionTitle as="label" htmlFor="settlement-exemption">Podstawa zwolnienia z VAT</DecisionTitle>
+                                <InputShell $compact>
+                                    <BareInput
+                                        id="settlement-exemption"
+                                        value={exemption}
+                                        onChange={e => setExemption(e.target.value)}
+                                        placeholder="np. art. 113 ust. 1 ustawy o VAT"
+                                        $compact
+                                    />
+                                </InputShell>
+                            </DecisionField>
+                        )}
+
+                        <DecisionField>
+                            <DecisionTitle>Ceny usług</DecisionTitle>
+                            <PricesSection
+                                prices={prices}
+                                onChange={changePrice}
+                                onReset={() => setLines(view.services.map(lineFromService))}
+                                discount={originalGross - newGross}
+                                totalGross={newGross}
+                                problems={[]}
+                                fmt={pln}
+                                changeContext="w poprawce"
+                                defaultEditing={intent === 'correct'}
+                            />
+                        </DecisionField>
+
+                        <DecisionField id="settlement-payment">
+                            <DecisionTitle>{perDocument ? 'Forma zapłaty dokumentów' : 'Forma zapłaty'}</DecisionTitle>
+                            {perDocument ? (
+                                <>
+                                    {activeDocuments.map(doc => {
+                                        const row = rowOfDocument.get(doc.id);
+                                        return (
+                                            <Box key={doc.id}>
+                                                <DocHead>
+                                                    <strong>{row?.label || doc.typeLabel} {row?.number ?? doc.number}</strong>
+                                                    <span>{documentAmount(doc.totalGross, doc.withoutReceipt)}</span>
+                                                </DocHead>
+                                                {doc.services && doc.services.length > 0 && (
+                                                    <Muted>{doc.services.map(sv => sv.name).join(', ')}</Muted>
+                                                )}
+                                                <PaymentMethodPicker
+                                                    value={docMethods[doc.id] ?? (doc.paymentMethod as PaymentMethod)}
+                                                    onChange={method => setDocMethods(prev => ({ ...prev, [doc.id]: method }))}
+                                                />
+                                            </Box>
+                                        );
+                                    })}
+                                    <Muted>Nowa cena usługi zmienia tylko dokument, na którym ta usługa jest.</Muted>
+                                </>
+                            ) : (
+                                <PaymentMethodPicker value={paymentMethod} onChange={setPaymentMethod} />
+                            )}
+                        </DecisionField>
+
+                        {effectiveMethod === 'TRANSFER' && (
+                            <DecisionField>
+                                <DecisionTitle as="label" htmlFor="settlement-due">Termin płatności</DecisionTitle>
+                                <InputShell $compact>
+                                    <BareInput id="settlement-due" type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} $compact />
+                                </InputShell>
+                            </DecisionField>
+                        )}
+
+                        <DecisionField>
+                            <DecisionTitle as="label" htmlFor="settlement-reason">Powód (można pominąć)</DecisionTitle>
+                            <InputShellTextArea $compact>
+                                <ReasonArea
+                                    id="settlement-reason"
+                                    value={reason}
+                                    maxLength={500}
+                                    onChange={e => setReason(e.target.value)}
+                                    placeholder="np. rabat po odbiorze, klient poprosił o fakturę"
+                                />
+                            </InputShellTextArea>
+                        </DecisionField>
+
+                        {view.history.length > 0 && (
+                            <History>
+                                <summary>Historia rozliczenia ({view.history.length})</summary>
+                                {view.history.map(entry => (
+                                    <article key={entry.id}>
+                                        <p>
+                                            <strong>{new Date(entry.createdAt).toLocaleString('pl-PL')}</strong>
+                                            {entry.createdByName ? `, ${entry.createdByName}` : ''}
+                                        </p>
+                                        <p>Kwota {pln(entry.totalGrossBefore)} → {pln(entry.totalGrossAfter)} brutto.</p>
+                                        {/* Etykieta z serwera ma własną wielką literę i skróty („KSeF"):
+                                            `toLowerCase()` robił z niej „bez faktury ksef". */}
+                                        <p>{entry.ksefAction}.</p>
+                                        {entry.reason && <p>Powód: {entry.reason}</p>}
+                                        {entry.ksefError && <p style={{ color: ui.dangerInk }}>{entry.ksefError}</p>}
+                                    </article>
+                                ))}
+                            </History>
+                        )}
+                    </DecisionStack>
+
+                    {/* Bez listy kroków (decyzja biznesu), ale skutek dla pieniędzy i dla faktury
+                        zawsze na wierzchu: kwota dla klienta, zmiana kasy, korekta w KSeF. Poprawka
+                        po podziale potrafiła po cichu zabrać z kasy całą gotówkową resztę - tę liczbę
+                        trzeba zobaczyć przed zatwierdzeniem. */}
+                    <SummaryAside aria-label="Podsumowanie poprawki">
+                        <SummaryAmount>
+                            <span>Do zapłaty</span>
+                            <strong>{pln(payable)}</strong>
+                            <span>{payableDetail}</span>
+                        </SummaryAmount>
+
+                        <Review aria-live="polite">
+                            <ReviewTitle>Sprawdź przed zapisem</ReviewTitle>
+                            <ReviewRow>
+                                <span>Dokument</span>
+                                <span><strong>{documentLine}</strong></span>
+                            </ReviewRow>
+                            {ksefLine && (
+                                <ReviewRow>
+                                    <span>Faktura</span>
+                                    <span><strong>{ksefLine.text}</strong>{ksefLine.note && <small>{ksefLine.note}</small>}</span>
+                                </ReviewRow>
+                            )}
+                            {documentType === 'INVOICE' && (
+                                <ReviewRow>
+                                    <span>Nabywca</span>
+                                    <span>
+                                        <strong>{buyer.name.trim() || 'Brak nazwy nabywcy'}</strong>
+                                        <small className="nowrap">{nip ? `NIP ${formatNip(nip)}` : 'Osoba prywatna'}</small>
+                                    </span>
+                                    <GhostAction type="button" onClick={() => setBuyerOpen(true)}>Zmień</GhostAction>
+                                </ReviewRow>
+                            )}
+                            <ReviewRow>
+                                <span>Płatność</span>
+                                {perDocument ? (
+                                    <span>
+                                        {activeDocuments.map(doc => (
+                                            <small key={doc.id}>
+                                                {doc.type === 'INVOICE' ? 'Faktura' : doc.typeLabel}: {methodLabel(docMethods[doc.id] ?? doc.paymentMethod).toLowerCase()}
+                                            </small>
+                                        ))}
+                                    </span>
+                                ) : (
+                                    <span>
+                                        {methodLabel(effectiveMethod)}
+                                        {effectiveMethod === 'TRANSFER' && dueDate && <small>termin {dateLabel(dueDate)}</small>}
+                                    </span>
+                                )}
+                            </ReviewRow>
+                            <ReviewRow>
+                                <span>Klient</span>
+                                <span><strong>{differenceText}</strong></span>
+                            </ReviewRow>
+                            <ReviewRow>
+                                <span>Kasa</span>
+                                <span><strong>{cashText}</strong></span>
+                            </ReviewRow>
+                        </Review>
+
+                        {problems.length > 0 && (
+                            <SummaryProblems role="alert" aria-live="polite">
+                                {problems.map(problem => (
+                                    <ProblemItem key={problem.title}>
+                                        <strong>{problem.title}</strong>
+                                        <p>{problem.detail}</p>
+                                    </ProblemItem>
+                                ))}
+                            </SummaryProblems>
+                        )}
+                    </SummaryAside>
+                </SettlementGrid>
+
+                <BuyerModal
+                    isOpen={isBuyerOpen}
+                    onClose={() => setBuyerOpen(false)}
+                    buyer={buyer}
+                    onChange={setBuyer}
+                />
             </ModalContent>
-            <ModalFooter>
-                <Button variant="ghost" onClick={onClose}>Anuluj</Button>
-                <Button variant="primary" onClick={() => correct.mutate()} disabled={!canSubmit}>
-                    {correct.isPending ? 'Zapisywanie…' : intent === 'invoice' ? 'Wystaw fakturę' : 'Zatwierdź poprawkę'}
-                </Button>
-            </ModalFooter>
+            <SettlementFooter>
+                <Button variant="ghost" size="lg" onClick={onClose}>Anuluj</Button>
+                <PrimaryAction type="button" onClick={() => correct.mutate()} disabled={!canSubmit}>
+                    <ActionIcon aria-hidden="true"><FileCheck2 /></ActionIcon>
+                    <ActionText>
+                        <span>{correct.isPending ? 'Zapisywanie…' : intent === 'invoice' ? 'Wystaw fakturę' : 'Zatwierdź poprawkę'}</span>
+                        <span>{actionDetail}</span>
+                    </ActionText>
+                    <ArrowRight aria-hidden="true" />
+                </PrimaryAction>
+            </SettlementFooter>
         </>
     );
 }

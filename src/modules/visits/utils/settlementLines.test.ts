@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
-    changedServiceLines, lineFromService, totalGrossCents, withLineGross, withLineNet, withLineVatRate,
+    changedServiceLines, lineFromService, priceOfLine, totalGrossCents, withLineGross, withLineNet, withLineVatRate,
+    withPriceChange,
 } from './settlementLines';
 
 const service = (patch = {}) => ({
@@ -31,5 +32,20 @@ describe('pozycje poprawki rozliczenia', () => {
             { serviceLineItemId: 's-2', netCents: 100_000, grossCents: null, vatRate: 23 },
         ]);
         expect(totalGrossCents([byGross])).toBe(170_000);
+    });
+
+    // Okno poprawki pokazuje tabelę cen z ekranu wydania; zmiany z niej przechodzą tą samą
+    // arytmetyką co wcześniej pola netto/brutto okna.
+    it('tabela cen z wydania: brutto wpisane przeżywa 23% → zw. → 23%, a „było” zna cenę sprzed poprawki', () => {
+        const line = lineFromService(service());
+        const exempt = withPriceChange(line, { vatRate: 'zw' });
+        expect(exempt.vatRate).toBe(-1);
+        expect(exempt.gross).toBe('1900,00');
+        const back = withPriceChange(exempt, { vatRate: '23' });
+        expect(back.gross).toBe('1900,00');
+        expect(changedServiceLines([back])).toEqual([]);
+
+        const price = priceOfLine(withPriceChange(line, { gross: '1 700,00' }));
+        expect(price).toMatchObject({ mode: 'GROSS', gross: '1700,00', vatRate: '23', originalGross: 190_000 });
     });
 });

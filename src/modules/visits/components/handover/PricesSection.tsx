@@ -130,11 +130,20 @@ interface PricesSectionProps {
     totalGross: number;
     problems: HandoverProblem[];
     fmt: (grosz: number) => string;
+    /**
+     * Kiedy zmienia się cena: „przy wydaniu” (ekran wydania) albo „w poprawce” (poprawka
+     * rozliczenia) - ta sama tabela cen w obu oknach, różni się tylko podpis zmiany.
+     */
+    changeContext?: string;
+    /** Tabela cen od razu otwarta - w poprawce rozliczenia cena to najczęstszy powód wejścia. */
+    defaultEditing?: boolean;
 }
 
-export const PricesSection = ({ prices, onChange, onReset, discount, totalGross, problems, fmt }: PricesSectionProps) => {
+export const PricesSection = ({
+    prices, onChange, onReset, discount, totalGross, problems, fmt, changeContext = 'przy wydaniu', defaultEditing = false,
+}: PricesSectionProps) => {
     const changed = prices.some(priceChanged);
-    const [editing, setEditing] = useState(changed);
+    const [editing, setEditing] = useState(changed || defaultEditing);
     const count = prices.length;
 
     const setAmount = (price: HandoverPrice, field: 'net' | 'gross', value: string) => {
@@ -160,7 +169,9 @@ export const PricesSection = ({ prices, onChange, onReset, discount, totalGross,
                 </Row>
                 {discount !== 0 && (
                     <Change $tone={discount > 0 ? 'down' : 'up'}>
-                        {discount > 0 ? `Rabat przy wydaniu ${fmt(discount)}` : `Dopłata przy wydaniu ${fmt(-discount)}`}
+                        {discount > 0
+                            ? `Rabat ${changeContext} ${fmt(discount)} brutto`
+                            : `Dopłata ${changeContext} ${fmt(-discount)} brutto`}
                     </Change>
                 )}
 
@@ -227,7 +238,7 @@ export const PricesSection = ({ prices, onChange, onReset, discount, totalGross,
                             );
                         })}
                         <RowText>
-                            Nowa cena zmienia cenę wizyty: zobaczą ją statystyki, faktura i dokument bez paragonu.
+                            Nowa cena zmienia cenę wizyty: zobaczą ją statystyki, faktura i inny dokument.
                         </RowText>
                     </>
                 )}

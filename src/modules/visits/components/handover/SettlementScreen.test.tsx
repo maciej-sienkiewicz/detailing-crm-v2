@@ -229,7 +229,7 @@ describe('Lewa kolumna: decyzje', () => {
         const pc = priceControls({ discount: 50_000, totalGross: 120_000 });
         left(state({ documentType: 'RECEIPT' }), { pc });
 
-        expect(screen.getByText('Rabat przy wydaniu 500,00 zł')).toBeInTheDocument();
+        expect(screen.getByText('Rabat przy wydaniu 500,00 zł brutto')).toBeInTheDocument();
         fireEvent.click(screen.getByRole('button', { name: 'Zmień ceny' }));
         fireEvent.change(screen.getByLabelText('Brutto: Powłoka ceramiczna'), { target: { value: '1000,00' } });
         expect(pc.changePrice).toHaveBeenCalledWith('c', { gross: '1000,00' });
@@ -278,9 +278,10 @@ describe('Prawa kolumna: kwota, sprawdź przed wysłaniem, braki', () => {
         right(state({ splitRemainder: true }), { invoiceGross: 120_000, remainder: 40_651 });
         const aside = screen.getByLabelText('Podsumowanie rozliczenia');
         expect(aside.textContent).toMatch(/Do zapłaty1606,51\szł/);
-        expect(aside.textContent).toMatch(/faktura 1200,00\szł \+ inny dokument 406,51\szł/);
+        expect(aside.textContent).toMatch(/faktura 1200,00\szł brutto \+ inny dokument 406,51\szł bez VAT/);
         expect(aside.textContent).not.toMatch(/cena usług|mniej|dopłata|rabat/);
-        expect(aside.textContent).toMatch(/Inny dokument406,51\szłbez paragonu, bez VAT, gotówka/);
+        expect(aside.textContent).toMatch(/Inny dokument406,51\szł bez VATgotówka/);
+        expect(aside.textContent).not.toMatch(/paragonu/);
     });
 
     it('faktura: brutto i netto z faktury, bez liczby pozycji, VAT-u i rabatu', () => {

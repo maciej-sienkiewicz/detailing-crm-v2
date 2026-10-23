@@ -391,11 +391,24 @@ const PAYMENT_WORD: Record<string, string> = {
     CASH: 'gotówka', CARD: 'karta', TRANSFER: 'przelew', BLIK_NA_NUMER: 'BLIK', BLIK_TERMINAL: 'BLIK', OTHER: 'inna forma',
 };
 
-/** Rodzaj dokumentu rozliczenia słowem - numer jest w podpowiedzi. */
+/**
+ * Rodzaj dokumentu rozliczenia słowem - numer jest w podpowiedzi. Reszta przy „Faktura +
+ * inny dokument” nazywa się tak samo jak na ekranie wydania i w wizycie.
+ */
 const documentWord = (doc: PeriodVisitDocument): string =>
     doc.type === 'INVOICE'
         ? (doc.invoicedExternally ? 'Faktura księgowości' : 'Faktura')
-        : doc.withoutReceipt ? 'Bez paragonu' : doc.type === 'RECEIPT' ? 'Paragon' : 'Inny dokument';
+        : doc.type === 'RECEIPT' ? 'Paragon' : 'Inny dokument';
+
+/**
+ * Część usługi tak, jak stoi na dokumencie: faktura i paragon brutto, inny dokument bez VAT,
+ * czyli netto części usługi (brutto alokacji zawiera VAT, którego klient nie zapłacił).
+ * Bez netto z serwera kwoty nie ma - nie odtwarzamy jej z brutto.
+ */
+const partAmount = (doc: PeriodVisitDocument, part: { gross: number; net?: number | null }): string | null =>
+    doc.withoutReceipt
+        ? (part.net != null ? `${zl(part.net)} bez VAT` : null)
+        : `${zl(part.gross)} brutto`;
 
 /*
  * Jeden wiersz na wizytę, nawet gdy zapłacono dwoma dokumentami: dokumenty są chipami pod
@@ -425,7 +438,7 @@ function VisitRow({ visit }: { visit: PeriodVisit }) {
                         </DocChip>
                     ))}
                     {discount !== 0 && (
-                        <DocChip $tone="info">{discount > 0 ? `Rabat przy wydaniu ${zl(discount)}` : `Dopłata przy wydaniu ${zl(-discount)}`}</DocChip>
+                        <DocChip $tone="info">{discount > 0 ? `Rabat przy wydaniu ${zl(discount)} brutto` : `Dopłata przy wydaniu ${zl(-discount)} brutto`}</DocChip>
                     )}
                     {visit.services.length > 0 && (
                         <ToggleServices type="button" aria-expanded={open} onClick={() => setOpen(o => !o)}>
@@ -449,7 +462,11 @@ function VisitRow({ visit }: { visit: PeriodVisit }) {
                                 </span>
                                 {parts.length > 0 && (
                                     <small>
-                                        {parts.map(p => `${documentWord(byId.get(p.documentId)!)}${parts.length > 1 ? ` ${zl(p.gross)}` : ''}`).join(' + ')}
+                                        {parts.map(p => {
+                                            const doc = byId.get(p.documentId)!;
+                                            const amount = parts.length > 1 ? partAmount(doc, p) : null;
+                                            return amount ? `${documentWord(doc)} ${amount}` : documentWord(doc);
+                                        }).join(' + ')}
                                     </small>
                                 )}
                             </li>

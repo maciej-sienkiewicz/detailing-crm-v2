@@ -2,6 +2,8 @@
 //
 // Okno „Popraw rozliczenie": podgląd skutków z serwera przed zapisem, blokada, gdy
 // serwer mówi, że się nie da, i zapis z wpisanym brutto co do grosza (CLAUDE.md §1).
+// Układ jak krok płatności „Wydanie pojazdu”: tabela cen z wydania, podsumowanie
+// po prawej, przycisk z dwiema liniami (nazwa dostępna zaczyna się od czynności).
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -66,7 +68,7 @@ describe('SettlementCorrectionModal', () => {
         expect(screen.queryByText('Co się stanie')).toBeNull();
         expect(screen.queryByText('Zwrot dla klienta: 200,00 zł.')).toBeNull();
 
-        const submit = screen.getByRole('button', { name: 'Zatwierdź poprawkę' });
+        const submit = screen.getByRole('button', { name: /^Zatwierdź poprawkę/ });
         await waitFor(() => expect(submit).toBeEnabled());
         fireEvent.click(submit);
 
@@ -77,8 +79,11 @@ describe('SettlementCorrectionModal', () => {
     it('linia kasy i kwoty dla klienta jest widoczna przed zatwierdzeniem', async () => {
         renderModal();
         fireEvent.change(await screen.findByLabelText('Brutto: Przygotowanie do sprzedaży'), { target: { value: '1700,00' } });
-        expect((await screen.findByText(/Klient dostaje zwrot/)).textContent).toMatch(/200,00/);
-        expect(screen.getByText(/^Kasa:/).textContent).toMatch(/−200,00/);
+        const aside = screen.getByLabelText('Podsumowanie poprawki');
+        await waitFor(() => expect(aside.textContent).toMatch(/Klientdostaje zwrot 200,00\szł/));
+        expect(aside.textContent).toMatch(/Kasa−200,00\szł/);
+        expect(aside.textContent).toMatch(/Do zapłaty1\s?700,00\szłbyło 1\s?900,00\szł/);
+        expect(screen.getByRole('button', { name: /^Zatwierdź poprawkę/ }).textContent).toMatch(/Paragon, gotówka, zwrot 200,00\szł/);
     });
 
     it('wizyta z podziałem: forma płatności przy każdym dokumencie, zmiana tylko reszty', async () => {
@@ -89,12 +94,15 @@ describe('SettlementCorrectionModal', () => {
             documents: [
                 { ...view.documents[0], id: 'd-fv', number: 'FAK/2026/0001', type: 'INVOICE', typeLabel: 'Faktura', paymentMethod: 'CARD', paymentMethodLabel: 'Karta', totalGross: 160_000,
                   services: [{ serviceLineItemId: 's-1', name: 'Przygotowanie do sprzedaży', grossCents: 160_000 }] },
-                { ...view.documents[0], id: 'd-rest', number: 'DOK/2026/0002', type: 'OTHER', typeLabel: 'Bez paragonu', paymentMethod: 'CASH', paymentMethodLabel: 'Gotówka', totalGross: 30_000, withoutReceipt: true,
+                { ...view.documents[0], id: 'd-rest', number: 'DOK/2026/0002', type: 'OTHER', typeLabel: 'Inny dokument', paymentMethod: 'CASH', paymentMethodLabel: 'Gotówka', totalGross: 30_000, withoutReceipt: true,
                   services: [{ serviceLineItemId: 's-1', name: 'Przygotowanie do sprzedaży', grossCents: 30_000 }] },
             ],
         });
         renderModal();
-        const rest = (await screen.findByText('Bez paragonu DOK/2026/0002')).closest('div')!;
+        const rest = (await screen.findByText('Inny dokument DOK/2026/0002')).closest('div')!;
+        // Inny dokument jest bez VAT: jego kwota to netto, nie „brutto”.
+        expect(rest).toHaveTextContent(/300,00\szł bez VAT/);
+        expect(screen.queryByText(/Bez paragonu/i)).toBeNull();
         fireEvent.click(within(rest).getByRole('button', { name: /Karta/ }));
 
         await waitFor(() => expect(settlementApi.preview).toHaveBeenLastCalledWith('v-1', expect.objectContaining({
@@ -112,13 +120,25 @@ describe('SettlementCorrectionModal', () => {
         fireEvent.change(await screen.findByLabelText('Brutto: Przygotowanie do sprzedaży'), { target: { value: '1800,00' } });
 
         expect(await screen.findByText('Faktura FV/2026/0003 czeka na odpowiedź KSeF.')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Zatwierdź poprawkę' })).toBeDisabled();
+        expect(screen.getByRole('button', { name: /^Zatwierdź poprawkę/ })).toBeDisabled();
+    });
+
+    it('wizyta z fakturą bez zmian też nie pyta serwera - nabywca z faktury to nie zmiana', async () => {
+        vi.mocked(settlementApi.get).mockResolvedValue({
+            ...view, documentType: 'INVOICE', paymentMethod: 'CARD', buyer: { nip: '5272976544', name: 'Flota Serwis Sp. z o.o.' },
+        });
+        renderModal();
+        expect(await screen.findByText('Flota Serwis Sp. z o.o.')).toBeInTheDocument();
+        await new Promise(resolve => setTimeout(resolve, 450));
+        expect(settlementApi.preview).not.toHaveBeenCalled();
+        expect(screen.queryByText('Tej poprawki nie da się teraz wykonać')).toBeNull();
+        expect(screen.getByRole('button', { name: /^Zatwierdź poprawkę/ })).toBeDisabled();
     });
 
     it('bez zmian nie pyta serwera i nie pozwala zatwierdzić', async () => {
         renderModal();
         expect(await screen.findByText('PAR/2026/0007')).toBeInTheDocument();
-        expect(screen.getByRole('button', { name: 'Zatwierdź poprawkę' })).toBeDisabled();
+        expect(screen.getByRole('button', { name: /^Zatwierdź poprawkę/ })).toBeDisabled();
         expect(screen.queryByText('Tej poprawki nie da się teraz wykonać')).toBeNull();
         expect(settlementApi.preview).not.toHaveBeenCalled();
     });
@@ -130,7 +150,7 @@ describe('SettlementCorrectionModal', () => {
         await waitFor(() => expect(settlementApi.preview).toHaveBeenCalledWith('v-1', expect.objectContaining({
             services: [], documentType: 'RECEIPT',
         })));
-        await waitFor(() => expect(screen.getByRole('button', { name: 'Zatwierdź poprawkę' })).toBeEnabled());
+        await waitFor(() => expect(screen.getByRole('button', { name: /^Zatwierdź poprawkę/ })).toBeEnabled());
     });
 
     it('pokazuje obecne dokumenty rozliczenia', async () => {
@@ -154,16 +174,20 @@ describe('SettlementCorrectionModal', () => {
         });
         const onClose = renderModal('invoice');
 
-        expect(await screen.findByText('Faktura do paragonu')).toBeInTheDocument();
+        expect(await screen.findByRole('heading', { name: 'Faktura do paragonu' })).toBeInTheDocument();
         expect(screen.getByText('Paragon zostaje')).toBeInTheDocument();
+        // Nabywca jak przy wydaniu: w podsumowaniu, a pola w oknie „Zmień”.
+        expect(screen.getByLabelText('Podsumowanie poprawki')).toHaveTextContent('Rafał Fakturadoparagonu');
+        fireEvent.click(screen.getByRole('button', { name: 'Zmień' }));
         expect(screen.getByLabelText('Nazwa albo imię i nazwisko')).toHaveValue('Rafał Fakturadoparagonu');
         // Maska PII nigdy nie trafia na dokument.
         expect(screen.getByLabelText('E-mail')).toHaveValue('');
+        fireEvent.click(screen.getByRole('button', { name: 'Gotowe' }));
 
         await waitFor(() => expect(settlementApi.preview).toHaveBeenCalledWith('v-1', expect.objectContaining({
             documentType: 'INVOICE', services: [], paymentMethod: 'CASH',
         })));
-        const submit = screen.getByRole('button', { name: 'Wystaw fakturę' });
+        const submit = screen.getByRole('button', { name: /^Wystaw fakturę/ });
         await waitFor(() => expect(submit).toBeEnabled());
         fireEvent.click(submit);
 
@@ -184,5 +208,22 @@ describe('SettlementCorrectionModal', () => {
         renderModal();
         expect(await screen.findByDisplayValue('art. 43 ust. 1 pkt 29 lit. c ustawy o VAT')).toBeInTheDocument();
         expect(screen.getByDisplayValue('2026-10-30')).toBeInTheDocument();
+    });
+
+    // Faktury przyjętej w KSeF nie da się usunąć, a korekty cofnąć: skutek dla faktury stoi
+    // w podsumowaniu przed zatwierdzeniem, choć zdań planu okno nie pokazuje.
+    it('przed zatwierdzeniem widać, co poprawka zrobi z fakturą w KSeF', async () => {
+        vi.mocked(settlementApi.get).mockResolvedValue({ ...view, documentType: 'INVOICE', paymentMethod: 'CARD', buyer: { name: 'Jan Kowalski' } });
+        vi.mocked(settlementApi.preview).mockResolvedValue({
+            steps: [], blockReason: null, totalGrossBefore: 190_000, totalGrossAfter: 170_000,
+            customerDifference: -20_000, cashDelta: 0, ksefAction: 'CORRECT_DIFFERENCE',
+        });
+        renderModal();
+        fireEvent.change(await screen.findByLabelText('Brutto: Przygotowanie do sprzedaży'), { target: { value: '1700,00' } });
+        const aside = screen.getByLabelText('Podsumowanie poprawki');
+        // Zmiana ceny przy tym samym nabywcy: korekta o różnicę, bez nowej faktury.
+        await waitFor(() => expect(aside).toHaveTextContent('Korekta o różnicę'));
+        expect(aside).toHaveTextContent('Faktura zostaje, nowa nie powstaje.');
+        expect(aside).toHaveTextContent('Korekty w KSeF nie da się cofnąć.');
     });
 });

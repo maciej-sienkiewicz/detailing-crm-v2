@@ -231,7 +231,11 @@ export interface VisitSettlementDocument {
     invoicedExternally: boolean;
     paymentMethod: string;
     totalGross: number | null;
-    services: Array<{ serviceLineItemId: string; grossCents: number | null }>;
+    /**
+     * Część usługi na tym dokumencie. [grossCents] to brutto usługi; [netCents] to netto -
+     * kwota innego dokumentu (bez VAT). Starszy serwer nie podaje netto.
+     */
+    services: Array<{ serviceLineItemId: string; grossCents: number | null; netCents?: number | null }>;
 }
 
 export interface VisitDetailResponse {

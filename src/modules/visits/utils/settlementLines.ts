@@ -8,6 +8,7 @@
 import { centsToInput, inputToCents } from '@/common/utils/moneyInput';
 import { grossToNet, netToGross, repriceForVatRate } from '@/common/utils/priceAdjustment';
 import type { SettlementService, SettlementServiceLine } from '../api/settlementApi';
+import { vatRateCodeOf, vatRateNumberOf, type HandoverPrice } from '../types/handover';
 
 export interface SettlementLineDraft {
     id: string;
@@ -78,3 +79,35 @@ export const changedServiceLines = (lines: SettlementLineDraft[]): SettlementSer
 
 export const totalGrossCents = (lines: SettlementLineDraft[]): number =>
     lines.reduce((sum, line) => sum + lineGrossCents(line), 0);
+
+export const totalNetCents = (lines: SettlementLineDraft[]): number =>
+    lines.reduce((sum, line) => sum + inputToCents(line.net), 0);
+
+/**
+ * Pozycja poprawki w kształcie ceny z ekranu wydania: okno poprawki pokazuje tę samą
+ * tabelę cen (PricesSection), żeby nie trzeba było uczyć się dwóch. Tylko widok -
+ * arytmetyka zostaje tutaj (withPriceChange), bo pilnuje strony wpisanej przy zmianie
+ * stawki przez repriceForVatRate.
+ */
+export const priceOfLine = (line: SettlementLineDraft): HandoverPrice => ({
+    serviceId: line.id,
+    name: line.name,
+    net: line.net,
+    gross: line.gross,
+    mode: line.side === 'gross' ? 'GROSS' : 'NET',
+    vatRate: vatRateCodeOf(line.vatRate) ?? '23',
+    originalNet: line.original.netCents,
+    originalGross: line.original.grossCents,
+    originalRate: vatRateCodeOf(line.original.vatRate) ?? '23',
+});
+
+/** Zmiana z tabeli cen: wpisane netto, wpisane brutto albo nowa stawka. Spacje tysięcy wypadają. */
+export const withPriceChange = (
+    line: SettlementLineDraft,
+    changes: Partial<Pick<HandoverPrice, 'net' | 'gross' | 'vatRate'>>,
+): SettlementLineDraft => {
+    if (changes.net !== undefined) return withLineNet(line, changes.net.replace(/\s/g, ''));
+    if (changes.gross !== undefined) return withLineGross(line, changes.gross.replace(/\s/g, ''));
+    if (changes.vatRate !== undefined) return withLineVatRate(line, vatRateNumberOf(changes.vatRate));
+    return line;
+};

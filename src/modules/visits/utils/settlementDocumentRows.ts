@@ -16,7 +16,7 @@
 // go nie pokazuje. Paragon, do którego fakturę wystawia księgowość, zostaje ze swoim
 // numerem, bo ten klient widział.
 
-import type { SettlementView } from '../api/settlementApi';
+import type { SettlementInvoice, SettlementView } from '../api/settlementApi';
 
 export interface SettlementDocumentRow {
     key: string;
@@ -26,7 +26,21 @@ export interface SettlementDocumentRow {
     /** Status faktury w KSeF; null dla paragonu i dokumentu bez faktury KSeF. */
     ksefStatus: string | null;
     totalGross: number;
+    /** Inny dokument przy „Faktura + inny dokument”: bez VAT, kwota to netto. */
+    withoutReceipt: boolean;
 }
+
+/**
+ * Nazwa wiersza faktury. Zmiana ceny przy tym samym nabywcy daje korektę o różnicę, a faktura
+ * zostaje - bez numeru korekty wiersz pokazywałby fakturę z kwotą, której na niej nie ma.
+ */
+const invoiceLabel = (invoice: SettlementInvoice, all: SettlementInvoice[]): string => {
+    const corrections = all.filter(i => i.type === 'KOR' && i.originalInvoiceId === invoice.id
+        && i.status !== 'REJECTED' && i.status !== 'CANCELLED');
+    const base = invoice.invoiceToReceipt ? 'Faktura do paragonu' : 'Faktura';
+    return corrections.length === 0 ? base
+        : `${base} z ${corrections.length === 1 ? 'korektą' : 'korektami'} ${corrections.map(c => c.number).join(', ')}`;
+};
 
 export function settlementDocumentRows(
     view: Pick<SettlementView, 'documents' | 'invoices'>,
@@ -48,16 +62,18 @@ export function settlementDocumentRows(
                 paymentMethodLabel: doc.paymentMethodLabel,
                 ksefStatus: null,
                 totalGross: doc.totalGross,
+                withoutReceipt: false,
             });
         } else if (invoice) {
             shown.add(invoice.id);
             rows.push({
                 key: doc.id,
                 number: invoice.number,
-                label: invoice.invoiceToReceipt ? 'Faktura do paragonu' : 'Faktura',
+                label: invoiceLabel(invoice, view.invoices),
                 paymentMethodLabel: doc.paymentMethodLabel,
                 ksefStatus: invoice.status,
                 totalGross: doc.totalGross,
+                withoutReceipt: false,
             });
         } else {
             rows.push({
@@ -67,6 +83,7 @@ export function settlementDocumentRows(
                 paymentMethodLabel: doc.paymentMethodLabel,
                 ksefStatus: null,
                 totalGross: doc.totalGross,
+                withoutReceipt: doc.withoutReceipt === true,
             });
         }
     }
@@ -77,10 +94,11 @@ export function settlementDocumentRows(
         rows.push({
             key: invoice.id,
             number: invoice.number,
-            label: invoice.invoiceToReceipt ? 'Faktura do paragonu' : 'Faktura',
+            label: invoiceLabel(invoice, view.invoices),
             paymentMethodLabel: null,
             ksefStatus: invoice.status,
             totalGross: invoice.totalGross,
+            withoutReceipt: false,
         });
     }
     return rows;

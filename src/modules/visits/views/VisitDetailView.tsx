@@ -1065,6 +1065,12 @@ export const VisitDetailView = () => {
                 <SettlementCorrectionModal
                     visitId={visitId}
                     intent={settlementIntent}
+                    // Auto i klient pod tytułem, jak w „Wydanie pojazdu” - zwykłym zdaniem (CLAUDE.md §4).
+                    subtitle={[
+                        [visit.vehicle.brand, visit.vehicle.model].filter(Boolean).join(' '),
+                        visit.vehicle.licensePlate,
+                        `${visit.customer.firstName} ${visit.customer.lastName}`.trim(),
+                    ].filter(Boolean).join(', ')}
                     onClose={() => setSettlementIntent(null)}
                 />
             )}

@@ -1460,11 +1460,30 @@ const SETTLEMENT_LABEL: Record<NonNullable<VisitSettlement['documentType']>, str
     OTHER: 'Rozliczona',
 };
 
-/** Krótka nazwa dokumentu rozliczenia przy usłudze: rodzaj, bo numer jest w podpowiedzi. */
+/**
+ * Krótka nazwa dokumentu rozliczenia przy usłudze: rodzaj, bo numer jest w podpowiedzi.
+ * Reszta przy „Faktura + inny dokument” nazywa się tak samo jak na ekranie wydania -
+ * „Bez paragonu” było drugą nazwą tej samej rzeczy.
+ */
 const documentShortLabel = (doc: VisitSettlementDocument): string =>
     doc.type === 'INVOICE'
         ? (doc.invoicedExternally ? 'Faktura księgowości' : 'Faktura')
-        : doc.withoutReceipt ? 'Bez paragonu' : doc.type === 'RECEIPT' ? 'Paragon' : 'Inny dokument';
+        : doc.type === 'RECEIPT' ? 'Paragon' : 'Inny dokument';
+
+/**
+ * Kwota części usługi tak, jak stoi na dokumencie, z dopiskiem, czym jest. Faktura
+ * i paragon niosą brutto. Inny dokument jest bez VAT: jego kwotą jest netto części
+ * usługi, a brutto alokacji to cena usługi z VAT-em, którego klient nie zapłacił
+ * (plakietka pokazywała 4920 zł przy dokumencie na 4000 zł). Bez netto z serwera
+ * kwoty nie ma - nie odtwarzamy jej z brutto.
+ */
+const documentPartAmount = (
+    doc: VisitSettlementDocument,
+    part: VisitSettlementDocument['services'][number],
+): string | null => {
+    if (doc.withoutReceipt) return part.netCents != null ? `${formatCurrency(part.netCents / 100)} bez VAT` : null;
+    return part.grossCents != null ? `${formatCurrency(part.grossCents / 100)} brutto` : null;
+};
 
 /** 1 usługa, 2 usługi, 5 usług, 22 usługi. */
 function servicesWord(n: number): string {
@@ -2008,21 +2027,24 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         const handoverDelta = before !== null && service.finalPriceGross !== null ? before - service.finalPriceGross : 0;
         const handoverPill = before !== null && handoverDelta !== 0 ? {
             label: handoverDelta > 0
-                ? `Rabat przy wydaniu ${formatCurrency(handoverDelta / 100)}`
-                : `Dopłata przy wydaniu ${formatCurrency(-handoverDelta / 100)}`,
-            title: `Cena przed wydaniem ${formatCurrency(before / 100)}`,
+                ? `Rabat przy wydaniu ${formatCurrency(handoverDelta / 100)} brutto`
+                : `Dopłata przy wydaniu ${formatCurrency(-handoverDelta / 100)} brutto`,
+            title: `Cena przed wydaniem ${formatCurrency(before / 100)} brutto`,
         } : null;
         // Dokumenty, którymi rozliczono usługę; przy części usługi na dokumencie - z kwotą.
         const docsOfService = pricesHidden ? [] : (settlement?.documents ?? [])
-            .map(doc => ({ doc, part: doc.services.find(x => x.serviceLineItemId === service.id) }))
-            .filter(({ part }) => part !== undefined);
-        const serviceDocs = docsOfService.length < 2 && (settlement?.documents?.length ?? 0) < 2 ? [] : docsOfService.map(({ doc, part }) => ({
-            id: doc.id,
-            label: docsOfService.length > 1 && part?.grossCents != null
-                ? `${documentShortLabel(doc)} ${formatCurrency(part.grossCents / 100)}`
-                : documentShortLabel(doc),
-            title: `${doc.number}`,
-        }));
+            .flatMap(doc => {
+                const part = doc.services.find(x => x.serviceLineItemId === service.id);
+                return part ? [{ doc, part }] : [];
+            });
+        const serviceDocs = docsOfService.length < 2 && (settlement?.documents?.length ?? 0) < 2 ? [] : docsOfService.map(({ doc, part }) => {
+            const amount = docsOfService.length > 1 ? documentPartAmount(doc, part) : null;
+            return {
+                id: doc.id,
+                label: amount ? `${documentShortLabel(doc)} ${amount}` : documentShortLabel(doc),
+                title: doc.number,
+            };
+        });
         const name = (
             <NameCell>
                 <ServiceName>{service.serviceName}</ServiceName>
@@ -2107,6 +2129,19 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
         <StatusPill $tone="neutral">Nierozliczona</StatusPill>
     );
 
+    // „Faktura + inny dokument”: klient płaci kwoty dokumentów, a nie brutto usług - inny
+    // dokument jest bez VAT. Kwota jak „Do zapłaty” na ekranie wydania (faktura brutto +
+    // inny dokument bez VAT); brutto usług zawierało VAT, którego klient nie zapłacił.
+    const documentsPayable = !pricesHidden && settlementDocs.some(d => d.withoutReceipt)
+        && settlementDocs.every(d => d.totalGross != null)
+        ? {
+            amount: settlementDocs.reduce((sum, d) => sum + (d.totalGross ?? 0), 0),
+            details: settlementDocs
+                .map(d => `${documentShortLabel(d).toLowerCase()} ${formatCurrency((d.totalGross ?? 0) / 100)} ${d.withoutReceipt ? 'bez VAT' : 'brutto'}`)
+                .join(' + '),
+        }
+        : null;
+
     // W trybie edycji dolne paski nawigacji ustępują miejsca paskowi
     // „Odrzuć zmiany / Zapisz zmiany", który na telefonie jest przypięty do dołu ekranu.
     useHideMobileChrome('visit-services-edit', isInEditMode);
@@ -2144,8 +2179,8 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
             {!pricesHidden && (
                 <Strip
                     label="Do zapłaty"
-                    amount={formatCurrency(totals.totalFinalGross / 100)}
-                    details={[
+                    amount={formatCurrency((documentsPayable?.amount ?? totals.totalFinalGross) / 100)}
+                    details={documentsPayable?.details ?? [
                         `netto ${formatCurrency(totals.totalFinalNet / 100)}`,
                         `VAT ${formatCurrency(totals.totalVat / 100)}`,
                         totals.hasTotalDiscount ? `rabaty −${formatCurrency(totals.totalDiscountGross / 100)}` : null,

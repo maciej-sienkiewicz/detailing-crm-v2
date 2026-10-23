@@ -283,7 +283,7 @@ export const InvoicePositions = ({
                         <small>{fmt(invoiceNet)} netto</small>
                     </Tile>
                     <Tile>
-                        <span>Inny dokument: bez paragonu, bez VAT, gotówka</span>
+                        <span>Inny dokument: bez VAT, gotówka</span>
                         <AmountShell $compact>
                             <BareInput
                                 value={state.remainderInput}

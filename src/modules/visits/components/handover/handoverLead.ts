@@ -19,14 +19,14 @@ export const handoverLead = (
     const lines: string[] = [];
     if (result.remainderGross && result.remainderGross > 0 && result.invoiceGross != null) {
         const invoiceMethod = methodWord(result.paymentMethod) ?? paymentLabel?.toLowerCase();
-        lines.push(`Faktura ${fmt(result.invoiceGross)}${invoiceMethod ? `, ${invoiceMethod}` : ''}.`);
-        lines.push(`Inny dokument ${fmt(result.remainderGross)}, ${methodWord(result.remainderPaymentMethod) ?? 'gotówka'}, bez paragonu i bez VAT.`);
+        lines.push(`Faktura ${fmt(result.invoiceGross)} brutto${invoiceMethod ? `, ${invoiceMethod}` : ''}.`);
+        lines.push(`Inny dokument ${fmt(result.remainderGross)} bez VAT, ${methodWord(result.remainderPaymentMethod) ?? 'gotówka'}.`);
     } else {
         lines.push(`Płatność${paymentLabel ? ` ${paymentLabel.toLowerCase()}` : ''} ${fmt(total)} zapisana.`);
     }
     const before = result.totalGrossBeforeHandover;
     if (before != null && before !== total) {
-        lines.push(`Cena wizyty zmieniona przy wydaniu: ${fmt(before)} → ${fmt(total)}.`);
+        lines.push(`Cena wizyty zmieniona przy wydaniu: ${fmt(before)} → ${fmt(total)} brutto.`);
     }
     return lines;
 };

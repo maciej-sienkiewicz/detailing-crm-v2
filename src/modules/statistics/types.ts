@@ -99,11 +99,14 @@ export interface PeriodVisitService {
     categoryId?: string | null;
     /** Brutto uzgodnione przed wydaniem, gdy cena zmieniła się przy wydaniu. */
     priceBeforeHandoverGross?: number | null;
-    /** Dokumenty, którymi rozliczono usługę (id z PeriodVisit.documents) i część brutto. */
-    documents?: Array<{ documentId: string; gross: number }>;
+    /**
+     * Dokumenty, którymi rozliczono usługę (id z PeriodVisit.documents): część brutto usługi
+     * i jej netto - kwota innego dokumentu (bez VAT). Starszy serwer nie podaje netto.
+     */
+    documents?: Array<{ documentId: string; gross: number; net?: number | null }>;
 }
 
-/** Dokument rozliczenia wizyty (faktura, zapis bez paragonu, paragon). */
+/** Dokument rozliczenia wizyty (faktura, inny dokument bez VAT, paragon). */
 export interface PeriodVisitDocument {
     documentId: string;
     number: string;

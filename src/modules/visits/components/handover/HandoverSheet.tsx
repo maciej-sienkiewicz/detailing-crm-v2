@@ -8,7 +8,6 @@ import {
     ModalTitle,
     ModalSubtitle,
     ModalContent,
-    ModalFooter,
     CloseBtn,
 } from '@/common/components/ModalKit';
 import { Button, ui } from '@/common/components/ui';
@@ -18,6 +17,9 @@ import { usePermissions } from '@/core/permissions';
 import { defaultDueDate, useHandover } from '../../hooks/useHandover';
 import { useVisitComments } from '../../hooks';
 import { CustomerNotesSection } from './CustomerNotesSection';
+import {
+    ActionIcon, ActionText, FooterActions, PrimaryAction, SettlementFooter, SettlementGrid,
+} from './HandoverKit';
 import { SettlementSection } from './SettlementSection';
 import { SettlementSummary } from './SettlementSummary';
 import { PricesSection } from './PricesSection';
@@ -52,92 +54,11 @@ const StepPane = styled.div<{ $active: boolean }>`
     display: ${p => (p.$active ? 'block' : 'none')};
 `;
 
-
-
-
 const ProtocolNote = styled.p`
     margin: 0;
     font-size: 13.5px;
     line-height: 1.55;
     color: ${p => p.theme.colors.textSecondary};
-`;
-
-/**
- * Rozliczenie na dwie kolumny: decyzje po lewej, kwota, podsumowanie i braki po prawej
- * (wzorzec kasy: rachunek obok płatności). Prawa kolumna przykleja się przy przewijaniu,
- * żeby podsumowanie było w polu widzenia przy każdej zmianie. Na wąskim ekranie
- * kolumny schodzą jedna pod drugą - podsumowanie ląduje tuż nad przyciskiem.
- */
-const SettlementGrid = styled.div`
-    display: grid;
-    grid-template-columns: minmax(0, 1fr) 360px;
-    gap: 28px;
-    align-items: start;
-
-    > aside {
-        position: sticky;
-        top: 0;
-        padding: 18px;
-        border-radius: 16px;
-        background: ${ui.surfaceSoft};
-        border: 1px solid ${ui.line};
-    }
-
-    @media (max-width: 900px) {
-        grid-template-columns: minmax(0, 1fr);
-        > aside { position: static; padding: 14px; }
-    }
-`;
-
-/**
- * Jedyny wypełniony element okna (CLAUDE.md §2): dwie linie - co się stanie i na co,
- * dla kogo - kafelek ikony i cień w kolorze akcji, żeby nie dało się go pomylić
- * z „Zapisz”. Zieleń jak „Wydaj pojazd” w nagłówku wizyty: wydanie domyka wizytę.
- */
-const PrimaryAction = styled.button`
-    display: flex;
-    align-items: center;
-    gap: 12px;
-    min-width: 0;
-    max-width: 520px;
-    padding: 10px 16px 10px 10px;
-    border: none;
-    border-radius: 14px;
-    background: linear-gradient(135deg, #16a34a, #15803d);
-    box-shadow: 0 8px 20px rgba(21, 128, 61, 0.28);
-    color: #ffffff;
-    font-family: inherit;
-    text-align: left;
-    cursor: pointer;
-
-    &:disabled { opacity: 0.55; cursor: not-allowed; box-shadow: none; }
-    &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: 2px; }
-
-    > svg:last-child { width: 18px; height: 18px; flex-shrink: 0; }
-`;
-
-const ActionIcon = styled.span`
-    width: 38px;
-    height: 38px;
-    flex-shrink: 0;
-    border-radius: 10px;
-    background: rgba(255, 255, 255, 0.18);
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    svg { width: 20px; height: 20px; }
-`;
-
-const ActionText = styled.span`
-    display: flex;
-    flex-direction: column;
-    gap: 2px;
-    min-width: 0;
-    flex-grow: 1;
-
-    > span:first-child { font-size: 15px; font-weight: 800; }
-    > span:last-child { font-size: 12.5px; opacity: 0.92; overflow-wrap: anywhere; }
 `;
 
 /**
@@ -176,32 +97,6 @@ const PreviewIcon = styled.span`
     justify-content: center;
 
     svg { width: 18px; height: 18px; }
-`;
-
-/** Prawa strona stopki: podgląd faktury obok przycisku wydania, oba tej samej wysokości. */
-const FooterActions = styled.div`
-    display: flex;
-    align-items: stretch;
-    gap: 10px;
-
-    @media (max-width: 560px) {
-        flex-direction: column-reverse;
-        align-items: stretch;
-
-        > button { width: 100%; }
-    }
-`;
-
-const HandoverFooter = styled(ModalFooter)`
-    justify-content: space-between;
-    gap: 12px;
-
-    @media (max-width: 560px) {
-        flex-direction: column-reverse;
-        align-items: stretch;
-
-        > button { width: 100%; max-width: none; }
-    }
 `;
 
 interface HandoverSheetProps {
@@ -451,7 +346,7 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
             </ModalContent>
 
             {!handover.result && (
-                <HandoverFooter>
+                <SettlementFooter>
                     {isSignatureStep ? (
                         <>
                             <span />
@@ -491,7 +386,7 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                             </FooterActions>
                         </>
                     )}
-                </HandoverFooter>
+                </SettlementFooter>
             )}
             <InvoicePreviewModal
                 isOpen={isPreviewOpen && showInvoicePreview}

@@ -34,7 +34,7 @@ export interface SettlementDocument {
     ksefInvoiceId: string | null;
     /** Fakturę do tego dokumentu wystawia księgowość; sam dokument jest zapisem płatności. */
     invoicedExternally?: boolean;
-    /** Część kwoty wizyty zapłacona bez paragonu i bez VAT (typeLabel „Bez paragonu”). */
+    /** Reszta przy „Faktura + inny dokument”: bez VAT, kwota to netto (typeLabel „Inny dokument”). */
     withoutReceipt?: boolean;
     /** Usługi rozliczone tym dokumentem (alokacja usługa × dokument). */
     services?: Array<{ serviceLineItemId: string; name: string; grossCents: number }>;
@@ -46,6 +46,8 @@ export interface SettlementInvoice {
     ksefNumber: string | null;
     type: 'VAT' | 'KOR';
     status: string;
+    /** Korekta: id faktury, którą koryguje. Starszy serwer go nie podaje. */
+    originalInvoiceId?: string | null;
     invoiceToReceipt: boolean;
     totalGross: number;
     active: boolean;
@@ -122,6 +124,11 @@ export interface SettlementCorrectionRequest {
     documentPaymentMethods?: Record<string, PaymentMethod>;
 }
 
+/** Co poprawka zrobi z fakturą w KSeF (SettlementKsefAction w backendzie). */
+export type SettlementKsefAction =
+    | 'NONE' | 'KEEP' | 'CANCEL_AND_REISSUE' | 'CANCEL' | 'CORRECT_AND_REISSUE' | 'CORRECT' | 'CORRECT_DIFFERENCE'
+    | 'ISSUE' | 'INVOICE_TO_RECEIPT' | 'EXTERNAL_INVOICE' | 'EXTERNAL_INVOICE_TO_RECEIPT';
+
 export interface SettlementPreview {
     steps: string[];
     blockReason: string | null;
@@ -130,6 +137,8 @@ export interface SettlementPreview {
     /** + klient dopłaca, − zwrot. */
     customerDifference: number;
     cashDelta: number;
+    /** Starszy serwer go nie podaje - wtedy okno nie pokazuje wiersza o fakturze. */
+    ksefAction?: SettlementKsefAction;
 }
 
 export interface SettlementCorrectionResult {

@@ -33,6 +33,18 @@ describe('settlementDocumentRows', () => {
         ]);
     });
 
+    it('faktura po korekcie o różnicę mówi, którą korektą ją poprawiono', () => {
+        const rows = settlementDocumentRows({
+            documents: [doc({ ksefInvoiceId: 'k-1', totalGross: 45_000 })],
+            invoices: [
+                invoice({ status: 'ACCEPTED' }),
+                invoice({ id: 'k-2', number: 'FK/2026/0001', type: 'KOR', status: 'ACCEPTED', totalGross: -5_000, active: false, originalInvoiceId: 'k-1' }),
+                invoice({ id: 'k-3', number: 'FK/2026/0002', type: 'KOR', status: 'REJECTED', totalGross: -1_000, active: false, originalInvoiceId: 'k-1' }),
+            ],
+        });
+        expect(rows).toEqual([expect.objectContaining({ number: 'FV/2026/0006', label: 'Faktura z korektą FK/2026/0001', totalGross: 45_000 })]);
+    });
+
     it('dokument faktury bez rekordu KSeF zostaje ze swoim numerem', () => {
         const rows = settlementDocumentRows({ documents: [doc({})], invoices: [] });
         expect(rows).toEqual([expect.objectContaining({ number: 'FAK/2026/0005', ksefStatus: null })]);
