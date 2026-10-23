@@ -40,6 +40,7 @@ import { ReplyDraftOfferModal } from './ReplyDraftOfferModal';
 import { MAX_DRAFT_INSTRUCTIONS, sentMaterialHint } from '../utils/replyDraft';
 import { PrimaryButton } from './shared';
 import { problemDetail } from '@/core/problem';
+import { useCapabilityGate } from '@/modules/subscription/hooks/useCapabilityGate';
 
 const Group = styled.div`
     display: inline-flex;
@@ -382,6 +383,7 @@ export function ReplyDraftButton({
     const preferences = useReplyDraftPreferences();
     const savePreferences = useSaveReplyDraftPreferences();
     const draftReply = useDraftReply();
+    const aiGate = useCapabilityGate('AI_LEAD_ASSIST');
     // Ten sam cache co nagłówek rozmowy - pytanie o ofertę nie kosztuje osobnego żądania.
     const { data: lead } = useLead(leadId);
     const { showError } = useToast();
@@ -420,7 +422,7 @@ export function ReplyDraftButton({
         generate(useSentStyle, next.offer, next.instructions);
     };
 
-    const onMainClick = () => advance({});
+    const onMainClick = () => aiGate.run(() => advance({}));
 
     const onStyleConfirm = (useSentStyle: boolean, remember: boolean) => {
         if (remember && useSentStyle !== savedChoice) savePreferences.mutate(useSentStyle);
@@ -437,6 +439,7 @@ export function ReplyDraftButton({
 
     return (
         <>
+            {aiGate.upsell}
             <Group>
                 <DraftButton
                     type="button"

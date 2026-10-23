@@ -8,17 +8,19 @@
 import { Button, StatusPill } from '@/common/components/ui';
 import type { AddOnDto, AddOnKey } from '../types';
 import { formatCents, monthlyPriceSuffix } from '../utils/formatters';
-import { Panel, Head, Name, Desc, Footer, Price } from './AddOnCard.styles';
+import { Panel, Head, Name, Desc, Footer, Price, PriceNote } from './AddOnCard.styles';
 
 interface Props {
     addOn: AddOnDto;
     isActive: boolean;
     disabled?: boolean;
+    /** Dopisek pod ceną, np. „Bez opłat do końca okresu próbnego" - cena bez niego sugerowała płatność. */
+    priceNote?: string;
     onActivate: (key: AddOnKey) => void;
     onDeactivate?: (key: AddOnKey) => void;
 }
 
-export function AddOnCard({ addOn, isActive, disabled, onActivate, onDeactivate }: Props) {
+export function AddOnCard({ addOn, isActive, disabled, priceNote, onActivate, onDeactivate }: Props) {
     const suffix = monthlyPriceSuffix(addOn.monthlyPriceGrossCents);
 
     return (
@@ -35,16 +37,20 @@ export function AddOnCard({ addOn, isActive, disabled, onActivate, onDeactivate 
                 <Price>
                     <strong>{formatCents(addOn.monthlyPriceGrossCents)}</strong>
                     {suffix && <span>{suffix}</span>}
+                    {priceNote && <PriceNote>{priceNote}</PriceNote>}
                 </Price>
 
                 {isActive ? (
                     onDeactivate && (
-                        <Button variant="danger" size="sm" disabled={disabled} onClick={() => onDeactivate(addOn.key)}>
+                        <Button variant="danger" size="sm" disabled={disabled} onClick={() => onDeactivate(addOn.key)}
+                            aria-label={`Wyłącz moduł ${addOn.name}`}>
                             Wyłącz
                         </Button>
                     )
                 ) : addOn.isAvailable && (
-                    <Button variant="tinted" size="sm" disabled={disabled} onClick={() => onActivate(addOn.key)}>
+                    // Osiem przycisków „Włącz" bez nazwy modułu czytnik ekranu odczytywał identycznie.
+                    <Button variant="tinted" size="sm" disabled={disabled} onClick={() => onActivate(addOn.key)}
+                        aria-label={`Włącz moduł ${addOn.name}`}>
                         Włącz
                     </Button>
                 )}

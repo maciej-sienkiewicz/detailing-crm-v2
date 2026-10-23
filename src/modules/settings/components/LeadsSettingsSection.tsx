@@ -29,6 +29,7 @@ import { serverMessage, toastedGlobally } from './errorToast';
 import { MAX_HOURS, MIN_HOURS, hoursInDays, normalizeHours, parseHours, sanitizeHours } from './leads/hoursField';
 import { EscalationPanel } from './leads/EscalationPanel';
 import { MailboxPanel } from './leads/MailboxPanel';
+import { useCapabilityGate } from '@/modules/subscription/hooks/useCapabilityGate';
 
 const AUTO_LEAD_CONFIG_QUERY_KEY = ['settings', 'auto-lead-config'] as const;
 
@@ -350,6 +351,10 @@ export const LeadsSettingsSection = () => {
 
     const saving = updateMutation.isPending;
     const activeSince = formatMoment(config?.enabledAt ?? null);
+    // Ocena zapytań przez model to moduł Asystent AI. Bez niego serwer nie pozwala włączyć
+    // automatu (a dawniej włączony automat i tak działał za darmo). Wyłączyć wolno zawsze.
+    const aiGate = useCapabilityGate('AI_LEAD_ASSIST');
+    const lockedByModule = !aiGate.enabled && !config?.enabled;
 
     return (
         <Stack>
@@ -371,12 +376,15 @@ export const LeadsSettingsSection = () => {
                     <Loading role="status">Wczytywanie ustawienia…</Loading>
                 ) : (
                     <>
+                        {aiGate.upsell}
                         <SettingSwitchRow
                             label="Twórz zapytania z poczty"
-                            hint="Model czyta każdą nową wiadomość. Gdy to zapytanie klienta, zakłada sprawę w Zapytaniach. Reszta poczty zostaje nietknięta."
+                            hint={lockedByModule
+                                ? 'Działa w module Asystent AI, którego nie masz w pakiecie. Bez niego maile z oznaczonych adresów formularzy dalej trafiają do Zapytań, a resztę poczty oznaczysz ręcznie.'
+                                : 'Model czyta każdą nową wiadomość. Gdy to zapytanie klienta, zakłada sprawę w Zapytaniach. Reszta poczty zostaje nietknięta.'}
                             checked={config?.enabled}
                             disabled={saving}
-                            onChange={next => updateMutation.mutate(next)}
+                            onChange={next => (next ? aiGate.run(() => updateMutation.mutate(next)) : updateMutation.mutate(next))}
                         />
 
                         {config?.enabled && activeSince && (

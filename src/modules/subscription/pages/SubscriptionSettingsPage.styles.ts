@@ -83,6 +83,10 @@ export const AddOnRowText = styled.div`
     }
 `;
 
+export const AddOnRowActions = styled.div`
+    flex-shrink: 0;
+`;
+
 export const Muted = styled.p`
     margin: 0;
     font-size: 13px;

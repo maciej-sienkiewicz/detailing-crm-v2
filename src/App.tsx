@@ -9,7 +9,6 @@ import { router } from '@/core';
 import { AppErrorBoundary } from '@/core/errors';
 import { AuthProvider } from '@/core/context/AuthContext';
 import { ToastProvider } from '@/common/components/Toast';
-import { PaywallListener } from '@/modules/subscription/components/PaywallListener';
 import { problemStatus } from '@/core/problem';
 
 /**
@@ -67,8 +66,6 @@ const App = () => {
                                         if (!info.errorInfo) logger.error('router.route', error, { pattern: info.pattern });
                                     }}
                                 />
-                                {/* Global 402/MODULE_REQUIRED → upsell dialog (safety net for ungated actions) */}
-                                <PaywallListener />
                             </SidebarProvider>
                         </AuthProvider>
                     </ToastProvider>

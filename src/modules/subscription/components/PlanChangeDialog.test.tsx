@@ -16,25 +16,27 @@ import { newSubscriptionApi } from '../api/subscriptionApi';
 import type { AddOnPreview, CheckoutResponse, PaymentOrderStatus, PlanChangePreview } from '../types';
 
 vi.mock('../api/subscriptionApi', () => ({
-    newSubscriptionApi: { checkout: vi.fn() },
+    newSubscriptionApi: { checkout: vi.fn(), changePlan: vi.fn() },
 }));
 
 const checkout = vi.mocked(newSubscriptionApi.checkout);
+const changePlan = vi.mocked(newSubscriptionApi.changePlan);
 
 const response = (status: PaymentOrderStatus, overrides: Partial<CheckoutResponse> = {}): CheckoutResponse => ({
     orderId: 'ord-7', status, amountCents: 0, currency: 'PLN', description: 'Zakup', paymentUrl: null, failureReason: null,
     ...overrides,
 });
 
-const planPreview = {
-    changeType: 'UPGRADE', newPlanName: 'Full', effectiveAt: '2026-10-16T00:00:00Z',
-    proratedAmountFormatted: null, daysRemaining: 20, explanation: 'W okresie próbnym bez opłaty.',
-} as unknown as PlanChangePreview;
+const planPreview: PlanChangePreview = {
+    changeType: 'UPGRADE', newPlanKey: 'FULL', newPlanName: 'Full', effectiveAt: '2026-10-16T00:00:00Z',
+    proratedAmountCents: null, proratedAmountFormatted: null, daysRemaining: null, periodEndsAt: null,
+    explanation: 'W okresie próbnym zmiana pakietu jest bez opłat.', allowed: true,
+};
 
-const addOnPreview = {
-    addOnName: 'Finanse', proratedAmountCents: null, proratedAmountFormatted: null,
-    daysRemaining: 20, periodEndsAt: '2026-11-05T00:00:00Z', explanation: 'W okresie próbnym bez opłaty.',
-} as unknown as AddOnPreview;
+const addOnPreview: AddOnPreview = {
+    addOnKey: 'FINANCE_MODULE', addOnName: 'Finanse', proratedAmountCents: null, proratedAmountFormatted: null,
+    daysRemaining: null, periodEndsAt: null, explanation: 'W okresie próbnym moduł działa bez opłat.', allowed: true,
+};
 
 const Where = () => <div data-testid="where">{useLocation().pathname + useLocation().search}</div>;
 
@@ -60,6 +62,7 @@ let onClose = vi.fn<() => void>();
 
 beforeEach(() => {
     checkout.mockReset();
+    changePlan.mockReset();
     onClose = vi.fn<() => void>();
 });
 
@@ -139,7 +142,7 @@ describe('PlanChangeDialog - zmiana pakietu bez płatności', () => {
         checkout.mockResolvedValue(response('FULFILLED'));
         renderDialog();
         await userEvent.click(screen.getByRole('checkbox', { name: /Akceptuję regulamin/ }));
-        await userEvent.click(screen.getByRole('button', { name: 'Przejdź do płatności' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Przejdź na Full' }));
 
         expect(await screen.findByText('Pakiet zmieniony')).toBeTruthy();
         expect(checkout).toHaveBeenCalledWith({ type: 'PLAN_UPGRADE', planKey: 'FULL', acceptTerms: true });
@@ -149,7 +152,7 @@ describe('PlanChangeDialog - zmiana pakietu bez płatności', () => {
         checkout.mockResolvedValue(response('CANCELLED', { failureReason: 'Studio ma już pakiet FULL.' }));
         renderDialog();
         await userEvent.click(screen.getByRole('checkbox', { name: /Akceptuję regulamin/ }));
-        await userEvent.click(screen.getByRole('button', { name: 'Przejdź do płatności' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Przejdź na Full' }));
 
         expect(await screen.findByText('Nie udało się włączyć zakupu')).toBeTruthy();
         expect(screen.getByText(/Studio ma już pakiet FULL\./)).toBeTruthy();
@@ -160,9 +163,102 @@ describe('PlanChangeDialog - zmiana pakietu bez płatności', () => {
         checkout.mockResolvedValue(response('PAID'));
         renderDialog();
         await userEvent.click(screen.getByRole('checkbox', { name: /Akceptuję regulamin/ }));
-        await userEvent.click(screen.getByRole('button', { name: 'Przejdź do płatności' }));
+        await userEvent.click(screen.getByRole('button', { name: 'Przejdź na Full' }));
 
         await waitFor(() => expect(screen.getByTestId('where').textContent).toBe('/payments/result?orderId=ord-7'));
         expect(screen.queryByText('Pakiet zmieniony')).toBeNull();
+    });
+});
+
+// Audyt 23.10.2026: okna nie czytały `allowed` ani tego, czy jest trwający opłacony okres.
+describe('PlanChangeDialog - treść zależna od sytuacji', () => {
+    const render = (preview: PlanChangePreview, newPlanKey: 'BASIC' | 'FULL' = 'FULL') => renderWith(
+        <PlanChangeDialog newPlanKey={newPlanKey} newPlanName={newPlanKey === 'FULL' ? 'Full' : 'Basic'}
+            currentPlanName={newPlanKey === 'FULL' ? 'Basic' : 'Full'} preview={preview}
+            isLoadingPreview={false} onClose={onClose} />,
+    );
+
+    it('okres próbny: bez opłat i od razu - bez „po opłaceniu" i „przejdź do płatności"', () => {
+        render(planPreview);
+
+        expect(screen.getByText('Bez opłat do końca okresu próbnego')).toBeTruthy();
+        expect(screen.getByText('Od razu')).toBeTruthy();
+        expect(screen.queryByText('Od razu po opłaceniu')).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Przejdź do płatności' })).toBeNull();
+    });
+
+    it('karencja (allowed=false): wyjaśnienie zamiast „bezpłatnie w okresie próbnym", bez przycisku zakupu', () => {
+        render({ ...planPreview, allowed: false, explanation: 'Opłacony okres się skończył. Najpierw przedłuż pakiet.' });
+
+        expect(screen.getByText(/Najpierw przedłuż pakiet/)).toBeTruthy();
+        expect(screen.queryByText(/okresu próbnego/)).toBeNull();
+        expect(screen.queryByRole('checkbox', { name: /Akceptuję regulamin/ })).toBeNull();
+        expect(screen.queryByRole('button', { name: /Przejdź/ })).toBeNull();
+        // Stopka: „Zamknij" zamiast „Anuluj" - nie ma czego anulować (krzyżyk w nagłówku też ma tę nazwę).
+        expect(screen.getByText('Zamknij', { selector: 'button' })).toBeTruthy();
+    });
+
+    it('płatny upgrade: kwota i okres, za który się płaci', () => {
+        render({ ...planPreview, proratedAmountCents: 28300, proratedAmountFormatted: '283,00 zł', daysRemaining: 60, periodEndsAt: '2026-12-22T12:00:00Z' });
+
+        expect(screen.getByText('283,00 zł brutto')).toBeTruthy();
+        expect(screen.getByText(/22 grudnia 2026 \(60 dni\)/)).toBeTruthy();
+        expect(screen.getByRole('button', { name: 'Przejdź do płatności' })).toBeTruthy();
+    });
+
+    it('zejście bez opłaconego okresu: „od razu", bez sprzecznego „po końcu okresu"', async () => {
+        changePlan.mockResolvedValue({} as never);
+        render({ ...planPreview, changeType: 'DOWNGRADE', newPlanKey: 'BASIC', newPlanName: 'Basic', explanation: 'Pakiet zmieni się od razu, bez opłaty.' }, 'BASIC');
+
+        expect(screen.getByText(/Pakiet zmieni się od razu\. Zostaną funkcje pakietu Basic/)).toBeTruthy();
+        expect(screen.queryByText(/po końcu opłaconego okresu/)).toBeNull();
+        await userEvent.click(screen.getByRole('button', { name: 'Zmień pakiet' }));
+
+        expect(await screen.findByText('Pakiet zmieniony')).toBeTruthy();
+        expect(screen.queryByText('Zmiana zaplanowana')).toBeNull();
+    });
+
+    it('zejście w opłaconym okresie: zaplanowane na koniec okresu', async () => {
+        changePlan.mockResolvedValue({} as never);
+        render({
+            ...planPreview, changeType: 'DOWNGRADE', newPlanKey: 'BASIC', newPlanName: 'Basic',
+            effectiveAt: '2026-12-22T12:00:00Z', periodEndsAt: '2026-12-22T12:00:00Z', daysRemaining: 60,
+        }, 'BASIC');
+
+        expect(screen.getByText(/Do 22 grudnia 2026 masz wszystko jak teraz/)).toBeTruthy();
+        await userEvent.click(screen.getByRole('button', { name: 'Zaplanuj zmianę' }));
+
+        expect(await screen.findByText('Zmiana zaplanowana')).toBeTruthy();
+    });
+});
+
+describe('AddOnActivationDialog - treść zależna od sytuacji', () => {
+    const render = (preview: AddOnPreview) => renderWith(
+        <AddOnActivationDialog addOnKey="FINANCE_MODULE" addOnName="Finanse" preview={preview}
+            isLoadingPreview={false} onClose={onClose} />,
+    );
+
+    it('karencja (allowed=false): bez „Włącz bezpłatnie" i bez zgody na płatność', () => {
+        render({ ...addOnPreview, allowed: false, explanation: 'Opłacony okres się skończył. Najpierw przedłuż pakiet.' });
+
+        expect(screen.getByText(/Najpierw przedłuż pakiet/)).toBeTruthy();
+        expect(screen.queryByRole('button', { name: 'Włącz bezpłatnie' })).toBeNull();
+        expect(screen.queryByText(/okresu próbnego/)).toBeNull();
+    });
+
+    it('okres próbny: bez pustych wierszy „dni do końca" i „koniec okresu"', () => {
+        render(addOnPreview);
+
+        expect(screen.getByText('Bez opłat do końca okresu próbnego')).toBeTruthy();
+        expect(screen.queryByText('Dni do końca okresu')).toBeNull();
+        expect(screen.queryByText('Koniec okresu')).toBeNull();
+    });
+
+    it('w opłaconym okresie: kwota i okres, za który się płaci', () => {
+        render({ ...addOnPreview, proratedAmountCents: 9800, proratedAmountFormatted: '98,00 zł', daysRemaining: 60, periodEndsAt: '2026-12-22T12:00:00Z' });
+
+        expect(screen.getByText('98,00 zł brutto')).toBeTruthy();
+        expect(screen.getByText(/22 grudnia 2026 \(60 dni\)/)).toBeTruthy();
+        expect(screen.getByRole('button', { name: 'Przejdź do płatności' })).toBeTruthy();
     });
 });

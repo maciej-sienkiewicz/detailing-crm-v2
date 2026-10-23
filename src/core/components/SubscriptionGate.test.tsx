@@ -46,7 +46,7 @@ const ADD_ONS: AddOnDto[] = [{
 
 vi.mock('@/modules/subscription/api/subscriptionQueries', () => ({
     useCheckout: () => ({ isPending: false, mutateAsync: vi.fn() }),
-    useMyPlan: () => ({ data: undefined }),
+    useEntitlements: () => ({ data: { plan: { key: 'BASIC', name: 'Basic' }, activeAddOns: [] }, isLoading: false }),
     useFeaturePlans: () => ({ data: PLANS, isLoading: false }),
     useAddOns: () => ({ data: ADD_ONS }),
     useStartTrial: () => ({ mutateAsync: vi.fn() }),
@@ -151,12 +151,13 @@ describe('SubscriptionGate w aplikacji ze sklepu', () => {
 describe('SubscriptionGate w przeglądarce - bez zmian', () => {
     beforeEach(() => { platform.purchasable = true; });
 
-    it('wygasły pakiet: przedłużenie jak dotąd', () => {
-        state.status = status({ status: 'EXPIRED', isAccessible: false });
+    it('wygasły pakiet: wybór pakietu do opłacenia, nie samo przedłużenie', () => {
+        state.status = status({ status: 'EXPIRED', isAccessible: false, subscriptionEndsAt: '2026-09-01T00:00:00Z' });
         renderGate();
 
-        expect(screen.getByText('Twój pakiet wygasł')).toBeTruthy();
-        expect(screen.getByRole('button', { name: 'Przedłuż pakiet' })).toBeTruthy();
+        expect(screen.getByRole('heading', { name: 'Twój pakiet wygasł' })).toBeTruthy();
+        expect(screen.getByText('Basic')).toBeTruthy();
+        expect(screen.getByText('Full')).toBeTruthy();
         expect(screen.queryByText('Konto jest nieaktywne')).toBeNull();
     });
 

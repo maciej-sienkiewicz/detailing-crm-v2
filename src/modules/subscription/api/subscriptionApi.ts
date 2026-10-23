@@ -1,4 +1,6 @@
-import { apiClient } from '@/core';
+// Wprost z apiClient, nie z '@/core': indeks re-eksportuje router, a router montuje PaywallListener
+// z tego modułu - import przez indeks zamykał cykl router → subskrypcje → router.
+import { apiClient } from '@/core/apiClient';
 import { LEGAL_VERSION } from '@/modules/legal/documents';
 import type { Page } from '@/core/page';
 import type {
@@ -110,8 +112,15 @@ export const newSubscriptionApi = {
         return res.data;
     },
 
+    /** Wyłącza moduł z końcem opłaconego okresu (w trialu i karencji - od razu). */
     deactivateAddOn: async (addOnKey: AddOnKey): Promise<EntitlementsResponse> => {
         const res = await apiClient.delete<EntitlementsResponse>(`${BASE}/add-ons/${addOnKey}`);
+        return res.data;
+    },
+
+    /** Cofa zaplanowane wyłączenie modułu (409, gdy kolejny okres opłacono już bez niego). */
+    resumeAddOn: async (addOnKey: AddOnKey): Promise<EntitlementsResponse> => {
+        const res = await apiClient.post<EntitlementsResponse>(`${BASE}/add-ons/${addOnKey}/resume`);
         return res.data;
     },
 

@@ -28,6 +28,10 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
     const planKey: PlanKey = entitlements?.plan.key ?? 'BASIC';
     const starter = STARTER_CREDITS[planKey];
     const planName = entitlements?.plan.name ?? planKey;
+    // W okresie próbnym moduł włącza się bez płatności - przewodnik mówił o „potwierdzeniu
+    // płatności" i „kontynuacji zakupu", których nie było.
+    const trial = entitlements?.billingStatus === 'TRIALING';
+    const afterWord = trial ? 'Po włączeniu' : 'Po zakupie';
 
     const steps: TourStep[] = [
         {
@@ -53,7 +57,7 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
                         </TourBullet>
                         <TourBullet $color="#0369a1">
                             <Send />
-                            <span>Link do podpisu dokumentów wysyłany SMS-em</span>
+                            <span>Link do podpisu dokumentów wysyłany SMS-em (razem z modułem Podpisy elektroniczne)</span>
                         </TourBullet>
                     </TourBulletList>
                 </>
@@ -67,7 +71,7 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
             body: (
                 <>
                     <TourDesc>
-                        Każda sytuacja ma własną treść wiadomości. Po zakupie
+                        Każda sytuacja ma własną treść wiadomości. {afterWord}
                         <strong> włączymy wszystkie szablony automatycznie</strong>, z gotowymi
                         tekstami, nie musisz nic pisać, żeby zacząć.
                     </TourDesc>
@@ -179,9 +183,11 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
                     <TourBulletList>
                         <TourBullet $color="#d946ef">
                             <Zap />
+                            {/* Pakiet startowy przysługuje studiu raz (serwer: grantStarterCredits) -
+                                obietnica bez zastrzeżenia nie spełniała się np. po wcześniejszym FULL. */}
                             <span>
                                 Na start dodajemy <strong>{starter} SMS-ów</strong> w Twoim
-                                pakiecie {planName}, wystarczą na pierwsze wizyty
+                                pakiecie {planName}, jeśli studio nie dostało jeszcze pakietu startowego
                             </span>
                         </TourBullet>
                         <TourBullet $color="#d946ef">
@@ -203,11 +209,13 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
             icon: <CheckCircle2 />,
             from: '#ec4899',
             to: '#16a34a',
-            title: 'Co się stanie po zakupie',
+            title: trial ? 'Co się stanie po włączeniu' : 'Co się stanie po zakupie',
             body: (
                 <>
                     <TourDesc>
-                        Zaraz przejdziesz do potwierdzenia płatności. Po jej zaksięgowaniu:
+                        {trial
+                            ? 'W okresie próbnym moduł włączysz bez opłat. Od razu:'
+                            : 'Zaraz przejdziesz do potwierdzenia płatności. Po jej zaksięgowaniu:'}
                     </TourDesc>
                     <TourBulletList>
                         <TourBullet $color="#16a34a">
@@ -220,7 +228,7 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
                         </TourBullet>
                         <TourBullet $color="#16a34a">
                             <CheckCircle2 />
-                            <span><strong>{starter} kredytów SMS</strong> trafia na Twoje konto</span>
+                            <span><strong>{starter} kredytów SMS</strong> trafia na Twoje konto (pakiet startowy, raz na studio)</span>
                         </TourBullet>
                     </TourBulletList>
                     <TourDesc style={{ marginTop: 14 }}>
@@ -239,7 +247,7 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
             steps={steps}
             onClose={onClose}
             onFinish={onFinish}
-            finishLabel="Rozumiem i kontynuuję zakup"
+            finishLabel={trial ? 'Rozumiem, dalej' : 'Rozumiem i kontynuuję zakup'}
         />
     );
 }

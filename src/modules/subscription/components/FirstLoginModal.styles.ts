@@ -257,3 +257,19 @@ export const Spinner = styled.span`
         animation-duration: 2s;
     }
 `;
+
+/** „Wyloguj się" w stopce: link, nie drugi przycisk - wypełniony zostaje jeden (CLAUDE.md §2). */
+export const LogoutLink = styled.button`
+    padding: 0;
+    border: 0;
+    background: none;
+    font: inherit;
+    color: #0f172a;
+    font-weight: 600;
+    cursor: pointer;
+    text-decoration: underline;
+    text-decoration-color: rgba(15, 23, 42, 0.25);
+    text-underline-offset: 3px;
+
+    &:hover { text-decoration-color: currentColor; }
+`;

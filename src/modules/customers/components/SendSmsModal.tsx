@@ -19,6 +19,7 @@ import { hasPolishCharacters, smsSegments, smsWord } from '@/common/utils';
 import { customerEditApi } from '../api/customerEditApi';
 import { Button, ui } from '@/common/components/ui';
 import { problemDetail } from '@/core/problem';
+import { useCapabilityGate } from '@/modules/subscription/hooks/useCapabilityGate';
 
 /* Bez polskich znaków SMS mieści się w GSM-7 (160 znaków na segment, 153 przy
    dzieleniu). Z ogonkami operator przechodzi na UCS-2 i segment ma 70 znaków. */
@@ -64,6 +65,8 @@ export const SendSmsModal = ({ customerId, customerName, phone, onClose }: SendS
     const [beforeProofread, setBeforeProofread] = useState<string | null>(null);
     const { showSuccess, showError } = useToast();
     const proofread = useProofread();
+    // Korekta to model AI - moduł Asystent AI.
+    const aiGate = useCapabilityGate('AI_LEAD_ASSIST');
 
     const sendSms = useMutation({
         mutationFn: () => customerEditApi.sendSms(customerId, message.trim()),
@@ -72,7 +75,7 @@ export const SendSmsModal = ({ customerId, customerName, phone, onClose }: SendS
     const polish = hasPolishCharacters(message);
     const segments = useMemo(() => smsSegments(message.trim().length, polish), [message, polish]);
 
-    const runProofread = () => {
+    const runProofread = () => aiGate.run(() => {
         const source = message.trim();
         if (!source || proofread.isPending) return;
         proofread.mutate({ text: source }, {
@@ -90,7 +93,7 @@ export const SendSmsModal = ({ customerId, customerName, phone, onClose }: SendS
                 showError('Nie udało się poprawić treści', detail ?? 'Spróbuj ponownie za chwilę');
             },
         });
-    };
+    });
 
     const submit = () => {
         if (!message.trim() || sendSms.isPending) return;
@@ -108,6 +111,7 @@ export const SendSmsModal = ({ customerId, customerName, phone, onClose }: SendS
 
     return (
         <ModalShell isOpen onClose={onClose} size="sm">
+            {aiGate.upsell}
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Wyślij SMS</ModalTitle>

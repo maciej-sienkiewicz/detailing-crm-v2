@@ -14,7 +14,7 @@ import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useChangePlan, useCheckout, useDeactivateAddOn as useDeactivateAddOnMutation } from '../api/subscriptionQueries';
 import type { PlanChangePreview, AddOnPreview, AddOnKey, PlanKey } from '../types';
 import { CommunicationModuleTour } from './CommunicationModuleTour';
-import { formatDate } from '../utils/formatters';
+import { daysLabel, formatDate } from '../utils/formatters';
 import { toastUnhandledError } from '../utils/apiErrors';
 import { toastCheckoutProblem, useCheckoutHandoff } from '../hooks/useCheckoutHandoff';
 import { LoadingRow, Spinner, Explanation, Strong } from './PlanChangeDialog.styles';
@@ -33,6 +33,21 @@ const PreviewFailed = () => (
         Zamknij okno i spróbuj ponownie za chwilę. Nic nie zostało zmienione ani pobrane.
     </Notice>
 );
+
+/**
+ * Serwer odmówił zakupu w tej chwili (`allowed: false`: opłacony okres minął, moduł
+ * w przygotowaniu). Wcześniej okno nie czytało tego pola: brak kwoty brało za okres próbny
+ * i pokazywało „Bezpłatnie w ramach okresu próbnego" z przyciskiem, który kończył się błędem.
+ */
+const NotAllowed = ({ explanation }: { explanation: string }) => (
+    <Notice tone="warn" title="Teraz tego nie kupisz" role="alert">
+        {explanation}
+    </Notice>
+);
+
+/** „Za okres do 22 grudnia 2026 (60 dni)" - dopłata obejmuje cały opłacony czas, nie „resztę okresu". */
+const paidUntil = (periodEndsAt: string | null, days: number | null) =>
+    periodEndsAt ? `${formatDate(periodEndsAt)}${days != null ? ` (${daysLabel(days)})` : ''}` : null;
 
 // ─── Plan change dialog ────────────────────────────────────────────────────────
 
@@ -60,17 +75,25 @@ export function PlanChangeDialog({
     const consent = useCheckoutConsent();
 
     const isDowngrade = preview?.changeType === 'DOWNGRADE';
+    const notAllowed = preview?.allowed === false;
+    // Bez trwającego opłaconego okresu (trial, karencja) serwer zmienia pakiet od razu.
+    // Okno mówiło wtedy naraz „zacznie działać po końcu opłaconego okresu" i „od razu".
+    const immediateDowngrade = isDowngrade && !preview?.periodEndsAt;
+    // Wyższy pakiet bez kwoty i bez odmowy = okres próbny: zmiana bez opłat, od razu.
+    const trialUpgrade = !!preview && !isDowngrade && !notAllowed && preview.proratedAmountCents == null;
 
     const handleConfirm = async () => {
+        if (!preview || notAllowed) return;
         if (!isDowngrade && !consent.require()) return;
         try {
             if (isDowngrade) {
                 await changePlan.mutateAsync(newPlanKey);
-                showSuccess('Zmiana zaplanowana', `Pakiet zmieni się na ${newPlanName} z końcem opłaconego okresu.`);
+                if (immediateDowngrade) showSuccess('Pakiet zmieniony', `Od teraz masz pakiet ${newPlanName}.`);
+                else showSuccess('Zmiana zaplanowana', `Od ${formatDate(preview.effectiveAt)} pakiet zmieni się na ${newPlanName}.`);
                 onClose();
                 return;
             }
-            // Upgrade: paid operation, goes through Przelewy24.
+            // Wyższy pakiet przechodzi przez zamówienie (Przelewy24; w trialu bez kwoty).
             // Brak adresu płatności to NIE sukces (zamówienie bez płatności mogło zostać anulowane
             // albo wciąż się włącza) - rozstrzyga stan zamówienia (useCheckoutHandoff).
             const step = handoff(await checkout.mutateAsync({ type: 'PLAN_UPGRADE', planKey: newPlanKey, acceptTerms: true }));
@@ -84,6 +107,13 @@ export function PlanChangeDialog({
     };
 
     const isPending = changePlan.isPending || checkout.isPending;
+    const canConfirm = isLoadingPreview || (!!preview && !notAllowed);
+
+    const confirmLabel = isPending
+        ? (isDowngrade ? 'Zapisywanie…' : trialUpgrade ? 'Włączanie…' : 'Przekierowywanie…')
+        : isDowngrade
+            ? (immediateDowngrade ? 'Zmień pakiet' : 'Zaplanuj zmianę')
+            : trialUpgrade ? `Przejdź na ${newPlanName}` : 'Przejdź do płatności';
 
     return (
         <ModalShell isOpen onClose={onClose} size="sm">
@@ -107,30 +137,37 @@ export function PlanChangeDialog({
                     </LoadingRow>
                 ) : !preview ? (
                     <PreviewFailed />
+                ) : notAllowed ? (
+                    <NotAllowed explanation={preview.explanation} />
                 ) : (
                     <>
                         {isDowngrade && (
                             <Notice tone="warn">
-                                Niższy pakiet zacznie działać po końcu opłaconego okresu.
-                                Do tego czasu masz wszystko jak teraz.
+                                {immediateDowngrade
+                                    ? `Pakiet zmieni się od razu. Zostaną funkcje pakietu ${newPlanName}, a moduły dokupisz potem osobno.`
+                                    : `Do ${formatDate(preview.effectiveAt)} masz wszystko jak teraz. Potem zostaną funkcje pakietu ${newPlanName}, a moduły dokupisz osobno.`}
                             </Notice>
                         )}
 
                         <FieldList>
                             <FieldRow label="Nowy pakiet"><strong>{preview.newPlanName}</strong></FieldRow>
                             <FieldRow label="Od kiedy">
-                                {isDowngrade ? formatDate(preview.effectiveAt) : 'Od razu po opłaceniu'}
+                                {isDowngrade
+                                    ? (immediateDowngrade ? 'Od razu' : formatDate(preview.effectiveAt))
+                                    : trialUpgrade ? 'Od razu' : 'Od razu po opłaceniu'}
                             </FieldRow>
                             <FieldRow label="Do zapłaty">
-                                <Strong $highlight={!isDowngrade}>
+                                <Strong $highlight={!isDowngrade && !trialUpgrade}>
                                     {isDowngrade
                                         ? 'Bez opłaty'
-                                        : preview.proratedAmountFormatted
-                                            ? `${preview.proratedAmountFormatted} brutto`
-                                            : 'Bezpłatnie w ramach okresu próbnego'}
+                                        : trialUpgrade
+                                            ? 'Bez opłat do końca okresu próbnego'
+                                            : `${preview.proratedAmountFormatted} brutto`}
                                 </Strong>
                             </FieldRow>
-                            <FieldRow label="Dni do końca okresu">{preview.daysRemaining}</FieldRow>
+                            {!isDowngrade && !trialUpgrade && paidUntil(preview.periodEndsAt, preview.daysRemaining) && (
+                                <FieldRow label="Za okres do">{paidUntil(preview.periodEndsAt, preview.daysRemaining)}</FieldRow>
+                            )}
                         </FieldList>
 
                         <Explanation>{preview.explanation}</Explanation>
@@ -141,17 +178,15 @@ export function PlanChangeDialog({
 
             <ModalFooter>
                 <Button onClick={onClose} disabled={isPending}>
-                    {!isLoadingPreview && !preview ? 'Zamknij' : 'Anuluj'}
+                    {canConfirm ? 'Anuluj' : 'Zamknij'}
                 </Button>
-                {(isLoadingPreview || preview) && (
+                {canConfirm && (
                     <Button
                         variant="primary"
                         onClick={handleConfirm}
                         disabled={isPending || isLoadingPreview || !preview}
                     >
-                        {isPending
-                            ? (isDowngrade ? 'Planowanie…' : 'Przekierowywanie…')
-                            : isDowngrade ? 'Zaplanuj zmianę' : 'Przejdź do płatności'}
+                        {confirmLabel}
                     </Button>
                 )}
             </ModalFooter>
@@ -192,8 +227,11 @@ export function AddOnActivationDialog({
     // covers every entry point at once: module gate, paywall, settings, the visit.
     const [guideDone, setGuideDone] = useState(!ADD_ONS_WITH_GUIDE.has(addOnKey));
 
+    const notAllowed = preview?.allowed === false;
+    const isTrial = !!preview && !notAllowed && preview.proratedAmountCents === null;
+
     const handleConfirm = async () => {
-        if (!consent.require()) return;
+        if (!preview || notAllowed || !consent.require()) return;
         try {
             const step = handoff(await checkout.mutateAsync({ type: 'ADD_ON_PURCHASE', addOnKeys: [addOnKey], acceptTerms: true }));
             if (step.kind === 'redirect' || step.kind === 'track') return;
@@ -205,8 +243,6 @@ export function AddOnActivationDialog({
         }
     };
 
-    const isTrial = preview?.proratedAmountCents === null;
-
     if (!guideDone) {
         return (
             <CommunicationModuleTour
@@ -215,6 +251,8 @@ export function AddOnActivationDialog({
             />
         );
     }
+
+    const canConfirm = isLoadingPreview || (!!preview && !notAllowed);
 
     return (
         <ModalShell isOpen onClose={onClose} size="sm">
@@ -233,21 +271,22 @@ export function AddOnActivationDialog({
                     </LoadingRow>
                 ) : !preview ? (
                     <PreviewFailed />
+                ) : notAllowed ? (
+                    <NotAllowed explanation={preview.explanation} />
                 ) : (
                     <>
                         <FieldList>
                             <FieldRow label="Moduł"><strong>{preview.addOnName}</strong></FieldRow>
-                            <FieldRow label="Do zapłaty za resztę okresu">
+                            <FieldRow label="Do zapłaty">
                                 <Strong $highlight={!isTrial}>
                                     {isTrial
-                                        ? 'Bezpłatnie w ramach okresu próbnego'
-                                        : preview.proratedAmountFormatted
-                                            ? `${preview.proratedAmountFormatted} brutto`
-                                            : '-'}
+                                        ? 'Bez opłat do końca okresu próbnego'
+                                        : `${preview.proratedAmountFormatted} brutto`}
                                 </Strong>
                             </FieldRow>
-                            <FieldRow label="Dni do końca okresu">{preview.daysRemaining}</FieldRow>
-                            <FieldRow label="Koniec okresu">{formatDate(preview.periodEndsAt)}</FieldRow>
+                            {!isTrial && paidUntil(preview.periodEndsAt, preview.daysRemaining) && (
+                                <FieldRow label="Za okres do">{paidUntil(preview.periodEndsAt, preview.daysRemaining)}</FieldRow>
+                            )}
                         </FieldList>
 
                         <Explanation>{preview.explanation}</Explanation>
@@ -258,16 +297,16 @@ export function AddOnActivationDialog({
 
             <ModalFooter>
                 <Button onClick={onClose} disabled={checkout.isPending}>
-                    {!isLoadingPreview && !preview ? 'Zamknij' : 'Anuluj'}
+                    {canConfirm ? 'Anuluj' : 'Zamknij'}
                 </Button>
-                {(isLoadingPreview || preview) && (
+                {canConfirm && (
                     <Button
                         variant="primary"
                         onClick={handleConfirm}
                         disabled={checkout.isPending || isLoadingPreview || !preview}
                     >
                         {checkout.isPending
-                            ? 'Przekierowywanie…'
+                            ? (isTrial ? 'Włączanie…' : 'Przekierowywanie…')
                             : isTrial ? 'Włącz bezpłatnie' : 'Przejdź do płatności'}
                     </Button>
                 )}
@@ -281,19 +320,26 @@ export function AddOnActivationDialog({
 interface DeactivateDialogProps {
     addOnKey: AddOnKey;
     addOnName: string;
+    /**
+     * Koniec trwającego opłaconego okresu: do tej chwili moduł działa, potem się wyłącza.
+     * Null - nie ma opłaconego okresu do dokończenia (trial, karencja), wyłącza się od razu.
+     * Dawniej okno zawsze mówiło „stracisz dostęp od razu", a serwer zostawiał moduł do końca okresu.
+     */
+    endsAt: string | null;
     onClose: () => void;
 }
 
-export function AddOnDeactivationDialog({ addOnKey, addOnName, onClose }: DeactivateDialogProps) {
+export function AddOnDeactivationDialog({ addOnKey, addOnName, endsAt, onClose }: DeactivateDialogProps) {
     const { showSuccess, showError } = useToast();
     const deactivateAddOn = useDeactivateAddOnMutation();
 
-    // Wyłączenie modułu odbiera dostęp od razu, więc idzie przez to samo okno
-    // potwierdzenia co każde usunięcie w ustawieniach. Okno zamyka się po kliknięciu,
-    // a wynik mówi toast - mutacja kończy się także po odmontowaniu okna.
+    // Okno zamyka się po kliknięciu, a wynik mówi toast - mutacja kończy się także po
+    // odmontowaniu okna.
     const handleConfirm = () => {
         deactivateAddOn.mutateAsync(addOnKey)
-            .then(() => showSuccess('Moduł wyłączony', `Moduł ${addOnName} nie działa już w Twoim studiu.`))
+            .then(() => endsAt
+                ? showSuccess('Wyłączenie zaplanowane', `Moduł ${addOnName} działa do ${formatDate(endsAt)}.`)
+                : showSuccess('Moduł wyłączony', `Moduł ${addOnName} nie działa już w Twoim studiu.`))
             .catch((err: unknown) =>
                 toastUnhandledError(showError, err, 'Nie udało się wyłączyć modułu', 'Spróbuj ponownie za chwilę.'));
     };
@@ -303,8 +349,10 @@ export function AddOnDeactivationDialog({ addOnKey, addOnName, onClose }: Deacti
             isOpen
             variant="danger"
             title={`Wyłączyć moduł ${addOnName}?`}
-            message="Stracisz dostęp do modułu od razu po potwierdzeniu. Możesz go później włączyć ponownie."
-            confirmText="Wyłącz"
+            message={endsAt
+                ? `Moduł działa do ${formatDate(endsAt)}, bo ten czas jest już opłacony. Nie wejdzie do ceny kolejnego okresu. Do tego dnia możesz cofnąć wyłączenie, jeśli nie opłacisz wcześniej przedłużenia.`
+                : 'Moduł przestanie działać od razu. Możesz go później włączyć ponownie.'}
+            confirmText={endsAt ? 'Wyłącz z końcem okresu' : 'Wyłącz'}
             cancelText="Anuluj"
             onConfirm={handleConfirm}
             onCancel={onClose}
@@ -315,16 +363,21 @@ export function AddOnDeactivationDialog({ addOnKey, addOnName, onClose }: Deacti
 // ─── Renewal dialog ───────────────────────────────────────────────────────────
 
 interface RenewDialogProps {
+    /** Pakiet kolejnego okresu (po zaplanowanym zejściu - już niższy). */
     planName: string;
-    /** Sformatowana kwota brutto za 30 dni; null, gdy nie ma czego płacić. */
+    /** Moduły, które przedłużają się razem z pakietem (bez wyłączanych). */
+    addOnNames: string[];
+    /** Sformatowana kwota brutto za kolejny okres; null, gdy nie ma czego płacić. */
     amount: string | null;
+    /** Do kiedy sięgnie okres po tej płatności. */
+    periodEndsAt: string | null;
     isPending: boolean;
     onConfirm: () => void;
     onClose: () => void;
 }
 
 /** Przedłużenie o 30 dni: kwota i zgoda na regulamin przed przejściem do Przelewy24. */
-export function RenewDialog({ planName, amount, isPending, onConfirm, onClose }: RenewDialogProps) {
+export function RenewDialog({ planName, addOnNames, amount, periodEndsAt, isPending, onConfirm, onClose }: RenewDialogProps) {
     const consent = useCheckoutConsent();
 
     return (
@@ -338,13 +391,15 @@ export function RenewDialog({ planName, amount, isPending, onConfirm, onClose }:
 
             <ModalContent>
                 <FieldList>
-                    <FieldRow label="Pakiet"><strong>{planName}</strong> z aktywnymi modułami</FieldRow>
-                    <FieldRow label="Okres">30 dni od opłacenia</FieldRow>
+                    <FieldRow label="Pakiet"><strong>{planName}</strong></FieldRow>
+                    {addOnNames.length > 0 && <FieldRow label="Moduły">{addOnNames.join(', ')}</FieldRow>}
+                    {/* Okres liczy się od końca obecnego, nie od dnia płatności - dawniej okno mówiło „od opłacenia". */}
+                    <FieldRow label="Okres">{periodEndsAt ? `30 dni, do ${formatDate(periodEndsAt)}` : '30 dni'}</FieldRow>
                     <FieldRow label="Do zapłaty">
                         <Strong $highlight>{amount ? `${amount} brutto` : 'Bez opłaty'}</Strong>
                     </FieldRow>
                 </FieldList>
-                <Explanation>Płatność jednorazowa przez Przelewy24 - nie odnawia się automatycznie.</Explanation>
+                <Explanation>Płatność jednorazowa przez Przelewy24, nie odnawia się automatycznie.</Explanation>
                 <CheckoutConsent consent={consent} />
             </ModalContent>
 

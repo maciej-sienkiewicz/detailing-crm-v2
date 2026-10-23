@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { QueryClientProvider } from '@tanstack/react-query';
-import { useAuth } from '@/core/context/AuthContext';
+import { usePermissions } from '@/core/permissions/usePermissions';
 import { canPurchaseHere } from '@/core/native/platform';
 import { useFeature } from '../hooks/useFeature';
 import { useAddOnUnlock } from '../hooks/useAddOnUnlock';
@@ -63,6 +63,8 @@ export interface ModuleGateCardProps {
     priceCents: number | null;
     isAvailable: boolean;
     isOwner: boolean;
+    /** W okresie próbnym moduł włącza się bez opłat - sama cena sugerowała płatność. */
+    trial?: boolean;
     onUnlock: () => void;
 }
 
@@ -80,6 +82,7 @@ export function ModuleGateCard({
     priceCents,
     isAvailable,
     isOwner,
+    trial,
     onUnlock,
 }: ModuleGateCardProps) {
     // W aplikacji ze sklepu karta tylko mówi, że modułu nie ma: bez ceny, listy korzyści,
@@ -116,7 +119,7 @@ export function ModuleGateCard({
             {priceCents != null && (
                 <PriceRow>
                     <PriceAmount>{formatCents(priceCents)}</PriceAmount>
-                    <PricePer>/ miesiąc</PricePer>
+                    <PricePer>brutto / mies.{trial ? ', w okresie próbnym bez opłat' : ''}</PricePer>
                 </PriceRow>
             )}
 
@@ -124,7 +127,7 @@ export function ModuleGateCard({
                 <>
                     <UnlockButton onClick={onUnlock} disabled={!addOnKey || !isAvailable}>
                         <ZapSvg />
-                        Odblokuj moduł
+                        {trial ? 'Włącz bezpłatnie' : 'Odblokuj moduł'}
                     </UnlockButton>
                     <FullHint>
                         Albo przejdź na pakiet <a href="/settings?tab=plan">FULL</a>:
@@ -164,9 +167,11 @@ interface Props {
  * primarily the owner's sales surface.
  */
 export function ModuleGate({ featureKey, benefits, title, children }: Props) {
-    const { user } = useAuth();
+    // To samo źródło co reszta modułu - dawniej `user.role === 'OWNER'` rozjeżdżało się
+    // z nim przy rolach zapisanych inną wielkością liter.
+    const { isOwner } = usePermissions();
     const feature = useFeature(featureKey);
-    const { isLoading } = useEntitlements();
+    const { isLoading, data: entitlements } = useEntitlements();
     // Katalog dodatków jest potrzebny tylko na karcie odblokowania.
     const { data: addOns } = useAddOns({ enabled: !feature.enabled && !isLoading });
     const unlock = useAddOnUnlock();
@@ -179,8 +184,6 @@ export function ModuleGate({ featureKey, benefits, title, children }: Props) {
     if (feature.enabled) {
         return <>{children}</>;
     }
-
-    const isOwner = user?.role === 'OWNER';
 
     // Prefer the entitlements upsell (already mapped server-side); fall back to
     // the add-on catalog in case the upsell payload is missing.
@@ -218,6 +221,7 @@ export function ModuleGate({ featureKey, benefits, title, children }: Props) {
                     priceCents={priceCents}
                     isAvailable={isAvailable}
                     isOwner={isOwner}
+                    trial={entitlements?.billingStatus === 'TRIALING'}
                     onUnlock={handleUnlock}
                 />
             </GateOverlay>

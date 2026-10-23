@@ -6,6 +6,7 @@
 // płatności. Odrzucona akcja (402) dalej mówi, czemu się nie udała.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { act, cleanup, render, renderHook, screen } from '@testing-library/react';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
 import { useAddOnUnlock } from './hooks/useAddOnUnlock';
@@ -89,7 +90,12 @@ describe('w aplikacji ze sklepu', () => {
     });
 
     it('402 z akcji pokazuje informację bez zakupu', async () => {
-        render(<ThemeProvider theme={theme}><PaywallListener /></ThemeProvider>);
+        // PaywallListener czyta stan okresu próbnego z cache zapytań (bez zapytania do serwera).
+        render(
+            <QueryClientProvider client={new QueryClient()}>
+                <ThemeProvider theme={theme}><PaywallListener /></ThemeProvider>
+            </QueryClientProvider>,
+        );
 
         act(() => { window.dispatchEvent(new CustomEvent('api:paywall', { detail: paywall })); });
 

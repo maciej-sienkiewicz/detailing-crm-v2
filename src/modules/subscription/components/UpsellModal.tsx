@@ -1,10 +1,13 @@
+import { useEffect } from 'react';
 import styled from 'styled-components';
+import { acquireScrollLock } from '@/common/utils/scrollLock';
 import { canPurchaseHere } from '@/core/native/platform';
 import { SUBMODAL_Z_INDEX } from '@/common/styles';
 import { usePermissions } from '@/core/permissions/usePermissions';
 import { useCapability } from '../hooks/useCapability';
 import { useFeature } from '../hooks/useFeature';
 import { useAddOnUnlock } from '../hooks/useAddOnUnlock';
+import { useEntitlements } from '../api/subscriptionQueries';
 import { AddOnActivationDialog } from './PlanChangeDialog';
 import { ModuleGateCard } from './ModuleGate';
 import type { AddOnKey, CapabilityKey, FeatureKey } from '../types';
@@ -26,6 +29,10 @@ type UpsellModalProps = { onClose: () => void } & (
 export function UpsellModal({ onClose, ...props }: UpsellModalProps) {
     const { isOwner } = usePermissions();
     const unlock = useAddOnUnlock();
+    // Własna nakładka poza ModalShell - blokada przewijania tła tylko przez scrollLock
+    // (CLAUDE.md §3), w osobnym efekcie zależnym wyłącznie od zamontowania.
+    useEffect(() => acquireScrollLock(), []);
+    const { data: entitlements } = useEntitlements();
 
     const capabilityStatus = useCapability(props.capability ?? 'COMM_SEND_TRANSACTIONAL');
     const featureStatus = useFeature(props.feature ?? 'SMS_EMAIL');
@@ -62,6 +69,7 @@ export function UpsellModal({ onClose, ...props }: UpsellModalProps) {
                         priceCents={option?.monthlyPriceGrossCents ?? null}
                         isAvailable={option?.isAvailable ?? false}
                         isOwner={isOwner}
+                        trial={entitlements?.billingStatus === 'TRIALING'}
                         onUnlock={handleUnlock}
                     />
                     <DismissLink type="button" onClick={onClose}>

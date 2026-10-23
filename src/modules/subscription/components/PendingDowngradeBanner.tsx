@@ -26,6 +26,18 @@ export function PendingDowngradeBanner({ pendingDowngrade }: Props) {
         }
     };
 
+    // Kolejny okres opłacony już po cenie niższego pakietu - odwołanie dałoby wyższy pakiet
+    // za niższą cenę, więc serwer odpowiada 409. Dawniej przycisk był zawsze i kończył się błędem.
+    if (!pendingDowngrade.cancellable) {
+        return (
+            <Notice tone="warn" title="Zaplanowana zmiana pakietu">
+                Od {formatDate(pendingDowngrade.effectiveAt)} pakiet zmieni się na {pendingDowngrade.toPlanName}.
+                Kolejny okres jest już opłacony w tym pakiecie, więc zmiany nie da się odwołać. Po jej wejściu
+                w życie możesz przejść na wyższy pakiet z dopłatą za pozostałe dni.
+            </Notice>
+        );
+    }
+
     return (
         <Notice
             tone="warn"

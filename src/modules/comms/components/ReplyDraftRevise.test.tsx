@@ -11,6 +11,9 @@ import { ReplyDraftRevise } from './ReplyDraftRevise';
 
 const mutate = vi.fn();
 
+vi.mock('@/modules/subscription/hooks/useCapabilityGate', () => ({
+    useCapabilityGate: () => ({ enabled: true, run: (action: () => void) => action(), upsell: null }),
+}));
 vi.mock('@/common/components/Toast', () => ({
     useToast: () => ({ showSuccess: vi.fn(), showError: vi.fn(), showInfo: vi.fn() }),
 }));

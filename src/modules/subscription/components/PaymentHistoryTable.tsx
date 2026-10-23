@@ -8,7 +8,7 @@ import { useState } from 'react';
 import { Button, Notice, SectionTitle, StatusPill, type PillTone } from '@/common/components/ui';
 import { usePaymentHistory } from '../api/subscriptionQueries';
 import type { PaymentEventType } from '../types';
-import { formatDateTime } from '../utils/formatters';
+import { formatCents, formatDateTime } from '../utils/formatters';
 import { pageWindow } from '../utils/pagination';
 import {
     Wrap,
@@ -89,11 +89,15 @@ export function PaymentHistoryTable() {
                                         </td>
                                         <td>{entry.plan?.name ?? '-'}</td>
                                         <td>{entry.addOn?.name ?? '-'}</td>
+                                        {/* Kwota w tym samym zapisie co reszta ekranu („99,00 zł"), nie
+                                            „99.00 PLN" z serwera. Zdarzenie bez opłaty (zmiana w trialu,
+                                            wyłączenie modułu) nie ma transakcji - numer zamówienia CRM-…
+                                            wyglądał przy nim jak płatność. */}
                                         <td className={entry.amountCents === 0 ? 'num zero' : 'num amount'}>
-                                            {entry.amountCents === 0 ? '-' : entry.amountFormatted}
+                                            {entry.amountCents === 0 ? '-' : formatCents(entry.amountCents)}
                                         </td>
                                         <td>
-                                            {entry.transactionId
+                                            {entry.transactionId && entry.amountCents !== 0
                                                 ? <TransactionId>{entry.transactionId}</TransactionId>
                                                 : '-'}
                                         </td>
