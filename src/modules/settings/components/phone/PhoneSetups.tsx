@@ -19,7 +19,9 @@ import { useCapability } from '@/modules/subscription';
 import { PushNotificationsPanel } from '@/modules/push/components/PushNotificationsPanel';
 import { NativePushPanel } from '@/modules/push/native/NativePushPanel';
 import { isMobileDevice } from '@/modules/push/utils/webPush';
-import { MarketNotificationPreferences } from '@/common/components/notifications';
+import {
+    APPOINTMENT_REMINDER_PERMISSION, AppointmentReminderSetting, MarketNotificationPreferences,
+} from '@/common/components/notifications';
 // Bezpośrednio z pliku, nie z indeksu modułu: indeks ciągnie widoki Statystyk z wykresami.
 import {
     REPORT_NOTIFICATION_PERMISSIONS, ReportNotificationSetting,
@@ -32,10 +34,11 @@ import type { PhoneFeatureId } from './phoneFeatures';
 // ─── Powiadomienia i dzwonienie ──────────────────────────────────────────────
 
 /**
- * Najpierw „gdzie" (urządzenia i co do którego idzie), potem „jak często" - raport
- * i podsumowania reklam razem, w jednej sekcji. Wcześniej raport stał między
- * „To urządzenie" a kodem QR, a reklamy osobną ramą pod całością, i nic nie mówiło,
- * jak te części się łączą.
+ * Najpierw „gdzie" (urządzenia i co do którego idzie), potem „kiedy i jak często" -
+ * przypomnienie o rezerwacji, raport i podsumowania reklam razem, w jednej sekcji.
+ * Wcześniej raport stał między „To urządzenie" a kodem QR, a reklamy osobną ramą pod
+ * całością, i nic nie mówiło, jak te części się łączą. Przypomnienie stoi pierwsze:
+ * dotyczy codziennej pracy przy aucie, raport i reklamy - spraw właściciela.
  */
 function PushSetup() {
     const { can } = usePermissions();
@@ -44,20 +47,22 @@ function PushSetup() {
     const instagram = useCapability('INSTAGRAM_MONITOR');
     const showMarketPreferences = can('MARKETING_MANAGE') && instagram.enabled;
     const showReport = can([...REPORT_NOTIFICATION_PERMISSIONS]);
+    const showReminder = can(APPOINTMENT_REMINDER_PERMISSION);
 
     return (
         <Stack>
             {/* W aplikacji ze sklepu jedna systemowa zgoda zamiast kreatora przeglądarki. */}
             {isNativeApp() ? <NativePushPanel /> : <PushNotificationsPanel />}
-            {(showReport || showMarketPreferences) && (
+            {(showReminder || showReport || showMarketPreferences) && (
                 <Summaries>
                     <SummariesHead>
-                        <SectionTitle as="h3">Raporty i podsumowania</SectionTitle>
+                        <SectionTitle as="h3">Przypomnienia i podsumowania</SectionTitle>
                         <SummariesLead>
-                            Ustaw, jak często przychodzą. Urządzenia, które je dostają, wybierz
-                            w tabeli „Rodzaje powiadomień”.
+                            Ustaw, kiedy i jak często przychodzą. Urządzenia, które je dostają,
+                            wybierz w tabeli „Rodzaje powiadomień”.
                         </SummariesLead>
                     </SummariesHead>
+                    {showReminder && <AppointmentReminderSetting />}
                     {showReport && <ReportNotificationSetting />}
                     {showMarketPreferences && <MarketNotificationPreferences embedded />}
                 </Summaries>

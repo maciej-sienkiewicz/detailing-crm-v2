@@ -14,7 +14,7 @@ export interface CategoryCopy {
 /** Kolejność i grupy ekranu. Kategoria spoza listy (nowszy backend) trafia na koniec. */
 export const GROUPS: { title: string; categories: PushNotificationCategory[] }[] = [
     { title: 'Zapytania od klientów', categories: ['NEW_LEADS', 'LEADS_WAITING'] },
-    { title: 'Kalendarz i wizyty', categories: ['RESERVATIONS', 'CHECKINS'] },
+    { title: 'Kalendarz i wizyty', categories: ['RESERVATIONS', 'APPOINTMENT_REMINDERS', 'CHECKINS'] },
     { title: 'Przychody i raporty', categories: ['EARNINGS', 'REPORTS'] },
     { title: 'Zespół', categories: ['LEAVE_REQUESTS', 'WORKTIME_CARDS', 'MY_MATTERS'] },
     { title: 'Konkurencja', categories: ['COMPETITION'] },
@@ -41,6 +41,12 @@ export const CATEGORY_COPY: Record<string, CategoryCopy> = {
         label: 'Nowa rezerwacja',
         hint: 'Gdy w kalendarzu pojawi się nowa rezerwacja. Za rezerwacje dodane przez Ciebie powiadomienie nie przychodzi.',
     },
+    // „Rezerwacja", nie „wizyta": według słowniczka przewodnika wizyta zaczyna się od
+    // przyjęcia auta, a przypomnienie przychodzi wcześniej.
+    APPOINTMENT_REMINDERS: {
+        label: 'Przypomnienie o rezerwacji',
+        hint: 'Gdy zbliża się rezerwacja z kalendarza. Czas przypomnienia ustaw w sekcji „Przypomnienia i podsumowania”.',
+    },
     CHECKINS: {
         label: 'Auto przyjęte do studia',
         hint: 'Gdy klient podpisze protokół przyjęcia i zostawi auto.',
@@ -51,7 +57,7 @@ export const CATEGORY_COPY: Record<string, CategoryCopy> = {
     },
     REPORTS: {
         label: 'Nowy raport',
-        hint: 'Gdy raport za kolejny okres jest gotowy. Częstotliwość ustaw w sekcji „Raporty i podsumowania”.',
+        hint: 'Gdy raport za kolejny okres jest gotowy. Częstotliwość ustaw w sekcji „Przypomnienia i podsumowania”.',
     },
     COMPETITION: {
         label: 'Reklamy konkurencji',

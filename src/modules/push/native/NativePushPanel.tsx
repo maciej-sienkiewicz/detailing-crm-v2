@@ -90,7 +90,7 @@ export function NativePushPanel() {
                 )}
             </ThisPhone>
 
-            {/* Raport i podsumowania stoją pod panelem, w sekcji „Raporty i podsumowania" (PhoneSetups). */}
+            {/* Przypomnienia, raport i podsumowania stoją pod panelem, w sekcji „Przypomnienia i podsumowania" (PhoneSetups). */}
             <DeviceNotificationSettings onRevoke={revoke} />
         </Wrap>
     );

@@ -5,21 +5,13 @@
 // konkurencji; jedyną drogą do ciszy było wyciszenie całej aplikacji w telefonie,
 // czyli utrata także pushy o nowych zapytaniach. Teraz cisza jest tu, osobno.
 //
-// Zmiana zapisuje się od razu po kliknięciu - wybór pokazujemy natychmiast, a przy
-// błędzie przełącznik wraca do poprzedniej wartości z komunikatem.
+// Zmiana zapisuje się od razu po kliknięciu (useNotificationPreferences) - wybór
+// pokazujemy natychmiast, a przy błędzie przełącznik wraca do poprzedniej wartości.
 
 import styled from 'styled-components';
-import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { Panel, SectionTitle, Segmented, ui } from '@/common/components/ui';
-import { useToast } from '@/common/components/Toast';
-import {
-    MARKET_CATEGORIES,
-    NOTIFICATION_PREFERENCES_KEY,
-    notificationPreferencesApi,
-    preferenceValue,
-    withPreference,
-    type NotificationPreference,
-} from './marketPreferences';
+import { MARKET_CATEGORIES, preferenceValue } from './marketPreferences';
+import { useNotificationPreferences } from './useNotificationPreferences';
 
 interface Props {
     /** Nagłówek sekcji; w module Instagrama może stać inny niż w Ustawieniach. */
@@ -33,33 +25,7 @@ interface Props {
 }
 
 export function MarketNotificationPreferences({ title = 'Powiadomienia o reklamach konkurencji', className, embedded = false }: Props) {
-    const queryClient = useQueryClient();
-    const { showError } = useToast();
-    const preferences = useQuery({
-        queryKey: NOTIFICATION_PREFERENCES_KEY,
-        queryFn: notificationPreferencesApi.list,
-        staleTime: 5 * 60_000,
-    });
-
-    const update = useMutation({
-        mutationFn: ({ category, value }: { category: string; value: string }) =>
-            notificationPreferencesApi.update(category, value),
-        onMutate: async ({ category, value }) => {
-            await queryClient.cancelQueries({ queryKey: NOTIFICATION_PREFERENCES_KEY });
-            const previous = queryClient.getQueryData<NotificationPreference[]>(NOTIFICATION_PREFERENCES_KEY);
-            queryClient.setQueryData(NOTIFICATION_PREFERENCES_KEY, withPreference(previous, category, value));
-            return { previous };
-        },
-        onError: (_error, _variables, context) => {
-            queryClient.setQueryData(NOTIFICATION_PREFERENCES_KEY, context?.previous);
-            showError('Nie udało się zapisać ustawienia', 'Wróciło poprzednie. Spróbuj ponownie.');
-        },
-        onSuccess: (saved) => {
-            queryClient.setQueryData<NotificationPreference[] | undefined>(NOTIFICATION_PREFERENCES_KEY, (list) =>
-                withPreference(list, saved.category, saved.value)
-            );
-        },
-    });
+    const { preferences, update } = useNotificationPreferences();
 
     if (preferences.isError) return null;
 
@@ -82,7 +48,7 @@ export function MarketNotificationPreferences({ title = 'Powiadomienia o reklama
                     options={options}
                     value={value ?? ''}
                     onChange={(next) => {
-                        if (next !== value) update.mutate({ category, value: next });
+                        if (next !== value) update(category, next);
                     }}
                 />
                 {hint && <Hint>{hint}</Hint>}

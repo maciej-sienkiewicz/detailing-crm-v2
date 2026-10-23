@@ -20,6 +20,7 @@ export type PushNotificationCategory =
     | 'NEW_LEADS'
     | 'LEADS_WAITING'
     | 'RESERVATIONS'
+    | 'APPOINTMENT_REMINDERS'
     | 'CHECKINS'
     | 'EARNINGS'
     | 'REPORTS'
