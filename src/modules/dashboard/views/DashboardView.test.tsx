@@ -10,7 +10,7 @@ import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
 import { DashboardView } from './DashboardView';
 
-const access = vi.hoisted(() => ({ permissions: [] as string[], pii: true }));
+const access = vi.hoisted(() => ({ permissions: [] as string[], pii: true, modules: [] as string[] }));
 const useDashboard = vi.hoisted(() => vi.fn(() => ({ stats: undefined, isError: false, refetch: vi.fn() })));
 
 vi.mock('@/core/permissions', () => ({
@@ -19,6 +19,9 @@ vi.mock('@/core/permissions', () => ({
             (Array.isArray(required) ? required : [required]).some(code => access.permissions.includes(code)),
     }),
     usePersonalDataActions: () => ({ canCreateVisit: false }),
+}));
+vi.mock('@/modules/subscription/hooks/useCapability', () => ({
+    useCapability: (key: string) => ({ enabled: access.modules.includes(key) }),
 }));
 vi.mock('@/core/context/AuthContext', () => ({ useAuth: () => ({ user: { firstName: 'Anna' } }) }));
 vi.mock('@/common/hooks', () => ({ useBreakpoint: () => true }));
@@ -49,6 +52,7 @@ afterEach(() => {
     vi.clearAllMocks();
     access.permissions = [];
     access.pii = true;
+    access.modules = [];
 });
 
 describe('DashboardView', () => {
@@ -82,5 +86,19 @@ describe('DashboardView', () => {
         renderView();
 
         expect(useDashboard).toHaveBeenLastCalledWith({ enabled: false });
+    });
+
+    // Przychód to treść modułów Statystyki i Finanse - rola go nie zatrzymywała, więc kafel
+    // stał na pulpicie każdego właściciela, także w BASIC (serwer odpowiada teraz 402).
+    it('przychód tylko z modułem Statystyki albo Finanse', () => {
+        access.permissions = ['STATISTICS_VIEW'];
+
+        renderView();
+        expect(screen.queryByText('przychód')).not.toBeInTheDocument();
+        cleanup();
+
+        access.modules = ['FINANCE_ACCESS'];
+        renderView();
+        expect(screen.getByText('przychód')).toBeInTheDocument();
     });
 });

@@ -70,6 +70,7 @@ import { SignatureSettingsModal } from './SignatureSettingsModal';
 import { PillPrimary, TintBtn, ToolBtn } from '../inbox/primitives';
 import { ix } from '../inbox/tokens';
 import { problemDetail } from '@/core/problem';
+import { useCapabilityGate } from '@/modules/subscription/hooks/useCapabilityGate';
 
 /*
  * Rozsunięcie z przycisku „Odpisz": karta odsłania się od prawego dolnego rogu,
@@ -573,6 +574,8 @@ export function ReplyComposer({
     const changeLeadStatus = useChangeLeadStatus();
     const contextLeadId = leadId ?? threadLeadId ?? null;
     const proofread = useProofread();
+    // Korekta to model AI - moduł Asystent AI.
+    const aiGate = useCapabilityGate('AI_LEAD_ASSIST');
     const hasSignature = Boolean(signature?.bodyHtml);
     const appendSignature = hasSignature && (signatureChoice ?? signature?.enabledByDefault ?? false);
     // W wątku odbiorca jest oczywisty - pokazujemy go dopiero na żądanie.
@@ -670,7 +673,7 @@ export function ReplyComposer({
         addFiles(files);
     };
 
-    const runProofread = () => {
+    const runProofread = () => aiGate.run(() => {
         const source = normalizeComposerHtml(body);
         if (!source || proofread.isPending) return;
         proofread.mutate({ text: source, format: 'html' }, {
@@ -690,7 +693,7 @@ export function ReplyComposer({
                 showError('Nie udało się poprawić treści', message ?? 'Spróbuj ponownie za chwilę');
             },
         });
-    };
+    });
 
     const undo = () => {
         if (undoSnapshot === null) return;
@@ -855,6 +858,7 @@ export function ReplyComposer({
             onDrop={onDrop}
             onPaste={onPasteFiles}
         >
+            {aiGate.upsell}
             {sheet && (
                 <SheetTop>
                     <button type="button" onClick={() => setExpanded(false)} aria-label="Wróć do wiadomości">

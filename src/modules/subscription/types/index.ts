@@ -1,6 +1,6 @@
 import type { ApiProblem } from '@/core/problem';
 
-export type BillingStatus = 'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'EXPIRED';
+export type BillingStatus = 'NO_PLAN' | 'TRIALING' | 'ACTIVE' | 'PAST_DUE' | 'EXPIRED';
 
 export type PlanKey = 'BASIC' | 'FULL';
 
@@ -89,6 +89,8 @@ export interface CapabilityUpsellOption {
 export interface CapabilityStatus {
     enabled: boolean;
     displayName: string;
+    /** MODULE - brak kupionego modułu; SUBSCRIPTION - moduł jest, ale pakiet nieaktywny. */
+    lockedBy?: 'MODULE' | 'SUBSCRIPTION' | null;
     /** Exactly which features are missing; drives the "requires module X" copy. */
     missingFeatures: CapabilityMissingFeature[];
     /** Purchasable add-ons that provide the missing features. */
@@ -104,6 +106,9 @@ export interface EntitlementsResponse {
     features: Record<FeatureKey, FeatureStatus>;
     capabilities: Record<CapabilityKey, CapabilityStatus>;
     activeAddOns: AddOnKey[];
+    billingStatus?: BillingStatus;
+    /** False - pakiet nieaktywny (wygasł); kupione moduły nie działają. */
+    subscriptionActive?: boolean;
 }
 
 // ─── Paywall (HTTP 402 contract) ──────────────────────────────────────────────
@@ -129,12 +134,21 @@ export interface ActiveAddOn {
     key: AddOnKey;
     name: string;
     monthlyPriceGrossCents: number;
+    /**
+     * Moduł wyłączy się z końcem opłaconego okresu (ISO); null - przedłuża się z pakietem.
+     * Wyłączenie działa z końcem okresu, a nie od razu - dawniej ekran mówił „od razu".
+     */
+    cancelAt: string | null;
+    /** Czy wyłączenie da się cofnąć; false, gdy kolejny okres opłacono już bez modułu. */
+    resumable: boolean;
 }
 
 export interface PendingDowngrade {
     toPlanKey: PlanKey;
     toPlanName: string;
     effectiveAt: string;
+    /** False, gdy kolejny okres jest już opłacony w cenie niższego pakietu (odwołanie → 409). */
+    cancellable: boolean;
 }
 
 export interface MyPlanResponse {
@@ -142,11 +156,25 @@ export interface MyPlanResponse {
     plan: PlanRef;
     activeAddOns: ActiveAddOn[];
     pendingDowngrade: PendingDowngrade | null;
-    periodEndsAt: string;
+    /** Koniec opłaconego okresu; null w trialu bez zakupu. */
+    periodEndsAt: string | null;
     trialEndsAt: string | null;
-    daysRemaining: number;
+    /** Rozpoczęte dni do końca triala, okresu, a w karencji - do jej końca. */
+    daysRemaining: number | null;
+    /** Pakiet i moduły według dzisiejszego stanu. */
     monthlyCostCents: number;
-    nextRenewalCostCents: number;
+    /**
+     * Cena KOLEJNEGO okresu (po zaplanowanym zejściu, bez wyłączanych modułów) - tyle pobierze
+     * przedłużenie. Przycisk „Przedłuż" pokazywał dawniej `monthlyCostCents`, czyli 299 zł
+     * przy zaplanowanym BASIC, a serwer pobierał 99 zł.
+     */
+    nextRenewalCostCents: number | null;
+    /** Koniec karencji (okres minął, dostęp trwa); null poza karencją. */
+    graceEndsAt: string | null;
+    /** Czy teraz wolno dokupić moduł albo przejść na wyższy pakiet (trial albo trwający okres). */
+    canPurchaseMidPeriod: boolean;
+    /** Do kiedy sięgnie okres opłacony przedłużeniem zapłaconym teraz. */
+    renewalPeriodEndsAt: string | null;
 }
 
 // ─── Feature Plans & Add-Ons ──────────────────────────────────────────────────
@@ -202,9 +230,11 @@ export interface PlanChangePreview {
     effectiveAt: string;
     proratedAmountCents: number | null;
     proratedAmountFormatted: string | null;
-    daysRemaining: number;
-    periodEndsAt: string;
+    daysRemaining: number | null;
+    periodEndsAt: string | null;
     explanation: string;
+    /** False - zmiany nie da się teraz kupić (okres minął); `explanation` mówi dlaczego. */
+    allowed: boolean;
 }
 
 // ─── Add-On Preview ───────────────────────────────────────────────────────────
@@ -214,9 +244,11 @@ export interface AddOnPreview {
     addOnName: string;
     proratedAmountCents: number | null;
     proratedAmountFormatted: string | null;
-    daysRemaining: number;
-    periodEndsAt: string;
+    daysRemaining: number | null;
+    periodEndsAt: string | null;
     explanation: string;
+    /** False - modułu nie da się teraz kupić (okres minął, moduł w przygotowaniu). */
+    allowed: boolean;
 }
 
 // ─── Checkout (Przelewy24) ────────────────────────────────────────────────────

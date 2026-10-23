@@ -17,6 +17,7 @@ import { OperationalScorecard } from '../components/OperationalScorecard';
 import { UpcomingVisitsPanel } from '../components/UpcomingVisitsPanel';
 import { TasksPanel } from '../components/TasksPanel';
 import { RevenueKpiCard } from '../components/RevenueKpiCard';
+import { useCapability } from '@/modules/subscription/hooks/useCapability';
 import { ReservationsKpiCard } from '../components/ReservationsKpiCard';
 import { LeadsWaitingKpi } from '../components/LeadsWaitingKpi';
 import { MailSetupKpi } from '../components/mailSetup/MailSetupKpi';
@@ -309,6 +310,10 @@ export const DashboardView = () => {
    */
   const { can } = usePermissions();
   const { canCreateVisit } = usePersonalDataActions();
+  // Przychód to treść modułów Statystyki i Finanse (serwer odmawia bez nich, 402). Dawniej
+  // kafel stał na pulpicie każdego właściciela, także w BASIC - rola go nie zatrzymywała.
+  const statsModule = useCapability('STATS_VIEW');
+  const financeModule = useCapability('FINANCE_ACCESS');
   const canSeeTasks = can('TASKS_VIEW');
   // Statystyki, podpowiedzi, rezerwacje i najbliższe wizyty są na serwerze za VISITS_VIEW.
   // Rola wpuszczona na Tablicę innym uprawnieniem dostawała przy nich 403, a statystyki
@@ -365,7 +370,7 @@ export const DashboardView = () => {
     : mailConnected ? <LeadsWaitingKpi key="leads" />
     : <MailSetupKpi key="leads" />;
   const kpis = [
-    can(['FINANCE_VIEW_REPORTS', 'STATISTICS_VIEW']) && <RevenueKpiCard key="revenue" />,
+    can(['FINANCE_VIEW_REPORTS', 'STATISTICS_VIEW']) && (statsModule.enabled || financeModule.enabled) && <RevenueKpiCard key="revenue" />,
     canSeeVisits && <ReservationsKpiCard key="reservations" />,
     leadsKpi,
   ].filter(Boolean);

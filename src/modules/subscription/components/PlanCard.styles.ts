@@ -70,3 +70,10 @@ export const FeatureItem = styled.li`
 
     svg { width: 14px; height: 14px; flex-shrink: 0; color: ${ui.okInk}; }
 `;
+
+export const Hint = styled.p`
+    margin: -4px 0 0;
+    font-size: 12px;
+    color: ${ui.textMuted};
+    text-align: center;
+`;

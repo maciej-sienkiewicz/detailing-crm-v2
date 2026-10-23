@@ -17,6 +17,9 @@ let preferences: ReplyDraftPreferences | undefined;
 let lead: Partial<Lead> | undefined;
 const OFFER: DraftOfferLine[] = [{ name: 'Powłoka ceramiczna', quantity: 1, priceGross: 180_000, regularPriceGross: 200_000 }];
 
+vi.mock('@/modules/subscription/hooks/useCapabilityGate', () => ({
+    useCapabilityGate: () => ({ enabled: true, run: (action: () => void) => action(), upsell: null }),
+}));
 vi.mock('@/common/components/Toast', () => ({
     useToast: () => ({ showSuccess: vi.fn(), showError: vi.fn(), showInfo: vi.fn() }),
 }));

@@ -8,6 +8,12 @@ export function formatCents(cents: number | null | undefined): string {
     }).format(cents / 100);
 }
 
+/** Rozpoczęte dni w mianowniku liczebnika: „1 dzień", „5 dni". */
+export function daysLabel(n: number | null | undefined): string {
+    if (n == null) return '-';
+    return n === 1 ? '1 dzień' : `${n} dni`;
+}
+
 export function formatDate(iso: string | null | undefined): string {
     if (!iso) return '-';
     return new Intl.DateTimeFormat('pl-PL', {
@@ -42,6 +48,7 @@ const FEATURE_LABELS: Record<string, string> = {
     E_SIGNATURES: 'Podpisy elektroniczne',
     FINANCE: 'Finanse',
     STATISTICS: 'Statystyki',
+    PRODUCTS: 'Produkty w studiu',
 };
 
 export function featureLabel(key: string): string {

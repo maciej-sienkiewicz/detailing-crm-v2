@@ -1,11 +1,14 @@
 import { useEffect, useState } from 'react';
 import styled from 'styled-components';
 import { canPurchaseHere } from '@/core/native/platform';
+import { acquireScrollLock } from '@/common/utils/scrollLock';
 import { usePermissions } from '@/core/permissions/usePermissions';
 import { useAddOnUnlock } from '../hooks/useAddOnUnlock';
+import { useQueryClient } from '@tanstack/react-query';
+import { ENTITLEMENTS_KEY } from '../api/subscriptionQueries';
 import { AddOnActivationDialog } from './PlanChangeDialog';
 import { ModuleGateCard } from './ModuleGate';
-import type { AddOnKey, PaywallProblem } from '../types';
+import type { AddOnKey, EntitlementsResponse, PaywallProblem } from '../types';
 
 /**
  * Global safety net for the HTTP 402 MODULE_REQUIRED contract.
@@ -22,8 +25,18 @@ import type { AddOnKey, PaywallProblem } from '../types';
  */
 export function PaywallListener() {
     const [payload, setPayload] = useState<PaywallProblem | null>(null);
+    const open = payload !== null;
+    // Własna nakładka poza ModalShell - blokada przewijania tła tylko przez scrollLock
+    // (CLAUDE.md §3), w osobnym efekcie zależnym wyłącznie od tego, czy okno jest otwarte.
+    useEffect(() => {
+        if (!open) return;
+        return acquireScrollLock();
+    }, [open]);
     const { isOwner } = usePermissions();
     const unlock = useAddOnUnlock();
+    // Z cache, bez zapytania: słuchacz jest zamontowany także na ekranie logowania, a tam
+    // zapytanie o uprawnienia kończyłoby się 401.
+    const queryClient = useQueryClient();
 
     useEffect(() => {
         const handler = (event: Event) => {
@@ -37,6 +50,7 @@ export function PaywallListener() {
     if (!payload) return null;
 
     const close = () => setPayload(null);
+    const entitlements = queryClient.getQueryData<EntitlementsResponse>(ENTITLEMENTS_KEY);
 
     // The card sells ONE module; for cross-module rules the first purchasable
     // option is offered and the subtitle names every missing module.
@@ -71,6 +85,7 @@ export function PaywallListener() {
                         priceCents={option?.monthlyPriceGrossCents ?? null}
                         isAvailable={option?.isAvailable ?? false}
                         isOwner={isOwner}
+                        trial={entitlements?.billingStatus === 'TRIALING'}
                         onUnlock={handleUnlock}
                     />
                     <DismissLink type="button" onClick={close}>

@@ -119,6 +119,14 @@ export const useDeactivateAddOn = () => {
     });
 };
 
+export const useResumeAddOn = () => {
+    const queryClient = useQueryClient();
+    return useMutation({
+        mutationFn: (addOnKey: AddOnKey) => newSubscriptionApi.resumeAddOn(addOnKey),
+        onSuccess: applyEntitlements(queryClient),
+    });
+};
+
 export const useCancelPendingPlanChange = () => {
     const queryClient = useQueryClient();
     return useMutation({

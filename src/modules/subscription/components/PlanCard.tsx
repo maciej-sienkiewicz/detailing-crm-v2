@@ -12,16 +12,18 @@ import { Check } from 'lucide-react';
 import { Button, StatusPill } from '@/common/components/ui';
 import type { FeaturePlan, PlanKey } from '../types';
 import { formatCents, featureLabel, monthlyPriceSuffix } from '../utils/formatters';
-import { Panel, Head, Name, PriceBlock, PriceAmount, PriceSuffix, FeatureList, FeatureItem } from './PlanCard.styles';
+import { Panel, Head, Name, PriceBlock, PriceAmount, PriceSuffix, FeatureList, FeatureItem, Hint } from './PlanCard.styles';
 
 interface Props {
     plan: FeaturePlan;
     currentPlanKey: PlanKey;
     disabled?: boolean;
+    /** Dlaczego przycisk jest nieaktywny - nieaktywny przycisk bez słowa wyglądał na zepsuty. */
+    disabledHint?: string;
     onSelect: (plan: FeaturePlan) => void;
 }
 
-export function PlanCard({ plan, currentPlanKey, disabled, onSelect }: Props) {
+export function PlanCard({ plan, currentPlanKey, disabled, disabledHint, onSelect }: Props) {
     const isActive = plan.key === currentPlanKey;
     const isRecommended = plan.key === 'FULL';
     const suffix = monthlyPriceSuffix(plan.monthlyPriceGrossCents);
@@ -56,6 +58,7 @@ export function PlanCard({ plan, currentPlanKey, disabled, onSelect }: Props) {
                     Przejdź na {plan.name}
                 </Button>
             )}
+            {!isActive && disabled && disabledHint && <Hint>{disabledHint}</Hint>}
         </Panel>
     );
 }

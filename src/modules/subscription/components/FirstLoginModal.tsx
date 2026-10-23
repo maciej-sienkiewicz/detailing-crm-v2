@@ -7,6 +7,7 @@ import { newSubscriptionApi } from '../api/subscriptionApi';
 import { toastCheckoutProblem, useCheckoutHandoff } from '../hooks/useCheckoutHandoff';
 import { CheckoutConsent } from './CheckoutConsent';
 import { useCheckoutConsent } from '../hooks/useCheckoutConsent';
+import { useLogoutToLogin } from '../hooks/useLogoutToLogin';
 import type { FeaturePlan, AddOnDto, AddOnKey, PlanKey, CalculatePriceResponse, CheckoutResponse } from '../types';
 import { formatCents, featureLabel } from '../utils/formatters';
 import { t } from '@/common/i18n';
@@ -27,6 +28,7 @@ import {
     CustomSummary,
     Pending,
     Spinner,
+    LogoutLink,
 } from './FirstLoginModal.styles';
 import { problemDetail } from '@/core/problem';
 
@@ -49,13 +51,31 @@ function planFeatureSummary(plan: FeaturePlan): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
+/**
+ * Wybór pakietu po wygaśnięciu (pakietu albo okresu próbnego). Ten sam ekran co po rejestracji,
+ * bez okresu próbnego i z dotychczasowym zestawem zaznaczonym na start.
+ *
+ * Dawniej okno „Twój pakiet wygasł" miało tylko „Przedłuż pakiet": dotychczasowy pakiet ze
+ * WSZYSTKIMI modułami, także testowanymi za darmo w okresie próbnym. Zejść na niższy pakiet
+ * albo zrezygnować z modułu się nie dało, choć serwer na to pozwala.
+ */
+export interface ExpiredChoice {
+    planKey: PlanKey;
+    addOnKeys: AddOnKey[];
+    /** Skończył się okres próbny, a nie opłacony pakiet - inny nagłówek. */
+    afterTrial: boolean;
+    /** Pakiet opłaca tylko właściciel; pozostali widzą informację i „Wyloguj się". */
+    canPurchase: boolean;
+}
+
 interface Props {
     trialUsed: boolean;
+    expired?: ExpiredChoice;
 }
 
 type Phase = 'idle' | 'pending-trial' | 'pending-plan' | 'pending-custom';
 
-export function FirstLoginModal({ trialUsed }: Props) {
+export function FirstLoginModal({ trialUsed, expired }: Props) {
     const { showError, showWarning } = useToast();
 
     const { data: plans, isLoading: plansLoading } = useFeaturePlans();
@@ -64,19 +84,25 @@ export function FirstLoginModal({ trialUsed }: Props) {
     const checkout = useCheckout();
     const handoff = useCheckoutHandoff();
     const consent = useCheckoutConsent();
+    const logout = useLogoutToLogin();
 
     const [phase, setPhase] = useState<Phase>('idle');
     const [error, setError] = useState<string | null>(null);
 
-    const [customOpen, setCustomOpen] = useState(false);
-    const [selectedAddOns, setSelectedAddOns] = useState<Set<AddOnKey>>(new Set());
+    // Po wygaśnięciu BASIC z modułami: od razu otwarty własny zestaw z dotychczasowymi modułami -
+    // właściciel odznacza to, z czego rezygnuje, zamiast składać pakiet od zera.
+    const keepModules = expired?.planKey === 'BASIC' && expired.addOnKeys.length > 0;
+    const [customOpen, setCustomOpen] = useState(keepModules);
+    const [selectedAddOns, setSelectedAddOns] = useState<Set<AddOnKey>>(
+        () => new Set(keepModules ? expired.addOnKeys : []),
+    );
     const [customPrice, setCustomPrice] = useState<CalculatePriceResponse | null>(null);
     const [priceLoading, setPriceLoading] = useState(false);
 
     // W aplikacji ze sklepu nie wolno kupić pakietu (App Store 3.1.1, Google Play):
     // zostaje darmowy okres próbny, a pakiety i własny zestaw modułów znikają.
     // Studio, które próbę już wykorzystało, tu nie trafia - patrz SubscriptionGate.
-    const purchasable = canPurchaseHere();
+    const purchasable = canPurchaseHere() && (expired?.canPurchase ?? true);
     const isPending = phase !== 'idle';
     const sortedPlans = purchasable ? (plans ?? []).slice().sort((a, b) => a.displayOrder - b.displayOrder) : [];
     const availableAddOns: AddOnDto[] = purchasable ? addOns ?? [] : [];
@@ -201,16 +227,27 @@ export function FirstLoginModal({ trialUsed }: Props) {
                 statement={trialUsed ? 'Wybierz pakiet dla studia' : t.auth.gate.signup}
                 points={trialUsed ? undefined : t.auth.gate.signupPoints}
             >
-                <AuthHeading>
-                    <h1>Witaj w DetailBoost</h1>
-                    <p>
-                        {!purchasable
-                            ? 'Twoje konto jest gotowe. Włącz darmowy okres próbny i zacznij pracę.'
-                            : trialUsed
-                                ? 'Twoje konto jest gotowe. Wybierz pakiet, żeby zacząć pracę.'
-                                : 'Twoje konto jest gotowe. Zacznij od okresu próbnego albo od razu wybierz pakiet.'}
-                    </p>
-                </AuthHeading>
+                {expired ? (
+                    <AuthHeading>
+                        <h1>{expired.afterTrial ? 'Okres próbny się skończył' : 'Twój pakiet wygasł'}</h1>
+                        <p>
+                            {purchasable
+                                ? 'Twoje dane są bezpieczne. Wybierz pakiet, żeby wrócić do pracy. Możesz zmienić pakiet i zrezygnować z modułów.'
+                                : 'Twoje dane są bezpieczne. Pakiet może opłacić tylko właściciel studia. Poproś go o to.'}
+                        </p>
+                    </AuthHeading>
+                ) : (
+                    <AuthHeading>
+                        <h1>Witaj w DetailBoost</h1>
+                        <p>
+                            {!purchasable
+                                ? 'Twoje konto jest gotowe. Włącz darmowy okres próbny i zacznij pracę.'
+                                : trialUsed
+                                    ? 'Twoje konto jest gotowe. Wybierz pakiet, żeby zacząć pracę.'
+                                    : 'Twoje konto jest gotowe. Zacznij od okresu próbnego albo od razu wybierz pakiet.'}
+                        </p>
+                    </AuthHeading>
+                )}
 
                 {error && <ErrorAlert message={error} />}
 
@@ -226,7 +263,9 @@ export function FirstLoginModal({ trialUsed }: Props) {
                                 <AuthPrimaryButton type="button" onClick={handleStartTrial}>
                                     Wypróbuj bezpłatnie przez 3 miesiące
                                 </AuthPrimaryButton>
-                                <TrialNote>Pełny dostęp do wszystkich funkcji. Bez karty i bez zobowiązań.</TrialNote>
+                                {/* Okres próbny startuje na pakiecie BASIC - „pełny dostęp do wszystkich
+                                    funkcji" był obietnicą bez pokrycia. FULL i moduły włącza się bez opłat. */}
+                                <TrialNote>Pakiet FULL i wszystkie moduły włączysz bez opłat. Bez karty i bez zobowiązań.</TrialNote>
                             </div>
                         )}
 
@@ -238,7 +277,9 @@ export function FirstLoginModal({ trialUsed }: Props) {
                                     <PlanOption key={plan.key} type="button" onClick={() => handleSelectPlan(plan.key)}>
                                         <span className="name">
                                             {plan.name}
-                                            {plan.key === 'FULL' && <Recommended>Polecany</Recommended>}
+                                            {expired?.planKey === plan.key
+                                                ? <Recommended>Dotychczasowy</Recommended>
+                                                : plan.key === 'FULL' && <Recommended>Polecany</Recommended>}
                                         </span>
                                         <span className="price">
                                             {formatCents(plan.monthlyPriceGrossCents)} <small>brutto / mies.</small>
@@ -284,6 +325,7 @@ export function FirstLoginModal({ trialUsed }: Props) {
                                                     checked={selectedAddOns.has(addOn.key)}
                                                     disabled={!addOn.isAvailable}
                                                     onChange={() => addOn.isAvailable && toggleAddOn(addOn.key)}
+                                                    aria-label={addOn.name}
                                                 />
                                                 <span className="meta">
                                                     <span className="name">
@@ -329,6 +371,11 @@ export function FirstLoginModal({ trialUsed }: Props) {
 
                 <AuthAside>
                     {purchasable && <AuthMeta>Płatności obsługuje Przelewy24. Zrezygnujesz w każdej chwili.</AuthMeta>}
+                    {/* Ekran przykrywa całą aplikację razem z menu - bez tego nie dało się nawet
+                        przełączyć na inne konto. */}
+                    <AuthMeta>
+                        Inne konto? <LogoutLink type="button" onClick={() => void logout()}>Wyloguj się</LogoutLink>
+                    </AuthMeta>
                     <AuthMeta>
                         Masz pytania? Napisz do nas: <AuthAnchor href="mailto:pomoc@detailboost.pl">pomoc@detailboost.pl</AuthAnchor>
                     </AuthMeta>

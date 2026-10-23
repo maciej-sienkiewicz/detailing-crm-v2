@@ -7,6 +7,7 @@ import { ProtectedRoute } from './components/ProtectedRoute';
 import { BootSplash } from './components/BootSplash';
 import { NavigationProgress } from './components/NavigationProgress';
 import { ScrollLockRouteReset } from './components/ScrollLockRouteReset';
+import { PaywallListener } from '@/modules/subscription/components/PaywallListener';
 import { LegacyUrlRedirect } from './components/LegacyUrlRedirect';
 import { RedirectWithParams } from './components/RedirectWithParams';
 import { RequirePermission, HomeRedirect, NoAccessView, ANY_FINANCE, ANY_DASHBOARD, ANY_EMPLOYEES } from './permissions';
@@ -147,7 +148,10 @@ export const router = createBrowserRouter([
         // (siatka bezpieczeństwa; opis w komponencie).
         // NavigationProgress: pasek u góry, gdy kod następnego ekranu jeszcze się pobiera.
         // LegacyUrlRedirect: stare (polskie) trasy i parametry z pushy, e-maili i OAuth → nowe.
-        element: <><ScrollLockRouteReset /><NavigationProgress /><LegacyUrlRedirect><Outlet /></LegacyUrlRedirect></>,
+        // PaywallListener: globalne okno 402 „brak modułu" - WEWNĄTRZ routera, bo z niego otwiera
+        // się zakup modułu, a ten nawiguje (strona wyniku płatności). Zamontowany obok
+        // RouterProvider wywracał aplikację przy „Odblokuj moduł" (useNavigate poza routerem).
+        element: <><ScrollLockRouteReset /><NavigationProgress /><PaywallListener /><LegacyUrlRedirect><Outlet /></LegacyUrlRedirect></>,
         errorElement: <RouteErrorBoundary />,
         // Pierwsze wejście czeka na kod widoku z `route.lazy` - w tym czasie ekran
         // startowy z index.html, a nie pusta strona.

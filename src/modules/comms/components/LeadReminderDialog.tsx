@@ -28,6 +28,7 @@ import { describeLeadUrgency } from '../utils/leadUrgency';
 import { caseTitle, rowAge } from '../inbox/caseModel';
 import { ix } from '../inbox/tokens';
 import { problemDetail } from '@/core/problem';
+import { useCapability } from '@/modules/subscription/hooks/useCapability';
 
 /**
  * Uwagi dla asystenta. Prompt sam pisze przypomnienie, gdy ostatnie słowo należy do studia -
@@ -190,6 +191,10 @@ export function LeadReminderDialog({ leads, onClose, zIndex }: LeadReminderDialo
     const { data: signature } = useMailSignature();
     const { data: preferences } = useReplyDraftPreferences();
     const sendReminder = useSendLeadReminder();
+    // Szkic pisze model AI - moduł Asystent AI. Bez niego okno nie woła serwera (odmowa
+    // otwierałaby okno zakupu przy samym otwarciu przypomnienia), tylko daje puste pole.
+    const ai = useCapability('AI_LEAD_ASSIST');
+    const aiDrafts = ai.enabled;
     const alive = useRef(true);
     useEffect(() => () => { alive.current = false; }, []);
 
@@ -207,6 +212,10 @@ export function LeadReminderDialog({ leads, onClose, zIndex }: LeadReminderDialo
     };
 
     const draftOne = async (lead: Lead) => {
+        if (!aiDrafts) {
+            setRow(lead.id, { phase: 'ready', text: '' });
+            return;
+        }
         setRow(lead.id, { phase: 'drafting' });
         try {
             const draft = await commsApi.draftReply(lead.threadId!, {
@@ -231,11 +240,11 @@ export function LeadReminderDialog({ leads, onClose, zIndex }: LeadReminderDialo
     // Jedna sprawa - szkic od razu po otwarciu, bez kroku „komu".
     const started = useRef(false);
     useEffect(() => {
-        if (!single || started.current || remindable.length === 0 || preferences === undefined || signature === undefined) return;
+        if (!single || started.current || remindable.length === 0 || preferences === undefined || signature === undefined || ai.isLoading) return;
         started.current = true;
         void draftAll(remindable);
         // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [single, remindable, preferences, signature]);
+    }, [single, remindable, preferences, signature, ai.isLoading]);
 
     const chosen = remindable.filter((lead) => selected.has(lead.id));
     const toggle = (id: string) => setSelected((prev) => {
@@ -334,9 +343,11 @@ export function LeadReminderDialog({ leads, onClose, zIndex }: LeadReminderDialo
                     <Intro>{whyNot(leads[0])}. Przypomnienie mailem nie jest tu możliwe.</Intro>
                 ) : (
                     <Intro>
-                        {single
-                            ? 'Przeczytaj i popraw, jeśli trzeba - wyjdzie w rozmowie z klientem.'
-                            : 'Przeczytaj i popraw, jeśli trzeba. Odznaczone sprawy zostaną w „Wymaga przypomnienia”.'}
+                        {!aiDrafts
+                            ? 'Szkic pisze moduł Asystent AI, którego nie ma w Twoim pakiecie. Wpisz treść przypomnienia sam.'
+                            : single
+                                ? 'Przeczytaj i popraw, jeśli trzeba - wyjdzie w rozmowie z klientem.'
+                                : 'Przeczytaj i popraw, jeśli trzeba. Odznaczone sprawy zostaną w „Wymaga przypomnienia”.'}
                     </Intro>
                 )}
                 <List>

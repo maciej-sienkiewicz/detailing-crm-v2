@@ -13,6 +13,7 @@ import { useDraftReply } from '../hooks/useReplyDraft';
 import type { ReplyDraft } from '../types';
 import { MAX_DRAFT_INSTRUCTIONS } from '../utils/replyDraft';
 import { problemDetail } from '@/core/problem';
+import { useCapabilityGate } from '@/modules/subscription/hooks/useCapabilityGate';
 
 const QUICK_INSTRUCTIONS = ['Krócej', 'Bardziej formalnie', 'Cieplej w tonie', 'Zaproponuj oględziny auta'];
 
@@ -170,6 +171,7 @@ export function ReplyDraftRevise({ threadId, draft, currentText, signatureAppend
     const [instructions, setInstructions] = useState('');
     const textareaRef = useRef<HTMLTextAreaElement>(null);
     const draftReply = useDraftReply();
+    const aiGate = useCapabilityGate('AI_LEAD_ASSIST');
     const { showError } = useToast();
     const busy = draftReply.isPending;
     const trimmed = instructions.trim();
@@ -242,9 +244,10 @@ export function ReplyDraftRevise({ threadId, draft, currentText, signatureAppend
 
     return (
         <Anchor ref={anchorRef}>
+            {aiGate.upsell}
             <Toggle
                 type="button"
-                onClick={() => (open ? close() : setOpen(true))}
+                onClick={() => (open ? close() : aiGate.run(() => setOpen(true)))}
                 disabled={disabled}
                 $plain={Boolean(label)}
                 aria-expanded={open}

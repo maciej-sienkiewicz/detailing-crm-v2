@@ -16,8 +16,13 @@
 //   - ceny bez słowa „brutto".
 //
 // Teraz: jedna wyniesiona karta („Twój plan") z kwotą jako nagłówkiem, reszta płasko;
-// dokładnie jeden przycisk przedłużenia - w nagłówku ramy, a przy zaległości albo
-// wygaśnięciu w komunikacie, który tłumaczy, po co go kliknąć.
+// dokładnie jeden przycisk przedłużenia - w nagłówku ramy, a przy zaległości w komunikacie,
+// który tłumaczy, po co go kliknąć.
+//
+// Po audycie z 23.10.2026 ekran czyta pola, które serwer zwracał od dawna, a które dotąd
+// ginęły: cenę KOLEJNEGO okresu (przycisk mówił 299 zł, serwer pobierał 99 zł), datę
+// wyłączenia modułu i „Przywróć", „czy wolno teraz dokupić" (w karencji okna obiecywały
+// zakup za darmo) oraz „czy zmianę da się odwołać".
 
 import { useState } from 'react';
 import styled from 'styled-components';
@@ -32,6 +37,7 @@ import {
     useFeaturePlans,
     useAddOns,
     useCheckout,
+    useResumeAddOn,
 } from '../api/subscriptionQueries';
 import { newSubscriptionApi } from '../api/subscriptionApi';
 import { PlanChangeDialog, AddOnActivationDialog, AddOnDeactivationDialog, RenewDialog } from '../components/PlanChangeDialog';
@@ -39,8 +45,8 @@ import { PlanCard } from '../components/PlanCard';
 import { AddOnCard } from '../components/AddOnCard';
 import { PendingDowngradeBanner } from '../components/PendingDowngradeBanner';
 import { PaymentHistoryTable } from '../components/PaymentHistoryTable';
-import type { FeaturePlan, AddOnKey, AddOnDto, PlanChangePreview, AddOnPreview, BillingStatus } from '../types';
-import { formatCents, formatDate, monthlyPriceSuffix } from '../utils/formatters';
+import type { FeaturePlan, AddOnKey, AddOnDto, PlanChangePreview, AddOnPreview, BillingStatus, MyPlanResponse } from '../types';
+import { daysLabel, formatCents, formatDate, monthlyPriceSuffix } from '../utils/formatters';
 import { toastUnhandledError } from '../utils/apiErrors';
 import { toastCheckoutProblem, useCheckoutHandoff } from '../hooks/useCheckoutHandoff';
 import {
@@ -53,6 +59,7 @@ import {
     AddOnList,
     AddOnRow,
     AddOnRowText,
+    AddOnRowActions,
     Muted,
 } from './SubscriptionSettingsPage.styles';
 import { problemDetail } from '@/core/problem';
@@ -60,13 +67,12 @@ import { problemDetail } from '@/core/problem';
 // ─── Billing status ──────────────────────────────────────────────────────────
 
 const STATUS: Record<BillingStatus, { label: string; tone: PillTone }> = {
+    NO_PLAN: { label: 'Bez pakietu', tone: 'neutral' },
     TRIALING: { label: 'Okres próbny', tone: 'info' },
     ACTIVE: { label: 'Aktywny', tone: 'ok' },
-    PAST_DUE: { label: 'Zaległa płatność', tone: 'warn' },
+    PAST_DUE: { label: 'Okres minął', tone: 'warn' },
     EXPIRED: { label: 'Wygasł', tone: 'danger' },
 };
-
-const daysLabel = (n: number) => (n === 1 ? '1 dzień' : `${n} dni`);
 
 const Suffix = styled.span`
     font-size: 13px;
@@ -74,6 +80,15 @@ const Suffix = styled.span`
     color: ${ui.textMuted};
     margin-left: 6px;
 `;
+
+/**
+ * Koniec trwającego opłaconego okresu - do niego działa wyłączany moduł. Poza nim (trial,
+ * karencja) serwer wyłącza moduł od razu: ta sama reguła co `ProrationService.runningPeriodEnd`.
+ */
+const runningPeriodEnd = (plan: MyPlanResponse): string | null =>
+    plan.billingStatus === 'ACTIVE' && plan.periodEndsAt && new Date(plan.periodEndsAt).getTime() > Date.now()
+        ? plan.periodEndsAt
+        : null;
 
 // ─── Dialog state ──────────────────────────────────────────────────────────────
 
@@ -95,6 +110,7 @@ export function SubscriptionSettingsPage() {
     const featurePlans = useFeaturePlans();
     const addOns = useAddOns();
     const checkout = useCheckout();
+    const resumeAddOn = useResumeAddOn();
     const handoff = useCheckoutHandoff();
     const { showSuccess, showError, showInfo, showWarning } = useToast();
 
@@ -126,10 +142,17 @@ export function SubscriptionSettingsPage() {
     const isTrial = myPlan.billingStatus === 'TRIALING';
     const isPastDue = myPlan.billingStatus === 'PAST_DUE';
     const isFull = myPlan.plan.key === 'FULL';
+    const canBuyNow = myPlan.canPurchaseMidPeriod;
     const status = STATUS[myPlan.billingStatus] ?? { label: myPlan.billingStatus, tone: 'neutral' as PillTone };
+    const periodEnd = runningPeriodEnd(myPlan);
 
-    const renewalCents = myPlan.monthlyCostCents;
+    // Przedłużenie kupuje KOLEJNY okres: pakiet po zaplanowanym zejściu i moduły bez tych,
+    // które się wyłączają - tę samą kwotę liczy serwer przy płatności.
+    const renewalCents = myPlan.nextRenewalCostCents ?? myPlan.monthlyCostCents;
     const renewalAmount = renewalCents > 0 ? formatCents(renewalCents) : null;
+    const renewalPlanName = myPlan.pendingDowngrade?.toPlanName ?? myPlan.plan.name;
+    const renewingAddOns = myPlan.pendingDowngrade ? [] : myPlan.activeAddOns.filter(a => !a.cancelAt);
+    const nextPeriodDiffers = !isTrial && !isExpired && renewalCents !== myPlan.monthlyCostCents;
 
     // ── Przedłużenie (Przelewy24) ─────────────────────────────────────────────
     // Przycisk otwiera okno z kwotą i zgodą na regulamin (RenewDialog) - dopiero ono płaci.
@@ -144,8 +167,11 @@ export function SubscriptionSettingsPage() {
             // Brak adresu płatności to NIE sukces - rozstrzyga stan zamówienia (useCheckoutHandoff).
             const step = handoff(await checkout.mutateAsync({ type: 'RENEWAL', acceptTerms: true }));
             if (step.kind === 'redirect' || step.kind === 'track') return;
-            if (step.kind === 'done') showSuccess('Pakiet przedłużony', 'Twój pakiet działa przez kolejne 30 dni.');
-            else toastCheckoutProblem({ showError, showWarning }, step);
+            if (step.kind === 'done') {
+                showSuccess('Pakiet przedłużony', myPlan.renewalPeriodEndsAt
+                    ? `Pakiet działa do ${formatDate(myPlan.renewalPeriodEndsAt)}.`
+                    : 'Pakiet działa przez kolejne 30 dni.');
+            } else toastCheckoutProblem({ showError, showWarning }, step);
             setDialog(null);
         } catch (err: unknown) {
             toastUnhandledError(showError, err, 'Nie udało się rozpocząć płatności', 'Spróbuj ponownie za chwilę.');
@@ -180,7 +206,7 @@ export function SubscriptionSettingsPage() {
 
     // ── Moduły ─────────────────────────────────────────────────────────────────
     const handleActivateAddOn = async (addOn: AddOnDto) => {
-        if (isExpired) return;
+        if (isExpired || !canBuyNow) return;
         setDialog({ type: 'addon-activate', key: addOn.key, name: addOn.name, preview: null, loading: true });
 
         try {
@@ -197,22 +223,34 @@ export function SubscriptionSettingsPage() {
         setDialog({ type: 'addon-deactivate', key, name });
     };
 
+    const handleResumeAddOn = (key: AddOnKey, name: string) => {
+        resumeAddOn.mutateAsync(key)
+            .then(() => showSuccess('Moduł zostaje', `Moduł ${name} przedłuży się razem z pakietem.`))
+            .catch((err: unknown) =>
+                toastUnhandledError(showError, err, 'Nie udało się przywrócić modułu', 'Spróbuj ponownie za chwilę.'));
+    };
+
     const activeKeys = new Set(myPlan.activeAddOns.map(a => a.key));
     const availableAddOns = (addOns.data ?? []).filter(a => !activeKeys.has(a.key));
     const sortedPlans = [...(featurePlans.data ?? [])].sort((a, b) => a.displayOrder - b.displayOrder);
     const monthlySuffix = monthlyPriceSuffix(myPlan.monthlyCostCents);
 
     const periodDetails = isExpired
-        ? `wygasł ${formatDate(myPlan.periodEndsAt)}`
+        ? `wygasł ${formatDate(myPlan.periodEndsAt ?? myPlan.trialEndsAt)}`
         : isTrial && myPlan.trialEndsAt
             ? `okres próbny do ${formatDate(myPlan.trialEndsAt)}, zostało ${daysLabel(myPlan.daysRemaining)}`
-            : `odnowienie ${formatDate(myPlan.periodEndsAt)}, za ${daysLabel(myPlan.daysRemaining)}`;
+            : isPastDue
+                // Dawniej „odnowienie 22 października, za 5 dni" - data z przeszłości i liczba
+                // dni karencji w jednym zdaniu.
+                ? `okres minął ${formatDate(myPlan.periodEndsAt)}, dostęp do ${formatDate(myPlan.graceEndsAt)}`
+                : `odnowienie ${formatDate(myPlan.periodEndsAt)}, za ${daysLabel(myPlan.daysRemaining)}`;
 
-    // Dokładnie jedno miejsce z przyciskiem przedłużenia: przy zaległości i wygaśnięciu
-    // stoi w komunikacie, który mówi, dlaczego trzeba go kliknąć; w pozostałych
-    // przypadkach w nagłówku ramy. W okresie próbnym przedłużać nie ma czego - tam
-    // krokiem jest wybór planu.
-    const renewInHeader = !isTrial && !isExpired && !isPastDue;
+    // Dokładnie jedno miejsce z przyciskiem przedłużenia: przy zaległości stoi w komunikacie,
+    // który mówi, dlaczego trzeba go kliknąć; w trwającym okresie w nagłówku ramy. W okresie
+    // próbnym przedłużać nie ma czego - pakiet wybiera się po jego końcu.
+    const renewInHeader = myPlan.billingStatus === 'ACTIVE';
+
+    const isUpgrade = (plan: FeaturePlan) => plan.monthlyPriceGrossCents > myPlan.plan.monthlyPriceGrossCents;
 
     return (
         <PageWrap>
@@ -223,32 +261,28 @@ export function SubscriptionSettingsPage() {
             )}
 
             {isExpired && (
-                <Notice
-                    tone="danger"
-                    title="Twój pakiet wygasł"
-                    role="alert"
-                    action={renewButton(renewalAmount ? `Odnów za ${renewalAmount}` : 'Odnów pakiet')}
-                >
-                    Odnów pakiet, żeby wrócić do pełnego dostępu. Płatność przez Przelewy24 obejmuje
-                    kolejne 30 dni{renewalAmount ? `, ${renewalAmount} brutto` : ''}.
+                <Notice tone="danger" title="Twój pakiet wygasł" role="alert">
+                    Wybierz pakiet, żeby wrócić do pracy. Twoje dane są bezpieczne.
                 </Notice>
             )}
 
             {isPastDue && (
                 <Notice
                     tone="warn"
-                    title="Ostatnia płatność nie przeszła"
-                    action={renewButton(renewalAmount ? `Zapłać ${renewalAmount}` : 'Zapłać teraz')}
+                    title="Opłacony okres minął"
+                    action={renewButton(renewalAmount ? `Przedłuż za ${renewalAmount}` : 'Przedłuż pakiet')}
                 >
-                    Dostęp działa jeszcze przez {daysLabel(myPlan.daysRemaining)}. Opłać kolejne 30 dni
-                    przez Przelewy24{renewalAmount ? ` (${renewalAmount} brutto)` : ''}, żeby go nie stracić.
+                    {/* Dawniej „Ostatnia płatność nie przeszła" - płatności automatycznych nie ma,
+                        więc żadna nie mogła „nie przejść". */}
+                    Dostęp działa jeszcze do {formatDate(myPlan.graceEndsAt)}. Przedłuż pakiet przez
+                    Przelewy24{renewalAmount ? ` (${renewalAmount} brutto)` : ''}, żeby go nie stracić.
                 </Notice>
             )}
 
             {isTrial && myPlan.trialEndsAt && (
                 <Notice tone="info" title="Okres próbny">
-                    Zostało {daysLabel(myPlan.daysRemaining)}, do {formatDate(myPlan.trialEndsAt)}.
-                    Wybierz pakiet poniżej, żeby korzystać z systemu dalej.
+                    Zostało {daysLabel(myPlan.daysRemaining)}, do {formatDate(myPlan.trialEndsAt)}. Do tego dnia
+                    zmieniasz pakiet i włączasz moduły bez opłat. Po okresie próbnym wybierzesz, co opłacić.
                 </Notice>
             )}
 
@@ -265,7 +299,9 @@ export function SubscriptionSettingsPage() {
                     </PlanHead>
 
                     <SummaryStrip
-                        label={myPlan.activeAddOns.length > 0 && !isFull ? 'Miesięcznie, pakiet i moduły' : 'Miesięcznie'}
+                        label={isTrial
+                            ? 'Po okresie próbnym, miesięcznie'
+                            : myPlan.activeAddOns.length > 0 && !isFull ? 'Miesięcznie, pakiet i moduły' : 'Miesięcznie'}
                         amount={(
                             <>
                                 {formatCents(myPlan.monthlyCostCents)}
@@ -274,6 +310,13 @@ export function SubscriptionSettingsPage() {
                         )}
                         details={periodDetails}
                     />
+
+                    {nextPeriodDiffers && (
+                        <Muted>
+                            Kolejny okres: {formatCents(renewalCents)} brutto ({renewalPlanName}
+                            {renewingAddOns.length > 0 ? `, z modułami: ${renewingAddOns.map(a => a.name).join(', ')}` : ''}).
+                        </Muted>
+                    )}
 
                     {myPlan.activeAddOns.length > 0 && !isFull && (
                         <Block>
@@ -284,18 +327,40 @@ export function SubscriptionSettingsPage() {
                                         <AddOnRowText>
                                             <strong>{addOn.name}</strong>
                                             <span>
-                                                {formatCents(addOn.monthlyPriceGrossCents)}
-                                                {monthlyPriceSuffix(addOn.monthlyPriceGrossCents) ? ` ${monthlyPriceSuffix(addOn.monthlyPriceGrossCents)}` : ''}
+                                                {addOn.cancelAt
+                                                    ? `Działa do ${formatDate(addOn.cancelAt)}, potem się wyłączy`
+                                                    : `${formatCents(addOn.monthlyPriceGrossCents)}${monthlyPriceSuffix(addOn.monthlyPriceGrossCents) ? ` ${monthlyPriceSuffix(addOn.monthlyPriceGrossCents)}` : ''}`}
                                             </span>
+                                            {addOn.cancelAt && !addOn.resumable && (
+                                                <span>
+                                                    Kolejny okres opłacono bez tego modułu. Od {formatDate(addOn.cancelAt)} możesz go dokupić ponownie.
+                                                </span>
+                                            )}
                                         </AddOnRowText>
-                                        <Button
-                                            variant="danger"
-                                            size="sm"
-                                            disabled={isExpired}
-                                            onClick={() => handleDeactivateAddOn(addOn.key, addOn.name)}
-                                        >
-                                            Wyłącz
-                                        </Button>
+                                        <AddOnRowActions>
+                                            {addOn.cancelAt ? (
+                                                addOn.resumable && (
+                                                    <Button
+                                                        size="sm"
+                                                        disabled={isExpired || resumeAddOn.isPending}
+                                                        onClick={() => handleResumeAddOn(addOn.key, addOn.name)}
+                                                        aria-label={`Przywróć moduł ${addOn.name}`}
+                                                    >
+                                                        Przywróć
+                                                    </Button>
+                                                )
+                                            ) : (
+                                                <Button
+                                                    variant="danger"
+                                                    size="sm"
+                                                    disabled={isExpired}
+                                                    onClick={() => handleDeactivateAddOn(addOn.key, addOn.name)}
+                                                    aria-label={`Wyłącz moduł ${addOn.name}`}
+                                                >
+                                                    Wyłącz
+                                                </Button>
+                                            )}
+                                        </AddOnRowActions>
                                     </AddOnRow>
                                 ))}
                             </AddOnList>
@@ -322,19 +387,23 @@ export function SubscriptionSettingsPage() {
                                 key={plan.key}
                                 plan={plan}
                                 currentPlanKey={myPlan.plan.key}
-                                disabled={isExpired}
+                                // Na niższy pakiet wolno przejść zawsze (w karencji od razu, bez opłaty);
+                                // na wyższy - tylko w trialu albo w trwającym opłaconym okresie.
+                                disabled={isExpired || (isUpgrade(plan) && !canBuyNow)}
+                                disabledHint={isExpired ? undefined : 'Na wyższy pakiet przejdziesz po przedłużeniu.'}
                                 onSelect={handleSelectPlan}
                             />
                         ))}
                     </PlansGrid>
                 )}
-                {isExpired && <Muted>Pakiet zmienisz po jego odnowieniu.</Muted>}
+                {isExpired && <Muted>Pakiet wybierzesz w oknie odnowienia.</Muted>}
             </Block>
 
             {/* ── Moduły do dokupienia (plan FULL ma wszystkie) ───────────────── */}
             {!isFull && (addOns.isLoading || addOns.isError || availableAddOns.length > 0) && (
                 <Block>
                     <SectionTitle>Moduły do dokupienia</SectionTitle>
+                    {!canBuyNow && !isExpired && <Muted>Moduły dokupisz po przedłużeniu pakietu.</Muted>}
                     {addOns.isLoading ? (
                         <Muted>Wczytywanie modułów…</Muted>
                     ) : addOns.isError ? (
@@ -350,7 +419,8 @@ export function SubscriptionSettingsPage() {
                                     key={addOn.key}
                                     addOn={addOn}
                                     isActive={false}
-                                    disabled={isExpired}
+                                    disabled={isExpired || !canBuyNow}
+                                    priceNote={isTrial ? 'Bez opłat do końca okresu próbnego' : undefined}
                                     onActivate={() => handleActivateAddOn(addOn)}
                                 />
                             ))}
@@ -385,8 +455,10 @@ export function SubscriptionSettingsPage() {
 
             {dialog?.type === 'renew' && (
                 <RenewDialog
-                    planName={myPlan.plan.name}
+                    planName={renewalPlanName}
+                    addOnNames={renewingAddOns.map(a => a.name)}
                     amount={renewalAmount}
+                    periodEndsAt={myPlan.renewalPeriodEndsAt}
                     isPending={checkout.isPending}
                     onConfirm={confirmRenew}
                     onClose={() => setDialog(null)}
@@ -397,6 +469,7 @@ export function SubscriptionSettingsPage() {
                 <AddOnDeactivationDialog
                     addOnKey={dialog.key}
                     addOnName={dialog.name}
+                    endsAt={periodEnd}
                     onClose={() => setDialog(null)}
                 />
             )}

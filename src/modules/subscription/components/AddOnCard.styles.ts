@@ -44,6 +44,9 @@ export const Footer = styled.div`
     gap: 8px 12px;
     flex-wrap: wrap;
     margin-top: auto;
+
+    /* Z dopiskiem pod ceną (okres próbny) przycisk zawija się do nowej linii - zostaje po prawej. */
+    > button { margin-left: auto; }
 `;
 
 export const Price = styled.div`
@@ -64,4 +67,12 @@ export const Price = styled.div`
         font-size: 12px;
         color: ${ui.textMuted};
     }
+`;
+
+export const PriceNote = styled.em`
+    flex-basis: 100%;
+    font-style: normal;
+    font-size: 12px;
+    font-weight: 600;
+    color: ${ui.brandInk};
 `;
