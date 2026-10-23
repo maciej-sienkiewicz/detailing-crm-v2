@@ -23,7 +23,7 @@ describe('SidebarBrand - logo DetailBoost w nagłówku menu', () => {
         const caption = screen.getByText('Detal Studio');
         const button = screen.getByRole('button', { name: 'Zwiń menu' });
 
-        expect(wordmark.getAttribute('src')).toBe('/brand/detailboost-horizontal-white.svg');
+        expect(wordmark.getAttribute('src')).toBe('/brand/detailboost-horizontal-white.svg?v=3');
         expect(caption.parentElement).toBe(wordmark.parentElement);
         // W wierszu z nazwą obrysowany przycisk zabierał jej szerokość i nazwa z rejestru
         // kończyła się wielokropkiem - teraz stoi w rogu nagłówka.
@@ -33,7 +33,7 @@ describe('SidebarBrand - logo DetailBoost w nagłówku menu', () => {
     it('w zwiniętym menu zostaje sam sygnet', () => {
         renderBrand({ isCollapsed: true });
         const sources = screen.getAllByAltText('DetailBoost').map(img => img.getAttribute('src'));
-        expect(sources).toContain('/brand/detailboost-mark-white.svg');
+        expect(sources).toContain('/brand/detailboost-mark-white.svg?v=3');
     });
 
     it('pełna nazwa z rejestru zostaje w podpowiedzi', () => {

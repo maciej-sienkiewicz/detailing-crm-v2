@@ -9,8 +9,8 @@ import {
 } from './SidebarStyles';
 
 /** Te same pliki co na ekranie logowania (AuthLayout) - jasny tusz pod ciemny pasek. */
-const WORDMARK_SRC = '/brand/detailboost-horizontal-white.svg';
-const MARK_SRC = '/brand/detailboost-mark-white.svg';
+const WORDMARK_SRC = '/brand/detailboost-horizontal-white.svg?v=3';
+const MARK_SRC = '/brand/detailboost-mark-white.svg?v=3';
 
 interface SidebarBrandProps {
     isCollapsed: boolean;
