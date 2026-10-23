@@ -15,7 +15,7 @@ import { ui } from '@/common/components/ui';
 import type { PhoneFeatureId } from './phoneFeatures';
 import { animate, SPRING } from './motion';
 
-const MARK_SRC = '/brand/detailboost-mark-white.svg';
+const MARK_SRC = '/brand/detailboost-mark-white.svg?v=3';
 
 // ─── Rama ─────────────────────────────────────────────────────────────────────
 

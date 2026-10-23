@@ -291,7 +291,7 @@ export function AuthLayout({
                     <AuthDotField strength={0.4} />
                 </Dots>
                 <Mark>
-                    <img src="/brand/detailboost-horizontal-white.svg" alt="DetailBoost" width={685} height={81} />
+                    <img src="/brand/detailboost-horizontal-white.svg?v=3" alt="DetailBoost" width={685} height={81} />
                 </Mark>
                 <Statement>
                     <h2>
