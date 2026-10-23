@@ -8,7 +8,7 @@
 export function BootSplash() {
     return (
         <div className="boot-splash" role="status" aria-label="Wczytywanie DetailBoost">
-            <img className="boot-splash__icon" src="/icons/icon-192.png?v=2" alt="" width={72} height={72} />
+            <img className="boot-splash__icon" src="/icons/icon-192.png?v=3" alt="" width={72} height={72} />
             <span className="boot-splash__bar" />
         </div>
     );
