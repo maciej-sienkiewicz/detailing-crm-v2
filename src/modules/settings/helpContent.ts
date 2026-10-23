@@ -14,7 +14,7 @@ export const COMPANY_HELP: HelpContent = {
         {
             id: 'logo',
             label: 'Logo firmy',
-            description: 'Wgraj jeden plik, a przygotujemy wersję na ekran i do druku. Najlepiej SVG albo PNG z przezroczystym tłem, dłuższy bok najlepiej 1000 px (co najmniej 300 px), do 5 MB; czy logo trafia na dokumenty, ustawisz w „Dokumenty i podpisy".',
+            description: 'Wgraj jeden plik, a przygotujemy wersję na ekran i do druku. Najlepiej SVG albo PNG z przezroczystym tłem, dłuższy bok najlepiej 1000 px (co najmniej 300 px), do 5 MB; czy logo trafia na dokumenty, ustawisz w „Przyjęciu i wydaniu".',
             usedIn: [
                 'Nagłówek protokołów przyjęcia i wydania',
                 'Nagłówek zgód marketingowych',
@@ -133,8 +133,17 @@ export const SERVICES_HELP: HelpContent = {
 };
 
 export const DOCUMENTS_HELP: HelpContent = {
-    title: 'Dokumenty i podpisy',
+    title: 'Przyjęcie i wydanie',
     items: [
+        {
+            id: 'vehicle-fields',
+            label: 'Pola pojazdu w formularzu przyjęcia',
+            description: 'Które pola pojazdu wypełniasz przy przyjęciu auta. Marka i model są zawsze. Ukrycie pola niczego nie kasuje: zapisany wcześniej VIN czy kolor zostaje na karcie pojazdu. Ten sam wybór jest pod „Ustawienia pól" w formularzu wizyty.',
+            usedIn: [
+                'Przyjęcie auta',
+                'VIN na protokole przyjęcia',
+            ],
+        },
         {
             id: 'logo-on-documents',
             label: 'Logo na dokumentach',
@@ -217,14 +226,23 @@ export const DOCUMENTS_HELP: HelpContent = {
 };
 
 export const MESSAGE_TEMPLATES_HELP: HelpContent = {
-    title: 'Wiadomości automatyczne',
+    title: 'Wiadomości do klientów',
     items: [
         {
             id: 'list',
-            label: 'Lista wiadomości',
-            description: 'Jeden wiersz to jedna sytuacja, w której piszemy do klienta, w kolejności obsługi zlecenia. Pod nazwą widzisz fragment treści z przykładowymi danymi.',
+            label: 'Oś wizyty',
+            description: 'Wiadomości stoją w kolejności obsługi zlecenia, od rezerwacji po rozliczenie. Każda pokazuje treść z przykładowymi danymi. Podświetlone fragmenty, takie jak imię, data czy link, system wstawia sam przy wysyłce.',
             usedIn: [
-                'Ustawienia → Wiadomości automatyczne',
+                'Ustawienia → Wiadomości do klientów',
+            ],
+        },
+        {
+            id: 'visit-card',
+            label: 'Karta wizyty',
+            description: 'Strona dla klienta z rezerwacją, usługami i wyceną, a w trakcie wizyty także ze zdjęciami. Link do niej wysyłają wiadomości „Link do Karty Rezerwacji" i „Link do Karty Wizyty". Po wyłączeniu karty linki nie wychodzą.',
+            usedIn: [
+                'Rezerwacja',
+                'Przyjęcie auta',
             ],
         },
         {
@@ -310,7 +328,7 @@ export const CREDITS_HELP: HelpContent = {
             label: 'Wysyłka SMS',
             description: 'SMS do 160 znaków to 1 kredyt, dłuższy zużywa ich więcej. Kredyty schodzą przy wysłaniu, a nie przy zaplanowaniu.',
             usedIn: [
-                'Wiadomości automatyczne',
+                'Wiadomości do klientów',
                 'Kampanie SMS',
             ],
         },
@@ -335,7 +353,7 @@ export const CREDITS_HELP: HelpContent = {
 };
 
 export const INVOICES_HELP: HelpContent = {
-    title: 'KSeF',
+    title: 'Finanse i KSeF',
     items: [
         {
             id: 'ksef',
@@ -361,6 +379,14 @@ export const INVOICES_HELP: HelpContent = {
             usedIn: [
                 'Wydanie pojazdu',
                 'Dokumenty przychodowe: status „Poza KSeF"',
+            ],
+        },
+        {
+            id: 'payment-tracking',
+            label: 'Obsługa statusów płatności',
+            description: 'Faktury i koszty mają status opłacone albo nieopłacone. Należności i zobowiązania w Finansach liczą się z nieopłaconych.',
+            usedIn: [
+                'Finanse: należności i zobowiązania',
             ],
         },
     ],

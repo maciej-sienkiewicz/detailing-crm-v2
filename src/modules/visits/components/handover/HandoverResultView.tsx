@@ -155,7 +155,7 @@ const invoiceCard = (result: CompleteVisitResponse, ksefMisconfigured: boolean):
     }
     // Bez tokenu wysyłka nie przejdzie nigdy, więc nie obiecujemy ponowienia.
     if (ksefMisconfigured && result.ksefStatus !== 'ACCEPTED' && result.ksefStatus !== 'REJECTED') {
-        return { tone: 'warn', title: `Faktura ${number} czeka na wysyłkę`, text: 'Brakuje tokenu KSeF. Dodaj go w Ustawieniach → KSeF i wyślij fakturę z Finansów.' };
+        return { tone: 'warn', title: `Faktura ${number} czeka na wysyłkę`, text: 'Brakuje tokenu KSeF. Dodaj go w Ustawieniach → Finanse i KSeF i wyślij fakturę z Finansów.' };
     }
     switch (result.ksefStatus) {
         case 'ACCEPTED':

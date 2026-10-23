@@ -35,10 +35,10 @@ const OptionTexts = styled.div`
     min-width: 0;
 `;
 
-const OptionLabel = styled.h3`
+const OptionLabel = styled.h3<{ $bare?: boolean }>`
     margin: 0;
-    font-size: 15px;
-    font-weight: 700;
+    font-size: ${p => (p.$bare ? '14px' : '15px')};
+    font-weight: ${p => (p.$bare ? 600 : 700)};
     color: ${p => p.theme.colors.text};
 `;
 
@@ -54,7 +54,15 @@ const Example = styled.span`
     font-weight: 600;
 `;
 
-export function ProtocolServicePricesCard() {
+interface Props {
+    /**
+     * Sam wiersz, bez własnej ramki: w „Przyjęciu i wydaniu" trzy przełączniki protokołu
+     * stoją w jednym panelu „Co jest na protokole" (ProtocolContentPanel).
+     */
+    bare?: boolean;
+}
+
+export function ProtocolServicePricesCard({ bare = false }: Props = {}) {
     const { isOwner } = usePermissions();
     const { config, isLoading } = useProtocolContentConfig();
     const updateMutation = useUpdateProtocolContentConfig();
@@ -75,32 +83,32 @@ export function ProtocolServicePricesCard() {
         );
     };
 
-    return (
-        <Card>
-            <OptionRow $disabled={!isOwner}>
-                <OptionTexts>
-                    <OptionLabel>Ceny usług na protokole przyjęcia</OptionLabel>
-                    <OptionHint>
-                        {!isOwner ? (
-                            'Zmienić to ustawienie może tylko właściciel studia.'
-                        ) : enabled ? (
-                            <>
-                                Przy każdej usłudze jest jej cena brutto, np.{' '}
-                                <Example>Powłoka ceramiczna (1900.00 PLN brutto)</Example>. Po wyłączeniu
-                                protokół pokaże same nazwy usług i kwotę łączną.
-                            </>
-                        ) : (
-                            'Protokół pokazuje same nazwy usług i jedną kwotę łączną. Po włączeniu przy każdej usłudze pojawi się jej cena w nawiasie.'
-                        )}
-                    </OptionHint>
-                </OptionTexts>
-                <Toggle
-                    checked={enabled}
-                    disabled={locked}
-                    ariaLabel="Ceny usług na protokole przyjęcia"
-                    onChange={handleChange}
-                />
-            </OptionRow>
-        </Card>
+    const row = (
+        <OptionRow $disabled={!isOwner}>
+            <OptionTexts>
+                <OptionLabel as={bare ? 'h4' : 'h3'} $bare={bare}>Ceny usług na protokole przyjęcia</OptionLabel>
+                <OptionHint>
+                    {!isOwner ? (
+                        'Zmienić to ustawienie może tylko właściciel studia.'
+                    ) : enabled ? (
+                        <>
+                            Przy każdej usłudze jest jej cena brutto, np.{' '}
+                            <Example>Powłoka ceramiczna (1900.00 PLN brutto)</Example>. Po wyłączeniu
+                            protokół pokaże same nazwy usług i kwotę łączną.
+                        </>
+                    ) : (
+                        'Protokół pokazuje same nazwy usług i jedną kwotę łączną. Po włączeniu przy każdej usłudze pojawi się jej cena w nawiasie.'
+                    )}
+                </OptionHint>
+            </OptionTexts>
+            <Toggle
+                checked={enabled}
+                disabled={locked}
+                ariaLabel="Ceny usług na protokole przyjęcia"
+                onChange={handleChange}
+            />
+        </OptionRow>
     );
+
+    return bare ? row : <Card>{row}</Card>;
 }

@@ -21,13 +21,21 @@
 // modułu „Pracownicy" (/employees). Zostały „Role i uprawnienia" - to konfiguracja
 // systemu, a nie praca dzienna. Stare adresy (`?tab=team`, `&view=settlements`)
 // przekierowują, bo krążą w mailach, powiadomieniach i zakładkach przeglądarki.
+//
+// Grupy idą za tym, CZYJE jest ustawienie: „Moje" (osoba: konto, PIN, podpis, stopka,
+// telefon), „Studio" (jak studio pracuje przy aucie), „Klienci" (co klient dostaje),
+// „Finanse" i „Konto studia" (zespół, połączenia, pakiet). Wcześniej to samo leżało
+// w kilku miejscach naraz: KSeF i Finanse jako dwie sekcje, podpis w dokumentach,
+// blokada ekranu w „Bezpieczeństwie", skróty klawiszowe jako osobna sekcja, a stopka
+// maila, skrzynka i ustawienia kampanii tylko poza Ustawieniami. Dawne `?tab=`
+// przekierowują do nowych miejsc (SECTION_ALIASES).
 
 import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
 import { useNavigate, useSearchParams, type Location } from 'react-router-dom';
 import styled from 'styled-components';
 import {
-    Banknote, Building2, ChevronLeft, ChevronRight, Crown, FileSignature, Filter, HelpCircle, IdCard, Keyboard,
-    ListChecks, MessageSquare, Plug, Receipt, Search, ShieldCheck, Smartphone, Tablet, Tag, UserCog, Wallet,
+    Building2, ChevronLeft, ChevronRight, Crown, FileSignature, HelpCircle, Inbox, ListChecks, Megaphone,
+    MessageSquare, MonitorSmartphone, Plug, Receipt, Search, Smartphone, Tag, UserCog, UserRound, Wallet,
 } from 'lucide-react';
 import { PageContainer } from '@/common/components/PageContainer';
 import { PageChromeProvider } from '@/common/components/PageChrome';
@@ -45,15 +53,14 @@ import { legacyTeamRedirect } from './legacyTeamRedirect';
 import { SubscriptionSettingsPage } from '@/modules/subscription';
 import { MessageTemplatesSection } from '@/modules/message-templates';
 import { SmsCreditSection } from '../components/SmsCreditSection';
-import { InvoicesSection } from '../components/InvoicesSection';
 import { FinanceSection } from '../components/FinanceSection';
-import { TabletsSettingsSection } from '../components/TabletsSettingsSection';
+import { StudioDevicesSection } from '../components/StudioDevicesSection';
 import { PhoneSection } from '../components/phone/PhoneSection';
 import { isPhoneFeatureId, type PhoneFeatureId } from '../components/phone/phoneFeatures';
 import { VisitCardSection } from '../components/VisitCardSection';
 import { LeadsSettingsSection } from '../components/LeadsSettingsSection';
-import { ShortcutsSection } from '../components/ShortcutsSection';
-import { SecuritySection } from '../components/SecuritySection';
+import { CampaignsSettingsSection } from '../components/CampaignsSettingsSection';
+import { MyAccountSection } from '../components/MyAccountSection';
 import { IntegrationsSection } from '../components/IntegrationsSection';
 import { HelpModal } from '../components/shared/SettingsLayout';
 import type { HelpContent } from '../components/shared/SettingsLayout';
@@ -70,11 +77,11 @@ import {
 // ─── Sekcje ──────────────────────────────────────────────────────────────────
 
 type SectionId =
-    | 'company' | 'labels' | 'services' | 'roles'
-    | 'templates' | 'documents'
-    | 'phone' | 'tablets' | 'visit-card' | 'leads'
-    | 'shortcuts'
-    | 'plan' | 'credits' | 'finance' | 'invoices' | 'integrations' | 'security';
+    | 'account' | 'phone'
+    | 'company' | 'services' | 'labels' | 'documents' | 'tablets'
+    | 'templates' | 'leads' | 'campaigns'
+    | 'finance'
+    | 'roles' | 'integrations' | 'plan' | 'credits';
 
 interface SectionDef {
     id: SectionId;
@@ -96,6 +103,24 @@ interface SectionGroup {
 
 const GROUPS: SectionGroup[] = [
     {
+        // Ustawienia osoby, nie studia: każdy w zespole ma tu swoje, nikt nie zmienia ich innym.
+        group: 'Moje',
+        items: [
+            {
+                id: 'account', label: 'Moje konto', summary: 'Hasło, PIN, podpis, stopka maila', icon: <UserRound />,
+                description: 'Logowanie, PIN, podpis na dokumentach i stopka maila.',
+                keywords: 'hasło pin bezpieczeństwo logowanie email e-mail podpis stopka styl szkiców ai asystent wyczyść konto usuń konto',
+            },
+            {
+                // Telefon i tablet to dwa różne urządzenia w dwóch różnych rękach: telefon
+                // nosi każdy przy sobie i paruje go sam, tablet stoi w recepcji albo na hali.
+                id: 'phone', label: 'Telefon', summary: 'Powiadomienia, kontakty, lead głosem', icon: <Smartphone />,
+                description: 'Co Twój telefon potrafi z CRM i jak to włączyć.',
+                keywords: 'telefon powiadomienia push carddav kontakty dzwonienie click to call połączenia lead głosem notatka głosowa skróty mobilne pwa aplikacja ekran główny kod qr aparat zdjęcia vin',
+            },
+        ],
+    },
+    {
         group: 'Studio',
         items: [
             {
@@ -104,102 +129,66 @@ const GROUPS: SectionGroup[] = [
                 keywords: 'nip regon adres logo konto bankowe telefon email firma',
             },
             {
-                id: 'services', label: 'Cennik usług', summary: 'Usługi, pakiety i instrukcje pielęgnacji', icon: <ListChecks />, help: SERVICES_HELP,
+                id: 'services', label: 'Cennik usług', summary: 'Usługi, pakiety i instrukcje', icon: <ListChecks />, help: SERVICES_HELP,
                 description: '',
                 keywords: 'ceny usługi pakiety vat instrukcje pielęgnacji',
             },
             {
-                id: 'labels', label: 'Oznaczenia', summary: 'Numeracja wizyt i kolory w kalendarzu', icon: <Tag />,
+                id: 'labels', label: 'Oznaczenia wizyt', summary: 'Numeracja i kolory', icon: <Tag />,
                 description: 'Numeracja wizyt i kolory, którymi oznaczasz rezerwacje w kalendarzu.',
-                keywords: 'numeracja numer wizyty kolory kalendarz',
+                keywords: 'oznaczenia numeracja numer wizyty kolory kalendarz',
             },
             {
-                id: 'documents', label: 'Dokumenty i podpisy', summary: 'Protokoły i zgody do podpisu', icon: <FileSignature />, help: DOCUMENTS_HELP,
-                description: 'Protokoły i zgody, które klient podpisuje przy przyjęciu i wydaniu pojazdu.',
-                keywords: 'protokół zgody rodo podpis logo dokumentu ceny usług cena na protokole przyjęcia',
+                id: 'documents', label: 'Przyjęcie i wydanie', summary: 'Protokoły, zgody, pola pojazdu', icon: <FileSignature />, help: DOCUMENTS_HELP,
+                description: 'Dokumenty, które klient podpisuje przy przyjęciu i wydaniu auta, to, co jest na protokole, i pola formularza przyjęcia.',
+                keywords: 'dokumenty i podpisy protokół zgody rodo podpis logo dokumentu ceny usług cena na protokole przyjęcia vin pola pojazdu formularz rok produkcji przebieg kolor rejestracja',
+            },
+            {
+                id: 'tablets', label: 'Urządzenia w studiu', summary: 'Tablety i ten komputer', icon: <MonitorSmartphone />,
+                description: 'Tablety w recepcji i na hali oraz komputer, na którym teraz pracujesz.',
+                keywords: 'tablet parowanie podpis hala odhaczanie usług zrobione lista kontrolna skróty klawiszowe klawiatura blokada bezczynność komputer',
+            },
+        ],
+    },
+    {
+        group: 'Klienci',
+        items: [
+            {
+                id: 'templates', label: 'Wiadomości do klientów', summary: 'Wiadomości, nadawca SMS, karta wizyty', icon: <MessageSquare />, help: MESSAGE_TEMPLATES_HELP,
+                description: 'SMS-y i e-maile, które system wysyła sam, nadawca SMS i karta wizyty, którą klient dostaje w linku.',
+                keywords: 'wiadomości automatyczne szablony sms email przypomnienie nadawca karta wizyty link śledzenie tryb testowy przekierowanie',
+            },
+            {
+                id: 'leads', label: 'Zapytania i poczta', summary: 'Skrzynka, automat, przypomnienia', icon: <Inbox />,
+                description: 'Skrzynka pocztowa studia, zapytania zakładane z poczty i przypomnienia, gdy klient czeka na odpowiedź.',
+                keywords: 'leady zapytania automat alert poczta skrzynka mail przypomnienia bez odzewu',
+            },
+            {
+                id: 'campaigns', label: 'Kampanie', summary: 'Godziny ciszy, limit, stopki', icon: <Megaphone />,
+                description: 'Wspólne reguły wysyłki wszystkich kampanii.',
+                keywords: 'kampanie godziny ciszy limit częstotliwości stopka wysyłka masowa',
+            },
+        ],
+    },
+    {
+        group: 'Finanse',
+        items: [
+            {
+                id: 'finance', label: 'Finanse i KSeF', summary: 'Faktury, KSeF, statusy płatności', icon: <Receipt />, help: INVOICES_HELP,
+                description: 'Kto wystawia faktury przy wydaniu pojazdu, połączenie z KSeF i to, co liczy się do przychodu.',
+                keywords: 'faktury e-faktury ksef księgowość księgowa biuro rachunkowe płatności status opłacone nieopłacone należności zobowiązania przychód koszty przelew',
             },
         ],
     },
     {
         // Sami pracownicy (lista, karta, listy obecności) są modułem /employees. Tu
         // zostaje definicja ról: co kto może w systemie i czy liczymy mu czas pracy.
-        group: 'Zespół',
+        group: 'Konto studia',
         items: [
             {
                 id: 'roles', label: 'Role i uprawnienia', summary: 'Co kto może w systemie', icon: <UserCog />,
                 description: 'Role, ich uprawnienia i to, czy osobom z daną rolą liczymy czas pracy.',
-                keywords: 'rola uprawnienia dostęp szablon kierownik czas pracy pracownik',
-            },
-        ],
-    },
-    {
-        group: 'Komunikacja z klientem',
-        items: [
-            {
-                id: 'templates', label: 'Wiadomości automatyczne', summary: 'Potwierdzenia, przypomnienia, gotowość do odbioru', icon: <MessageSquare />, help: MESSAGE_TEMPLATES_HELP,
-                description: 'SMS-y i e-maile, które system wysyła sam: potwierdzenia, przypomnienia, gotowość do odbioru.',
-                keywords: 'szablony sms email przypomnienie nadawca',
-            },
-            {
-                id: 'visit-card', label: 'Karta wizyty', summary: 'Strona śledzenia wizyty dla klienta', icon: <IdCard />,
-                description: 'Strona, na której klient śledzi swoją wizytę z linku w SMS-ie.',
-                keywords: 'link klient śledzenie',
-            },
-            {
-                id: 'leads', label: 'Leady', summary: 'Automat i przypomnienia o zapytaniach', icon: <Filter />,
-                description: 'Leady z poczty i przypomnienia, gdy klient czeka na odpowiedź.',
-                keywords: 'zapytania automat alert',
-            },
-        ],
-    },
-    {
-        group: 'Urządzenia',
-        items: [
-            {
-                // Telefon i tablet to dwa różne urządzenia w dwóch różnych rękach: telefon
-                // nosi każdy przy sobie, tablet stoi w recepcji albo na hali. Dawniej dzieliły
-                // jedną sekcję „Tablety, telefon, kontakty", a telefon chował połowę swoich
-                // funkcji (skróty głosowe były pod adresem, do którego nic nie linkowało).
-                id: 'phone', label: 'Telefon', summary: 'Powiadomienia, kontakty, lead głosem', icon: <Smartphone />,
-                description: 'Co Twój telefon potrafi z CRM i jak to włączyć.',
-                keywords: 'telefon powiadomienia push carddav kontakty dzwonienie click to call połączenia lead głosem notatka głosowa skróty mobilne pwa aplikacja ekran główny kod qr aparat zdjęcia vin',
-            },
-            {
-                id: 'tablets', label: 'Tablety', summary: 'Podpis w recepcji, lista na hali', icon: <Tablet />,
-                description: 'Tablety do podpisu i odhaczanie wykonanych usług na hali.',
-                keywords: 'tablet parowanie podpis hala odhaczanie usług zrobione lista kontrolna',
-            },
-            {
-                id: 'shortcuts', label: 'Skróty klawiszowe', summary: 'Tylko w tej przeglądarce', icon: <Keyboard />,
-                description: 'Skróty w tej przeglądarce. Nie zmieniają niczego innym osobom w studiu.',
-                keywords: 'klawiatura',
-            },
-        ],
-    },
-    {
-        group: 'Konto i płatności',
-        items: [
-            {
-                id: 'plan', label: 'Pakiet', summary: 'Pakiet, moduły i płatności', icon: <Crown />,
-                description: 'Twój pakiet, moduły i historia płatności.',
-                keywords: 'pakiet abonament plan płatność subskrypcja moduły dodatki faktura',
-            },
-            {
-                // Kredyty schodzą i przy SMS-ach, i przy funkcjach AI - stąd nazwa z obu.
-                id: 'credits', label: 'Kredyty SMS i AI', summary: 'Saldo i dokupowanie pakietów', icon: <Wallet />, help: CREDITS_HELP,
-                description: 'Saldo kredytów i dokupowanie pakietów. Kredyty schodzą przy SMS-ach i funkcjach AI.',
-                keywords: 'sms kredyty pakiet zakup ai',
-            },
-            {
-                id: 'finance', label: 'Finanse', summary: 'Statusy płatności', icon: <Banknote />,
-                description: 'Co liczy się do przychodu i kosztów w Finansach.',
-                keywords: 'płatności status opłacone nieopłacone należności zobowiązania przychód koszty przelew',
-            },
-            {
-                // Sekcja pokazuje tylko połączenie z KSeF; historia płatności jest w „Pakiecie".
-                id: 'invoices', label: 'KSeF', summary: 'Pobieranie faktur, kto je wystawia', icon: <Receipt />, help: INVOICES_HELP,
-                description: 'Połączenie z Krajowym Systemem e-Faktur i to, kto wystawia faktury przy wydaniu pojazdu.',
-                keywords: 'faktury e-faktury ksef księgowość księgowa biuro rachunkowe',
+                keywords: 'rola uprawnienia dostęp szablon kierownik czas pracy pracownik zespół',
             },
             {
                 // Ścieżkę „Ustawienia → Integracje → Odłącz" podaje strona /usuwanie-danych
@@ -209,9 +198,15 @@ const GROUPS: SectionGroup[] = [
                 keywords: 'instagram facebook meta google wizytówka połączenie odłącz rozłącz usuwanie danych',
             },
             {
-                id: 'security', label: 'Bezpieczeństwo', summary: 'PIN, hasło, blokada ekranu', icon: <ShieldCheck />,
-                description: 'PIN, hasło i automatyczna blokada ekranu.',
-                keywords: 'pin hasło blokada wyczyść konto',
+                id: 'plan', label: 'Pakiet', summary: 'Pakiet, moduły, płatności', icon: <Crown />,
+                description: 'Twój pakiet, moduły i historia płatności.',
+                keywords: 'pakiet abonament plan płatność subskrypcja moduły dodatki faktura',
+            },
+            {
+                // Kredyty schodzą i przy SMS-ach, i przy funkcjach AI - stąd nazwa z obu.
+                id: 'credits', label: 'Kredyty SMS i AI', summary: 'Saldo i dokupowanie pakietów', icon: <Wallet />, help: CREDITS_HELP,
+                description: 'Saldo kredytów i dokupowanie pakietów. Kredyty schodzą przy SMS-ach i funkcjach AI.',
+                keywords: 'sms kredyty pakiet zakup ai',
             },
         ],
     },
@@ -230,6 +225,11 @@ const SECTION_ALIASES: Record<string, SectionAlias> = {
     'sms-credits': { section: 'credits' },
     // Numeracja wizyt przestała być osobną sekcją i jest widokiem „Oznaczeń".
     'visit-numbering': { section: 'labels', view: 'numbering' },
+    // Przegrupowanie ustawień: sekcje, które weszły w inne.
+    security: { section: 'account' },
+    invoices: { section: 'finance' },
+    shortcuts: { section: 'tablets' },
+    'visit-card': { section: 'templates' },
 };
 
 interface SectionAlias {
@@ -277,23 +277,23 @@ const SECTION_REQUIREMENTS: Partial<Record<SectionId, AccessRequirement>> = {
     // Tak jak dotąd: rolami zarządza, kto zarządza zespołem. Zaostrzenie do OWNER_ONLY
     // zmieniłoby działające role u klientów - to decyzja biznesu, nie tej zmiany.
     roles: 'EMPLOYEES_MANAGE',
+    // Karta wizyty w środku ma własny wymóg (VISITS_CREATE) - pokazuje ją rama.
     templates: 'COMMUNICATION_SEND',
+    campaigns: 'COMMUNICATION_SEND',
     documents: 'VISITS_CREATE',
-    // Telefon nie ma wpisu: każdy paruje WŁASNY telefon (backend przypisuje urządzenie
-    // do zalogowanej osoby), a funkcje, do których ktoś nie ma prawa, znikają w środku.
-    tablets: 'VISITS_CREATE',
-    'visit-card': 'VISITS_CREATE',
-    // Automat zakłada leady w imieniu studia i kosztuje - jak każde ustawienie, które
+    // Moje konto i Telefon nie mają wpisu: każdy ustawia SWOJE (backend przypisuje
+    // urządzenie do zalogowanej osoby). „Urządzenia w studiu" też nie - skróty i ten
+    // komputer dotyczą każdego, a tablety (VISITS_CREATE) chowają się w środku.
+    // Automat zakłada sprawy w imieniu studia i kosztuje - jak każde ustawienie, które
     // zmienia zawartość CRM-a bez udziału człowieka, zostaje przy właścicielu.
     // Backend pilnuje tego samego: PATCH /company/auto-lead-config jest @RequiresOwner.
     leads: 'OWNER_ONLY',
     // Rozliczenia z operatorem to domena właściciela: nie ma na nie kodu uprawnienia.
     plan: 'OWNER_ONLY',
     credits: 'OWNER_ONLY',
-    // Zmienia, co liczy się do przychodu i kosztów - backend: PATCH /company/finance-config
-    // jest @RequiresOwner.
+    // Zmienia, co liczy się do przychodu i kosztów, oraz połączenie z KSeF - backend:
+    // PATCH /company/finance-config jest @RequiresOwner.
     finance: 'OWNER_ONLY',
-    invoices: 'OWNER_ONLY',
     // Łączy i odłącza tylko właściciel - tak samo sprawdza backend.
     integrations: 'OWNER_ONLY',
 };
@@ -566,12 +566,9 @@ export function SettingsView() {
         .map(g => ({ ...g, items: g.items.filter(it => canSee(it.id)) }))
         .filter(g => g.items.length > 0), [canSee]);
 
-    // Właściciel i kierownik lądują na pierwszej widocznej sekcji. Zwykły pracownik -
-    // na bezpieczeństwie (ustawienie PIN-u), żeby pierwszy render nie pytał API
-    // o sekcje, do których backend go nie wpuści.
-    const firstVisible: SectionId = (isOwner || can('EMPLOYEES_MANAGE'))
-        ? (visibleGroups[0]?.items[0]?.id ?? 'security')
-        : 'security';
+    // Bez wybranej sekcji każdy ląduje na „Moim koncie": widzi je każdy, a pierwszy
+    // render nie pyta API o sekcje, do których backend kogoś nie wpuści.
+    const firstVisible: SectionId = 'account';
 
     // Adres jest stanem sekcji, a nie jednorazowym ziarnem - dzięki temu działają
     // linki, wstecz/dalej i „wyślij mi ten ekran".
@@ -649,7 +646,7 @@ export function SettingsView() {
     } else if (section === 'documents') {
         content = <DocumentsSection />;
     } else if (section === 'templates') {
-        content = <MessageTemplatesSection />;
+        content = <MessageTemplatesSection visitCard={can('VISITS_CREATE') ? <VisitCardSection /> : undefined} />;
     } else if (section === 'services') {
         content = (
             <ServicesAndCareSection
@@ -673,21 +670,17 @@ export function SettingsView() {
             />
         );
     } else if (section === 'tablets') {
-        content = <TabletsSettingsSection />;
-    } else if (section === 'visit-card') {
-        content = <VisitCardSection />;
+        content = <StudioDevicesSection />;
     } else if (section === 'leads') {
         content = <LeadsSettingsSection />;
-    } else if (section === 'shortcuts') {
-        content = <ShortcutsSection />;
+    } else if (section === 'campaigns') {
+        content = <CampaignsSettingsSection />;
     } else if (section === 'finance') {
         content = <FinanceSection />;
-    } else if (section === 'invoices') {
-        content = <InvoicesSection />;
     } else if (section === 'integrations') {
         content = <IntegrationsSection />;
     } else {
-        content = <SecuritySection />;
+        content = <MyAccountSection />;
     }
 
     const search = (

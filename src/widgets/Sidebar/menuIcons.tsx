@@ -189,6 +189,21 @@ export const InquiriesIcon = menuIcon('Inquiries', {
     ],
 });
 
+/**
+ * Poczta - koperta: łuk i cięcie w tym samym rogu co Zapytania (bryła 2 jednostki wyżej,
+ * więc cięcia też), klapa wycięta kreską w kształcie V.
+ */
+export const MailIcon = menuIcon('Mail', {
+    fill: [
+        'M3 5H21V13a6 6 0 0 1-6 6H3z',
+    ],
+    mask: [
+        { d: 'M4.6 6.6L12 12.2L19.4 6.6', line: 1.6 },
+        { d: 'M7.58 27L27 7.58', line: CUT },
+        { d: 'M5.18 27L27 5.18', line: CUT },
+    ],
+});
+
 /** Klienci */
 export const CustomersIcon = menuIcon('Customers', {
     fill: [

@@ -1,13 +1,17 @@
+// src/modules/settings/components/AccountCards.tsx
+//
+// Karty dawnej sekcji „Bezpieczeństwo". Sekcja rozeszła się według tego, CZYJE jest
+// ustawienie: konto, hasło i dane studia trafiły do „Moje konto" (MyAccountSection),
+// a blokada po bezczynności - ustawienie urządzenia, nie osoby - do „Urządzenia
+// w studiu → Ten komputer" (StudioDevicesSection).
+
 import { useEffect, useRef, useState } from 'react';
-import styled from 'styled-components';
 import { useAuth } from '@/core/context/AuthContext';
 import { useToast } from '@/common/components/Toast';
-import { usePermissions } from '@/core/permissions';
 import { authApi } from '@/modules/auth/api/authApi';
 import { setDeviceIdleTimeout, useDeviceIdleTimeout } from '@/core/deviceIdleLock';
 import { ClearAccountModal } from './account/ClearAccountModal';
 import { DeleteAccountModal } from './account/DeleteAccountModal';
-import { PinCard } from './security/PinCard';
 import {
     Card, CardHead, CardHeadText, CardTitle, CardNote, CardActions, CardValue,
     OutlineBtn, DangerBtn, Select, StateTag,
@@ -16,12 +20,6 @@ import {
 /** Zgodne z backendem (PasswordResetProperties): link żyje 30 minut, kolejny da się wysłać po minucie. */
 const RESET_LINK_TTL_MINUTES = 30;
 const RESET_REQUEST_COOLDOWN_SECONDS = 60;
-
-const Wrap = styled.div`
-    display: flex;
-    flex-direction: column;
-    gap: 14px;
-`;
 
 const TIMEOUT_OPTIONS = [
     { label: 'Wyłączona', value: 0 },
@@ -46,7 +44,7 @@ const TIMEOUT_OPTIONS = [
  * kazał wykonać drugi ruch po decyzji, która już zapadła. Potwierdzeniem jest stan przy
  * liście, nie komunikat do przeczytania.
  */
-const IdleLockCard = () => {
+export const IdleLockCard = () => {
     const { user } = useAuth();
     const deviceSeconds = useDeviceIdleTimeout();
     const { showError } = useToast();
@@ -77,8 +75,8 @@ const IdleLockCard = () => {
                 <CardHeadText>
                     <CardTitle>Blokada po bezczynności</CardTitle>
                     <CardNote>
-                        Tylko na tym urządzeniu, dla każdego konta, które na nim pracuje. Każde
-                        stanowisko ustawiasz osobno. Odblokujesz kodem PIN albo hasłem.
+                        Po tym czasie ekran prosi o PIN albo hasło. Każde stanowisko ustawiasz
+                        osobno, więc komputer w recepcji może blokować się szybciej niż laptop w biurze.
                     </CardNote>
                 </CardHeadText>
                 <CardActions>
@@ -110,7 +108,7 @@ const IdleLockCard = () => {
  * Szczegóły (ważność linku, jednorazowość) mówi potwierdzenie po wysłaniu — na karcie
  * byłyby instrukcją do czytania przed decyzją, której nikt jeszcze nie podjął.
  */
-const AccountCard = () => {
+export const AccountCard = () => {
     const { user } = useAuth();
     const { showSuccess, showError } = useToast();
     const [isSending, setIsSending] = useState(false);
@@ -178,7 +176,7 @@ const AccountCard = () => {
  * ZNACZENIE akcji, a nie osobny wygląd sekcji. Sam przycisk niczego nie kasuje — pełne
  * potwierdzenie (skutki, przepisanie nazwy firmy, hasło) zbiera ClearAccountModal.
  */
-const ClearAccountCard = () => {
+export const ClearAccountCard = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     return (
@@ -201,7 +199,7 @@ const ClearAccountCard = () => {
 };
 
 /** Usunięcie konta firmy - na stałe, razem z kontami zespołu. */
-const DeleteAccountCard = () => {
+export const DeleteAccountCard = () => {
     const [isModalOpen, setIsModalOpen] = useState(false);
 
     return (
@@ -219,23 +217,5 @@ const DeleteAccountCard = () => {
             </CardHead>
             <DeleteAccountModal isOpen={isModalOpen} onClose={() => setIsModalOpen(false)} />
         </Card>
-    );
-};
-
-export const SecuritySection = () => {
-    // To samo źródło właściciela co rama ustawień i reszta aplikacji.
-    const { isOwner } = usePermissions();
-
-    // Bez tytułu sekcji: nagłówek strony niesie już ścieżkę „Konto / Bezpieczeństwo",
-    // a na telefonie tę samą nazwę pokazuje przełącznik listy sekcji. Trzeci raz to samo
-    // słowo nie niesie już informacji.
-    return (
-        <Wrap>
-            <AccountCard />
-            <PinCard />
-            {isOwner && <IdleLockCard />}
-            {isOwner && <ClearAccountCard />}
-            {isOwner && <DeleteAccountCard />}
-        </Wrap>
     );
 };

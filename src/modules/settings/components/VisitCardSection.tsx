@@ -1,45 +1,33 @@
 // src/modules/settings/components/VisitCardSection.tsx
 //
-// Ustawienia → Komunikacja z klientem → Karta wizyty.
+// „Karta wizyty" w Ustawienia → Klienci → Wiadomości do klientów.
 //
 // Przełącznik „Karta wizyty dla klientów". Stan początkowy pola „wyślij link"
-// przy rezerwacji i przyjęciu ustawia się teraz tak jak przy każdej innej wiadomości:
-// „Domyślnie zaznacz" przy „Linku do Karty Rezerwacji" i „Linku do Karty Wizyty"
-// w Wiadomościach do klientów. Dawny przełącznik „Czy domyślnie wysyłać Kartę
-// Wizyty?" zniknął stąd, żeby nie było dwóch miejsc na to samo; jego wartość
-// migracja przepisała do obu wiadomości.
+// przy rezerwacji i przyjęciu ustawia „Domyślnie zaznacz" przy „Linku do Karty
+// Rezerwacji" i „Linku do Karty Wizyty" na osi wiadomości tuż obok - dawny przełącznik
+// „Czy domyślnie wysyłać Kartę Wizyty?" zniknął, żeby nie było dwóch miejsc na to samo.
 //
-// Karta wymaga modułu SMS: bez niego sekcja jest zablokowana z propozycją zakupu.
+// Dawniej osobna sekcja z wyniesioną kartą dla jednego przełącznika. Karta żyje
+// wyłącznie z linków, które wysyłają wiadomości, więc stoi przy nich jako płaski panel
+// obok nadawcy SMS; wymóg modułu SMS pilnuje już blokada całej sekcji wiadomości.
 //
-// Tytuł i jedno zdanie o sekcji stoją w nagłówku ramy ustawień - sekcja nie
-// powtarza „Karta Wizyty" drugi raz. Błąd wczytania to komunikat z „Spróbuj
-// ponownie", a nie kręcące się kółko bez końca; do tego czasu przełączników nie
-// ma, bo „wyłączone" przed odpowiedzią serwera wyglądało jak prawdziwy stan.
-
+// Błąd wczytania to komunikat z „Spróbuj ponownie", a nie kręcące się kółko bez końca;
+// do tego czasu przełącznika nie ma, bo „wyłączone" przed odpowiedzią serwera wyglądało
+// jak prawdziwy stan.
 import styled from 'styled-components';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
-import { LockedSection } from '@/common/components/LockedSection';
 import { useToast } from '@/common/components/Toast';
-import { Button, Card, Notice, ui } from '@/common/components/ui';
-import { useFeature } from '@/modules/subscription';
+import { Button, Notice, Panel, SectionTitle, ui } from '@/common/components/ui';
 import { visitCardApi } from '@/modules/visit-card/api/visitCardApi';
 import type { UpdateVisitCardSettingsPayload } from '@/modules/visit-card/types';
 import { VISIT_CARD_SETTINGS_QUERY_KEY } from '@/modules/visit-card/hooks/useVisitCardSettings';
 import { SettingSwitchRow } from './SettingSwitchRow';
 import { serverMessage, toastedGlobally } from './errorToast';
 
-const Body = styled(Card)`
-    padding: 20px 24px 8px;
+const Body = styled(Panel)`
+    padding: 18px 20px 4px;
 
-    @media (max-width: 767px) { padding: 16px 16px 4px; }
-`;
-
-const Intro = styled.p`
-    margin: 0 0 4px;
-    max-width: 68ch;
-    font-size: 13.5px;
-    line-height: 1.55;
-    color: ${ui.textSecondary};
+    @media (max-width: 767px) { padding: 16px 16px 2px; }
 `;
 
 const Loading = styled.p`
@@ -50,7 +38,6 @@ const Loading = styled.p`
 `;
 
 export const VisitCardSection = () => {
-    const smsFeature = useFeature('SMS_EMAIL');
     const { showSuccess, showError } = useToast();
     const queryClient = useQueryClient();
 
@@ -85,46 +72,29 @@ export const VisitCardSection = () => {
     const known = settings !== undefined;
     const enabled = settings?.enabled ?? true;
 
-    return (
-        <LockedSection
-            locked={!smsFeature.enabled}
-            message="Karta wizyty wymaga modułu SMS."
+    return isError && !known ? (
+        <Notice
+            tone="danger"
+            role="alert"
+            title="Nie udało się wczytać ustawień karty wizyty"
+            action={<Button variant="ghost" size="sm" onClick={() => void refetch()}>Spróbuj ponownie</Button>}
         >
-            {isError && !known ? (
-                <Notice
-                    tone="danger"
-                    role="alert"
-                    title="Nie udało się wczytać ustawień karty wizyty"
-                    action={<Button variant="ghost" size="sm" onClick={() => void refetch()}>Spróbuj ponownie</Button>}
-                >
-                    Nie wiemy, czy karta jest teraz włączona, więc przełączniki pojawią się po wczytaniu.
-                </Notice>
+            Nie wiemy, czy karta jest teraz włączona, więc przełącznik pojawi się po wczytaniu.
+        </Notice>
+    ) : (
+        <Body aria-labelledby="visit-card-title">
+            <SectionTitle as="h3" id="visit-card-title">Karta wizyty</SectionTitle>
+            {isPending && !known ? (
+                <Loading role="status">Wczytywanie ustawień…</Loading>
             ) : (
-                <Body>
-                    <Intro>
-                        Strona dla klienta z podsumowaniem rezerwacji, zakresem usług i wyceną, a w trakcie
-                        wizyty także zdjęciami i dokumentami. Link wysyłamy SMS-em lub e-mailem.
-                    </Intro>
-
-                    {isPending && !known ? (
-                        <Loading role="status">Wczytywanie ustawień…</Loading>
-                    ) : (
-                        <>
-                            <SettingSwitchRow
-                                label="Karta wizyty dla klientów"
-                                hint="Po wyłączeniu opcja wysyłki karty zniknie z tworzenia rezerwacji i przyjęcia pojazdu, a linki nie będą wysyłane."
-                                checked={enabled}
-                                disabled={saving}
-                                onChange={next => updateMutation.mutate({ enabled: next })}
-                            />
-                            <Intro>
-                                Czy link ma być domyślnie zaznaczony, ustawisz w Ustawienia → Wiadomości
-                                automatyczne (przełącznik „Domyślnie zaznacz”).
-                            </Intro>
-                        </>
-                    )}
-                </Body>
+                <SettingSwitchRow
+                    label="Karta wizyty dla klientów"
+                    hint="Strona z rezerwacją, usługami i wyceną, a w trakcie wizyty także ze zdjęciami. Link wysyłają wiadomości „Link do Karty”."
+                    checked={enabled}
+                    disabled={saving}
+                    onChange={next => updateMutation.mutate({ enabled: next })}
+                />
             )}
-        </LockedSection>
+        </Body>
     );
 };

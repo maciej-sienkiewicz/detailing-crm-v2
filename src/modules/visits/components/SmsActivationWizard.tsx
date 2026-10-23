@@ -286,7 +286,7 @@ function TemplateStep({ templateKey, onDone }: { templateKey?: MessageKey; onDon
         <>
             <Lede>
                 Wybierz treść wiadomości „{spec.name}". Zapisany szablon możesz później
-                dowolnie zmienić w Ustawieniach → Wiadomości automatyczne.
+                dowolnie zmienić w Ustawieniach → Wiadomości do klientów.
             </Lede>
 
             <ChoiceList>

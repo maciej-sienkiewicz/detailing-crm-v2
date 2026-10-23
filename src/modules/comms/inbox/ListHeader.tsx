@@ -1,5 +1,7 @@
 // src/modules/comms/inbox/ListHeader.tsx
-// Głowa kolumny listy: „Zapytania", szukanie, koło zębate i trzy zakładki.
+// Głowa kolumny listy: „Zapytania" albo „Poczta", szukanie i koło zębate. Zakładki
+// (Odebrane, Wysłane) ma tylko Poczta - sprawy i poczta to osobne pozycje panelu
+// bocznego (decyzja z 23.10.2026), więc zakładka „Sprawy" przestała tu stać.
 //
 // Rzeczy rzadkie (stopka, skrzynki, podsumowanie, zamknięte sprawy, nowa wiadomość,
 // odrzucone) mieszkają pod kołem zębatym - nie zniknęły, przestały konkurować
@@ -8,9 +10,8 @@ import { useEffect, useRef, useState, type ReactNode } from 'react';
 import styled from 'styled-components';
 import { Search, Settings, SquareKanban, X } from 'lucide-react';
 import { ActionMenu, useActionMenu } from '@/common/components/ui';
-import { useNewLeadsCount } from '../hooks/useLeads';
 import { useUnreadMailCount } from '../hooks/useComms';
-import type { InboxTab } from '../utils/inboxTabs';
+import type { InboxScope, InboxTab } from '../utils/inboxTabs';
 import { IconBtn, Tabs } from './primitives';
 import { ix } from './tokens';
 
@@ -88,6 +89,7 @@ const SearchRow = styled.div<{ $phone: boolean }>`
 `;
 
 interface ListHeaderProps {
+    scope: InboxScope;
     tab: InboxTab;
     onTab: (tab: InboxTab) => void;
     phone: boolean;
@@ -102,9 +104,8 @@ interface ListHeaderProps {
     onBoard?: () => void;
 }
 
-export function ListHeader({ tab, onTab, phone, query, onQuery, searchPlaceholder, menu, below, onBoard }: ListHeaderProps) {
-    const casesWaiting = useNewLeadsCount();
-    const unreadMail = useUnreadMailCount();
+export function ListHeader({ scope, tab, onTab, phone, query, onQuery, searchPlaceholder, menu, below, onBoard }: ListHeaderProps) {
+    const unreadMail = useUnreadMailCount({ enabled: scope === 'mail' });
     const settings = useActionMenu();
     const [searchOpen, setSearchOpen] = useState(query !== '');
     const inputRef = useRef<HTMLInputElement>(null);
@@ -123,7 +124,7 @@ export function ListHeader({ tab, onTab, phone, query, onQuery, searchPlaceholde
     return (
         <>
             <Head $phone={phone}>
-                <h1>Zapytania</h1>
+                <h1>{scope === 'mail' ? 'Poczta' : 'Zapytania'}</h1>
                 <Icon
                     aria-label={searchOpen ? 'Zamknij szukanie' : 'Szukaj'}
                     aria-expanded={searchOpen}
@@ -161,17 +162,18 @@ export function ListHeader({ tab, onTab, phone, query, onQuery, searchPlaceholde
                     </button>
                 </SearchRow>
             )}
-            <Tabs<InboxTab>
-                label="Widok skrzynki"
-                phone={phone}
-                value={tab}
-                onChange={onTab}
-                options={[
-                    { value: 'sprawy', label: 'Sprawy', count: casesWaiting, countAccent: true },
-                    { value: 'poczta', label: 'Poczta', count: unreadMail },
-                    { value: 'wyslane', label: 'Wysłane' },
-                ]}
-            />
+            {scope === 'mail' && (
+                <Tabs<InboxTab>
+                    label="Foldery poczty"
+                    phone={phone}
+                    value={tab}
+                    onChange={onTab}
+                    options={[
+                        { value: 'poczta', label: 'Odebrane', count: unreadMail },
+                        { value: 'wyslane', label: 'Wysłane' },
+                    ]}
+                />
+            )}
             {below}
             <ActionMenu anchor={settings.menu?.anchor ?? null} onClose={settings.close} label="Ustawienia skrzynki">
                 {menu(settings.close)}

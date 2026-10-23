@@ -16,6 +16,7 @@ import {
     InquiriesIcon,
     InstagramIcon,
     LeaveIcon,
+    MailIcon,
     NotificationsIcon,
     ProductsIcon,
     ReportProblemIcon,
@@ -106,15 +107,18 @@ export const buildMenuSections = ({
         {
             title: 'Klienci',
             items: [
-                // „Leady" i „Poczta" to jedna skrzynka „Zapytania" (sprawy, poczta,
-                // wysłane). Czerwień (poświata i licznik) tylko przy nowym leadzie - to
-                // ktoś, kto czeka na odpowiedź. Sama nieprzeczytana poczta pokazuje
-                // biały licznik bez poświaty (decyzja z 21.10.2026). Stare adresy są
-                // w `match`, żeby pozycja świeciła także w trakcie przekierowania.
+                // Zapytania (sprawy) i Poczta to osobne pozycje (decyzja z 23.10.2026) -
+                // dawniej jedna skrzynka, w której licznik poczty podszywał się pod sprawy.
+                // Czerwień (poświata i licznik) tylko przy nowym leadzie - to ktoś, kto
+                // czeka na odpowiedź. Nieprzeczytana poczta ma biały licznik bez poświaty
+                // (decyzja z 21.10.2026). Stare adresy są w `match`, żeby pozycja świeciła
+                // także w trakcie przekierowania; /communication/mailboxes to skrzynki poczty.
                 { path: '/inbox', label: 'Zapytania', icon: InquiriesIcon,
-                    badge: newLeadsCount > 0 ? newLeadsCount : unreadMailCount > 0 ? unreadMailCount : undefined,
-                    badgeTone: newLeadsCount > 0 ? undefined : 'neutral',
-                    alert: newLeadsCount > 0, requires: 'LEADS_MANAGE', match: ['/leads', '/communication'] },
+                    badge: newLeadsCount > 0 ? newLeadsCount : undefined,
+                    alert: newLeadsCount > 0, requires: 'LEADS_MANAGE', match: ['/leads'] },
+                { path: '/mail', label: 'Poczta', icon: MailIcon,
+                    badge: unreadMailCount > 0 ? unreadMailCount : undefined, badgeTone: 'neutral',
+                    requires: 'LEADS_MANAGE', match: ['/communication'] },
                 { path: '/customers', label: 'Klienci',   icon: CustomersIcon, requires: 'CUSTOMERS_VIEW' },
                 { path: '/vehicles',  label: 'Pojazdy',   icon: VehiclesIcon, requires: 'CUSTOMERS_VIEW' },
                 // Zdjęcia aut z wizyt i zleceń - stoją przy Pojazdach, nie przy pracy.

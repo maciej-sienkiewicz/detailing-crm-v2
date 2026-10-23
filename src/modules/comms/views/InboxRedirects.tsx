@@ -1,6 +1,6 @@
 // src/modules/comms/views/InboxRedirects.tsx
-// Stare adresy skrzynek → /inbox. Osobny, lekki plik: router ładuje go od razu,
-// a ciężki widok skrzynki dopiero po wejściu na nią.
+// Stare adresy skrzynek → /inbox (sprawy) albo /mail (poczta). Osobny, lekki plik:
+// router ładuje go od razu, a ciężki widok skrzynki dopiero po wejściu na nią.
 import { Navigate, useLocation, useSearchParams } from 'react-router-dom';
 
 /** /leads?lead=…&status=… → /inbox z tymi samymi parametrami. */
@@ -10,8 +10,8 @@ export function LegacyLeadsRedirect() {
 }
 
 /**
- * /communication?… → zakładka Poczta albo Wysłane. Nowa wiadomość do leada bez
- * wątku (`compose=1&lead=…`) otwiera jego sprawę: tam stoi pierwsza wiadomość.
+ * /communication?… → Poczta (/mail), folder Wysłane → zakładka Wysłane. Nowa wiadomość
+ * do leada bez wątku (`compose=1&lead=…`) otwiera jego sprawę: tam stoi pierwsza wiadomość.
  */
 export function LegacyMailRedirect() {
     const [searchParams] = useSearchParams();
@@ -20,8 +20,10 @@ export function LegacyMailRedirect() {
         return <Navigate to={`/inbox?lead=${encodeURIComponent(leadId)}`} replace />;
     }
     const params = new URLSearchParams(searchParams);
-    const folder = params.get('folder');
-    params.set('view', folder === 'sent' ? 'sent' : 'mail');
-    if (folder === 'sent') params.delete('folder');
-    return <Navigate to={`/inbox?${params.toString()}`} replace />;
+    if (params.get('folder') === 'sent') {
+        params.delete('folder');
+        params.set('view', 'sent');
+    }
+    const query = params.toString();
+    return <Navigate to={`/mail${query ? `?${query}` : ''}`} replace />;
 }

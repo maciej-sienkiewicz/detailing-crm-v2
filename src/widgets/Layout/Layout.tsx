@@ -124,7 +124,7 @@ export const Layout = ({ children }: LayoutProps) => {
                 <MobileChromeProvider>
                     {/* Globalne skróty klawiszowe (W/R/K/L/P/F/S/G/I/U) - nasłuch
                         klawiatury dla całej zalogowanej aplikacji, wyłączalny
-                        w Ustawieniach → Skróty klawiszowe. */}
+                        w Ustawieniach → Urządzenia w studiu → Ten komputer. */}
                     <GlobalShortcuts />
                     {/* Okno „Nowe zadanie” (skrót Z) dostępne z każdego widoku. */}
                     <QuickNoteProvider>

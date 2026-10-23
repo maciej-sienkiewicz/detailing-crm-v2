@@ -1,11 +1,15 @@
 // src/modules/settings/components/DocumentsSection.tsx
 //
-// Ustawienia → Studio → Dokumenty i podpisy.
+// Ustawienia → Studio → Przyjęcie i wydanie.
 //
 // Jedna karta - protokoły podpisywane przy przyjęciu i przy wydaniu pojazdu, bo po
-// nie się tu wraca. Zgody, logo na dokumentach i podpis pracownika leżą płasko pod
-// nią (CLAUDE.md §2: jedno wyniesienie w kolumnie). „Dodaj dokument" stoi w nagłówku
-// sekcji; przyciski przy etapach otwierają to samo okno z wybranym etapem.
+// nie się tu wraca. Pod nią płasko (CLAUDE.md §2: jedno wyniesienie w kolumnie): co jest
+// na protokole, pola pojazdu w formularzu przyjęcia i zgody. „Dodaj dokument" stoi
+// w nagłówku sekcji; przyciski przy etapach otwierają to samo okno z wybranym etapem.
+//
+// Sekcja nazywała się „Dokumenty i podpisy" i trzymała też podpis pracownika. Podpis
+// należy do osoby, więc przeszedł do „Moje konto"; nazwa mówi teraz, KIEDY to wszystko
+// się dzieje - przy przyjęciu i przy wydaniu auta.
 //
 // Co było nie tak wcześniej:
 //  - usunięcie protokołu pytało przez window.confirm, a potem usuwało szablon
@@ -35,10 +39,7 @@ import {
 import { useConsentDefinitions, useDeleteDefinition } from '@/modules/consents/hooks/useConsents';
 import type { ProtocolRule, ProtocolStage, ProtocolTemplate } from '@/modules/protocols/types';
 import type { ConsentResponse } from '@/modules/consents/types';
-import { MySignatureSection } from './MySignatureSection';
-import { DocumentLogoCard } from './DocumentLogoCard';
-import { ProtocolServicePricesCard } from './ProtocolServicePricesCard';
-import { ProtocolVinCard } from './ProtocolVinCard';
+import { ProtocolContentPanel, VehicleFieldsPanel } from './ProtocolContentPanels';
 import { AddDocumentModal } from './AddDocumentModal';
 import { AddConsentDocumentModal } from './AddConsentDocumentModal';
 import { EditTemplateModal } from './EditTemplateModal';
@@ -364,6 +365,9 @@ export function DocumentsSection() {
                 </Card>
             )}
 
+            {canManage && <ProtocolContentPanel />}
+            {canManage && <VehicleFieldsPanel />}
+
             {canManage && (
                 <FlatPanel aria-labelledby="documents-consents-title">
                     <Head>
@@ -435,11 +439,6 @@ export function DocumentsSection() {
                 </FlatPanel>
             )}
 
-            {canManage && <DocumentLogoCard />}
-            {canManage && <ProtocolServicePricesCard />}
-            {canManage && <ProtocolVinCard />}
-
-            <MySignatureSection />
 
             <ActionMenu anchor={ruleMenu.menu?.anchor ?? null} onClose={ruleMenu.close} label="Akcje dokumentu">
                 {currentRulePreview && (

@@ -167,7 +167,7 @@ export const SettlementSummary = ({
         : sendToKsef
             ? 'trafi do KSeF'
             : ksefBlocked === 'no-token'
-                ? 'nie trafi do KSeF: brak tokenu (Ustawienia → KSeF)'
+                ? 'nie trafi do KSeF: brak tokenu (Ustawienia → Finanse i KSeF)'
                 : ksefBlocked === 'no-permission'
                     ? 'nie trafi do KSeF: token bez prawa wystawiania'
                     : 'bez wysyłki do KSeF';

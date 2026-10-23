@@ -93,6 +93,76 @@ export function resolveTemplate(template: string, optionalFragments = false): st
   return optionalFragments ? resolved.replace(/[ \t]{2,}/g, ' ').trim() : resolved;
 }
 
+/** Kawałek podglądu: tekst studia albo wartość, którą system wstawi sam. */
+export interface PreviewSegment {
+  text: string;
+  /** Wartość ze zmiennej - podgląd ją podświetla, żeby było widać, czego studio nie pisze. */
+  filled: boolean;
+}
+
+/**
+ * Ten sam podgląd co resolveTemplate, tylko pocięty na kawałki: tekst studia osobno,
+ * wartości zmiennych osobno. Sklejone kawałki są ZAWSZE równe resolveTemplate - pilnuje
+ * tego test, bo dwie implementacje tej samej reguły rozjeżdżają się po cichu.
+ *
+ * Zwijanie spacji i obcinanie brzegów (fragmenty opcjonalne) działa na znakach z flagą,
+ * a nie na kawałkach: podwójna spacja potrafi powstać na styku tekstu i pustej zmiennej.
+ */
+export function previewSegments(template: string, optionalFragments = false): PreviewSegment[] {
+  const withFragments = optionalFragments
+    ? template.replace(FRAGMENT, (match, inner: string) => {
+        const keys = Array.from(inner.matchAll(TOKEN)).map(m => m[1]);
+        if (keys.length === 0) return match;
+        return keys.every(key => !(key in PREVIEW_VALUES) || PREVIEW_VALUES[key] !== '') ? inner : '';
+      })
+    : template;
+
+  const chars: { ch: string; filled: boolean }[] = [];
+  const push = (text: string, filled: boolean) => {
+    for (const ch of text) chars.push({ ch, filled });
+  };
+  let last = 0;
+  for (const match of withFragments.matchAll(TOKEN)) {
+    const index = match.index ?? 0;
+    push(withFragments.slice(last, index), false);
+    const key = match[1];
+    if (key in PREVIEW_VALUES) push(PREVIEW_VALUES[key], true);
+    else push(match[0], false);
+    last = index + match[0].length;
+  }
+  push(withFragments.slice(last), false);
+
+  let flagged = chars;
+  if (optionalFragments) {
+    const collapsed: typeof chars = [];
+    for (let i = 0; i < chars.length; i++) {
+      const isBlank = chars[i].ch === ' ' || chars[i].ch === '\t';
+      if (isBlank) {
+        let end = i;
+        while (end + 1 < chars.length && (chars[end + 1].ch === ' ' || chars[end + 1].ch === '\t')) end++;
+        // Jak .replace(/[ \t]{2,}/g, ' '): pojedynczy znak zostaje sobą, ciąg - jedną spacją.
+        collapsed.push(end > i ? { ch: ' ', filled: chars[i].filled } : chars[i]);
+        i = end;
+      } else {
+        collapsed.push(chars[i]);
+      }
+    }
+    let start = 0;
+    let stop = collapsed.length;
+    while (start < stop && /\s/.test(collapsed[start].ch)) start++;
+    while (stop > start && /\s/.test(collapsed[stop - 1].ch)) stop--;
+    flagged = collapsed.slice(start, stop);
+  }
+
+  const segments: PreviewSegment[] = [];
+  for (const { ch, filled } of flagged) {
+    const tail = segments[segments.length - 1];
+    if (tail && tail.filled === filled) tail.text += ch;
+    else segments.push({ text: ch, filled });
+  }
+  return segments;
+}
+
 /** Tokens the studio typed that this message cannot fill: the backend rejects these. */
 export function unknownPlaceholders(template: string, allowed: string[]): string[] {
   const used = Array.from(template.matchAll(TOKEN)).map(m => m[1]);

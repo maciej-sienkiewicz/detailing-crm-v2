@@ -319,11 +319,16 @@ export const router = createBrowserRouter([
             ...lazyPage(() => import('@/modules/push/views/CallDeviceView').then(m => m.CallDeviceView)),
         },
 
-        // ── Zapytania: sprawy (dawne Leady) i poczta w jednej skrzynce ─────────
+        // ── Zapytania (sprawy, dawne Leady) i Poczta - dwie pozycje menu ───────
         {
-            // Dawny polski adres skrzynki przekierowuje LegacyUrlRedirect.
+            // Dawny polski adres skrzynki przekierowuje LegacyUrlRedirect; `?view=mail|sent`
+            // z dawnych zakładek InboxView przenosi do /mail.
             path: '/inbox',
             ...lazyPage(() => import('@/modules/comms/views/InboxView').then(m => m.default), 'LEADS_MANAGE'),
+        },
+        {
+            path: '/mail',
+            ...lazyPage(() => import('@/modules/comms/views/MailView').then(m => m.default), 'LEADS_MANAGE'),
         },
         {
             path: '/leads',
@@ -379,8 +384,10 @@ export const router = createBrowserRouter([
             ...lazyGatedPage(() => import('@/modules/campaigns/views/CampaignWizardView').then(m => m.CampaignWizardView), 'CAMPAIGNS', CAMPAIGNS_BENEFITS, 'COMMUNICATION_SEND'),
         },
         {
+            // Ustawienia wysyłki kampanii mieszkają w Ustawieniach → Kampanie. Stary adres
+            // zostaje przekierowaniem - krąży w zakładkach przeglądarki.
             path: '/campaigns/settings',
-            ...lazyGatedPage(() => import('@/modules/campaigns/views/CampaignSettingsView').then(m => m.CampaignSettingsView), 'CAMPAIGNS', CAMPAIGNS_BENEFITS, 'COMMUNICATION_SEND'),
+            element: <Navigate to="/settings?tab=campaigns" replace />,
         },
         {
             path: '/campaigns/:id',

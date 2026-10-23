@@ -1,33 +1,44 @@
 // src/modules/settings/components/ShortcutsSection.tsx
 //
-// Ustawienia → Preferencje → Skróty klawiszowe.
+// Ustawienia → Studio → Urządzenia w studiu → Ten komputer → Skróty klawiszowe.
 //
 // Jeden przełącznik i ściąga: co robi który klawisz. Ustawienie mieszka
 // w localStorage tej przeglądarki - skrót to nawyk dłoni przy konkretnej
 // klawiaturze, a nie polityka studia, więc nie ma powodu wozić go przez backend
 // ani narzucać całemu zespołowi.
+//
+// Dawniej osobna sekcja z wyniesioną kartą. Teraz stoi pod tabletami, których lista
+// jest wyniesieniem tej kolumny, więc leży płasko (CLAUDE.md §2), a ściąga jest
+// zwinięta: trzy przykłady mówią, o co chodzi, pełna lista czeka na kliknięcie.
 import { usePermissions, usePersonalDataActions } from '@/core/permissions';
-import { Fragment } from 'react';
+import { Fragment, useState } from 'react';
 import styled from 'styled-components';
+import { ChevronDown } from 'lucide-react';
 import { ACTION_SHORTCUTS, GLOBAL_SHORTCUTS, SCOPED_SHORTCUTS, useShortcutsEnabled } from '@/common/shortcuts';
-import { Card, ui } from '@/common/components/ui';
+import { Button, Panel, SectionTitle, ui } from '@/common/components/ui';
 import { SettingSwitchRow } from './SettingSwitchRow';
 
 // ─── Styled ──────────────────────────────────────────────────────────────────
 
-// Tytuł „Skróty klawiszowe" stoi w nagłówku ramy ustawień - karta go nie powtarza.
-const Body = styled(Card)`
-    padding: 20px 24px 12px;
+const Body = styled(Panel)`
+    padding: 18px 22px 12px;
 
     @media (max-width: 767px) { padding: 16px 16px 8px; }
 `;
 
 const Intro = styled.p`
-    margin: 0 0 4px;
+    margin: 4px 0 4px;
     max-width: 68ch;
     font-size: 13.5px;
     line-height: 1.55;
     color: ${ui.textSecondary};
+`;
+
+const Toggle = styled.div`
+    padding: 4px 0 6px;
+
+    svg { transition: transform 160ms ease; }
+    &[data-open='true'] svg { transform: rotate(180deg); }
 `;
 
 /** Ściąga gaśnie, gdy skróty są wyłączone - lista zostaje, żeby było co włączać. */
@@ -90,9 +101,11 @@ export function ShortcutsSection() {
     const { can } = usePermissions();
     const personalDataActions = usePersonalDataActions();
     const [enabled, setEnabled] = useShortcutsEnabled();
+    const [showAll, setShowAll] = useState(false);
 
     return (
         <Body>
+            <SectionTitle as="h3">Skróty klawiszowe</SectionTitle>
             <Intro>
                 Litera otwiera widok, cyfra przełącza zakładkę. Skróty nie działają, gdy piszesz
                 albo masz otwarte okno.
@@ -100,12 +113,19 @@ export function ShortcutsSection() {
 
             <SettingSwitchRow
                 label="Włącz skróty klawiszowe"
-                hint="Po wyłączeniu klawisze z listy niżej przestają działać. Ustawienie dotyczy tylko tej przeglądarki."
+                hint="Po wyłączeniu żaden skrót nie działa. Ustawienie dotyczy tylko tej przeglądarki."
                 checked={enabled}
                 onChange={setEnabled}
             />
 
-            <ShortcutRows $muted={!enabled}>
+            <Toggle data-open={showAll}>
+                <Button variant="ghost" size="sm" aria-expanded={showAll} onClick={() => setShowAll(v => !v)}>
+                    {showAll ? 'Zwiń listę skrótów' : 'Pokaż wszystkie skróty'}
+                    <ChevronDown aria-hidden="true" />
+                </Button>
+            </Toggle>
+
+            {showAll && <ShortcutRows $muted={!enabled}>
                 <GroupLabel>Nawigacja <span>działa wszędzie</span></GroupLabel>
                 {GLOBAL_SHORTCUTS.filter((shortcut) => !shortcut.requiresAction || personalDataActions[shortcut.requiresAction]).map((shortcut) => (
                     <ShortcutRow key={shortcut.key}>
@@ -135,7 +155,7 @@ export function ShortcutsSection() {
                         ))}
                     </Fragment>
                 ))}
-            </ShortcutRows>
+            </ShortcutRows>}
         </Body>
     );
 }

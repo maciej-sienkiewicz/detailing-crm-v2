@@ -1,6 +1,9 @@
 // src/modules/comms/inbox/InboxPage.tsx
-// Skrzynka „Zapytania" (/inbox) - dawne „Leady" i „Poczta" w jednym miejscu,
-// zbudowana według makiet z canvasu „Zapytania – makiety".
+// Skrzynka według makiet z canvasu „Zapytania – makiety", w dwóch częściach:
+//  - „Zapytania" (/inbox, scope `cases`) - sprawy, domyślnie jako tablica,
+//  - „Poczta" (/mail, scope `mail`) - odebrane i wysłane.
+// W panelu bocznym to osobne pozycje (decyzja z 23.10.2026); dawniej jedna skrzynka
+// z trzema zakładkami. Układ, rozmowa i panel sprawy są wspólne.
 //
 // Układ zależy od miejsca, jakie ma karta skrzynki (a nie okno - obok stoi pasek
 // boczny aplikacji, zwinięty albo rozwinięty):
@@ -40,6 +43,7 @@ import {
     useThreads,
 } from '../hooks/useComms';
 import type { CommThread, LeadStatus, MailFolder } from '../types';
+import type { InboxScope } from '../utils/inboxTabs';
 import { buildWorklist } from '../utils/leadWorklist';
 import { LeadArchive } from '../components/LeadArchive';
 import { MailboxSyncPanel } from '../components/MailboxSyncPanel';
@@ -114,16 +118,22 @@ const BoardArea = styled.div`
 `;
 
 /**
- * Ostatnio wybrany układ spraw - wygoda jednej przeglądarki, nie stan do odtworzenia
- * (ten mieszka w adresie). Pamięć bywa niedostępna (tryb prywatny), więc każde
- * sięgnięcie jest w try/catch i brak odpowiedzi znaczy „lista".
+ * Wybór listy zamiast tablicy - wygoda jednej przeglądarki, nie stan do odtworzenia
+ * (ten mieszka w adresie). Tablica jest domyślna (decyzja z 23.10.2026), więc pamiętamy
+ * tylko listę. Nowy klucz: pod dawnym („zapytania.sprawy.uklad") siedzi „lista" z czasów,
+ * gdy była domyślna, i zostawiłby listę tym, którzy nigdy jej nie wybrali. Pamięć bywa
+ * niedostępna (tryb prywatny), więc każde sięgnięcie jest w try/catch, a brak odpowiedzi
+ * znaczy „tablica".
  */
-const LAYOUT_KEY = 'zapytania.sprawy.uklad';
+const LIST_KEY = 'zapytania.sprawy.lista';
 const rememberLayout = (board: boolean) => {
-    try { localStorage.setItem(LAYOUT_KEY, board ? 'tablica' : 'lista'); } catch { /* bez pamięci - bez wygody */ }
+    try {
+        if (board) localStorage.removeItem(LIST_KEY);
+        else localStorage.setItem(LIST_KEY, '1');
+    } catch { /* bez pamięci - bez wygody */ }
 };
-const rememberedBoard = (): boolean => {
-    try { return localStorage.getItem(LAYOUT_KEY) === 'tablica'; } catch { return false; }
+const rememberedList = (): boolean => {
+    try { return localStorage.getItem(LIST_KEY) === '1'; } catch { return false; }
 };
 
 const ListColumn = styled.section<{ $width: number | null }>`
@@ -225,11 +235,11 @@ function PhoneFullScreen({ children }: { children: ReactNode }) {
     return <PhoneLayer role="dialog" aria-modal="true">{children}</PhoneLayer>;
 }
 
-export default function InboxPage() {
+export default function InboxPage({ scope = 'cases' }: { scope?: InboxScope }) {
     const navigate = useNavigate();
     const { showInfo } = useToast();
     const { can } = usePermissions();
-    const nav = useInboxNav();
+    const nav = useInboxNav(scope);
     const { tab, leadId, threadId, archive, rejected, compose, board } = nav.location;
     const boardView = tab === 'sprawy' && board;
     /** Karta, z której wyrosło okno sprawy - żeby okno wiedziało, skąd przyjść i dokąd wrócić. */
@@ -257,7 +267,8 @@ export default function InboxPage() {
     // ── Sprawy ──────────────────────────────────────────────────────────────
     useLeadsSocket();
     const thresholds = useStagnationThresholds();
-    const open = useLeadsByStatuses(OPEN_LEAD_STATUSES);
+    // Poczta nie pokazuje spraw - bez ich pobierania.
+    const open = useLeadsByStatuses(scope === 'cases' ? OPEN_LEAD_STATUSES : []);
     const worklist = useMemo(() => buildWorklist(open.items, thresholds), [open.items, thresholds]);
     const archiveSearch = useDebounce(archiveQuery, 300);
     const archiveBundle = useLeadsByStatuses(
@@ -326,9 +337,9 @@ export default function InboxPage() {
         return () => window.removeEventListener('keydown', onKey);
     }, [tab, twoPane, archive, board, worklist.ours.entries, leadId, nav]);
 
-    // Bez niczego w adresie (wejście z menu) - ostatnio wybrany układ spraw.
+    // Bez niczego w adresie (wejście z menu) - lista, jeśli ktoś ją świadomie wybrał.
     useEffect(() => {
-        if (window.location.search === '' && rememberedBoard()) nav.setBoard(true);
+        if (scope === 'cases' && window.location.search === '' && rememberedList()) nav.setBoard(false);
         // Tylko przy wejściu na stronę - potem układ zmienia wyłącznie przełącznik.
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -378,7 +389,9 @@ export default function InboxPage() {
             <MenuItem icon={<PenLine />} onClick={() => { close(); setSettingsModal('signature'); }}>Stopka maila</MenuItem>
             <MenuItem icon={<Sparkles />} onClick={() => { close(); setSettingsModal('draft-style'); }}>Styl szkiców AI</MenuItem>
             <MenuItem icon={<Inbox />} onClick={() => { close(); navigate('/communication/mailboxes'); }}>Skrzynki pocztowe</MenuItem>
-            <MenuItem icon={<BarChart3 />} onClick={() => { close(); navigate('/leads/analytics'); }}>Pieniądze w zapytaniach</MenuItem>
+            {scope === 'cases' && (
+                <MenuItem icon={<BarChart3 />} onClick={() => { close(); navigate('/leads/analytics'); }}>Pieniądze w zapytaniach</MenuItem>
+            )}
         </>
     );
 
@@ -401,8 +414,9 @@ export default function InboxPage() {
 
     // ── Kolumna listy ────────────────────────────────────────────────────────
     const list = (
-        <ListColumn $width={twoPane ? listWidth : null} aria-label={tab === 'sprawy' ? 'Sprawy' : 'Poczta'}>
+        <ListColumn $width={twoPane ? listWidth : null} aria-label={tab === 'sprawy' ? 'Sprawy' : tab === 'wyslane' ? 'Wysłane' : 'Poczta'}>
             <ListHeader
+                scope={scope}
                 tab={tab}
                 onTab={changeTab}
                 phone={phone}

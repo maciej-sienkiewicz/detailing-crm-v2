@@ -253,7 +253,7 @@ export function ReplyDraftStyleDialog({ initialChoice, sentMessageCount, onConfi
                 </Options>
                 <Remember>
                     <input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} />
-                    Zapamiętaj wybór. Zmienisz go w ustawieniach skrzynki („Styl szkiców AI").
+                    Zapamiętaj wybór. Zmienisz go w Ustawieniach, w „Moim koncie”.
                 </Remember>
             </ModalContent>
             <ModalFooter>

@@ -21,7 +21,13 @@ vi.mock('../components/phone/PhoneSection', () => ({
     PhoneSection: ({ feature, openSetupOnArrival }: { feature: string; openSetupOnArrival?: boolean }) =>
         <p>sekcja telefonu {feature}{openSetupOnArrival ? ' z ustawieniami' : ''}</p>,
 }));
-vi.mock('../components/TabletsSettingsSection', () => ({ TabletsSettingsSection: () => <p>sekcja tabletów</p> }));
+vi.mock('../components/StudioDevicesSection', () => ({ StudioDevicesSection: () => <p>sekcja tabletów</p> }));
+vi.mock('../components/MyAccountSection', () => ({ MyAccountSection: () => <p>sekcja mojego konta</p> }));
+vi.mock('../components/FinanceSection', () => ({ FinanceSection: () => <p>sekcja finansów</p> }));
+vi.mock('@/modules/message-templates', () => ({
+    MessageTemplatesSection: ({ visitCard }: { visitCard?: unknown }) =>
+        <p>sekcja wiadomości{visitCard ? ' z kartą wizyty' : ''}</p>,
+}));
 
 const renderAt = (path: string) => {
     const router = createMemoryRouter([
@@ -115,5 +121,27 @@ describe('SettingsView - dawna sekcja urządzeń', () => {
     ])('%s otwiera właściwą sekcję', async (path, expected) => {
         renderAt(path);
         expect(await screen.findByText(expected)).toBeTruthy();
+    });
+});
+
+// Przegrupowanie ustawień: sekcje, które weszły w inne, zostają adresami. Linki do nich
+// siedzą w toastach („Dodaj token w Ustawieniach → KSeF”), w zakładkach i w historii.
+describe('SettingsView - sekcje połączone przy przegrupowaniu', () => {
+    it.each([
+        ['/settings?tab=security', 'sekcja mojego konta', 'Moje konto'],
+        ['/settings?tab=invoices', 'sekcja finansów', 'Finanse i KSeF'],
+        ['/settings?tab=finance', 'sekcja finansów', 'Finanse i KSeF'],
+        ['/settings?tab=shortcuts', 'sekcja tabletów', 'Urządzenia w studiu'],
+        ['/settings?tab=visit-card', 'sekcja wiadomości z kartą wizyty', 'Wiadomości do klientów'],
+        ['/settings?tab=email-templates', 'sekcja wiadomości z kartą wizyty', 'Wiadomości do klientów'],
+    ])('%s otwiera sekcję, do której trafiła treść', async (path, content, heading) => {
+        renderAt(path);
+        expect(await screen.findByText(content)).toBeTruthy();
+        expect(screen.getByRole('heading', { level: 2, name: heading })).toBeTruthy();
+    });
+
+    it('bez wybranej sekcji otwiera „Moje konto” - widzi je każdy', async () => {
+        renderAt('/settings');
+        expect(await screen.findByText('sekcja mojego konta')).toBeTruthy();
     });
 });

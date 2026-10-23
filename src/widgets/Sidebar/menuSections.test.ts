@@ -79,7 +79,7 @@ describe('menu - układ grup', () => {
         expect(sections.map(s => [s.title ?? null, s.items.map(i => i.label)])).toEqual([
             [null, ['Tablica', 'Aktywność', 'Czas pracy', 'Urlop']],
             ['Praca', ['Wizyty', 'Kalendarz', 'Zlecenia zbiorcze']],
-            ['Klienci', ['Zapytania', 'Klienci', 'Pojazdy', 'Galeria']],
+            ['Klienci', ['Zapytania', 'Poczta', 'Klienci', 'Pojazdy', 'Galeria']],
             ['Marketing', ['Kampanie', 'Zaplanowane treści', 'Instagram']],
             ['Firma', ['Finanse', 'Statystyki', 'Pracownicy', 'Produkty']],
             [null, ['Ustawienia', 'Zgłoś problem']],
@@ -93,24 +93,36 @@ describe('menu - układ grup', () => {
     });
 });
 
-describe('menu - Zapytania', () => {
-    it('nowy lead: czerwona poświata i czerwony licznik leadów', () => {
+// Zapytania i Poczta to osobne pozycje (decyzja z 23.10.2026): licznik poczty nie
+// stoi już przy Zapytaniach, gdzie prowadził na sprawy zamiast na wiadomości.
+describe('menu - Zapytania i Poczta', () => {
+    it('nowy lead: czerwona poświata i czerwony licznik leadów przy Zapytaniach', () => {
         const zapytania = item(build({ newLeadsCount: 2, unreadMailCount: 5 }), 'Zapytania');
         expect(zapytania?.badge).toBe(2);
         expect(zapytania?.alert).toBe(true);
         expect(zapytania?.badgeTone).toBeUndefined();
     });
 
-    it('sama nieprzeczytana poczta: biały licznik wiadomości, bez poświaty', () => {
-        const zapytania = item(build({ newLeadsCount: 0, unreadMailCount: 5 }), 'Zapytania');
-        expect(zapytania?.badge).toBe(5);
-        expect(zapytania?.alert).toBe(false);
-        expect(zapytania?.badgeTone).toBe('neutral');
+    it('nieprzeczytana poczta: biały licznik przy Poczcie, bez poświaty, a Zapytania bez licznika', () => {
+        const sections = build({ newLeadsCount: 0, unreadMailCount: 5 });
+        const poczta = item(sections, 'Poczta');
+        expect(poczta?.path).toBe('/mail');
+        expect(poczta?.badge).toBe(5);
+        expect(poczta?.badgeTone).toBe('neutral');
+        expect(poczta?.alert).toBeFalsy();
+        expect(item(sections, 'Zapytania')?.badge).toBeUndefined();
     });
 
-    it('nic nowego: bez licznika i bez poświaty', () => {
-        const zapytania = item(build({}), 'Zapytania');
-        expect(zapytania?.badge).toBeUndefined();
-        expect(zapytania?.alert).toBe(false);
+    it('dawny adres poczty świeci Pocztę, dawny adres leadów - Zapytania', () => {
+        const sections = build({});
+        expect(item(sections, 'Poczta')?.match).toEqual(['/communication']);
+        expect(item(sections, 'Zapytania')?.match).toEqual(['/leads']);
+    });
+
+    it('nic nowego: bez liczników i bez poświaty', () => {
+        const sections = build({});
+        expect(item(sections, 'Zapytania')?.badge).toBeUndefined();
+        expect(item(sections, 'Zapytania')?.alert).toBe(false);
+        expect(item(sections, 'Poczta')?.badge).toBeUndefined();
     });
 });

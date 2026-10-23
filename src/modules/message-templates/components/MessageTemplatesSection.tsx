@@ -1,6 +1,5 @@
-import React, { useCallback, useMemo, useState } from 'react';
+import React, { useCallback, useMemo, useState, type ReactNode } from 'react';
 import styled from 'styled-components';
-import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { LockedSection } from '@/common/components/LockedSection';
 import { useToast } from '@/common/components/Toast';
 import { Button, Card, Notice, SectionTitle, Segmented, ui } from '@/common/components/ui';
@@ -9,7 +8,7 @@ import { useFeature } from '@/modules/subscription';
 import { UnsavedChangesBanner } from '@/modules/settings/components/shared/SettingsLayout';
 import { SmsSenderNameCard } from '@/modules/sms-settings/components/SmsSenderNameCard';
 import { RedirectCard } from './RedirectCard';
-import { TemplatesTable } from './TemplatesTable';
+import { MessageTimeline } from './MessageTimeline';
 import { RuleDrawer } from './RuleDrawer';
 import { Container, SearchInput, SearchWrap, Toolbar } from './primitives';
 import { MESSAGES, type MessageSpec } from '../catalog';
@@ -17,19 +16,47 @@ import { channelStatus } from '../utils/template';
 import { useMessageTemplates } from '../hooks/useMessageTemplates';
 import type { Channel, ChannelDraft, MessageKey, TemplatesDraft } from '../types';
 
-/* Jedyna wyniesiona powierzchnia sekcji: lista wiadomości (CLAUDE.md §2). */
+/* Jedyna wyniesiona powierzchnia sekcji: wiadomości na osi wizyty (CLAUDE.md §2). */
 const TemplatesCard = styled(Card)`
   display: flex;
   flex-direction: column;
+  gap: 18px;
+  padding: 20px 24px 6px;
+
+  @media (max-width: 767px) { padding: 16px 16px 4px; }
 `;
 
 const CardHead = styled.div`
   display: flex;
   flex-direction: column;
   gap: 12px;
-  padding: 16px 18px 14px;
+`;
 
-  @media (max-width: 767px) { padding: 14px 16px 12px; }
+const HeadRow = styled.div`
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 10px 16px;
+  flex-wrap: wrap;
+`;
+
+const HeadText = styled.div`
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+
+  p { margin: 0; font-size: 13px; line-height: 1.5; color: ${ui.textMuted}; }
+`;
+
+/* Nadawca SMS i karta wizyty obok siebie: dwie krótkie karty, które czyta się razem. */
+const TopRow = styled.div`
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 16px;
+  align-items: start;
+
+  @media (max-width: 640px) { grid-template-columns: minmax(0, 1fr); }
 `;
 
 const Matches = styled.span`
@@ -38,27 +65,13 @@ const Matches = styled.span`
   font-variant-numeric: tabular-nums;
 `;
 
-const Legend = styled.div`
-  display: flex;
-  gap: 8px 16px;
-  flex-wrap: wrap;
-  padding: 12px 18px 16px;
-  border-top: 1px solid ${ui.lineFaint};
-  font-size: 12px;
-  color: ${st.textSecondary};
-
-  span { display: inline-flex; align-items: center; gap: 6px; }
-  i { width: 8px; height: 8px; border-radius: 50%; display: inline-block; }
-`;
-
 const SkeletonRow = styled.div`
-  height: 56px;
-  border-bottom: 1px solid ${ui.lineFaint};
+  height: 88px;
+  border-radius: 14px;
   background: linear-gradient(90deg, #F1F5F9 25%, #E8EDF3 50%, #F1F5F9 75%);
   background-size: 200% 100%;
   animation: shimmer 1.4s infinite;
 
-  &:last-child { border-bottom: 0; }
   @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
   @media (prefers-reduced-motion: reduce) { animation: none; }
 `;
@@ -87,12 +100,20 @@ function searchHaystack(spec: MessageSpec, drafts: Partial<Record<Channel, Chann
     .toLowerCase();
 }
 
+export interface MessageTemplatesSectionProps {
+  /**
+   * Karta wizyty (Ustawienia → Wiadomości do klientów). Wstawia ją rama ustawień, bo
+   * sama karta mieszka w module ustawień i ma własne wymaganie dostępu.
+   */
+  visitCard?: ReactNode;
+}
+
 /**
- * One screen for every message the customer can receive, grouped by the moment in the
- * visit it belongs to. Channels are a column rather than a separate settings page, so
- * "what does the customer get when the car is ready?" has a single answer in one row.
+ * One screen for every message the customer can receive, laid out on the visit timeline.
+ * Each message shows what the customer will actually read, so "what does the customer
+ * get when the car is ready?" is answered by looking, not by opening every message.
  */
-export const MessageTemplatesSection: React.FC = () => {
+export const MessageTemplatesSection: React.FC<MessageTemplatesSectionProps> = ({ visitCard }) => {
   const feature = useFeature('SMS_EMAIL');
   const { draft, isLoading, isError, refetch, dirty, isSaving, patchChannel, save, discard } =
     useMessageTemplates();
@@ -152,7 +173,7 @@ export const MessageTemplatesSection: React.FC = () => {
     return (
       <Container>
         <TemplatesCard aria-busy="true" aria-label="Wczytywanie wiadomości">
-          {Array.from({ length: 8 }).map((_, i) => <SkeletonRow key={i} />)}
+          {Array.from({ length: 5 }).map((_, i) => <SkeletonRow key={i} />)}
         </TemplatesCard>
       </Container>
     );
@@ -183,18 +204,40 @@ export const MessageTemplatesSection: React.FC = () => {
     patchChannel(key, channel, { enabled: !current.enabled });
   };
 
+  const enable = (key: MessageKey) => {
+    const spec = MESSAGES.find(s => s.key === key);
+    if (!spec) return;
+    patchChannel(key, spec.sms ? 'sms' : 'email', { enabled: true });
+    setOpenKey(key);
+  };
+
   return (
     <LockedSection
       locked={!feature.enabled}
       message="Twój abonament nie obsługuje automatycznych wiadomości SMS i e-mail."
     >
       <Container>
+        <TopRow>
+          <SmsSenderNameCard />
+          {visitCard}
+        </TopRow>
         <RedirectCard />
-        <SmsSenderNameCard />
 
-        <TemplatesCard aria-label="Lista wiadomości">
+        <TemplatesCard aria-labelledby="customer-messages-title">
           <CardHead>
-            <SectionTitle count={`aktywne: ${activeCount} z ${MESSAGES.length}`}>Wiadomości</SectionTitle>
+            <HeadRow>
+              <HeadText>
+                <SectionTitle as="h3" size="lg" id="customer-messages-title">Co klient dostaje w trakcie wizyty</SectionTitle>
+                <p>Włączone: {activeCount} z {MESSAGES.length}. Podświetlone fragmenty system wstawia sam.</p>
+              </HeadText>
+              <Segmented
+                label="Filtr wiadomości"
+                size="sm"
+                value={filter}
+                onChange={setFilter}
+                options={FILTERS.map(f => ({ value: f.id, label: f.label, count: counts[f.id] }))}
+              />
+            </HeadRow>
             <Toolbar>
               <SearchWrap>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.4" aria-hidden="true">
@@ -205,35 +248,22 @@ export const MessageTemplatesSection: React.FC = () => {
                   type="search"
                   value={query}
                   placeholder="Szukaj po nazwie lub treści wiadomości…"
-                  aria-label="Szukaj szablonu"
+                  aria-label="Szukaj wiadomości"
                   onChange={e => setQuery(e.target.value)}
                 />
               </SearchWrap>
-
-              <Segmented
-                label="Filtr szablonów"
-                size="sm"
-                value={filter}
-                onChange={setFilter}
-                options={FILTERS.map(f => ({ value: f.id, label: f.label, count: counts[f.id] }))}
-              />
 
               {query.trim() && <Matches aria-live="polite">Pasuje: {visibleCount}</Matches>}
             </Toolbar>
           </CardHead>
 
-          <TemplatesTable
+          <MessageTimeline
             draft={draft}
             matches={matches}
             onOpen={setOpenKey}
             onToggle={toggle}
+            onEnable={enable}
           />
-
-          <Legend>
-            <span><i style={{ background: st.accentGreen }} /> włączona: wychodzi do klienta</span>
-            <span><i style={{ background: st.accentAmber }} /> włączona, ale bez treści: nic nie wyjdzie</span>
-            <span><i style={{ background: st.borderHover }} /> wyłączona</span>
-          </Legend>
         </TemplatesCard>
       </Container>
 

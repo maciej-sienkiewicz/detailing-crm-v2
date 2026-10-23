@@ -73,7 +73,7 @@ const Slot = styled.div`
 `;
 
 /**
- * Ustawienia → Finanse → „Obsługa statusów płatności".
+ * Ustawienia → Finanse i KSeF → „Obsługa statusów płatności".
  *
  * Biznes nie potrafił odpowiedzieć sobie, jaki ma realny przychód i realne koszty:
  * kafle liczyły tylko dokumenty opłacone, a przelew bez kliknięcia „Oznacz jako

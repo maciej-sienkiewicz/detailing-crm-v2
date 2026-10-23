@@ -7,7 +7,7 @@ import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { usePermissions, ANY_FINANCE } from '@/core/permissions';
 import { useAuth } from '@/core/context/AuthContext';
 import type { PermissionRequirement } from '@/core/permissions';
-import { useNewLeadsCount, useUnreadMailCount } from '@/modules/comms';
+import { useNewLeadsCount } from '@/modules/comms';
 import { usePiiAccess } from '@/common/pii';
 import { useMobileChromeHidden } from '@/common/context/MobileChromeContext';
 import { useVirtualKeyboard } from '@/common/hooks';
@@ -133,7 +133,6 @@ export const BottomNav = () => {
     // wysłania (odpowiedź na opinię Google zostawała z ~90 px wysokości). Nawigacja
     // w trakcie pisania i tak nie jest potrzebna - wraca, gdy klawiatura się schowa.
     const keyboardOpen = useVirtualKeyboard();
-    const unreadMail = useUnreadMailCount({ enabled: can('LEADS_MANAGE') && hasPiiAccess });
     const casesWaiting = useNewLeadsCount({ enabled: can('LEADS_MANAGE') && hasPiiAccess });
 
     // Bez dostępu do danych osobowych poczta i finanse są dla użytkownika puste
@@ -143,9 +142,9 @@ export const BottomNav = () => {
     const allShortcuts: Shortcut[] = hasPiiAccess
         ? [
             { path: '/calendar',      label: 'Kalendarz', icon: Calendar, requires: 'VISITS_VIEW' },
-            // Skrzynka „Zapytania" (sprawy i poczta): licznik spraw czekających na nas,
-            // a gdy żadna nie czeka - nieprzeczytanej poczty.
-            { path: '/inbox',         label: 'Zapytania', icon: Inbox,    requires: 'LEADS_MANAGE', badge: casesWaiting > 0 ? casesWaiting : unreadMail },
+            // „Zapytania": licznik spraw czekających na nas. Poczta jest osobną pozycją
+            // menu (od 23.10.2026) - jej licznik pod Zapytaniami prowadził na sprawy.
+            { path: '/inbox',         label: 'Zapytania', icon: Inbox,    requires: 'LEADS_MANAGE', badge: casesWaiting },
             { path: '/finances',      label: 'Finanse',   icon: FileText, requires: ANY_FINANCE },
         ]
         : [

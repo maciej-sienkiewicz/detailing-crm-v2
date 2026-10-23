@@ -11,24 +11,18 @@ import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
 import { ToastProvider } from '@/common/components/Toast';
 import { getDeviceIdleTimeout } from '@/core/deviceIdleLock';
-import { SecuritySection } from './SecuritySection';
+import { IdleLockCard } from './AccountCards';
 
 vi.mock('@/core/context/AuthContext', () => ({
     // idleTimeoutSeconds z /auth/me - dotychczasowa wartość studia.
     useAuth: () => ({ user: { email: 'owner@studio.pl', idleTimeoutSeconds: 300 }, setUser: vi.fn() }),
 }));
-vi.mock('@/core/permissions', async importOriginal => ({
-    ...(await importOriginal<typeof import('@/core/permissions')>()),
-    usePermissions: () => ({ isOwner: true, can: () => true, defaultRoute: '/' }),
-}));
-vi.mock('./security/PinCard', () => ({ PinCard: () => null }));
-vi.mock('./account/ClearAccountModal', () => ({ ClearAccountModal: () => null }));
 
 const renderSection = () => render(
     <QueryClientProvider client={new QueryClient()}>
         <ThemeProvider theme={theme}>
             <ToastProvider>
-                <SecuritySection />
+                <IdleLockCard />
             </ToastProvider>
         </ThemeProvider>
     </QueryClientProvider>,
@@ -43,12 +37,12 @@ afterEach(() => {
     vi.restoreAllMocks();
 });
 
-describe('SecuritySection - blokada po bezczynności na tym urządzeniu', () => {
+describe('IdleLockCard - blokada po bezczynności na tym urządzeniu', () => {
     it('bez ustawienia na urządzeniu pokazuje wartość studia, która obowiązuje', () => {
         renderSection();
 
         expect(select().value).toBe('300');
-        expect(screen.getByText(/Tylko na tym urządzeniu/)).toBeTruthy();
+        expect(screen.getByText(/Każde stanowisko ustawiasz osobno/)).toBeTruthy();
     });
 
     it('wybór zapisuje się na tym urządzeniu i mówi „Zapisano"', async () => {

@@ -17,6 +17,8 @@ import { ToastProvider } from '@/common/components/Toast';
 import { LeadsSettingsSection } from './LeadsSettingsSection';
 import { leadsSettingsApi } from '../api/leadsSettingsApi';
 
+// Skrzynka pocztowa ma własne zapytania do API poczty - ten test dotyczy automatu i progów.
+vi.mock('./leads/MailboxPanel', () => ({ MailboxPanel: () => null }));
 vi.mock('../api/leadsSettingsApi', () => ({
     leadsSettingsApi: {
         getAutoLeadConfig: vi.fn(),
@@ -103,7 +105,7 @@ describe('LeadsSettingsSection', () => {
     it('the auto-lead switch is an accessible switch that reflects the server state', async () => {
         vi.mocked(leadsSettingsApi.getAutoLeadConfig).mockResolvedValue({ enabled: true, enabledAt: null });
         renderSection();
-        const toggle = await screen.findByRole('switch', { name: 'Twórz leady z poczty' });
+        const toggle = await screen.findByRole('switch', { name: 'Twórz zapytania z poczty' });
         expect(toggle).toBeChecked();
     });
 
@@ -111,11 +113,11 @@ describe('LeadsSettingsSection', () => {
         vi.mocked(leadsSettingsApi.getAutoLeadConfig).mockRejectedValue(new Error('500'));
         renderSection();
         expect(await screen.findByText('Nie udało się wczytać ustawienia automatu')).toBeInTheDocument();
-        expect(screen.queryByRole('switch', { name: 'Twórz leady z poczty' })).not.toBeInTheDocument();
+        expect(screen.queryByRole('switch', { name: 'Twórz zapytania z poczty' })).not.toBeInTheDocument();
 
         vi.mocked(leadsSettingsApi.getAutoLeadConfig).mockResolvedValue({ enabled: false, enabledAt: null });
         await userEvent.click(screen.getAllByRole('button', { name: 'Spróbuj ponownie' })[0]);
-        const toggle = await screen.findByRole('switch', { name: 'Twórz leady z poczty' });
+        const toggle = await screen.findByRole('switch', { name: 'Twórz zapytania z poczty' });
         expect(toggle).not.toBeChecked();
     });
 });

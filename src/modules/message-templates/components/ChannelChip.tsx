@@ -1,55 +1,71 @@
 import React from 'react';
 import styled, { css } from 'styled-components';
-import { st } from '@/modules/statistics/components/StatisticsTheme';
+import { ui } from '@/common/components/ui';
 import type { ChannelStatus } from '../types';
 
+/*
+ * Wygląd z osi wizyty: włączony kanał w odcieniu marki (obwódka i tło, bez wypełnienia -
+ * CLAUDE.md §2), wyłączony przerywaną kreską. Zieleń zniknęła: na osi „włączone" mówi już
+ * sama karta wiadomości z podglądem treści, a zielony chip przy każdej z kilkunastu
+ * wiadomości robił z listy rząd świateł. Bursztyn zostaje, bo niesie ZNACZENIE: kanał
+ * włączony, ale bez treści, czyli nic nie wyjdzie.
+ */
 const TONE: Record<ChannelStatus, ReturnType<typeof css>> = {
   on: css`
-    background: ${st.accentGreenDim};
-    border-color: rgba(16, 185, 129, 0.35);
-    color: #047857;
-    span { background: ${st.accentGreen}; }
+    border: 1px solid ${ui.brandLine};
+    background: ${ui.brandTint};
+    color: ${ui.brandDeep};
+    span { background: ${ui.brand}; }
   `,
   blank: css`
-    background: ${st.accentAmberDim};
-    border-color: rgba(245, 158, 11, 0.4);
-    color: #92400E;
-    span { background: ${st.accentAmber}; }
+    border: 1px solid ${ui.warnLine};
+    background: ${ui.warnTint};
+    color: ${ui.warnInk};
+    span { background: #f59e0b; }
   `,
-  off: css``,
+  off: css`
+    border: 1px dashed #cbd5e1;
+    background: ${ui.surface};
+    color: ${ui.textMuted};
+    span { background: #cbd5e1; }
+  `,
   absent: css`
-    opacity: 0.35;
+    border: 1px dashed ${ui.line};
+    background: transparent;
+    color: ${ui.textFaint};
+    opacity: 0.6;
     cursor: default;
+    span { background: ${ui.line}; }
   `,
 };
 
 const Chip = styled.button<{ $status: ChannelStatus }>`
   display: inline-flex;
   align-items: center;
-  gap: 5px;
+  gap: 6px;
+  height: 26px;
+  padding: 0 10px;
+  border-radius: ${ui.radiusPill};
   font: inherit;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 600;
-  padding: 3px 9px;
-  border-radius: 999px;
-  border: 1px solid ${st.border};
-  background: ${st.bgCardAlt};
-  color: ${st.textMuted};
   cursor: pointer;
   white-space: nowrap;
-  transition: ${st.transition};
+  transition: border-color 150ms ease, background 150ms ease;
 
   span {
-    width: 6px;
-    height: 6px;
+    width: 7px;
+    height: 7px;
     border-radius: 50%;
-    background: ${st.textMuted};
   }
 
-  &:hover:not(:disabled) { border-color: ${st.borderHover}; }
+  &:hover:not(:disabled) { border-color: ${ui.brand}; }
   &:disabled { cursor: default; }
+  &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: 2px; }
 
   ${p => TONE[p.$status]}
+
+  @media (hover: none) and (pointer: coarse) { height: 36px; padding: 0 12px; }
 `;
 
 const TITLE: Record<ChannelStatus, string> = {
@@ -68,8 +84,8 @@ export interface ChannelChipProps {
 }
 
 /**
- * The one action people take most often on this screen, kept in the row so turning a
- * message on never requires opening anything.
+ * The one action people take most often on this screen, kept on the message card so
+ * turning a channel on never requires opening anything.
  */
 export const ChannelChip: React.FC<ChannelChipProps> = ({ label, status, onToggle, locked }) => (
   <Chip

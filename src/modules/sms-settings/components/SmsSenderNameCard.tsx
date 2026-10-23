@@ -26,7 +26,7 @@ import { openInNewTab } from '@/common/utils/safeUrl';
  * linijki - konfiguracja kanału nie ma prawa zabierać uwagi codziennej pracy.
  *
  * Styl: wspólne pola formularza aplikacji (Form) i klocki z `ui`. Karta leży płasko
- * (Panel): w „Wiadomościach automatycznych" jedyną wyniesioną powierzchnią jest
+ * (Panel): w „Wiadomościach do klientów" jedyną wyniesioną powierzchnią jest
  * tabela szablonów, a jedynym wypełnionym przyciskiem - „Zapisz zmiany" w pasku
  * zapisu (CLAUDE.md §2). Dlatego „Zapisz nazwę" i „Podpisz" niosą odcień marki
  * bez wypełnienia - wcześniej dwa wypełnione przyciski stały tu jeden pod drugim.

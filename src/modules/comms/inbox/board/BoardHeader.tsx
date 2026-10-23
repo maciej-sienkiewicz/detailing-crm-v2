@@ -81,7 +81,7 @@ export function BoardHeader({ phone, total, query, onQuery, onList }: BoardHeade
     return (
         <Head $phone={phone}>
             <div className="titles">
-                <h1>Sprawy</h1>
+                <h1>Zapytania</h1>
                 <p className="sub">{total > 0 ? `Otwarte: ${caseCount(total)}` : 'Tablica spraw'}</p>
             </div>
             <SearchPill $phone={phone} role="search">

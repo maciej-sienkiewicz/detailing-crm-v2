@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// Okna sekcji „Dokumenty i podpisy":
+// Okna sekcji „Przyjęcie i wydanie":
 //  - „Dodaj zgodę" to trzy wywołania (definicja → wersja → PDF do S3). Błąd po
 //    pierwszym zostawiał definicję bez pliku, a ponowna próba tworzyła duplikat;
 //    odrzucony upload do S3 uchodził za sukces; błąd brzmiał „Request failed with

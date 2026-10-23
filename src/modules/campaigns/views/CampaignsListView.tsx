@@ -392,7 +392,7 @@ export function CampaignsListView() {
                 }
                 actions={
                     <>
-                        <PageHeaderGhostButton onClick={() => navigate('/campaigns/settings')}>
+                        <PageHeaderGhostButton onClick={() => navigate('/settings?tab=campaigns')}>
                             <Settings2 /> Ustawienia wysyłki
                         </PageHeaderGhostButton>
                         <PageHeaderPrimaryButton onClick={() => navigate('/campaigns/new')}>

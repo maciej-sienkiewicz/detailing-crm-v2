@@ -1,10 +1,14 @@
 // src/modules/settings/components/LeadsSettingsSection.tsx
 //
-// Ustawienia → Komunikacja → Leady.
+// Ustawienia → Klienci → Zapytania i poczta.
 //
-// Jeden przełącznik studia: „Automatyczne tworzenie leadów". Po włączeniu każda nowa
-// wiadomość przychodząca jest czytana przez model i — jeśli okaże się zapytaniem
-// klienta — sama zakłada leada.
+// Skrzynka pocztowa studia (MailboxPanel), a pod nią jeden przełącznik studia:
+// „Zapytania z poczty". Po włączeniu każda nowa wiadomość przychodząca jest czytana
+// przez model i - jeśli okaże się zapytaniem klienta - sama zakłada sprawę.
+//
+// Skrzynkę podłączało się dotąd tylko spod koła zębatego w Poczcie, a automat, który
+// z niej czyta, był tutaj - dwa końce jednej rzeczy w dwóch miejscach. Ekran
+// podłączania (/communication/mailboxes) zostaje, panel do niego prowadzi.
 //
 // Ekran mówi jednym zdaniem, co robi przełącznik. Wcześniej stały tu dwa akapity
 // i cztery punkty „Warto wiedzieć" - nikt ich nie czytał, a przytłaczały sam
@@ -24,6 +28,7 @@ import { SettingSwitchRow } from './SettingSwitchRow';
 import { serverMessage, toastedGlobally } from './errorToast';
 import { MAX_HOURS, MIN_HOURS, hoursInDays, normalizeHours, parseHours, sanitizeHours } from './leads/hoursField';
 import { EscalationPanel } from './leads/EscalationPanel';
+import { MailboxPanel } from './leads/MailboxPanel';
 
 const AUTO_LEAD_CONFIG_QUERY_KEY = ['settings', 'auto-lead-config'] as const;
 
@@ -331,13 +336,13 @@ export const LeadsSettingsSection = () => {
             showSuccess(
                 data.enabled ? 'Automat włączony' : 'Automat wyłączony',
                 data.enabled
-                    ? 'Nowe zapytania z poczty same staną się leadami.'
-                    : 'Leady powstają tylko po ręcznym oznaczeniu wiadomości.',
+                    ? 'Nowe zapytania z poczty same trafią do Zapytań.'
+                    : 'Sprawę z poczty założysz tylko ręcznie, oznaczając wiadomość.',
             );
         },
         onError: (error) => {
             if (!toastedGlobally(error)) {
-                showError('Nie udało się zapisać ustawienia automatycznych leadów', serverMessage(error) ?? 'Spróbuj ponownie.');
+                showError('Nie udało się zapisać ustawienia automatu', serverMessage(error) ?? 'Spróbuj ponownie.');
             }
             queryClient.invalidateQueries({ queryKey: AUTO_LEAD_CONFIG_QUERY_KEY });
         },
@@ -348,8 +353,10 @@ export const LeadsSettingsSection = () => {
 
     return (
         <Stack>
+            <MailboxPanel />
+
             <AutoCard>
-                <SectionTitle as="h3">Automatyczne tworzenie leadów</SectionTitle>
+                <SectionTitle as="h3">Zapytania z poczty</SectionTitle>
 
                 {isError && !config ? (
                     <Notice
@@ -365,8 +372,8 @@ export const LeadsSettingsSection = () => {
                 ) : (
                     <>
                         <SettingSwitchRow
-                            label="Twórz leady z poczty"
-                            hint="Zapytania o wycenę same trafią do Leadów. Reszta poczty zostaje nietknięta."
+                            label="Twórz zapytania z poczty"
+                            hint="Model czyta każdą nową wiadomość. Gdy to zapytanie klienta, zakłada sprawę w Zapytaniach. Reszta poczty zostaje nietknięta."
                             checked={config?.enabled}
                             disabled={saving}
                             onChange={next => updateMutation.mutate(next)}
@@ -379,7 +386,7 @@ export const LeadsSettingsSection = () => {
                             <summary>Jak to działa</summary>
                             <DetailsList>
                                 <li>Czyta tylko pocztę, która przyjdzie po włączeniu.</li>
-                                <li>Kolejne wiadomości z rozmowy trafiają do tego samego leada.</li>
+                                <li>Kolejne wiadomości z rozmowy trafiają do tej samej sprawy.</li>
                                 <li>Gdy nie ma pewności, nic nie robi. Wiadomość oznaczysz ręcznie.</li>
                             </DetailsList>
                         </Details>

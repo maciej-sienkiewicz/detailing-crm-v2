@@ -37,10 +37,10 @@ const OptionTexts = styled.div`
     min-width: 0;
 `;
 
-const OptionLabel = styled.h3`
+const OptionLabel = styled.h3<{ $bare?: boolean }>`
     margin: 0;
-    font-size: 15px;
-    font-weight: 700;
+    font-size: ${p => (p.$bare ? '14px' : '15px')};
+    font-weight: ${p => (p.$bare ? 600 : 700)};
     color: ${p => p.theme.colors.text};
 `;
 
@@ -53,7 +53,15 @@ const OptionHint = styled.div`
 
 const LABEL = 'VIN na protokole przyjęcia';
 
-export function ProtocolVinCard() {
+interface Props {
+    /**
+     * Sam wiersz, bez własnej ramki: w „Przyjęciu i wydaniu" trzy przełączniki protokołu
+     * stoją w jednym panelu „Co jest na protokole" (ProtocolContentPanel).
+     */
+    bare?: boolean;
+}
+
+export function ProtocolVinCard({ bare = false }: Props = {}) {
     const { isOwner } = usePermissions();
     const { config, isLoading } = useProtocolContentConfig();
     const { config: vehicleForm } = useVehicleFormConfig();
@@ -82,20 +90,20 @@ export function ProtocolVinCard() {
     const hint = !isOwner
         ? 'Zmienić to ustawienie może tylko właściciel studia.'
         : blockedByForm
-            ? 'VIN jest ukryty w formularzu pojazdu, więc protokół miałby pustą ramkę. Najpierw pokaż VIN w ustawieniach pól pojazdu przy przyjęciu.'
+            ? 'VIN jest ukryty w formularzu pojazdu, więc protokół miałby pustą ramkę. Najpierw włącz pole VIN w polach pojazdu formularza przyjęcia.'
             : enabled
                 ? 'Protokół ma wiersz VIN w ramce pojazdu. Po wyłączeniu wiersz zniknie z kolejnych protokołów; już wygenerowane zostają bez zmian.'
                 : 'Protokół nie pokazuje numeru VIN. Po włączeniu wiersz VIN pojawi się w ramce pojazdu na kolejnych protokołach; już wygenerowane zostają bez zmian.';
 
-    return (
-        <Card>
-            <OptionRow $disabled={!isOwner || blockedByForm}>
-                <OptionTexts>
-                    <OptionLabel>{LABEL}</OptionLabel>
-                    <OptionHint>{hint}</OptionHint>
-                </OptionTexts>
-                <Toggle checked={enabled} disabled={locked} ariaLabel={LABEL} onChange={handleChange} />
-            </OptionRow>
-        </Card>
+    const row = (
+        <OptionRow $disabled={!isOwner || blockedByForm}>
+            <OptionTexts>
+                <OptionLabel as={bare ? 'h4' : 'h3'} $bare={bare}>{LABEL}</OptionLabel>
+                <OptionHint>{hint}</OptionHint>
+            </OptionTexts>
+            <Toggle checked={enabled} disabled={locked} ariaLabel={LABEL} onChange={handleChange} />
+        </OptionRow>
     );
+
+    return bare ? row : <Card>{row}</Card>;
 }

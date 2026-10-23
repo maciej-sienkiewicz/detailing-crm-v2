@@ -75,7 +75,7 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
                         <TourBullet $color="#8b5cf6">
                             <PenLine />
                             <span>
-                                Treści dopasujesz do siebie w <strong>Ustawienia → Wiadomości automatyczne</strong>
+                                Treści dopasujesz do siebie w <strong>Ustawienia → Wiadomości do klientów</strong>
                             </span>
                         </TourBullet>
                         <TourBullet $color="#8b5cf6">
@@ -142,7 +142,7 @@ export function CommunicationModuleTour({ onClose, onFinish }: CommunicationModu
                         <TourBullet $color="#d946ef">
                             <FileSignature />
                             <span>
-                                W <strong>Ustawienia → Wiadomości automatyczne</strong> pobierz wzór
+                                W <strong>Ustawienia → Wiadomości do klientów</strong> pobierz wzór
                                 upoważnienia, podpisz go i wgraj z powrotem
                             </span>
                         </TourBullet>

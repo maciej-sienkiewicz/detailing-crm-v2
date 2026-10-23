@@ -51,10 +51,10 @@ const OptionTexts = styled.div`
 
 // Pytanie jest teraz jedynym tytułem tej karty, więc bierze metrykę nagłówka
 // sekcji (15px/700) zamiast etykiety pola.
-const OptionLabel = styled.h3`
+const OptionLabel = styled.h3<{ $bare?: boolean }>`
     margin: 0;
-    font-size: 15px;
-    font-weight: 700;
+    font-size: ${p => (p.$bare ? '14px' : '15px')};
+    font-weight: ${p => (p.$bare ? 600 : 700)};
     color: ${p => p.theme.colors.text};
 `;
 
@@ -74,7 +74,15 @@ const OptionHint = styled.div`
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export function DocumentLogoCard() {
+interface Props {
+    /**
+     * Sam wiersz, bez własnej ramki: w „Przyjęciu i wydaniu" trzy przełączniki protokołu
+     * stoją w jednym panelu „Co jest na protokole" (ProtocolContentPanel).
+     */
+    bare?: boolean;
+}
+
+export function DocumentLogoCard({ bare = false }: Props = {}) {
     const { isOwner } = usePermissions();
     const { config, isLoading } = useDocumentLogoConfig();
     const updateMutation = useUpdateDocumentLogoConfig();
@@ -99,33 +107,33 @@ export function DocumentLogoCard() {
         );
     };
 
-    return (
-        <Card>
-            <OptionRow $disabled={!isOwner}>
-                <OptionTexts>
-                    <OptionLabel>Logo na dokumentach</OptionLabel>
-                    <OptionHint>
-                        {!hasLogo && !isLoading ? (
-                            <>
-                                Firma nie ma jeszcze wgranego logo. Dodaj je w{' '}
-                                <Link to="/settings?tab=company">Danych firmy</Link>, a pojawi się na dokumentach.
-                            </>
-                        ) : !isOwner ? (
-                            'Zmienić to ustawienie może tylko właściciel studia.'
-                        ) : enabled ? (
-                            'Po wyłączeniu nowe protokoły i zgody będą generowane bez logo w nagłówku.'
-                        ) : (
-                            'Nowe dokumenty powstają bez logo.'
-                        )}
-                    </OptionHint>
-                </OptionTexts>
-                <Toggle
-                    checked={enabled}
-                    disabled={locked}
-                    ariaLabel="Logo na dokumentach"
-                    onChange={handleChange}
-                />
-            </OptionRow>
-        </Card>
+    const row = (
+        <OptionRow $disabled={!isOwner}>
+            <OptionTexts>
+                <OptionLabel as={bare ? 'h4' : 'h3'} $bare={bare}>Logo na dokumentach</OptionLabel>
+                <OptionHint>
+                    {!hasLogo && !isLoading ? (
+                        <>
+                            Firma nie ma jeszcze wgranego logo. Dodaj je w{' '}
+                            <Link to="/settings?tab=company">Danych firmy</Link>, a pojawi się na dokumentach.
+                        </>
+                    ) : !isOwner ? (
+                        'Zmienić to ustawienie może tylko właściciel studia.'
+                    ) : enabled ? (
+                        'Po wyłączeniu nowe protokoły i zgody będą generowane bez logo w nagłówku.'
+                    ) : (
+                        'Nowe dokumenty powstają bez logo.'
+                    )}
+                </OptionHint>
+            </OptionTexts>
+            <Toggle
+                checked={enabled}
+                disabled={locked}
+                ariaLabel="Logo na dokumentach"
+                onChange={handleChange}
+            />
+        </OptionRow>
     );
+
+    return bare ? row : <Card>{row}</Card>;
 }

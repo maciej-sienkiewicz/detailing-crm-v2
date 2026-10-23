@@ -16,3 +16,17 @@ export const VEHICLE_FORM_FIELDS: { key: VehicleFormFieldKey; label: string; hin
 /** Czy pole jest widoczne przy danej liście ukrytych - brak ustawień znaczy „wszystko widać". */
 export const isVehicleFieldVisible = (hiddenFields: readonly string[] | undefined, key: VehicleFormFieldKey): boolean =>
     !(hiddenFields ?? []).includes(key);
+
+/**
+ * Lista ukrytych pól po przestawieniu jednego z nich. Wspólna dla dymka „Ustawienia pól"
+ * w formularzu wizyty i panelu w Ustawieniach → Przyjęcie i wydanie: oba zapisują całą
+ * listę naraz, więc muszą ją składać tak samo (kolejność jak na formularzu).
+ */
+export const hiddenFieldsAfterToggle = (
+    hiddenFields: readonly string[] | undefined,
+    key: VehicleFormFieldKey,
+    visible: boolean,
+): VehicleFormFieldKey[] =>
+    VEHICLE_FORM_FIELDS
+        .map(field => field.key)
+        .filter(k => (k === key ? !visible : !isVehicleFieldVisible(hiddenFields, k)));

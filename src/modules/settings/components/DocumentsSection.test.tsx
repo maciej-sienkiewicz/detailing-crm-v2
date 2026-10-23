@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 //
-// Dokumenty i podpisy - błędy z produkcji:
+// Przyjęcie i wydanie - błędy z produkcji:
 //  - usunięcie protokołu przez window.confirm kasowało też szablon, którego używała
 //    druga reguła, a błąd usuwania reguły był połykany;
 //  - błąd wczytania list wyglądał jak „Brak dokumentów";
@@ -47,10 +47,7 @@ vi.mock('@/core/permissions', () => ({
 vi.mock('@/common/components/Toast', () => ({
     useToast: () => ({ showSuccess, showError }),
 }));
-vi.mock('./MySignatureSection', () => ({ MySignatureSection: () => null }));
-vi.mock('./DocumentLogoCard', () => ({ DocumentLogoCard: () => null }));
-vi.mock('./ProtocolServicePricesCard', () => ({ ProtocolServicePricesCard: () => null }));
-vi.mock('./ProtocolVinCard', () => ({ ProtocolVinCard: () => null }));
+vi.mock('./ProtocolContentPanels', () => ({ ProtocolContentPanel: () => null, VehicleFieldsPanel: () => null }));
 
 const renderSection = () =>
     render(

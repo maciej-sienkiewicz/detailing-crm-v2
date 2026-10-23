@@ -22,7 +22,7 @@ import { useToast } from '@/common/components/Toast';
 import { usePermissions } from '@/core/permissions';
 import { useUpdateVehicleFormConfig, useVehicleFormConfig } from '@/modules/settings/hooks/useCompany';
 import type { VehicleFormFieldKey } from '@/modules/settings/types';
-import { VEHICLE_FORM_FIELDS } from '../utils/vehicleFormFields';
+import { VEHICLE_FORM_FIELDS, hiddenFieldsAfterToggle } from '../utils/vehicleFormFields';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 
 const Trigger = styled.button<{ $open: boolean }>`
@@ -136,11 +136,8 @@ export function VehicleFieldSettings() {
     }, [open]);
 
     const toggle = (key: VehicleFormFieldKey, visible: boolean) => {
-        const next = VEHICLE_FORM_FIELDS
-            .map(field => field.key)
-            .filter(k => (k === key ? !visible : hidden.has(k)));
         update.mutate(
-            { hiddenFields: next },
+            { hiddenFields: hiddenFieldsAfterToggle(config?.hiddenFields, key, visible) },
             { onError: () => showError('Nie udało się zapisać ustawień pól', 'Spróbuj ponownie za chwilę.') },
         );
     };

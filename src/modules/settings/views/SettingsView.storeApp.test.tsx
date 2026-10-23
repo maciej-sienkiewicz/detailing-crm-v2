@@ -22,7 +22,7 @@ vi.mock('@/core/native/platform', () => ({
 vi.mock('@/core/context/AuthContext', () => ({ useAuth: () => ({ user: { permissions: null } }) }));
 vi.mock('../hooks/useSmsCredits', () => ({ useSmsCreditBalance: () => ({ data: undefined }) }));
 // Treść sekcji nie jest tematem - liczy się tylko, którą rama wybrała.
-vi.mock('../components/CompanySection', () => ({ CompanySection: () => <p>sekcja firmy</p> }));
+vi.mock('../components/MyAccountSection', () => ({ MyAccountSection: () => <p>sekcja mojego konta</p> }));
 vi.mock('../components/SmsCreditSection', () => ({ SmsCreditSection: () => <p>sekcja kredytów</p> }));
 vi.mock('@/modules/subscription', async importOriginal => ({
     ...(await importOriginal<typeof import('@/modules/subscription')>()),
@@ -54,16 +54,16 @@ describe('SettingsView w aplikacji ze sklepu', () => {
 
         expect(nav().queryByRole('button', { name: /Pakiet/ })).toBeNull();
         expect(nav().queryByRole('button', { name: /Kredyty SMS i AI/ })).toBeNull();
-        // Reszta grupy „Konto i płatności" zostaje.
-        expect(nav().getByRole('button', { name: /KSeF/ })).toBeTruthy();
-        expect(nav().getByRole('button', { name: /Bezpieczeństwo/ })).toBeTruthy();
+        // Reszta grupy „Konto studia" zostaje.
+        expect(nav().getByRole('button', { name: /Role i uprawnienia/ })).toBeTruthy();
+        expect(nav().getByRole('button', { name: /Integracje/ })).toBeTruthy();
     });
 
     it.each(['plan', 'credits', 'sms-credits'])('?tab=%s otwiera pierwszą widoczną sekcję', async tab => {
         renderAt(`/settings?tab=${tab}`);
 
-        expect(await screen.findByText('sekcja firmy')).toBeTruthy();
-        expect(screen.getByRole('heading', { name: 'Dane firmy' })).toBeTruthy();
+        expect(await screen.findByText('sekcja mojego konta')).toBeTruthy();
+        expect(screen.getByRole('heading', { name: 'Moje konto' })).toBeTruthy();
         expect(screen.queryByText('sekcja pakietu')).toBeNull();
         expect(screen.queryByText('sekcja kredytów')).toBeNull();
     });

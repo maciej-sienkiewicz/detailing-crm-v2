@@ -4,7 +4,7 @@
 // i przycisk „wstecz" trafiają w to samo miejsce.
 import { useCallback, useMemo } from 'react';
 import { useSearchParams } from 'react-router-dom';
-import { inboxTabFromParam, inboxTabParam, type InboxTab } from '../utils/inboxTabs';
+import { inboxTabFromParam, inboxTabParam, type InboxScope, type InboxTab } from '../utils/inboxTabs';
 
 export interface InboxLocation {
     tab: InboxTab;
@@ -12,7 +12,10 @@ export interface InboxLocation {
     threadId: string | null;
     /** Zamknięte sprawy (tryb listy w zakładce Sprawy). */
     archive: boolean;
-    /** Sprawy jako tablica (kanban) zamiast listy; otwarta sprawa jest wtedy oknem nad tablicą. */
+    /**
+     * Sprawy jako tablica (kanban); otwarta sprawa jest wtedy oknem nad tablicą.
+     * Tablica jest domyślna (decyzja z 23.10.2026) - adres zapisuje tylko listę.
+     */
     board: boolean;
     /** Odrzucone przez automat (tryb listy w zakładce Poczta). */
     rejected: boolean;
@@ -20,20 +23,23 @@ export interface InboxLocation {
     compose: { to: string } | null;
 }
 
-export function useInboxNav() {
+export function useInboxNav(scope: InboxScope = 'cases') {
     const [params, setParams] = useSearchParams();
 
     const location: InboxLocation = useMemo(
-        () => ({
-            tab: inboxTabFromParam(params.get('view')),
-            leadId: params.get('lead'),
-            threadId: params.get('thread'),
-            archive: params.get('archive') === '1',
-            board: params.get('layout') === 'board',
-            rejected: params.get('folder') === 'rejected',
-            compose: params.get('compose') === '1' ? { to: params.get('to') ?? '' } : null,
-        }),
-        [params]
+        () => {
+            const archive = params.get('archive') === '1';
+            return {
+                tab: inboxTabFromParam(scope, params.get('view')),
+                leadId: params.get('lead'),
+                threadId: params.get('thread'),
+                archive,
+                board: scope === 'cases' && !archive && params.get('layout') !== 'list',
+                rejected: params.get('folder') === 'rejected',
+                compose: params.get('compose') === '1' ? { to: params.get('to') ?? '' } : null,
+            };
+        },
+        [params, scope]
     );
 
     const write = useCallback(
@@ -43,8 +49,8 @@ export function useInboxNav() {
             const view = inboxTabParam(merged.tab);
             if (view) out.view = view;
             if (merged.tab === 'sprawy') {
-                if (merged.board) out.layout = 'board';
-                else if (merged.archive) out.archive = '1';
+                if (merged.archive) out.archive = '1';
+                else if (!merged.board) out.layout = 'list';
                 if (merged.leadId) out.lead = merged.leadId;
             } else {
                 if (merged.rejected && merged.tab === 'poczta') out.folder = 'rejected';
@@ -62,15 +68,16 @@ export function useInboxNav() {
 
     return {
         location,
-        /** Zmiana zakładki zaczyna od czystej listy - otwarte rzeczy należą do poprzedniej. */
-        setTab: (tab: InboxTab) => tab !== location.tab && write({ tab, leadId: null, threadId: null, archive: false, board: false, rejected: false, compose: null }),
+        /** Zmiana zakładki (Poczta ↔ Wysłane) zaczyna od czystej listy - otwarte rzeczy należą do poprzedniej. */
+        setTab: (tab: InboxTab) => tab !== location.tab && write({ tab, leadId: null, threadId: null, archive: false, rejected: false, compose: null }),
         openCase: (leadId: string | null) => write({ leadId }),
         openThread: (threadId: string | null) => write({ threadId, compose: null }),
+        /** Zamknięte sprawy to tryb listy - wyjście z nich wraca do listy, z której weszło. */
         setArchive: (archive: boolean) => write({ archive, board: false, leadId: null }),
         /** Lista ↔ tablica. Otwarta sprawa zostaje otwarta - w drugim układzie też ją widać. */
         setBoard: (board: boolean) => write({ board, archive: false }),
         setRejected: (rejected: boolean) => write({ rejected, threadId: null }),
-        openCompose: (to = '') => write({ tab: location.tab === 'sprawy' ? 'poczta' : location.tab, board: false, compose: { to }, threadId: null }),
+        openCompose: (to = '') => write({ compose: { to }, threadId: null }),
         closeCompose: () => write({ compose: null }),
         /** Po wysłaniu nowej wiadomości: wątek w Wysłanych. */
         showSent: (threadId: string) => write({ tab: 'wyslane', threadId, compose: null, rejected: false }),

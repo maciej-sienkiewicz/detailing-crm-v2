@@ -1,12 +1,17 @@
 // src/modules/comms/utils/inboxTabs.ts
-/** Zakładki skrzynki „Zapytania" - patrz InboxNav. */
+/**
+ * Zakładki skrzynki. „Zapytania" (/inbox) to same sprawy, „Poczta" (/mail) ma dwie
+ * zakładki: odebrane i wysłane - w panelu bocznym to osobne pozycje (decyzja
+ * z 23.10.2026), więc zakładka spraw nie stoi już obok poczty.
+ */
 export type InboxTab = 'sprawy' | 'poczta' | 'wyslane';
 
-/** Wartość `?view=` w adresie; Sprawy są domyślne i nie zostawiają śladu w adresie. */
-const TAB_PARAM: Record<InboxTab, string | null> = { sprawy: null, poczta: 'mail', wyslane: 'sent' };
+/** Która część skrzynki: sprawy (/inbox) albo poczta (/mail). */
+export type InboxScope = 'cases' | 'mail';
 
-export const inboxTabFromParam = (value: string | null): InboxTab =>
-    value === 'mail' ? 'poczta' : value === 'sent' ? 'wyslane' : 'sprawy';
+/** Zakładka z adresu: w Zapytaniach zawsze sprawy, w Poczcie `?view=sent` to Wysłane. */
+export const inboxTabFromParam = (scope: InboxScope, value: string | null): InboxTab =>
+    scope === 'cases' ? 'sprawy' : value === 'sent' ? 'wyslane' : 'poczta';
 
-/** `?view=` dla zakładki; null - zakładka domyślna. */
-export const inboxTabParam = (tab: InboxTab): string | null => TAB_PARAM[tab];
+/** `?view=` dla zakładki; null - zakładka domyślna swojej części skrzynki. */
+export const inboxTabParam = (tab: InboxTab): string | null => (tab === 'wyslane' ? 'sent' : null);
