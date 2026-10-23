@@ -1,8 +1,8 @@
 // src/modules/batch-orders/components/BatchOrderPhotoSection.tsx
 //
-// Zdjęcia wpisu, wewnątrz jego edytora. Dawniej siedziały w menu ⋮ jako
-// „Dokumentacja zdjęciowa" rozwijana pod wierszem tabeli - kto nie znalazł menu,
-// nie znalazł też zdjęć, a wiersz nie mówił, czy wpis w ogóle je ma.
+// Zdjęcia auta: w jego oknie i pod wierszem listy (liczba zdjęć przy aucie albo
+// „Dokumentacja zdjęciowa" w menu ⋮). Dawniej były tylko pod menu - kto nie znalazł
+// menu, nie znalazł też zdjęć, a wiersz nie mówił, czy auto w ogóle je ma.
 
 import { useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
@@ -197,12 +197,21 @@ export function BatchOrderPhotoSection({ entryId, contractorId }: Props) {
             const previewUrl = URL.createObjectURL(file);
             setUploading(prev => [...prev, { localId, previewUrl, fileName: file.name }]);
 
+            // Serwer zapisuje zdjęcie, zanim plik dotrze do magazynu. Nieudany upload zostawiał
+            // w dokumentacji pustą miniaturę, liczoną przy aucie - dlatego po porażce zapis znika.
+            let createdPhotoId: string | null = null;
             try {
-                const { uploadUrl } = await batchOrderApi.requestPhotoUploadUrl(entryId, { fileName: file.name });
+                const { uploadUrl, photoId } = await batchOrderApi.requestPhotoUploadUrl(entryId, { fileName: file.name });
+                createdPhotoId = photoId;
                 await batchOrderApi.uploadPhotoToS3(uploadUrl, file);
                 await qc.invalidateQueries({ queryKey: ENTRY_PHOTOS_KEY(entryId) });
                 qc.invalidateQueries({ queryKey: ENTRIES_KEY(contractorId) });
             } catch {
+                if (createdPhotoId) {
+                    await batchOrderApi.deleteEntryPhoto(entryId, createdPhotoId).catch(() => undefined);
+                    qc.invalidateQueries({ queryKey: ENTRY_PHOTOS_KEY(entryId) });
+                    qc.invalidateQueries({ queryKey: ENTRIES_KEY(contractorId) });
+                }
                 showError('Nie udało się dodać zdjęcia', `„${file.name}” - spróbuj ponownie.`);
             } finally {
                 URL.revokeObjectURL(previewUrl);

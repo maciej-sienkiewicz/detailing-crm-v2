@@ -8,11 +8,16 @@
 // Co zniknęło i dlaczego:
 //  - „Dodaj wpis do finansów": backend nigdy tej flagi nie obsłużył, a historia
 //    i tak pokazywała „Bez wpisu finansowego". Obietnica bez pokrycia.
-//  - Wybór trybu „Wszystkie / Tylko nowe" jako pierwsza rzecz w oknie: domyślnie
-//    rozliczamy tylko to, co jeszcze nie było rozliczone, i mówimy to zdaniem.
-//    Dołączenie rozliczonych wpisów to świadomy wyjątek pod linkiem.
+//  - Link „Dołącz je mimo to": dołączał auta z wcześniejszych zestawień, a historia
+//    liczyła je potem dwa razy. Oba sposoby są poprawne biznesowo (decyzja z 23.10.2026:
+//    „nowy, poprawiony plik za cały okres" albo „tylko kolejne auta po rozliczonym
+//    etapie"), więc gdy w okresie są rozliczone auta, okno daje dwie jawne opcje
+//    z kwotami, a pełne zestawienie oznacza poprzednie jako zastąpione.
+//  - Pole „wyślij e-mailem" przy wyłączonej wiadomości: zaznaczało się samo, a serwer
+//    i tak niczego nie wysyłał. Teraz okno mówi, że wysyłka jest wyłączona i gdzie ją włączyć.
 
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import styled from 'styled-components';
 import { Check, Info, Lock } from 'lucide-react';
 import { LockedSection } from '@/common/components/LockedSection';
@@ -24,11 +29,12 @@ import {
 } from '@/common/components/ModalKit';
 import { SharedButton } from '@/common/styles';
 import { pluralPl } from '@/common/utils/plural';
+import { isValidEmail } from '@/common/utils/validators';
 import { useContractorEntries, useSettle, useSettlementHistory } from '../hooks/useBatchOrders';
 import { useMessageDefaults } from '@/modules/message-templates/hooks/useMessageDefaults';
 import type { BatchContractor, SettlementMode } from '../types';
 import { carsLabel, formatMoney, grossForCars, vehicleName } from '../utils/format';
-import { formatDayShort, formatInstantDay, periodPhrase, type Period } from '../utils/period';
+import { formatDayShort, formatInstantDay, periodIn, periodPhrase, type Period } from '../utils/period';
 import { problemDetail } from '@/core/problem';
 
 const Preview = styled.div`
@@ -181,6 +187,43 @@ const LockNote = styled.p`
     svg { width: 15px; height: 15px; flex-shrink: 0; margin-top: 2px; }
 `;
 
+/* Dwa sposoby zestawienia, gdy w okresie są już rozliczone auta. Karty wyboru bez
+   wypełnienia - jedynym wypełnionym elementem okna zostaje „Utwórz zestawienie". */
+const ModeGroup = styled.fieldset`
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin: 0;
+    padding: 0;
+    border: none;
+    min-width: 0;
+
+    legend {
+        padding: 0;
+        margin-bottom: 8px;
+        font-size: 14px;
+        font-weight: 600;
+        color: ${p => p.theme.colors.text};
+    }
+`;
+
+const ModeOption = styled.label<{ $selected: boolean }>`
+    display: grid;
+    grid-template-columns: 18px minmax(0, 1fr) auto;
+    gap: 4px 10px;
+    align-items: baseline;
+    padding: 12px 14px;
+    border-radius: 12px;
+    border: 1.5px solid ${p => p.$selected ? 'rgba(3, 105, 161, 0.55)' : p.theme.colors.border};
+    background: ${p => p.$selected ? 'rgba(3, 105, 161, 0.05)' : 'transparent'};
+    cursor: pointer;
+
+    input { margin: 0; accent-color: #0369a1; align-self: center; }
+    b { font-size: 14px; color: ${p => p.theme.colors.text}; }
+    > span:last-of-type { font-size: 13px; font-weight: 600; font-variant-numeric: tabular-nums; color: ${p => p.theme.colors.text}; }
+    small { grid-column: 2 / -1; font-size: 12.5px; line-height: 1.45; color: #64748b; }
+`;
+
 const ErrorBox = styled.div`
     padding: 12px 14px;
     border-radius: 12px;
@@ -208,10 +251,15 @@ export function SettlementModal({ contractor, period, onClose }: Props) {
     // Liczone przy renderze, bo uprawnienia potrafią doczytać się już po otwarciu okna -
     // stan startowy z `useState(() => comms.enabled…)` zostawał wtedy na zawsze `false`.
     const [emailChoice, setSendEmail] = useState<boolean | null>(null);
-    // Bez adresu kontrahenta nie ma dokąd wysłać; z adresem - „Domyślnie zaznacz" przy
-    // „Zestawieniu zbiorczym miesiąca" (bez dostępu do ustawień: zaznaczone, jak dotąd).
     const messageDefaults = useMessageDefaults();
-    const sendEmail = emailChoice ?? (!!contractor.email && (messageDefaults.email('batchOrderClose') ?? true));
+    // Wiadomość wyłączona w ustawieniach: serwer jej nie wyśle, więc okno nie udaje, że może.
+    const templateOff = comms.enabled && messageDefaults.emailEnabled('batchOrderClose') === false;
+    // Domyślnie zaznaczone tylko z poprawnym adresem w karcie - błędny adres zaznaczał
+    // pole i blokował „Utwórz zestawienie" bez słowa wyjaśnienia. Dalej „Domyślnie zaznacz"
+    // z ustawień (bez dostępu do nich: zaznaczone, jak dotąd).
+    const cardEmailValid = !!contractor.email && isValidEmail(contractor.email);
+    const sendEmail = !templateOff
+        && (emailChoice ?? (cardEmailValid && (messageDefaults.email('batchOrderClose') ?? true)));
     const [email, setEmail] = useState(contractor.email ?? '');
     const [error, setError] = useState('');
 
@@ -223,7 +271,9 @@ export function SettlementModal({ contractor, period, onClose }: Props) {
 
     const entries = data?.entries ?? [];
     const summary = data?.summary;
-    const settledBefore = data?.settledSummary.entryCount ?? 0;
+    const openSummary = data?.openSummary;
+    const settledSummary = data?.settledSummary;
+    const settledBefore = settledSummary?.entryCount ?? 0;
     const corrections = entries.filter(e => e.isCorrection).length;
     const visibleLines = expanded ? entries : entries.slice(0, PREVIEW_LINES);
 
@@ -237,6 +287,7 @@ export function SettlementModal({ contractor, period, onClose }: Props) {
     const emailInvalid = emailOn && !EMAIL_RE.test(email.trim());
     const count = summary?.entryCount ?? 0;
     const canSettle = !isLoading && count > 0 && !emailInvalid && !settle.isPending;
+    const lastSettled = data?.lastSettledAt ? ` z ${formatInstantDay(data.lastSettledAt)}` : '';
 
     async function handleConfirm() {
         setError('');
@@ -249,18 +300,19 @@ export function SettlementModal({ contractor, period, onClose }: Props) {
                 emailOverride: emailOn ? email.trim() : undefined,
             });
             const what = `${carsLabel(result.closedEntryCount)} na ${formatMoney(result.totalGrossCents)}`;
+            const title = result.documentNumber ? `Zestawienie ${result.documentNumber} utworzone` : 'Zestawienie utworzone';
             if (result.emailRequested && !result.emailSent) {
                 // Zestawienie jest zapisane - nie udała się tylko wysyłka. Mówimy to
-                // wprost, zamiast zostawiać wrażenie, że kontrahent już je ma.
+                // wprost, z przyczyną od serwera, zamiast zostawiać wrażenie, że kontrahent już je ma.
                 showToast({
                     variant: 'warning',
-                    title: 'Zestawienie utworzone, ale e-mail nie wyszedł',
-                    message: `Zestawienie obejmuje ${what}. Pobierz je z historii zestawień i wyślij ręcznie.`,
-                    duration: 10000,
+                    title: `${title}, ale e-mail nie wyszedł`,
+                    message: `${result.emailError ?? 'Wysyłka się nie udała.'} Zestawienie obejmuje ${what}. Pobierz je z historii zestawień i wyślij ręcznie.`,
+                    duration: 12000,
                 });
             } else {
                 showSuccess(
-                    'Zestawienie utworzone',
+                    title,
                     result.emailSent
                         ? `Obejmuje ${what}. Wysłaliśmy je na ${email.trim()}.`
                         : `Obejmuje ${what}. PDF znajdziesz w historii zestawień.`,
@@ -291,8 +343,10 @@ export function SettlementModal({ contractor, period, onClose }: Props) {
                         <PreviewAmount>{isLoading ? '\u00a0' : formatMoney(summary?.totalGrossCents ?? 0)}</PreviewAmount>
                         <PreviewMeta>
                             {isLoading ? 'Wczytywanie aut…'
-                                : count === 0 ? 'Żadne auto nie czeka na zestawienie w tym okresie.'
-                                    : `${grossForCars(count, summary?.totalNetCents ?? 0)} Kontrahent dostanie PDF z listą tych aut.`}
+                                : count === 0 ? `Żadne auto nie czeka na zestawienie ${periodIn(period)}.`
+                                    : `${grossForCars(count, summary?.totalNetCents ?? 0)} ${emailOn
+                                        ? 'PDF wyślemy kontrahentowi e-mailem.'
+                                        : 'PDF pobierzesz z historii zestawień i przekażesz kontrahentowi sam.'}`}
                         </PreviewMeta>
                     </div>
                     {entries.length > 0 && (
@@ -325,24 +379,33 @@ export function SettlementModal({ contractor, period, onClose }: Props) {
                     )}
                 </Preview>
 
+                {settledBefore > 0 && openSummary && settledSummary && (
+                    <ModeGroup>
+                        <legend>
+                            {carsLabel(settledBefore)} z tego okresu {pluralPl(settledBefore, 'jest', 'są', 'jest')} już w zestawieniu{lastSettled}. Co wysłać?
+                        </legend>
+                        <ModeOption $selected={mode === 'NEW_ONLY'}>
+                            <input type="radio" name="settlement-mode" checked={mode === 'NEW_ONLY'} onChange={() => setMode('NEW_ONLY')} />
+                            <b>Tylko nowe auta</b>
+                            <span>{carsLabel(openSummary.entryCount)}, {formatMoney(openSummary.totalGrossCents)}</span>
+                            <small>Auta z wcześniejszego zestawienia zostają w nim. Dobre, gdy rozliczasz kolejny etap.</small>
+                        </ModeOption>
+                        <ModeOption $selected={mode === 'ALL'}>
+                            <input type="radio" name="settlement-mode" checked={mode === 'ALL'} onChange={() => setMode('ALL')} />
+                            <b>Pełne zestawienie za okres</b>
+                            <span>
+                                {carsLabel(openSummary.entryCount + settledSummary.entryCount)}, {formatMoney(openSummary.totalGrossCents + settledSummary.totalGrossCents)}
+                            </span>
+                            <small>Nowy, poprawiony plik ze wszystkimi autami okresu. Zastąpi wcześniejsze zestawienie w historii.</small>
+                        </ModeOption>
+                    </ModeGroup>
+                )}
+
                 {corrections > 0 && (
                     <Note $tone="warn">
                         <Info />
                         <span>
-                            Korekty aut z wcześniejszych zestawień: {carsLabel(corrections)}. Mają poprawione kwoty, oznaczyliśmy je na liście.
-                        </span>
-                    </Note>
-                )}
-
-                {settledBefore > 0 && (
-                    <Note $tone="info">
-                        <Info />
-                        <span>
-                            {mode === 'NEW_ONLY'
-                                ? <>{carsLabel(settledBefore)} z tego okresu {pluralPl(settledBefore, 'jest', 'są', 'jest')} już w zestawieniu{data?.lastSettledAt ? ` z ${formatInstantDay(data.lastSettledAt)}` : ''}, więc {settledBefore === 1 ? 'nie trafi' : 'nie trafią'} do nowego drugi raz.{' '}
-                                    <LinkBtn type="button" onClick={() => setMode('ALL')}>Dołącz je mimo to</LinkBtn></>
-                                : <>Nowe zestawienie obejmie też {carsLabel(settledBefore)} z wcześniejszego zestawienia.{' '}
-                                    <LinkBtn type="button" onClick={() => setMode('NEW_ONLY')}>Pomiń je</LinkBtn></>}
+                            Korekty aut z wcześniejszych zestawień: {carsLabel(corrections)}. Idą pełną kwotą po poprawce, a w PDF są oznaczone jako korekta.
                         </span>
                     </Note>
                 )}
@@ -352,6 +415,16 @@ export function SettlementModal({ contractor, period, onClose }: Props) {
                     message="Wysyłka zestawienia e-mailem wymaga modułu Automatyzacja kontaktu z klientem."
                 >
                     <EmailBlock $active={emailOn}>
+                        {templateOff ? (
+                            <Note $tone="info">
+                                <Info />
+                                <span>
+                                    Wysyłka zestawień e-mailem jest wyłączona. Włączysz ją w{' '}
+                                    <Link to="/settings?tab=templates">Ustawieniach, w Wiadomościach do klientów</Link>.
+                                    {' '}Zestawienie zapiszemy, a PDF pobierzesz z historii.
+                                </span>
+                            </Note>
+                        ) : (
                         <CheckLabel>
                             <input
                                 type="checkbox"
@@ -361,6 +434,7 @@ export function SettlementModal({ contractor, period, onClose }: Props) {
                             />
                             Wyślij zestawienie kontrahentowi e-mailem
                         </CheckLabel>
+                        )}
                         {emailOn && (
                             <>
                                 <EmailInput
@@ -371,10 +445,12 @@ export function SettlementModal({ contractor, period, onClose }: Props) {
                                     onChange={e => setEmail(e.target.value)}
                                     placeholder="ksiegowosc@firma.pl"
                                 />
-                                <EmailHint>
-                                    {!contractor.email
-                                        ? 'Adres zapiszemy w karcie kontrahenta.'
-                                        : email.trim() === contractor.email ? 'Adres z karty kontrahenta.' : 'Wyślemy na ten adres tylko tym razem.'}
+                                <EmailHint role={emailInvalid ? 'alert' : undefined}>
+                                    {emailInvalid
+                                        ? 'Ten adres jest niepoprawny. Popraw go albo odznacz wysyłkę.'
+                                        : !contractor.email
+                                            ? 'Adres zapiszemy w karcie kontrahenta.'
+                                            : email.trim() === contractor.email ? 'Adres z karty kontrahenta.' : 'Wyślemy na ten adres tylko tym razem.'}
                                 </EmailHint>
                             </>
                         )}
@@ -382,7 +458,7 @@ export function SettlementModal({ contractor, period, onClose }: Props) {
                             <Note $tone="warn">
                                 <Info />
                                 <span>
-                                    Zestawienie za ten okres poszło już e-mailem {formatInstantDay(previousEmail.closedAt)}. Jeśli dołączysz auta z tamtego zestawienia, kontrahent dostanie je drugi raz.
+                                    Zestawienie za ten okres poszło już e-mailem {formatInstantDay(previousEmail.closedAt)}. Kontrahent dostanie drugi plik za ten sam okres, ze wszystkimi autami. Uprzedź go, że nowy zastępuje poprzedni.
                                 </span>
                             </Note>
                         )}
@@ -391,7 +467,7 @@ export function SettlementModal({ contractor, period, onClose }: Props) {
 
                 <LockNote>
                     <Lock />
-                    Auta z zestawienia zostaną zamknięte, żeby nie trafiły do kolejnego drugi raz. Poprawkę zrobisz, odblokowując auto do korekty.
+                    Auta z zestawienia zostaną zamknięte, żeby nie trafiły do kolejnego drugi raz. Poprawkę zrobisz przyciskiem „Popraw auto” w oknie auta.
                 </LockNote>
             </ModalContent>
 

@@ -7,8 +7,12 @@
 //     i kwota po cichu znikała),
 //   - błąd serwera pokazuje jego komunikat, a zapis kończy się komunikatem,
 //   - zamknięcie z niezapisanymi zmianami pyta, zanim je porzuci,
-//   - po odblokowaniu rozliczonego auta do korekty kursor stoi w cenie brutto,
 //   - „dziś" liczone lokalnie, nie w UTC (po północy wpadał wczorajszy dzień).
+// Rozliczone auto otwiera się tylko do odczytu. „Popraw auto" odblokowuje pola,
+// a odblokowanie do korekty dzieje się na serwerze dopiero razem z zapisem zmian
+// (PUT /correction). Dawniej klik w rozliczone auto od razu zdejmował rozliczenie,
+// więc samo obejrzenie i „Anuluj" zostawiało korektę, którą następne zestawienie
+// wysyłało kontrahentowi drugi raz, pełną kwotą.
 // Ceny: strona wpisana (netto albo brutto) jest źródłem prawdy i idzie do serwera
 // bez przeliczania (CLAUDE.md §1) - wspólne funkcje w utils/entryForm.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
@@ -18,7 +22,7 @@ import styled from 'styled-components';
 import { Plus, Trash2 } from 'lucide-react';
 import { BrandSelect, ModelSelect } from '../../vehicles/components/BrandModelSelectors';
 import {
-    ModalShell, ModalHeader, ModalTitleGroup, ModalTitle,
+    ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalSubtitle,
     ModalContent, ModalFooter, ModalSectionTitle, CloseBtn,
 } from '@/common/components/ModalKit';
 import {
@@ -33,11 +37,15 @@ import { priceInputsForVatRate, storedPriceSide } from '@/common/utils/priceInpu
 import { formatCurrency } from '@/common/utils';
 import { batchOrderApi } from '../api/batchOrderApi';
 import { useVisualViewportSheet } from '@/common/hooks';
-import { useBatchServices, useCreateEntry, useUpdateEntry } from '../hooks/useBatchOrders';
+import { useBatchServices, useCorrectEntry, useCreateEntry, useUpdateEntry } from '../hooks/useBatchOrders';
 import type { BatchOrderEntry, BatchService, EntryRequest, VehicleSuggestion } from '../types';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useToast } from '@/common/components/Toast';
-import { emptyService, serviceToForm, toServiceItems, validateServices, type ServiceFormItem } from '../utils/entryForm';
+import {
+    emptyService, entryTotals, firstInvalidServiceIndex, serviceToForm, toServiceItems, validateServices,
+    type ServiceFormItem,
+} from '../utils/entryForm';
+import { BatchOrderPhotoSection } from './BatchOrderPhotoSection';
 import { formatMoney } from '../utils/format';
 import { todayIso } from '../utils/period';
 import { VinCameraButton } from '../../vehicles/components/vin/VinCameraButton';
@@ -50,8 +58,8 @@ const batchVinApi = vinApiAt('/v1/batch-orders/vin');
 
 // ─── Service card ─────────────────────────────────────────────────────────────
 
-const ServiceCard = styled.div`
-    border: 1.5px solid #e2e8f0;
+const ServiceCard = styled.div<{ $invalid?: boolean }>`
+    border: 1.5px solid ${p => p.$invalid ? '#fca5a5' : '#e2e8f0'};
     border-radius: 12px;
     padding: 12px 14px;
     background: #fff;
@@ -119,6 +127,53 @@ const PriceLabel = styled.label`
     font-size: 11px;
     font-weight: 600;
     color: #64748b;
+`;
+
+/**
+ * Rozliczone auto do odczytu: `fieldset disabled` wyłącza naraz wszystkie pola, także
+ * te w komponentach marki i modelu, bez przekazywania `disabled` do każdego z osobna.
+ * Reset stylu, bo przeglądarka rysuje fieldset z ramką i wcięciem.
+ */
+const FormFieldset = styled.fieldset`
+    display: flex;
+    flex-direction: column;
+    gap: inherit;
+    min-width: 0;
+    margin: 0;
+    padding: 0;
+    border: none;
+`;
+
+/** Suma auta pod pozycjami - ta sama, która pójdzie do zapisu i trafi na listę. */
+const TotalsRow = styled.div`
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: flex-end;
+    gap: 4px 16px;
+    padding: 2px 2px 0;
+    font-size: 13px;
+    color: #64748b;
+    font-variant-numeric: tabular-nums;
+
+    b { color: #0f172a; font-weight: 700; }
+`;
+
+/* Stan auta nad formularzem: rozliczone (do odczytu), poprawka w toku albo korekta.
+   Osobno od podtytułu z nazwą kontrahenta - doklejone do nazwy „…Sp. z o.o." dawało „o.o..". */
+const StateNote = styled.p<{ $tone: 'info' | 'warn' }>`
+    margin: 0;
+    padding: 10px 12px;
+    border-radius: 10px;
+    font-size: 13px;
+    line-height: 1.5;
+    ${p => p.$tone === 'info'
+        ? 'background: rgba(22, 163, 74, 0.06); border: 1px solid rgba(22, 163, 74, 0.3); color: #166534;'
+        : 'background: #fffbeb; border: 1px solid #fcd34d; color: #92400e;'}
+`;
+
+const FieldHint = styled.span`
+    font-size: 12px;
+    color: #b45309;
 `;
 
 /** Lewy dosuw dla przycisku „Dodaj usługę": w kolumnie flex bez tego rozciąga
@@ -417,15 +472,19 @@ interface Props {
     contractorId: string;
     contractorName: string;
     initial?: BatchOrderEntry | null;
-    /** Kursor w pierwszej cenie brutto - po odblokowaniu auta do korekty. */
-    focusPrice?: boolean;
+    /** Po udanym zapisie - karta przełącza okres, gdy auto ma datę spoza widocznego. */
+    onSaved?: (entry: BatchOrderEntry) => void;
     onClose: () => void;
 }
 
-export function EntryFormModal({ contractorId, contractorName, initial, focusPrice, onClose }: Props) {
+export function EntryFormModal({ contractorId, contractorName, initial, onSaved, onClose }: Props) {
     const { showSuccess } = useToast();
     const createEntry = useCreateEntry(contractorId);
     const updateEntry = useUpdateEntry(contractorId);
+    const correctEntry = useCorrectEntry(contractorId);
+    const settled = !!initial?.isClosed;
+    const [correcting, setCorrecting] = useState(false);
+    const readOnly = settled && !correcting;
     const [serviceDate, setServiceDate] = useState(initial?.serviceDate ?? todayIso());
     const [vehicleMake, setVehicleMake] = useState(initial?.vehicleMake ?? '');
     const [vehicleModel, setVehicleModel] = useState(initial?.vehicleModel ?? '');
@@ -439,12 +498,19 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
     const [notes, setNotes] = useState(initial?.notes ?? '');
     const [saving, setSaving] = useState(false);
     const [error, setError] = useState('');
+    const [invalidService, setInvalidService] = useState<number | null>(null);
     const [confirmDiscard, setConfirmDiscard] = useState(false);
     const firstGrossRef = useRef<HTMLInputElement>(null);
+    const errorRef = useRef<HTMLDivElement>(null);
+    // Podpowiedzi tablicy i VIN dopiero po tym, jak ktoś zacznie pisać. Dawniej szukały
+    // już przy otwarciu edycji i rozwijały listę z tym samym autem nad usługami.
+    const plateTouched = useRef(false);
+    const vinTouched = useRef(false);
 
-    useEffect(() => {
-        if (focusPrice) requestAnimationFrame(() => firstGrossRef.current?.focus());
-    }, [focusPrice]);
+    function startCorrection() {
+        setCorrecting(true);
+        requestAnimationFrame(() => firstGrossRef.current?.focus());
+    }
 
     const [plateSuggestions, setPlateSuggestions] = useState<VehicleSuggestion[]>([]);
     const [showSuggestions, setShowSuggestions] = useState(false);
@@ -568,6 +634,7 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
     }
 
     useEffect(() => {
+        if (!plateTouched.current) return;
         let cancelled = false;
         const t = setTimeout(async () => {
             if (vehiclePlate.trim().length >= 2) {
@@ -586,6 +653,7 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
     }, [vehiclePlate]);
 
     useEffect(() => {
+        if (!vinTouched.current) return;
         let cancelled = false;
         const t = setTimeout(async () => {
             if (vehicleVin.trim().length >= 3) {
@@ -614,6 +682,23 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
         document.addEventListener('mousedown', handleClick);
         return () => document.removeEventListener('mousedown', handleClick);
     }, []);
+
+    // Escape zamyka najpierw otwartą listę podpowiedzi, a dopiero kolejny - okno.
+    // Nasłuch w fazie capture na dokumencie: okno słucha Escape na dokumencie w fazie
+    // bąbelkowania, więc zatrzymanie tutaj do niego nie dociera (jak podgląd zdjęcia).
+    const anyListOpen = (suggestFor !== null && !isMobile) || showSuggestions || showVinSuggestions;
+    useEffect(() => {
+        if (!anyListOpen) return;
+        const onKey = (e: KeyboardEvent) => {
+            if (e.key !== 'Escape') return;
+            e.stopPropagation();
+            setSuggestFor(null);
+            setShowSuggestions(false);
+            setShowVinSuggestions(false);
+        };
+        document.addEventListener('keydown', onKey, true);
+        return () => document.removeEventListener('keydown', onKey, true);
+    }, [anyListOpen]);
 
     function selectSuggestion(s: VehicleSuggestion) {
         setVehiclePlate(s.licensePlate);
@@ -708,23 +793,52 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
         else onClose();
     }
 
+    // Błąd ma stać tam, gdzie patrzy użytkownik. Baner jest na górze przewijanej treści,
+    // a „Zapisz" na dole - dawniej po kliknięciu nic się widocznie nie działo.
+    useEffect(() => {
+        if (error) errorRef.current?.scrollIntoView?.({ block: 'nearest', behavior: 'smooth' });
+    }, [error]);
+
+    // Każda zmiana w formularzu gasi poprzedni błąd - poprawiona pozycja nie może dalej
+    // świecić komunikatem, który już jej nie dotyczy.
+    useEffect(() => {
+        setError('');
+        setInvalidService(null);
+    }, [serviceDate, vehicleMake, vehicleModel, vehiclePlate, vehicleVin, services, notes]);
+
     async function handleSave() {
-        if (!serviceDate) { setError('Podaj datę wykonania'); return; }
+        if (!serviceDate) { setError('Podaj datę wykonania.'); return; }
         const invalid = validateServices(services);
-        if (invalid) { setError(invalid); return; }
+        if (invalid) {
+            setError(invalid);
+            setInvalidService(firstInvalidServiceIndex(services));
+            return;
+        }
+        if (correcting && !dirty) {
+            setError('Nic się nie zmieniło, auto zostaje rozliczone. Zamknij okno albo popraw dane.');
+            return;
+        }
         setSaving(true);
         setError('');
         const payload = buildPayload();
         const grossCents = payload.services.reduce((sum, s) => sum + s.grossAmountCents, 0);
         const carName = [payload.vehicleMake, payload.vehicleModel].filter(Boolean).join(' ') || payload.vehicleLicensePlate || 'Auto';
         try {
-            if (initial) {
-                await updateEntry.mutateAsync({ entryId: initial.id, data: payload });
+            let saved: BatchOrderEntry;
+            if (initial && correcting) {
+                saved = await correctEntry.mutateAsync({ entryId: initial.id, data: payload });
+                showSuccess(
+                    'Poprawka zapisana',
+                    `${carName} trafi do następnego zestawienia jako korekta, ${formatMoney(grossCents)}.`,
+                );
+            } else if (initial) {
+                saved = await updateEntry.mutateAsync({ entryId: initial.id, data: payload });
                 showSuccess('Zapisano zmiany', `${carName} za ${formatMoney(grossCents)}.`);
             } else {
-                await createEntry.mutateAsync(payload);
+                saved = await createEntry.mutateAsync(payload);
                 showSuccess('Auto dodane', `Czeka na zestawienie dla ${contractorName}, ${formatMoney(grossCents)}.`);
             }
+            onSaved?.(saved);
             onClose();
         } catch (e) {
             setError(problemDetail(e, 'Nie udało się zapisać auta. Spróbuj ponownie.'));
@@ -733,19 +847,36 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
         }
     }
 
+    const totals = entryTotals(services);
+    const title = !initial ? 'Nowe auto'
+        : correcting ? 'Poprawka rozliczonego auta'
+            : settled ? 'Rozliczone auto'
+                : 'Edytuj auto';
+    const stateNote: { tone: 'info' | 'warn'; text: string } | null = correcting
+        ? { tone: 'warn', text: 'Po zapisie auto wróci w następnym zestawieniu jako korekta, pełną kwotą. Bez zmian zostaje rozliczone.' }
+        : settled
+            ? { tone: 'info', text: 'Auto jest już w zestawieniu dla kontrahenta. Żeby coś zmienić, wybierz „Popraw auto”.' }
+            : initial?.isCorrection
+                ? { tone: 'warn', text: 'Korekta: auto trafi do najbliższego zestawienia pełną kwotą.' }
+                : null;
+    const vinLength = vehicleVin.trim().length;
+
     return (
         <>
         <ModalShell isOpen onClose={requestClose} size="lg">
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>{initial ? 'Edytuj auto' : 'Nowe auto'}</ModalTitle>
+                    <ModalTitle>{title}</ModalTitle>
+                    <ModalSubtitle>{contractorName}</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={requestClose} />
             </ModalHeader>
 
             <ModalContent>
-                {error && <FormAlertBanner>{error}</FormAlertBanner>}
+                {error && <div ref={errorRef}><FormAlertBanner>{error}</FormAlertBanner></div>}
+                {stateNote && <StateNote $tone={stateNote.tone}>{stateNote.text}</StateNote>}
 
+                <FormFieldset disabled={readOnly}>
                 <FormField>
                     <FieldLabel htmlFor="entry-date">Data wykonania *</FieldLabel>
                     <InputShell>
@@ -788,7 +919,7 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
                                     <BareInput
                                         id="entry-plate"
                                         value={vehiclePlate}
-                                        onChange={e => setVehiclePlate(e.target.value.toUpperCase())}
+                                        onChange={e => { plateTouched.current = true; setVehiclePlate(e.target.value.toUpperCase()); }}
                                         onFocus={() => plateSuggestions.length > 0 && setShowSuggestions(true)}
                                         placeholder="np. WA12345"
                                         autoComplete="off"
@@ -814,7 +945,7 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
                                     <BareInput
                                         id="entry-vin"
                                         value={vehicleVin}
-                                        onChange={e => setVehicleVin(e.target.value.toUpperCase())}
+                                        onChange={e => { vinTouched.current = true; setVehicleVin(e.target.value.toUpperCase()); }}
                                         onFocus={() => vinSuggestions.length > 0 && setShowVinSuggestions(true)}
                                         placeholder="np. WBA3A5G59DNP26082"
                                         maxLength={17}
@@ -838,6 +969,10 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
                                     </SuggestionList>
                                 )}
                             </AutocompleteWrapper>
+                            {/* Podpowiedź, nie blokada: stare auta (sprzed 1981) mają krótsze numery. */}
+                            {vinLength > 0 && vinLength !== 17 && (
+                                <FieldHint>VIN ma zwykle 17 znaków, tutaj jest {vinLength}.</FieldHint>
+                            )}
                         </FormField>
                     </FormGrid>
                 </div>
@@ -851,7 +986,7 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
                             const showCreate =
                                 suggestFor === idx && svc.name.trim().length > 0 && !isExactCatalogName(svc.name);
                             return (
-                            <ServiceCard key={idx}>
+                            <ServiceCard key={idx} $invalid={invalidService === idx}>
                                 <ServiceCardHeader>
                                     <AutocompleteWrapper style={{ flex: 1, minWidth: 0 }}>
                                         <InputShell $compact style={{ width: '100%' }}>
@@ -961,7 +1096,7 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
                                             document.body
                                         )}
                                     </AutocompleteWrapper>
-                                    {services.length > 1 && (
+                                    {services.length > 1 && !readOnly && (
                                         <IconRemoveBtn
                                             type="button"
                                             onClick={() => removeService(idx)}
@@ -1019,6 +1154,14 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
                             </ServiceCard>
                             );
                         })}
+                        {totals.grossCents > 0 && (
+                            <TotalsRow aria-live="polite">
+                                <span>Netto {formatMoney(totals.netCents)}</span>
+                                <span>VAT {formatMoney(totals.vatCents)}</span>
+                                <span>Razem brutto <b>{formatMoney(totals.grossCents)}</b></span>
+                            </TotalsRow>
+                        )}
+                        {!readOnly && (
                         <AddRow>
                             <SharedButton
                                 $variant="secondary"
@@ -1030,6 +1173,7 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
                                 <Plus size={15} /> Dodaj usługę
                             </SharedButton>
                         </AddRow>
+                        )}
                     </div>
                 </div>
 
@@ -1045,13 +1189,31 @@ export function EntryFormModal({ contractorId, contractorName, initial, focusPri
                         />
                     </InputShellTextArea>
                 </FormField>
+                </FormFieldset>
+
+                {/* Zdjęcia poza blokadą: dokumentację rozliczonego auta wolno uzupełniać. */}
+                {initial && (
+                    <div>
+                        <ModalSectionTitle>Zdjęcia</ModalSectionTitle>
+                        <BatchOrderPhotoSection entryId={initial.id} contractorId={contractorId} />
+                    </div>
+                )}
             </ModalContent>
 
             <ModalFooter>
-                <SharedButton $variant="secondary" type="button" onClick={requestClose}>Anuluj</SharedButton>
-                <SharedButton $variant="primary" type="button" onClick={handleSave} disabled={saving}>
-                    {saving ? 'Zapisywanie…' : 'Zapisz'}
-                </SharedButton>
+                {readOnly ? (
+                    <>
+                        <SharedButton $variant="secondary" type="button" onClick={onClose}>Zamknij</SharedButton>
+                        <SharedButton $variant="primary" type="button" onClick={startCorrection}>Popraw auto</SharedButton>
+                    </>
+                ) : (
+                    <>
+                        <SharedButton $variant="secondary" type="button" onClick={requestClose}>Anuluj</SharedButton>
+                        <SharedButton $variant="primary" type="button" onClick={handleSave} disabled={saving}>
+                            {saving ? 'Zapisywanie…' : correcting ? 'Zapisz poprawkę' : 'Zapisz'}
+                        </SharedButton>
+                    </>
+                )}
             </ModalFooter>
         </ModalShell>
         <ConfirmationModal

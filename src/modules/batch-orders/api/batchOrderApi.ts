@@ -1,6 +1,9 @@
 import { photoUploadContentType, putToPresignedUrl } from '@/common/utils/presignedUpload';
+import { saveBlobAsFile } from '@/common/utils/blobFile';
+import { fileNameFromDisposition } from '@/core/native/nativeFiles';
 import { apiClient } from '@/core';
 import type {
+    ArchivedContractor,
     BatchContractor,
     BatchOrderEntry,
     BatchOrderPhoto,
@@ -8,7 +11,6 @@ import type {
     BatchServiceRequest,
     ContractorsResponse,
     ContractorEntriesResponse,
-    ContractorOverview,
     EntryStatusFilter,
     ContractorRequest,
     EntryRequest,
@@ -22,6 +24,20 @@ import type {
 
 const BASE = '/v1/batch-orders';
 
+/**
+ * Każde wywołanie, którego błąd moduł pokazuje sam (baner w oknie, tekst pod polem,
+ * własny komunikat z tytułem). Bez tego globalny przechwytywacz dokładał ten sam tekst
+ * drugi raz, w czerwonym komunikacie w rogu.
+ */
+const HANDLED = { skipErrorToast: true } as const;
+
+/** Nazwa pliku z nagłówka serwera (niesie numer zestawienia), a gdy go brak - zapasowa. */
+function savePdf(response: { data: BlobPart; headers: Record<string, unknown> }, fallbackName: string) {
+    const header = response.headers['content-disposition'];
+    const name = fileNameFromDisposition(typeof header === 'string' ? header : null) ?? fallbackName;
+    saveBlobAsFile(new Blob([response.data], { type: 'application/pdf' }), name);
+}
+
 export const batchOrderApi = {
     listContractors: async (): Promise<BatchContractor[]> => {
         const response = await apiClient.get<ContractorsResponse>(`${BASE}/contractors`);
@@ -29,26 +45,30 @@ export const batchOrderApi = {
     },
 
     createContractor: async (data: ContractorRequest): Promise<BatchContractor> => {
-        const response = await apiClient.post<{ contractor: BatchContractor }>(`${BASE}/contractors`, data);
+        const response = await apiClient.post<{ contractor: BatchContractor }>(`${BASE}/contractors`, data, HANDLED);
         return response.data.contractor;
     },
 
     updateContractor: async (contractorId: string, data: ContractorRequest): Promise<BatchContractor> => {
-        const response = await apiClient.put<{ contractor: BatchContractor }>(`${BASE}/contractors/${contractorId}`, data);
+        const response = await apiClient.put<{ contractor: BatchContractor }>(`${BASE}/contractors/${contractorId}`, data, HANDLED);
         return response.data.contractor;
     },
 
+    /** Przeniesienie do archiwum: kontrahent znika z listy, jego auta i zestawienia zostają. */
     deleteContractor: async (contractorId: string): Promise<void> => {
-        await apiClient.delete(`${BASE}/contractors/${contractorId}`);
+        await apiClient.delete(`${BASE}/contractors/${contractorId}`, HANDLED);
     },
 
-    /** Lista kontrahentów z tym, co każdy ma do rozliczenia w okresie - jedno zapytanie na całą listę. */
-    getOverview: async (from?: string, to?: string): Promise<ContractorOverview[]> => {
-        const response = await apiClient.get<{ contractors: ContractorOverview[] }>(
-            `${BASE}/contractors/overview`,
-            { params: { ...(from ? { from } : {}), ...(to ? { to } : {}) } },
-        );
+    listArchivedContractors: async (): Promise<ArchivedContractor[]> => {
+        const response = await apiClient.get<{ contractors: ArchivedContractor[] }>(`${BASE}/contractors/archive`);
         return response.data.contractors;
+    },
+
+    restoreContractor: async (contractorId: string): Promise<BatchContractor> => {
+        const response = await apiClient.post<{ contractor: BatchContractor }>(
+            `${BASE}/contractors/${contractorId}/restore`, undefined, HANDLED,
+        );
+        return response.data.contractor;
     },
 
     getContractorEntries: async (
@@ -67,27 +87,27 @@ export const batchOrderApi = {
     },
 
     createEntry: async (contractorId: string, data: EntryRequest): Promise<BatchOrderEntry> => {
-        const response = await apiClient.post<{ entry: BatchOrderEntry }>(`${BASE}/contractors/${contractorId}/entries`, data);
+        const response = await apiClient.post<{ entry: BatchOrderEntry }>(`${BASE}/contractors/${contractorId}/entries`, data, HANDLED);
         return response.data.entry;
     },
 
     updateEntry: async (entryId: string, data: EntryRequest): Promise<BatchOrderEntry> => {
-        const response = await apiClient.put<{ entry: BatchOrderEntry }>(`${BASE}/entries/${entryId}`, data);
+        const response = await apiClient.put<{ entry: BatchOrderEntry }>(`${BASE}/entries/${entryId}`, data, HANDLED);
+        return response.data.entry;
+    },
+
+    /**
+     * Poprawka rozliczonego auta: odblokowanie do korekty i nowa treść w jednym kroku.
+     * Bez zmian w treści serwer odpowiada 400, a auto zostaje rozliczone - dawniej samo
+     * otwarcie rozliczonego auta (POST /reopen) zostawiało korektę, nawet gdy nic nie zmieniono.
+     */
+    correctEntry: async (entryId: string, data: EntryRequest): Promise<BatchOrderEntry> => {
+        const response = await apiClient.put<{ entry: BatchOrderEntry }>(`${BASE}/entries/${entryId}/correction`, data, HANDLED);
         return response.data.entry;
     },
 
     deleteEntry: async (entryId: string): Promise<void> => {
-        await apiClient.delete(`${BASE}/entries/${entryId}`);
-    },
-
-    /**
-     * Odblokowuje rozliczony wpis do korekty. Rozliczonego wpisu nie da się zmienić
-     * ani usunąć wprost - dawniej każdy zapis po cichu zdejmował z niego rozliczenie
-     * i ta sama praca szła do kontrahenta drugi raz.
-     */
-    reopenEntry: async (entryId: string): Promise<BatchOrderEntry> => {
-        const response = await apiClient.post<{ entry: BatchOrderEntry }>(`${BASE}/entries/${entryId}/reopen`);
-        return response.data.entry;
+        await apiClient.delete(`${BASE}/entries/${entryId}`, HANDLED);
     },
 
     searchVehicles: async (q: string): Promise<VehicleSuggestion[]> => {
@@ -108,7 +128,7 @@ export const batchOrderApi = {
     },
 
     requestPhotoUploadUrl: async (entryId: string, data: PhotoUploadRequest): Promise<PhotoUploadResponse> => {
-        const response = await apiClient.post<PhotoUploadResponse>(`${BASE}/entries/${entryId}/photos/upload-url`, data);
+        const response = await apiClient.post<PhotoUploadResponse>(`${BASE}/entries/${entryId}/photos/upload-url`, data, HANDLED);
         return response.data;
     },
 
@@ -121,7 +141,7 @@ export const batchOrderApi = {
     },
 
     deleteEntryPhoto: async (entryId: string, photoId: string): Promise<void> => {
-        await apiClient.delete(`${BASE}/entries/${entryId}/photos/${photoId}`);
+        await apiClient.delete(`${BASE}/entries/${entryId}/photos/${photoId}`, HANDLED);
     },
 
     downloadReport: async (
@@ -138,17 +158,13 @@ export const batchOrderApi = {
         const query = params.toString() ? `?${params}` : '';
         const response = await apiClient.get(`${BASE}/contractors/${contractorId}/report${query}`, {
             responseType: 'blob',
+            ...HANDLED,
         });
-        const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `zestawienie-${contractorName.replace(/\s+/g, '-')}.pdf`;
-        link.click();
-        window.URL.revokeObjectURL(url);
+        savePdf(response, `zestawienie-${contractorName.replace(/\s+/g, '-')}.pdf`);
     },
 
     settle: async (contractorId: string, request: SettlementRequest): Promise<SettlementResult> => {
-        const response = await apiClient.post<SettlementResult>(`${BASE}/contractors/${contractorId}/close-month`, request);
+        const response = await apiClient.post<SettlementResult>(`${BASE}/contractors/${contractorId}/close-month`, request, HANDLED);
         return response.data;
     },
 
@@ -169,28 +185,24 @@ export const batchOrderApi = {
     },
 
     createService: async (data: BatchServiceRequest): Promise<BatchService> => {
-        const response = await apiClient.post<{ service: BatchService }>(`${BASE}/services`, data);
+        const response = await apiClient.post<{ service: BatchService }>(`${BASE}/services`, data, HANDLED);
         return response.data.service;
     },
 
     updateService: async (serviceId: string, data: BatchServiceRequest): Promise<BatchService> => {
-        const response = await apiClient.put<{ service: BatchService }>(`${BASE}/services/${serviceId}`, data);
+        const response = await apiClient.put<{ service: BatchService }>(`${BASE}/services/${serviceId}`, data, HANDLED);
         return response.data.service;
     },
 
     deleteService: async (serviceId: string): Promise<void> => {
-        await apiClient.delete(`${BASE}/services/${serviceId}`);
+        await apiClient.delete(`${BASE}/services/${serviceId}`, HANDLED);
     },
 
     downloadHistorySnapshot: async (historyId: string, contractorName: string): Promise<void> => {
         const response = await apiClient.get(`${BASE}/close-history/${historyId}/snapshot`, {
             responseType: 'blob',
+            ...HANDLED,
         });
-        const url = window.URL.createObjectURL(new Blob([response.data], { type: 'application/pdf' }));
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `zestawienie-${contractorName.replace(/\s+/g, '-')}-${historyId.slice(0, 8)}.pdf`;
-        link.click();
-        window.URL.revokeObjectURL(url);
+        savePdf(response, `zestawienie-${contractorName.replace(/\s+/g, '-')}-${historyId.slice(0, 8)}.pdf`);
     },
 };

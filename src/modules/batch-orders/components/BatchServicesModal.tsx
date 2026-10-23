@@ -21,6 +21,7 @@ import {
     ModalContent, ModalFooter, CloseBtn,
 } from '@/common/components/ModalKit';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { useToast } from '@/common/components/Toast';
 import { SharedButton } from '@/common/styles';
 import { InputShell, BareInput, Select } from '@/common/components/Form';
 import * as S from '@/common/components/ServicesTable/styles';
@@ -149,6 +150,7 @@ interface Props {
 }
 
 export function BatchServicesModal({ onClose }: Props) {
+    const { showError } = useToast();
     const [search, setSearch] = useState('');
     const { data: services, isLoading, isError } = useBatchServices();
     const createService = useCreateBatchService();
@@ -192,7 +194,8 @@ export function BatchServicesModal({ onClose }: Props) {
     function handleNetChange(raw: string) {
         if (!MAX_2_DECIMALS.test(raw)) return;
         setError('');
-        const net = Math.round((parseFloat(raw.replace(',', '.')) || 0) * 100);
+        // Ten sam parser kwot co w oknie auta - jedna droga od tekstu do groszy.
+        const net = inputToCents(raw);
         const gross = netToGross(net, draft.vatRate);
         setDraft(d => ({
             ...d,
@@ -207,7 +210,7 @@ export function BatchServicesModal({ onClose }: Props) {
     function handleGrossChange(raw: string) {
         if (!MAX_2_DECIMALS.test(raw)) return;
         setError('');
-        const gross = Math.round((parseFloat(raw.replace(',', '.')) || 0) * 100);
+        const gross = inputToCents(raw);
         const net = grossToNet(gross, draft.vatRate);
         setDraft(d => ({
             ...d,
@@ -351,8 +354,10 @@ export function BatchServicesModal({ onClose }: Props) {
                                 aria-label="Szukaj usługi"
                             />
                         </InputShell>
+                        {/* Bez wypełnienia: przy otwartym edytorze wypełniony jest jego „Zapisz"
+                            i dwa wypełnione przyciski w jednym oknie znaczyłyby remis (CLAUDE.md §2). */}
                         <SharedButton
-                            $variant="primary"
+                            $variant="secondary"
                             $size="sm"
                             type="button"
                             onClick={openNew}
@@ -449,7 +454,10 @@ export function BatchServicesModal({ onClose }: Props) {
                 onConfirm={() => {
                     if (confirmDelete) {
                         if (editingId === confirmDelete.id) closeEditor();
-                        deleteService.mutateAsync(confirmDelete.id).catch(() => undefined);
+                        const name = confirmDelete.name;
+                        // Dawniej błąd był połykany: usługa zostawała w cenniku bez słowa wyjaśnienia.
+                        deleteService.mutateAsync(confirmDelete.id).catch(e =>
+                            showError('Nie udało się usunąć usługi', problemDetail(e, `„${name}” zostaje w cenniku. Spróbuj ponownie.`)));
                     }
                     setConfirmDelete(null);
                 }}

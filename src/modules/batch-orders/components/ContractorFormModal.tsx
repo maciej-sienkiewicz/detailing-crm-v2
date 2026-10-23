@@ -1,5 +1,13 @@
+// src/modules/batch-orders/components/ContractorFormModal.tsx
+//
+// Karta kontrahenta. Adres e-mail i NIP są sprawdzane przed zapisem: zestawienie idzie
+// na ten adres i z tym NIP-em, a dawniej zapisywało się wszystko - „ksiegowosc@flota"
+// blokował potem „Utwórz zestawienie" bez słowa wyjaśnienia.
 import { useState } from 'react';
 import { capitalizeFirst } from '@/common/utils/capitalizeFirst';
+import { isValidEmail, validatePolishNip } from '@/common/utils/validators';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
+import { problemDetail } from '@/core/problem';
 import {
     ModalShell, ModalHeader, ModalTitleGroup, ModalTitle,
     ModalContent, ModalFooter, CloseBtn,
@@ -26,6 +34,17 @@ function formatGusAddress(addr: CompanyInfoResponse['address']): string {
     return parts.join(', ');
 }
 
+/**
+ * Błąd NIP-u albo null. Sprawdzamy tylko polski NIP (10 cyfr, z myślnikami albo bez);
+ * numer VAT z prefiksem kraju (np. DE123456789) przechodzi bez sumy kontrolnej.
+ */
+function nipProblem(value: string): string | null {
+    const clean = value.replace(/[\s-]/g, '');
+    if (!clean || /^[A-Za-z]{2}/.test(clean)) return null;
+    if (!/^\d{10}$/.test(clean)) return 'NIP ma 10 cyfr.';
+    return validatePolishNip(clean) ? null : 'Ten NIP ma błędną cyfrę kontrolną. Sprawdź, czy nie ma literówki.';
+}
+
 interface Props {
     initial?: BatchContractor | null;
     onSave: (data: ContractorRequest) => Promise<void>;
@@ -42,19 +61,41 @@ export function ContractorFormModal({ initial, onSave, onClose }: Props) {
     const [notes, setNotes] = useState(initial?.notes ?? '');
     const [saving, setSaving] = useState(false);
     const [nameError, setNameError] = useState('');
+    const [emailError, setEmailError] = useState('');
+    const [nipError, setNipError] = useState('');
     const [apiError, setApiError] = useState('');
+    const [confirmDiscard, setConfirmDiscard] = useState(false);
 
+    const snapshot = () => JSON.stringify([name, taxId, address, contactPerson, email, phone, notes].map(v => v.trim()));
+    const [initialSnapshot] = useState(snapshot);
+    const dirty = snapshot() !== initialSnapshot;
+
+    function requestClose() {
+        if (saving) return;
+        if (dirty) setConfirmDiscard(true);
+        else onClose();
+    }
+
+    // Przy nowym kontrahencie GUS wypełnia kartę. Przy edycji tylko puste pola: dawniej
+    // nadpisywał bez pytania adres i telefon, które ktoś właśnie poprawił ręcznie.
     function handleGusData(data: CompanyInfoResponse) {
-        if (data.name) setName(data.name);
-        if (data.email) setEmail(data.email);
-        if (data.phone) setPhone(data.phone);
-        const formatted = formatGusAddress(data.address);
-        if (formatted) setAddress(formatted);
+        const fill = (current: string, next: string | null | undefined, set: (v: string) => void) => {
+            if (next && (!initial || !current.trim())) set(next);
+        };
+        fill(name, data.name, setName);
+        fill(email, data.email, setEmail);
+        fill(phone, data.phone, setPhone);
+        fill(address, formatGusAddress(data.address), setAddress);
     }
 
     async function handleSave() {
-        if (!name.trim()) { setNameError('Wpisz nazwę kontrahenta'); return; }
-        setNameError('');
+        const nameProblem = name.trim() ? '' : 'Wpisz nazwę kontrahenta.';
+        const emailProblem = email.trim() && !isValidEmail(email.trim()) ? 'Ten adres e-mail jest niepoprawny. Popraw go, bo na niego wysyłamy zestawienia.' : '';
+        const taxProblem = nipProblem(taxId) ?? '';
+        setNameError(nameProblem);
+        setEmailError(emailProblem);
+        setNipError(taxProblem);
+        if (nameProblem || emailProblem || taxProblem) return;
         setApiError('');
         setSaving(true);
         try {
@@ -68,20 +109,21 @@ export function ContractorFormModal({ initial, onSave, onClose }: Props) {
                 notes: notes.trim() || undefined,
             });
             onClose();
-        } catch {
-            setApiError('Nie udało się zapisać kontrahenta. Spróbuj ponownie.');
+        } catch (e) {
+            setApiError(problemDetail(e, 'Nie udało się zapisać kontrahenta. Spróbuj ponownie.'));
         } finally {
             setSaving(false);
         }
     }
 
     return (
-        <ModalShell isOpen onClose={onClose} size="md">
+        <>
+        <ModalShell isOpen onClose={requestClose} size="md">
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>{initial ? 'Edytuj kontrahenta' : 'Nowy kontrahent'}</ModalTitle>
                 </ModalTitleGroup>
-                <CloseBtn onClick={onClose} />
+                <CloseBtn onClick={requestClose} />
             </ModalHeader>
 
             <ModalContent>
@@ -104,24 +146,26 @@ export function ContractorFormModal({ initial, onSave, onClose }: Props) {
                     <FieldLabel>NIP</FieldLabel>
                     <NipInputWithGus
                         value={taxId}
-                        onChange={setTaxId}
+                        onChange={v => { setTaxId(v); setNipError(''); }}
                         onFetch={handleGusData}
                         placeholder="000-000-00-00"
                     />
+                    {nipError && <FormErrorMsg>{nipError}</FormErrorMsg>}
                 </FormField>
 
                 <FormGrid $columns={2}>
                     <FormField>
                         <FieldLabel htmlFor="co-email">E-mail</FieldLabel>
-                        <InputShell>
+                        <InputShell $hasError={!!emailError}>
                             <BareInput
                                 id="co-email"
                                 type="email"
                                 value={email}
-                                onChange={e => setEmail(e.target.value)}
+                                onChange={e => { setEmail(e.target.value); setEmailError(''); }}
                                 placeholder="kontakt@firma.pl"
                             />
                         </InputShell>
+                        {emailError && <FormErrorMsg>{emailError}</FormErrorMsg>}
                     </FormField>
                     <FormField>
                         <FieldLabel htmlFor="co-phone">Telefon</FieldLabel>
@@ -175,11 +219,22 @@ export function ContractorFormModal({ initial, onSave, onClose }: Props) {
             </ModalContent>
 
             <ModalFooter>
-                <SharedButton $variant="secondary" type="button" onClick={onClose}>Anuluj</SharedButton>
+                <SharedButton $variant="secondary" type="button" onClick={requestClose}>Anuluj</SharedButton>
                 <SharedButton $variant="primary" type="button" onClick={handleSave} disabled={saving}>
                     {saving ? 'Zapisywanie…' : 'Zapisz'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>
+        <ConfirmationModal
+            isOpen={confirmDiscard}
+            title="Porzucić zmiany?"
+            message="Zmiany w karcie kontrahenta nie zostały zapisane."
+            variant="warning"
+            confirmText="Porzuć"
+            cancelText="Wróć do edycji"
+            onConfirm={() => { setConfirmDiscard(false); onClose(); }}
+            onCancel={() => setConfirmDiscard(false)}
+        />
+        </>
     );
 }
