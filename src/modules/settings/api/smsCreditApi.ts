@@ -1,11 +1,11 @@
 import { LEGAL_VERSION } from '@/modules/legal/documents';
 import { apiClient } from '@/core';
 import type { Page } from '@/core/page';
+import type { CheckoutResponse } from '@/modules/subscription/types';
 import type {
     SmsCreditBalance,
     SmsCreditPackage,
     SmsCreditTransaction,
-    PurchaseCreditsResponse,
 } from '../types';
 
 const BASE_PATH = '/v1/sms-credits';
@@ -21,10 +21,12 @@ export const smsCreditApi = {
         return res.data;
     },
 
-    // `skipErrorToast`: powód odmowy (płatność odrzucona, pakiet wycofany) pokazuje
+    // Zamówienie w Przelewy24, jak przy abonamencie: odpowiedź to adres strony płatności
+    // albo (tryb mock, lokalnie) zamówienie już zrealizowane - rozstrzyga `checkoutNextStep`.
+    // `skipErrorToast`: powód odmowy (płatności niedostępne, pakiet wycofany) pokazuje
     // sekcja kredytów toastem z tytułem - bez tego ten sam komunikat szedł dwa razy.
-    purchaseCredits: async (packageId: string): Promise<PurchaseCreditsResponse> => {
-        const res = await apiClient.post<PurchaseCreditsResponse>(
+    purchaseCredits: async (packageId: string): Promise<CheckoutResponse> => {
+        const res = await apiClient.post<CheckoutResponse>(
             `${BASE_PATH}/purchase`,
             // Okno zakupu przepuszcza tylko z zaznaczoną zgodą (CheckoutConsent).
             { packageId, acceptTerms: true, legalVersion: LEGAL_VERSION },

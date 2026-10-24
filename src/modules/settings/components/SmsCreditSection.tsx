@@ -16,7 +16,6 @@ import { useCheckoutConsent } from '@/modules/subscription/hooks/useCheckoutCons
 import { useState } from 'react';
 import styled from 'styled-components';
 import { LockedSection } from '@/common/components/LockedSection';
-import { useToast } from '@/common/components/Toast';
 import {
     Button, Card, FieldList, FieldRow, Notice, Panel, SectionTitle, StatusPill, SummaryStrip, ChoiceCard, ChoiceList,
     ui, type PillTone,
@@ -30,28 +29,26 @@ import {
     useSmsCreditBalance,
     useSmsCreditPackages,
     useSmsCreditTransactions,
-    usePurchaseCredits,
 } from '../hooks/useSmsCredits';
 import type { SmsCreditPackage, SmsCreditTransactionType } from '../types';
 import { creditsLabel, formatCreditCount, formatGrossCents, packagePrice, pricePerSmsLabel } from './smsCreditPricing';
-import { problemDetail } from '@/core/problem';
+import { CreditsContactButton, CreditsContactNotice } from './creditsContact';
+import { useCreditsCheckout } from '../hooks/useCreditsCheckout';
 
 // ─── Słowniki ────────────────────────────────────────────────────────────────
 
 const TX_LABELS: Record<SmsCreditTransactionType, string> = {
     PURCHASE: 'Zakup',
-    USAGE: 'Wysyłka',
+    DEDUCTION: 'Wysyłka',
     REFUND: 'Zwrot',
     BONUS: 'Bonus',
-    EXPIRY: 'Wygaśnięcie',
 };
 
 const TX_TONES: Record<SmsCreditTransactionType, PillTone> = {
     PURCHASE: 'ok',
-    USAGE: 'neutral',
+    DEDUCTION: 'neutral',
     REFUND: 'ok',
     BONUS: 'info',
-    EXPIRY: 'warn',
 };
 
 const formatDateTime = (iso: string) =>
@@ -215,7 +212,7 @@ export function PurchaseConfirmModal({ pkg, currentBalance, isPending, onConfirm
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Kupić {formatCreditCount(pkg.creditAmount)} {creditsLabel(pkg.creditAmount)} SMS?</ModalTitle>
-                    <ModalSubtitle>Płatność jednorazowa. Niewykorzystane wiadomości nie wygasają.</ModalSubtitle>
+                    <ModalSubtitle>Płatność jednorazowa w Przelewy24. Niewykorzystane kredyty nie wygasają.</ModalSubtitle>
                 </ModalTitleGroup>
                 {!isPending && <CloseBtn onClick={onClose} />}
             </ModalHeader>
@@ -239,7 +236,7 @@ export function PurchaseConfirmModal({ pkg, currentBalance, isPending, onConfirm
             <ModalFooter>
                 <Button onClick={onClose} disabled={isPending}>Anuluj</Button>
                 <Button variant="primary" onClick={() => consent.require() && onConfirm()} disabled={isPending}>
-                    {isPending ? 'Płatność w toku…' : `Kup za ${gross}`}
+                    {isPending ? 'Otwieranie płatności…' : `Kup za ${gross}`}
                 </Button>
             </ModalFooter>
         </ModalShell>
@@ -249,33 +246,29 @@ export function PurchaseConfirmModal({ pkg, currentBalance, isPending, onConfirm
 // ─── Karta: saldo i dokupienie ───────────────────────────────────────────────
 
 function CreditsCard({ isOwner }: { isOwner: boolean }) {
-    const { showSuccess, showError } = useToast();
     const balance = useSmsCreditBalance();
     const packages = useSmsCreditPackages({ enabled: isOwner });
-    const purchase = usePurchaseCredits();
+    const purchase = useCreditsCheckout();
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const [confirming, setConfirming] = useState(false);
 
     const selected = packages.data?.find(p => p.id === selectedId) ?? null;
 
+    // „Kup za …" prowadzi do Przelewy24; po płatności strona wyniku wraca tutaj.
     const handleConfirm = () => {
         if (!selected) return;
-        purchase.mutate(selected.id, {
-            onSuccess: res => {
+        purchase.buy(selected, {
+            returnPath: '/settings?tab=credits',
+            onDone: () => {
                 setConfirming(false);
                 setSelectedId(null);
-                showSuccess(
-                    'Kredyty dodane',
-                    `Na koncie jest teraz ${formatCreditCount(res.availableCredits)} ${creditsLabel(res.availableCredits)}.`,
-                );
             },
-            // Okno zostaje otwarte: odrzucona płatność to moment na „spróbuj ponownie"
-            // albo „anuluj", a nie na szukanie od nowa, który pakiet był wybrany.
-            onError: err => showError('Zakup się nie udał', problemDetail(err) ?? 'Nie udało się kupić kredytów. Spróbuj ponownie.'),
         });
     };
 
     const data = balance.data;
+    // Starszy backend nie zna tej flagi: brak wartości = zakup jak dotąd.
+    const onlinePurchase = data?.onlinePurchaseAvailable !== false;
 
     return (
         <Card>
@@ -291,8 +284,10 @@ function CreditsCard({ isOwner }: { isOwner: boolean }) {
                         label="Na koncie"
                         loading={balance.isLoading}
                         amount={data ? `${formatCreditCount(data.availableCredits)} ${creditsLabel(data.availableCredits)}` : '-'}
+                        // `totalPurchased` liczy też kredyty startowe, które nikt nie kupił -
+                        // „kupiono" przypisywało studiu zakup, którego nie było.
                         details={data
-                            ? `kupiono ${formatCreditCount(data.totalPurchased)}, zużyto ${formatCreditCount(data.totalUsed)}`
+                            ? `łącznie dodano ${formatCreditCount(data.totalPurchased)}, zużyto ${formatCreditCount(data.totalUsed)}`
                             : undefined}
                     />
                 )}
@@ -312,6 +307,7 @@ function CreditsCard({ isOwner }: { isOwner: boolean }) {
                             <Muted>Nie ma teraz pakietów do kupienia.</Muted>
                         ) : (
                             <>
+                                {!onlinePurchase && <CreditsContactNotice />}
                                 <ChoiceList role="radiogroup" aria-label="Pakiet kredytów">
                                     {packages.data.map(pkg => {
                                         const price = packagePrice(pkg);
@@ -335,16 +331,20 @@ function CreditsCard({ isOwner }: { isOwner: boolean }) {
                                     })}
                                 </ChoiceList>
                                 <BuyRow>
-                                    <Button
-                                        variant="primary"
-                                        size="lg"
-                                        disabled={!selected}
-                                        onClick={() => setConfirming(true)}
-                                    >
-                                        {selected
-                                            ? `Kup ${formatCreditCount(selected.creditAmount)} ${creditsLabel(selected.creditAmount)} za ${formatGrossCents(packagePrice(selected).grossCents, selected.currency)}`
-                                            : 'Wybierz pakiet'}
-                                    </Button>
+                                    {onlinePurchase ? (
+                                        <Button
+                                            variant="primary"
+                                            size="lg"
+                                            disabled={!selected}
+                                            onClick={() => setConfirming(true)}
+                                        >
+                                            {selected
+                                                ? `Kup ${formatCreditCount(selected.creditAmount)} ${creditsLabel(selected.creditAmount)} za ${formatGrossCents(packagePrice(selected).grossCents, selected.currency)}`
+                                                : 'Wybierz pakiet'}
+                                        </Button>
+                                    ) : (
+                                        <CreditsContactButton pkg={selected} />
+                                    )}
                                 </BuyRow>
                             </>
                         )}
@@ -407,7 +407,8 @@ function TransactionsPanel() {
                             <tbody>
                                 {items.map(tx => (
                                     <tr key={tx.id}>
-                                        <td><StatusPill $tone={TX_TONES[tx.type]}>{TX_LABELS[tx.type]}</StatusPill></td>
+                                        {/* Rodzaj spoza słownika (nowy po stronie serwera) dostaje opis, a nie pustą plakietkę. */}
+                                        <td><StatusPill $tone={TX_TONES[tx.type] ?? 'neutral'}>{TX_LABELS[tx.type] ?? 'Inne'}</StatusPill></td>
                                         <td className="desc">{tx.description}</td>
                                         <td className="num">
                                             <Change $positive={tx.amount > 0}>

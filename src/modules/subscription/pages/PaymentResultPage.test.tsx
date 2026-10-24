@@ -53,6 +53,12 @@ const order = (status: PaymentOrderStatus, overrides: Partial<PaymentOrder> = {}
     ...overrides,
 });
 
+/** Zamówienie kredytów SMS - opis w kształcie, jaki zakłada backend (SmsCreditCheckoutService). */
+const SMS_ORDER: Partial<PaymentOrder> = {
+    type: 'SMS_CREDITS', typeDisplayName: 'Doładowanie kredytów SMS',
+    description: 'Pakiet Basic, 100 kredytów SMS', amountCents: 3499,
+};
+
 let queryClient: QueryClient;
 
 const renderPage = (url = '/payments/result?orderId=ord-1') => render(
@@ -62,6 +68,7 @@ const renderPage = (url = '/payments/result?orderId=ord-1') => render(
                 <Routes>
                     <Route path="/payments/result" element={<PaymentResultPage />} />
                     <Route path="/settings" element={<div>Ustawienia</div>} />
+                    <Route path="/visits/:id" element={<div>Wizyta</div>} />
                 </Routes>
             </MemoryRouter>
         </QueryClientProvider>
@@ -185,6 +192,60 @@ describe('PaymentResultPage', () => {
         fireEvent.click(screen.getByRole('button', { name: 'Wróć do aplikacji' }));
         await flush();
         expect(screen.getByText('Ustawienia')).toBeTruthy();
+    });
+
+    // Dokupienie kredytów SMS z okna wydania auta: P24 odsyła na stronę wyniku, a ta
+    // prowadziła zawsze do ustawień - kupujący musiał sam szukać wizyty, przy której był.
+    it('po zakupie z wizyty „Przejdź do aplikacji" wraca do tej wizyty', async () => {
+        sessionStorage.setItem('payment-return:ord-1', '/visits/v-7');
+        getOrder.mockResolvedValue(order('FULFILLED', SMS_ORDER));
+        renderPage();
+        await flush();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Przejdź do aplikacji' }));
+        await flush();
+        expect(screen.getByText('Wizyta')).toBeTruthy();
+        sessionStorage.clear();
+    });
+
+    // Kredyty niczego nie „włączają", a nazwa typu zamówienia powtarzałaby opis
+    // („Doładowanie kredytów SMS: Pakiet Basic, 100 kredytów SMS").
+    it('kredyty SMS: teksty mówią o dopisaniu kredytów, nie o dostępie', async () => {
+        getOrder
+            .mockResolvedValueOnce(order('PAID', SMS_ORDER))
+            .mockResolvedValue(order('FULFILLED', SMS_ORDER));
+        renderPage();
+        await flush();
+        expect(screen.getByText('Płatność przyjęta, dopisujemy kredyty…')).toBeTruthy();
+
+        await advance(POLL_INTERVAL_MS);
+        expect(screen.getByText('Pakiet Basic, 100 kredytów SMS. Kredyty są już na koncie, możesz wracać do pracy.')).toBeTruthy();
+        expect(screen.queryByText(/dostęp/)).toBeNull();
+    });
+
+    it('nieudana płatność za kredyty z wizyty: przycisk mówi, że wraca do wizyty, i tam prowadzi', async () => {
+        sessionStorage.setItem('payment-return:ord-1', '/visits/v-7');
+        getOrder.mockResolvedValue(order('FAILED', SMS_ORDER));
+        renderPage();
+        await flush();
+        expect(screen.queryByRole('button', { name: 'Wróć do ustawień' })).toBeNull();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Wróć do wizyty' }));
+        await flush();
+        expect(screen.getByText('Wizyta')).toBeTruthy();
+        sessionStorage.clear();
+    });
+
+    it('zapamiętany adres spoza aplikacji jest ignorowany - powrót do ustawień', async () => {
+        sessionStorage.setItem('payment-return:ord-1', '//evil.example/phish');
+        getOrder.mockResolvedValue(order('FULFILLED'));
+        renderPage();
+        await flush();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Przejdź do aplikacji' }));
+        await flush();
+        expect(screen.getByText('Ustawienia')).toBeTruthy();
+        sessionStorage.clear();
     });
 
     it('zgubiona notyfikacja: „Odśwież" pyta Przelewy24 przez backend i domyka sukces', async () => {
@@ -316,6 +377,7 @@ describe('PaymentResultPage', () => {
         await flush();
         expect(screen.getByText('Płatność przyjęta, ale zakupu nie da się włączyć')).toBeTruthy();
         expect(screen.getByText(/Ten moduł jest już aktywny\./)).toBeTruthy();
+        expect(screen.getByRole('button', { name: 'Wróć do ustawień' })).toBeTruthy();
     });
 
     it('FAILED kończy odpytywanie komunikatem o niepowodzeniu', async () => {

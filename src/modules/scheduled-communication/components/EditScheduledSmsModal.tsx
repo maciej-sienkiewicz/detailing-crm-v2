@@ -84,7 +84,8 @@ function EditForm({ item, sendWindow, isSaving, error, onConfirm, onClose }: Pro
         const trimmed = content.trim();
         const scheduledFor = localDateTimeToInstant(when);
         if (!trimmed) return setValidation('Wpisz treść wiadomości');
-        if (content.length > limit) return setValidation(`Treść może mieć najwyżej ${limit} znaków`);
+        // Serwer liczy długość po trim(); spacje na końcu nie mogą blokować zapisu, który przejdzie.
+        if (trimmed.length > limit) return setValidation(`Treść może mieć najwyżej ${limit} znaków`);
         if (!scheduledFor) return setValidation('Wybierz datę i godzinę wysyłki');
         if (Date.parse(scheduledFor) <= Date.now()) return setValidation('Termin wysyłki musi być w przyszłości');
         onConfirm({ messageContent: trimmed, scheduledFor });

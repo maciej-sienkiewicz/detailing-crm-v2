@@ -4,7 +4,7 @@ import { acquireScrollLock } from '@/common/utils/scrollLock';
 import styled from 'styled-components';
 import { X } from 'lucide-react';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
-import { IconButton, Segmented } from '@/common/components/ui';
+import { Button, IconButton, Segmented } from '@/common/components/ui';
 import { ChannelEditor } from './ChannelEditor';
 import { CHANNEL_LABEL, type MessageSpec } from '../catalog';
 import { channelStatus } from '../utils/template';
@@ -77,12 +77,27 @@ const CloseSlot = styled.div`
   flex-shrink: 0;
 `;
 
+const Footer = styled.div`
+  margin-top: auto;
+  display: flex;
+  justify-content: flex-end;
+  gap: 8px;
+  padding: 12px 22px;
+  border-top: 1px solid ${st.border};
+  background: ${st.bgCard};
+`;
+
 export interface RuleDrawerProps {
   spec: MessageSpec;
   drafts: Partial<Record<Channel, ChannelDraft>>;
   initialChannel: Channel;
   onPatch: (channel: Channel, patch: Partial<ChannelDraft>) => void;
   onClose: () => void;
+  /** Czy w sekcji są niezapisane zmiany (tej albo innej wiadomości). */
+  dirty?: boolean;
+  isSaving?: boolean;
+  /** Zapis całej sekcji, ten sam co w pasku „Masz niezapisane zmiany". */
+  onSave?: () => void;
 }
 
 /**
@@ -96,6 +111,9 @@ export const RuleDrawer: React.FC<RuleDrawerProps> = ({
   initialChannel,
   onPatch,
   onClose,
+  dirty = false,
+  isSaving = false,
+  onSave,
 }) => {
   const [channel, setChannel] = useState<Channel>(initialChannel);
   const panelRef = useRef<HTMLElement>(null);
@@ -173,6 +191,18 @@ export const RuleDrawer: React.FC<RuleDrawerProps> = ({
             draft={draft}
             onPatch={patch => onPatch(channel, patch)}
           />
+        )}
+
+        {/* Pasek „Masz niezapisane zmiany" leży pod panelem (patrz warstwy wyżej), więc
+            bez tej stopki zapis był niedostępny, dopóki panel był otwarty. Otwarty edytor
+            przejmuje okno, więc jego „Zapisz" może być wypełniony (CLAUDE.md §2). */}
+        {onSave && (
+          <Footer>
+            <Button variant="ghost" onClick={onClose} disabled={isSaving}>Zamknij</Button>
+            <Button variant="primary" onClick={onSave} disabled={!dirty || isSaving}>
+              {isSaving ? 'Zapisywanie…' : 'Zapisz zmiany'}
+            </Button>
+          </Footer>
         )}
       </Panel>
     </>,

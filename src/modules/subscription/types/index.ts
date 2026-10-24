@@ -256,6 +256,12 @@ export interface AddOnPreview {
 export type CheckoutType = 'INITIAL_PURCHASE' | 'RENEWAL' | 'PLAN_UPGRADE' | 'ADD_ON_PURCHASE';
 
 /**
+ * Typ zamówienia płatności. Kredyty SMS idą przez tę samą stronę wyniku płatności, ale nie
+ * przez checkout pakietu - dlatego nie należą do `CheckoutType` (backend odrzuca je tam).
+ */
+export type PaymentOrderType = CheckoutType | 'SMS_CREDITS';
+
+/**
  * Lustro `PaymentOrderStatus` z backendu (payments/order/PaymentOrderEntity.kt) - CAŁE.
  * Dawniej były tu tylko cztery stany, a udany zakup kończy się na FULFILLED: strona
  * powrotu z P24 czekała na PAID, które mija w ułamku sekundy (webhook od razu realizuje
@@ -302,7 +308,7 @@ export interface CheckoutResponse {
 
 export interface PaymentOrder {
     orderId: string;
-    type: CheckoutType;
+    type: PaymentOrderType;
     typeDisplayName: string;
     status: PaymentOrderStatus;
     amountCents: number;

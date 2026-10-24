@@ -12,6 +12,9 @@
 import { problemDetail, problemStatus } from '@/core/problem';
 
 export function toastedGlobally(error: unknown): boolean {
+    // Żądanie z `skipErrorToast` interceptor przepuszcza bez dymka - wtedy własny dymek
+    // sekcji jest jedynym, a nie drugim. Bez tego warunku błąd zapisu znikał bez śladu.
+    if ((error as { config?: { skipErrorToast?: boolean } } | null)?.config?.skipErrorToast === true) return false;
     const status = problemStatus(error);
     if (status === undefined) return false;
     return status >= 400 && status < 500;

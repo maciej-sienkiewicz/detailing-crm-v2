@@ -33,6 +33,10 @@ export const LEGAL_VERSION = '2026-10-22';
 
 const UPDATED_AT = '21 października 2026 r.';
 const TERMS_UPDATED_AT = '22 października 2026 r.';
+// Polityka i klauzula: opis plików cookies zgodny z tym, co Aplikacja naprawdę zapisuje
+// (bez reklamowych cookies i baneru, których nie było). LEGAL_VERSION się nie zmienia -
+// dotyczy tylko regulaminu i umowy powierzenia.
+const PRIVACY_UPDATED_AT = '23 października 2026 r.';
 
 export const LEGAL_DOCUMENTS: LegalDocument[] = [
     {
@@ -44,13 +48,13 @@ export const LEGAL_DOCUMENTS: LegalDocument[] = [
     {
         slug: 'polityka-prywatnosci',
         title: 'Polityka prywatności',
-        updatedAt: UPDATED_AT,
+        updatedAt: PRIVACY_UPDATED_AT,
         load: () => import('./content/polityka-prywatnosci.json') as Promise<{ default: LegalBlock[] }>,
     },
     {
         slug: 'klauzula-informacyjna',
         title: 'Klauzula informacyjna dla Użytkowników',
-        updatedAt: UPDATED_AT,
+        updatedAt: PRIVACY_UPDATED_AT,
         load: () => import('./content/klauzula-informacyjna.json') as Promise<{ default: LegalBlock[] }>,
     },
     {

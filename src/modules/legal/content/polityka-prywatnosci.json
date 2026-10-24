@@ -82,7 +82,7 @@
  {
   "t": "li",
   "n": "c)",
-  "text": "marketingu bezpośredniego produktów lub usług, w tym nawiązania kontaktu, przedstawiania oferty, zapisywania danych w plikach cookies oraz gromadzenia danych ze stron www i aplikacji mobilnych - na podstawie Państwa zgody (art. 6 ust. 1 lit. a RODO w zw. właściwymi przepisami prawa krajowego);"
+  "text": "marketingu bezpośredniego produktów lub usług, w tym nawiązania kontaktu i przedstawiania oferty - na podstawie Państwa zgody (art. 6 ust. 1 lit. a RODO w zw. właściwymi przepisami prawa krajowego);"
  },
  {
   "t": "li",
@@ -260,7 +260,7 @@
  {
   "t": "li",
   "n": "c)",
-  "text": "Dane Osobowe przetwarzane w celu marketingu bezpośredniego usług, w tym nawiązania kontaktu, przedstawiania oferty, prowadzenie pomiarów i analiz, obejmujących profilowanie, zapisywania danych w plikach cookies oraz gromadzenia danych ze stron www i aplikacji mobilnych - do czasu wycofania zgody albo do momentu wniesienia sprzeciwu;"
+  "text": "Dane Osobowe przetwarzane w celu marketingu bezpośredniego usług, w tym nawiązania kontaktu i przedstawiania oferty - do czasu wycofania zgody albo do momentu wniesienia sprzeciwu;"
  },
  {
   "t": "li",
@@ -428,67 +428,52 @@
  {
   "t": "p",
   "n": "14.",
-  "text": "Pragniemy podkreślić, że Aplikacja, gromadzi informacje zawarte w plikach cookies oraz z wykorzystaniem innych technologii lokalnego przechowywania danych. Pliki cookies to niewielkie pliki wysyłane do urządzenia końcowego użytkownika identyfikujące go w sposób potrzebny do uproszczenia i przyspieszenia działania Aplikacji. Pliki cookies oraz technologie pamięci podręcznej zazwyczaj zawierają nazwę systemu, z którego pochodzą, czas przechowywania ich na urządzeniu końcowym oraz unikalny numer. Pliki te wykorzystywane są w celu:"
+  "text": "Aplikacja zapisuje na urządzeniu Użytkownika wyłącznie informacje niezbędne do jej działania oraz do korzystania z funkcji, z których Użytkownik sam korzysta. Służą do tego plik cookie sesji oraz pamięć lokalna przeglądarki lub urządzenia (m.in. localStorage, IndexedDB i pamięć podręczna aplikacji, a w aplikacji mobilnej – pamięć aplikacji na urządzeniu). Zapisujemy w ten sposób:"
  },
  {
   "t": "li",
   "n": "a)",
-  "text": "dostosowania zawartości Aplikacji do preferencji Użytkownika oraz optymalizacji korzystania z niej, a w szczególności pozwalają rozpoznać urządzenie Użytkownika i odpowiednio wyświetlić interfejs dostosowany do jego indywidualnych potrzeb;"
+  "text": "plik cookie sesji, który pozwala rozpoznać zalogowanego Użytkownika bez ponownego logowania przy każdym wejściu do Aplikacji; plik jest niedostępny dla skryptów na stronie (HttpOnly), jest przesyłany wyłącznie połączeniem szyfrowanym (Secure), a sesja wygasa po 7 dniach bezczynności;"
  },
  {
   "t": "li",
   "n": "b)",
-  "text": "tworzenia statystyk, które pomagają zrozumieć, w jaki sposób Użytkownicy korzystają z Aplikacji, co umożliwia ulepszanie jej struktury i zawartości;"
+  "text": "informacje służące bezpieczeństwu, m.in. czas ostatniej aktywności potrzebny do automatycznej blokady ekranu oraz listę profili Użytkowników przełączanych kodem PIN na urządzeniu współdzielonym;"
  },
  {
   "t": "li",
   "n": "c)",
-  "text": "utrzymania sesji Użytkownika (brak konieczności ponownego logowania po każdym zamknięciu programu)."
- },
- {
-  "t": "p",
-  "n": "15.",
-  "text": "Wskazujemy również, że w ramach Aplikacji stosowane są następujące rodzaje plików cookies:"
- },
- {
-  "t": "li",
-  "n": "a)",
-  "text": "„niezbędne” pliki cookies, umożliwiające korzystanie z usług dostępnych w ramach Aplikacji, np. uwierzytelniające pliki cookies wykorzystywane do usług wymagających uwierzytelniania w ramach Aplikacji;"
- },
- {
-  "t": "li",
-  "n": "b)",
-  "text": "pliki cookies służące do zapewnienia bezpieczeństwa, np. wykorzystywane do wykrywania nadużyć w zakresie uwierzytelniania w ramach Aplikacji;"
- },
- {
-  "t": "li",
-  "n": "c)",
-  "text": "„wydajnościowe” pliki cookies, umożliwiające zbieranie informacji o sposobie korzystania z Aplikacji;"
+  "text": "ustawienia wybrane przez Użytkownika, m.in. widok i filtry kalendarza, stan menu bocznego oraz włączenie skrótów klawiszowych;"
  },
  {
   "t": "li",
   "n": "d)",
-  "text": "„funkcjonalne” pliki cookies, umożliwiające „zapamiętanie” wybranych przez użytkownika Aplikacji ustawień i personalizację interfejsu użytkownika, np. w zakresie wybranego regionu, z którego pochodzi użytkownik, rozmiaru czcionki, wyglądu Aplikacji, itp.;"
+  "text": "wersje robocze i dane oczekujące na wysłanie, m.in. niezakończone przyjęcie pojazdu oraz zdjęcia wykonane przy słabym połączeniu – do czasu ich przesłania do Aplikacji;"
  },
  {
   "t": "li",
   "n": "e)",
-  "text": "„reklamowe” pliki cookies, umożliwiające dostarczanie użytkownikom treści reklamowych bardziej dostosowanych do ich zainteresowań;"
+  "text": "identyfikator urządzenia do powiadomień push, jeżeli Użytkownik włączył powiadomienia (pkt 5 lit. j);"
  },
  {
   "t": "li",
   "n": "f)",
-  "text": "„statystyczne” pliki cookies, umożliwiające dostarczanie anonimowych danych statystycznych, które pozwalają identyfikować sposób korzystania użytkowników ze Aplikacji."
+  "text": "pliki samej Aplikacji, które przyspieszają jej uruchamianie i pozwalają z niej korzystać przy słabym połączeniu."
+ },
+ {
+  "t": "p",
+  "n": "15.",
+  "text": "Nie stosujemy plików cookies ani innych technologii zapisywania informacji na urządzeniu w celach analitycznych, statystycznych ani reklamowych, ani do profilowania. Nie korzystamy też z narzędzi analitycznych ani reklamowych podmiotów trzecich (takich jak Google Analytics, Google Ads czy Meta Pixel), więc podmioty trzecie nie zamieszczają w Aplikacji własnych plików cookies."
  },
  {
   "t": "p",
   "n": "16.",
-  "text": "Przeglądarki internetowe (oprogramowanie Licencjobiorcy) domyślnie dopuszczają przechowywanie w urządzeniu końcowym plików cookies i danych w pamięci lokalnej. Licencjobiorca oraz Użytkownik wyrażają zgodę na korzystanie z plików cookies analitycznych, funkcjonalnych i marketingowych za pośrednictwem dedykowanego baneru informacyjnego wyświetlanego przy pierwszym wejściu do Aplikacji. Niezbędne pliki cookies, wymagane do prawidłowego działania Aplikacji i świadczenia usług, są wykorzystywane na podstawie prawnie uzasadnionego interesu Spółki. Użytkownik może w każdej chwili zmienić swoje ustawienia dotyczące plików cookies z poziomu Aplikacji lub przeglądarki. Ograniczenia stosowania plików cookies mogą wpłynąć na funkcjonalność Aplikacji. Pliki cookies zamieszczane w urządzeniu końcowym Licencjobiorcy mogą być wykorzystywane również przez współpracujących ze Spółką reklamodawców oraz partnerów biznesowych Spółki. Podmiotem odpowiedzialnym za zamieszczanie plików cookies na urządzeniu końcowym Licencjobiorcy jednocześnie posiadającym do nich dostęp jest Spółka."
+  "text": "Informacje wymienione w pkt 14 są niezbędne do świadczenia usługi, z której Użytkownik korzysta, dlatego zgodnie z art. 399 ustawy z dnia 12 lipca 2024 r. – Prawo komunikacji elektronicznej ich zapisanie nie wymaga zgody, a Aplikacja nie wyświetla baneru zgody na pliki cookies. Jeżeli w przyszłości zaczniemy stosować pliki cookies wymagające zgody, zapytamy o nią przed ich zapisaniem i zaktualizujemy niniejszą Politykę Prywatności. Użytkownik może w każdej chwili usunąć pliki cookies i dane z pamięci lokalnej w ustawieniach przeglądarki lub urządzenia. Usunięcie pliku cookie sesji powoduje wylogowanie, a usunięcie danych z pamięci lokalnej – utratę zapisanych ustawień oraz niewysłanych wersji roboczych i zdjęć."
  },
  {
   "t": "p",
   "n": "17.",
-  "text": "Informujemy także, że w ramach Aplikacji nie stosujemy narzędzi analitycznych ani reklamowych podmiotów trzecich (takich jak Google Analytics, Google Ads czy Meta Pixel). W ramach Aplikacji przetwarzane są natomiast:"
+  "text": "W ramach Aplikacji przetwarzane są ponadto:"
  },
  {
   "t": "li",

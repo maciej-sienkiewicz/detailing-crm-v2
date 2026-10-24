@@ -1,0 +1,67 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "vite",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "run",
+        "dev",
+        "--",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5173"
+      ],
+      "port": 5173
+    },
+    {
+      "name": "vite-subaudit",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--config",
+        ".claude/vite.subaudit.config.ts",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5190",
+        "--strictPort"
+      ],
+      "port": 5190
+    },
+    {
+      "name": "vite-zlecenia-zbiorcze",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "/Users/maciej/Documents/repozytoria/.worktrees/front-zlecenia-zbiorcze",
+        "run",
+        "dev",
+        "--",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5174",
+        "--strictPort"
+      ],
+      "port": 5174
+    },
+    {
+      "name": "vite-subaudit-preview",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "preview",
+        "--config",
+        ".claude/vite.subaudit.preview.config.ts",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5191",
+        "--strictPort"
+      ],
+      "port": 5191
+    }
+  ]
+}

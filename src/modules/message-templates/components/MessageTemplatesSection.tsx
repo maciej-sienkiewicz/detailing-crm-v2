@@ -183,19 +183,29 @@ export const MessageTemplatesSection: React.FC<MessageTemplatesSectionProps> = (
    * Błąd zapisu stał wcześniej czerwoną ramką NAD przekierowaniem i nazwą nadawcy -
    * przy pasku zapisu na dole okna był poza ekranem, więc kliknięcie „Zapisz zmiany"
    * wyglądało, jakby nic nie zrobiło. Teraz: dymek, a pasek zostaje, bo zmiany
-   * dalej są niezapisane. 4xx pokazuje już globalny interceptor (z powodem od serwera,
-   * np. nieznaną zmienną) - drugi dymek o tym samym tylko by hałasował.
+   * dalej są niezapisane. Zapis SMS-ów idzie z `skipErrorToast`, więc powód od serwera
+   * (np. nieznaną zmienną) pokazuje ten dymek - jeden, nie dwa jak wcześniej.
    */
-  const handleSave = () => {
+  const handleSave = (): Promise<boolean> =>
     save()
-      .then(() => showSuccess('Zapisano wiadomości', 'Zmiany obowiązują od następnej wysyłki.'))
+      .then(() => {
+        showSuccess('Zapisano wiadomości', 'Zmiany obowiązują od następnej wysyłki.');
+        return true;
+      })
       .catch(err => {
-        if (toastedGlobally(err)) return;
-        showError(
-          'Nie zapisano zmian',
-          serverMessage(err) ?? 'Sprawdź połączenie i spróbuj ponownie. Zmiany czekają w pasku zapisu.'
-        );
+        if (!toastedGlobally(err)) {
+          showError(
+            'Nie zapisano zmian',
+            serverMessage(err) ?? 'Sprawdź połączenie i spróbuj ponownie. Zmiany czekają w pasku zapisu.'
+          );
+        }
+        return false;
       });
+
+  // Pasek zapisu leży pod panelem reguły, więc zapis musi być też w samym panelu.
+  // Po udanym zapisie panel się zamyka: edycja tej wiadomości jest skończona.
+  const saveFromDrawer = () => {
+    void handleSave().then(ok => { if (ok) closeDrawer(); });
   };
 
   const toggle = (key: MessageKey, channel: Channel) => {
@@ -274,6 +284,9 @@ export const MessageTemplatesSection: React.FC<MessageTemplatesSectionProps> = (
           initialChannel={openSpec.sms ? 'sms' : 'email'}
           onPatch={(channel, patch) => patchChannel(openSpec.key, channel, patch)}
           onClose={closeDrawer}
+          dirty={dirty}
+          isSaving={isSaving}
+          onSave={saveFromDrawer}
         />
       )}
 

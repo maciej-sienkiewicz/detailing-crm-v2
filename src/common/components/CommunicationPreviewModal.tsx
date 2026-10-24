@@ -372,8 +372,12 @@ export const CommunicationPreviewModal = ({ entry, onClose }: Props) => {
                         <MetaValue>{entry.recipientAddress}</MetaValue>
                     </MetaItem>
                     <MetaItem>
+                        {/* Przy błędzie data to moment próby: „Wysłano:" nad „Błąd wysyłki" mówiło dwie sprzeczne rzeczy. */}
                         <MetaLabel>
-                            {entry.status === 'RECEIVED' ? 'Otrzymano:' : entry.status === 'QUEUED' || entry.status === 'CANCELLED' ? 'Zaplanowano:' : 'Wysłano:'}
+                            {entry.status === 'RECEIVED' ? 'Otrzymano:'
+                                : entry.status === 'QUEUED' || entry.status === 'CANCELLED' ? 'Zaplanowano:'
+                                : isFailed ? 'Próba wysyłki:'
+                                : 'Wysłano:'}
                         </MetaLabel>
                         <MetaValue>{formatCommDate(entry.sentAt)}</MetaValue>
                     </MetaItem>
@@ -408,7 +412,7 @@ export const CommunicationPreviewModal = ({ entry, onClose }: Props) => {
                                 <line x1="12" y1="16" x2="12.01" y2="16" />
                             </svg>
                             <div>
-                                <ErrorBannerTitle>Wiadomość nie została dostarczona</ErrorBannerTitle>
+                                <ErrorBannerTitle>Wiadomość nie wyszła do klienta</ErrorBannerTitle>
                                 <ErrorBannerDetail>{entry.errorMessage}</ErrorBannerDetail>
                             </div>
                         </ErrorBanner>

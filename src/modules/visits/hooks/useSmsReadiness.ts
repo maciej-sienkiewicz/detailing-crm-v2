@@ -134,14 +134,19 @@ export function useSmsReadiness({
         // ── Template ──────────────────────────────────────────────────────────
         if (templateKey && templateSpec?.sms) {
             const rule = templatesQuery.data?.[templateSpec.sms.ruleKey];
+            // Bez wczytanej konfiguracji nie wiemy, jaki jest szablon. Brak danych liczył się
+            // jak „wyłączony": okno „Pojazd gotowy" przez pierwsze sekundy (i stale u osoby bez
+            // dostępu do ustawień wiadomości) podawało powód, którego nie było.
+            const known = !!templatesQuery.data;
             // Mirrors the backend's `sendable`: switched on AND actually has text.
             const sendable = !!rule?.enabled && (rule?.messageTemplate ?? '').trim().length > 0;
             requirements.push({
                 id: 'template',
-                status: !moduleEnabled ? 'unknown' : sendable ? 'ok' : 'missing',
+                status: !moduleEnabled || !known ? 'unknown' : sendable ? 'ok' : 'missing',
                 label: `Szablon „${templateSpec.name}"`,
                 detail: !moduleEnabled
                     ? 'sprawdzimy po włączeniu modułu'
+                    : !known ? '-'
                     : sendable ? 'włączony'
                     : rule?.enabled ? 'włączony, ale pusty: nic nie wyśle'
                     : 'wyłączony',

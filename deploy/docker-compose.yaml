@@ -3,7 +3,10 @@ services:
     image: ${ENV_DETAILING_CRM_FRONTEND_IMAGE}
     container_name: ${DETAILING_CRM_FRONTEND_CONTAINER_NAME}
     ports:
-      - '${ENV_DETAILING_CRM_FRONTEND_EXTERNAL_PORT}:80'
+      # 127.0.0.1: z internetu wchodzi się tylko przez nginx-proxy-manager (po nazwie kontenera
+      # w sieci dockera), z hosta najwyżej tunelem SSH. Na develop prefiks 127.0.0.1 siedzi w .env;
+      # .env prod przychodzi z Jenkinsa (secret file) i ma same numery portów, więc prefiks jest tutaj.
+      - '127.0.0.1:${ENV_DETAILING_CRM_FRONTEND_EXTERNAL_PORT}:80'
 
     restart: always
     networks:

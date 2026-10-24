@@ -47,6 +47,33 @@ export function isFinalOutcome(outcome: PaymentOutcome): boolean {
 /** Adres strony wyniku płatności - tej samej, na którą P24 odsyła kupującego (urlReturn). */
 export const paymentResultPath = (orderId: string) => `/payments/result?orderId=${encodeURIComponent(orderId)}`;
 
+const RETURN_KEY = (orderId: string) => `payment-return:${orderId}`;
+
+/**
+ * Gdzie wrócić z wyniku płatności. P24 zawsze odsyła na `/payments/result`, a stamtąd
+ * „Przejdź do aplikacji" prowadził do ustawień - także kogoś, kto dokupował kredyty SMS
+ * w połowie wydawania auta. Zapis w sessionStorage przeżywa przejście do P24 i z powrotem
+ * w tej samej karcie. Prywatny tryb albo zablokowany storage: wracamy jak dotąd.
+ */
+export function rememberPaymentReturn(orderId: string, path: string): void {
+    // Tylko ścieżka w aplikacji: adres z zewnątrz nie może stać się celem przekierowania.
+    if (!path.startsWith('/') || path.startsWith('//')) return;
+    try {
+        sessionStorage.setItem(RETURN_KEY(orderId), path);
+    } catch {
+        // Bez storage strona wyniku wraca do ustawień, jak przed tą zmianą.
+    }
+}
+
+export function paymentReturnPath(orderId: string): string | null {
+    try {
+        const path = sessionStorage.getItem(RETURN_KEY(orderId));
+        return path && path.startsWith('/') && !path.startsWith('//') ? path : null;
+    } catch {
+        return null;
+    }
+}
+
 /**
  * Co zrobić z odpowiedzią checkoutu.
  *

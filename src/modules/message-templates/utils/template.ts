@@ -68,7 +68,21 @@ export const VAR_LABELS: Record<string, string> = {
   termin_odbioru: 'termin odbioru',
 };
 
-const TOKEN = /\{\{\s*(\w+)\s*\}\}/g;
+/**
+ * Wszystko w podwójnych klamrach jest zmienną, także z polską literą czy myślnikiem - ta
+ * sama reguła co MessageTemplateRenderer na serwerze. Wcześniej `\w` widziało tylko ASCII,
+ * więc `{{imię}}` nie było zmienną: przechodziło walidację i klient dostawał SMS
+ * z dosłownym „{{imię}}".
+ */
+const TOKEN = /\{\{\s*([^{}]*?)\s*\}\}/g;
+
+const POLISH_TO_ASCII: Record<string, string> = {
+  ą: 'a', ć: 'c', ę: 'e', ł: 'l', ń: 'n', ó: 'o', ś: 's', ź: 'z', ż: 'z',
+  Ą: 'A', Ć: 'C', Ę: 'E', Ł: 'L', Ń: 'N', Ó: 'O', Ś: 'S', Ź: 'Z', Ż: 'Z',
+};
+
+/** `{{imię}}` to `{{imie}}`: nazwa zmiennej bez polskich znaków, jak na serwerze. */
+const tokenName = (raw: string): string => raw.replace(/[ąćęłńóśźżĄĆĘŁŃÓŚŹŻ]/g, ch => POLISH_TO_ASCII[ch] ?? ch);
 const FRAGMENT = /\[([^[\]]*)\]/g;
 
 /**
@@ -81,15 +95,16 @@ const FRAGMENT = /\[([^[\]]*)\]/g;
 export function resolveTemplate(template: string, optionalFragments = false): string {
   const withFragments = optionalFragments
     ? template.replace(FRAGMENT, (match, inner: string) => {
-        const keys = Array.from(inner.matchAll(TOKEN)).map(m => m[1]);
+        const keys = Array.from(inner.matchAll(TOKEN)).map(m => tokenName(m[1]));
         if (keys.length === 0) return match;
         // Nieznana zmienna zostaje widoczna (patrz niżej), więc fragmentu nie gasi.
         return keys.every(key => !(key in PREVIEW_VALUES) || PREVIEW_VALUES[key] !== '') ? inner : '';
       })
     : template;
-  const resolved = withFragments.replace(TOKEN, (match, key: string) =>
-    key in PREVIEW_VALUES ? PREVIEW_VALUES[key] : match
-  );
+  const resolved = withFragments.replace(TOKEN, (match, raw: string) => {
+    const key = tokenName(raw);
+    return key in PREVIEW_VALUES ? PREVIEW_VALUES[key] : match;
+  });
   return optionalFragments ? resolved.replace(/[ \t]{2,}/g, ' ').trim() : resolved;
 }
 
@@ -111,7 +126,7 @@ export interface PreviewSegment {
 export function previewSegments(template: string, optionalFragments = false): PreviewSegment[] {
   const withFragments = optionalFragments
     ? template.replace(FRAGMENT, (match, inner: string) => {
-        const keys = Array.from(inner.matchAll(TOKEN)).map(m => m[1]);
+        const keys = Array.from(inner.matchAll(TOKEN)).map(m => tokenName(m[1]));
         if (keys.length === 0) return match;
         return keys.every(key => !(key in PREVIEW_VALUES) || PREVIEW_VALUES[key] !== '') ? inner : '';
       })
@@ -125,7 +140,7 @@ export function previewSegments(template: string, optionalFragments = false): Pr
   for (const match of withFragments.matchAll(TOKEN)) {
     const index = match.index ?? 0;
     push(withFragments.slice(last, index), false);
-    const key = match[1];
+    const key = tokenName(match[1]);
     if (key in PREVIEW_VALUES) push(PREVIEW_VALUES[key], true);
     else push(match[0], false);
     last = index + match[0].length;
@@ -165,7 +180,7 @@ export function previewSegments(template: string, optionalFragments = false): Pr
 
 /** Tokens the studio typed that this message cannot fill: the backend rejects these. */
 export function unknownPlaceholders(template: string, allowed: string[]): string[] {
-  const used = Array.from(template.matchAll(TOKEN)).map(m => m[1]);
+  const used = Array.from(template.matchAll(TOKEN)).map(m => tokenName(m[1]));
   return Array.from(new Set(used.filter(key => !allowed.includes(key))));
 }
 

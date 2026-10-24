@@ -6,7 +6,7 @@
 
 import { useMemo, useState } from 'react';
 import styled from 'styled-components';
-import { useMutation } from '@tanstack/react-query';
+import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { Loader2, Send, SpellCheck, Undo2 } from 'lucide-react';
 import {
     ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalSubtitle,
@@ -16,6 +16,7 @@ import { FormField, FieldLabel, InputShellTextArea, BareTextArea } from '@/commo
 import { useToast } from '@/common/components/Toast';
 import { useProofread } from '@/modules/comms/hooks/useComms';
 import { hasPolishCharacters, smsSegments, smsWord } from '@/common/utils';
+import { formatDateTime } from '@/common/utils/formatters';
 import { customerEditApi } from '../api/customerEditApi';
 import { Button, ui } from '@/common/components/ui';
 import { problemDetail } from '@/core/problem';
@@ -68,8 +69,11 @@ export const SendSmsModal = ({ customerId, customerName, phone, onClose }: SendS
     // Korekta to model AI - moduł Asystent AI.
     const aiGate = useCapabilityGate('AI_LEAD_ASSIST');
 
+    const queryClient = useQueryClient();
     const sendSms = useMutation({
         mutationFn: () => customerEditApi.sendSms(customerId, message.trim()),
+        // Lista „Wiadomości do klienta" pokazywała stan sprzed wysyłki aż do przeładowania strony.
+        onSettled: () => queryClient.invalidateQueries({ queryKey: ['customerCommunication', customerId] }),
     });
 
     const polish = hasPolishCharacters(message);
@@ -98,8 +102,19 @@ export const SendSmsModal = ({ customerId, customerName, phone, onClose }: SendS
     const submit = () => {
         if (!message.trim() || sendSms.isPending) return;
         sendSms.mutate(undefined, {
-            onSuccess: () => {
-                showSuccess('SMS wysłany', `Wiadomość poszła na ${phone}`);
+            onSuccess: (result) => {
+                // Poza godzinami wysyłki SMS czeka w kolejce. „Wysłany" byłoby nieprawdą:
+                // klient dostanie go dopiero w terminie, który podaje backend.
+                if (result.queued) {
+                    showSuccess(
+                        'SMS zaplanowany',
+                        result.scheduledFor
+                            ? `Klient dostanie go ${formatDateTime(result.scheduledFor)} na ${phone}.`
+                            : `Klient dostanie go na ${phone}, gdy zacznie się pora wysyłki.`,
+                    );
+                } else {
+                    showSuccess('SMS wysłany', `Wiadomość poszła na ${phone}`);
+                }
                 onClose();
             },
             onError: (error) => {

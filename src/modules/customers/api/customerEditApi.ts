@@ -16,14 +16,31 @@ import type {
 
 const CUSTOMERS_BASE_PATH = '/v1/customers';
 
+/**
+ * Poza oknem wysyłki (12:00–18:00) backend nie wysyła SMS-a, tylko odkłada go do kolejki
+ * i mówi kiedy wyjdzie. Front wyrzucał tę odpowiedź i wieczorem pokazywał „SMS wysłany",
+ * choć klient dostawał wiadomość dopiero następnego dnia w południe.
+ */
+export interface SendCustomerSmsResult {
+    queued: boolean;
+    /** Termin wysyłki z kolejki (ISO, z `Z`); null, gdy SMS wyszedł od razu. */
+    scheduledFor: string | null;
+}
+
 export const customerEditApi = {
     /**
      * SMS napisany ręcznie z karty klienta. Backend zwraca 400/402/502 z opisem,
      * gdy studio nie ma modułu, kredytów albo klient nie ma numeru - komunikat
-     * pokazujemy wprost, bo użytkownik może na niego zareagować.
+     * pokazujemy wprost, bo użytkownik może na niego zareagować. Pokazuje go okno
+     * (`skipErrorToast`): globalny toast powtarzał ten sam tekst drugi raz.
      */
-    sendSms: async (customerId: string, message: string): Promise<void> => {
-        await apiClient.post(`${CUSTOMERS_BASE_PATH}/${customerId}/sms`, { message });
+    sendSms: async (customerId: string, message: string): Promise<SendCustomerSmsResult> => {
+        const res = await apiClient.post<Partial<SendCustomerSmsResult>>(
+            `${CUSTOMERS_BASE_PATH}/${customerId}/sms`,
+            { message },
+            { skipErrorToast: true },
+        );
+        return { queued: res.data?.queued === true, scheduledFor: res.data?.scheduledFor ?? null };
     },
 
     updateCustomer: async (

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
+import { useLocation } from 'react-router-dom';
 import { useAuth } from '@/core/context/AuthContext';
 import { useToast } from '@/common/components/Toast';
 import {
@@ -12,8 +13,10 @@ import { BareTextArea, FieldLabel, InputShellTextArea } from '@/common/component
 import { ModuleGateCard } from '@/modules/subscription/components/ModuleGate';
 import { AddOnActivationDialog } from '@/modules/subscription/components/PlanChangeDialog';
 import { useAddOnUnlock } from '@/modules/subscription/hooks/useAddOnUnlock';
-import { useSmsCreditBalance, useSmsCreditPackages, usePurchaseCredits } from '@/modules/settings/hooks/useSmsCredits';
+import { useSmsCreditBalance, useSmsCreditPackages } from '@/modules/settings/hooks/useSmsCredits';
+import { useCreditsCheckout } from '@/modules/settings/hooks/useCreditsCheckout';
 import { PurchaseConfirmModal } from '@/modules/settings/components/SmsCreditSection';
+import { CreditsContactButton, CreditsContactNotice } from '@/modules/settings/components/creditsContact';
 import { creditsLabel, formatCreditCount, formatGrossCents, packageGrossCents } from '@/modules/settings/components/smsCreditPricing';
 import { fetchAutomationConfig, updateAutomationConfig } from '@/modules/sms-settings/api/smsSettingsApi';
 import { SMS_AUTOMATION_KEY } from '@/modules/sms-settings/api/smsAutomationQuery';
@@ -333,10 +336,16 @@ function TemplateStep({ templateKey, onDone }: { templateKey?: MessageKey; onDon
 // ─── Step: credits ───────────────────────────────────────────────────────────
 
 function CreditsStep({ onDone }: { onDone: () => void }) {
-    const { data: packages, isLoading } = useSmsCreditPackages();
-    const purchase = usePurchaseCredits();
+    const { user } = useAuth();
+    // Pakiety są na backendzie @RequiresOwner: pracownik z uprawnieniem do wysyłki
+    // dostawał tu 403 i pustą listę zamiast informacji, kto może doładować konto.
+    const isOwner = user?.role === 'OWNER';
+    const { data: packages, isLoading } = useSmsCreditPackages({ enabled: isOwner });
+    const purchase = useCreditsCheckout();
     const { data: balance } = useSmsCreditBalance();
-    const { showSuccess, showError } = useToast();
+    // Starszy backend nie zna tej flagi: brak wartości = zakup jak dotąd.
+    const onlinePurchase = balance?.onlinePurchaseAvailable !== false;
+    const location = useLocation();
     const [selected, setSelected] = useState<string | null>(null);
     // Zakup szedł od razu po kliknięciu „Kup i dokończ konfigurację" - bez powtórzenia
     // ceny. Teraz przechodzi przez to samo okno potwierdzenia co w ustawieniach.
@@ -345,26 +354,32 @@ function CreditsStep({ onDone }: { onDone: () => void }) {
     const chosen = selected ?? packages?.[Math.min(1, (packages?.length ?? 1) - 1)]?.id ?? null;
     const chosenPkg = packages?.find(p => p.id === chosen) ?? null;
 
+    // Płatność idzie przez Przelewy24, a strona wyniku odsyła z powrotem do tej wizyty.
+    // Tylko w trybie mock (lokalnie) kredyty są od razu i kreator idzie dalej.
     const buy = () => {
-        if (!chosen) return;
-        purchase.mutate(chosen, {
-            onSuccess: result => {
+        if (!chosenPkg) return;
+        purchase.buy(chosenPkg, {
+            returnPath: `${location.pathname}${location.search}`,
+            onDone: () => {
                 setConfirming(false);
-                showSuccess('Kredyty doładowane', `Na koncie jest teraz ${formatCreditCount(result.availableCredits)} ${creditsLabel(result.availableCredits)}.`);
                 onDone();
-            },
-            onError: (err: unknown) => {
-                const message =
-                    problemDetail(err)
-                    ?? 'Nie udało się doładować kredytów.';
-                showError('Doładowanie nieudane', message);
             },
         });
     };
 
+    if (!isOwner) {
+        return (
+            <Notice tone="info" title="Kredyty doładowuje właściciel studia">
+                Poproś właściciela o doładowanie kredytów SMS.
+            </Notice>
+        );
+    }
+
     return (
         <>
             <Lede>Ostatni krok: doładuj kredyty, z których wyślemy tę i kolejne wiadomości.</Lede>
+
+            {!onlinePurchase && <CreditsContactNotice />}
 
             {isLoading ? (
                 <Lede>Wczytywanie pakietów…</Lede>
@@ -378,8 +393,9 @@ function CreditsStep({ onDone }: { onDone: () => void }) {
                             onClick={() => setSelected(pkg.id)}
                         >
                             <Radio $selected={chosen === pkg.id} aria-hidden="true" />
+                            {/* Ta sama jednostka co w ustawieniach: „100 kredytów", nie „100 SMS". */}
                             <ChoiceText>
-                                <strong>{pkg.creditAmount} SMS</strong>
+                                <strong>{formatCreditCount(pkg.creditAmount)} {creditsLabel(pkg.creditAmount)}</strong>
                                 <ChoiceSub>{pkg.name}</ChoiceSub>
                             </ChoiceText>
                             <Price>{formatGrossCents(packageGrossCents(pkg), pkg.currency)} brutto</Price>
@@ -388,20 +404,28 @@ function CreditsStep({ onDone }: { onDone: () => void }) {
                 </ChoiceList>
             )}
 
-            <Notice tone="ok" title="Po zakupie wrócisz dokładnie tutaj">
-                Wiadomość dla tej wizyty będzie gotowa do zatwierdzenia jednym kliknięciem.
-            </Notice>
+            {onlinePurchase ? (
+                <>
+                    <Notice tone="ok" title="Po płatności wrócisz do tej wizyty">
+                        Płatność otworzy się w Przelewy24. Gdy kredyty wpłyną na konto, wyślesz z wizyty wiadomość do klienta.
+                    </Notice>
 
-            <Button
-                variant="primary"
-                onClick={() => setConfirming(true)}
-                disabled={!chosenPkg || purchase.isPending}
-                style={{ alignSelf: 'flex-start' }}
-            >
-                {chosenPkg
-                    ? `Kup ${formatCreditCount(chosenPkg.creditAmount)} ${creditsLabel(chosenPkg.creditAmount)} za ${formatGrossCents(packageGrossCents(chosenPkg), chosenPkg.currency)}`
-                    : 'Wybierz pakiet'}
-            </Button>
+                    <Button
+                        variant="primary"
+                        onClick={() => setConfirming(true)}
+                        disabled={!chosenPkg || purchase.isPending}
+                        style={{ alignSelf: 'flex-start' }}
+                    >
+                        {chosenPkg
+                            ? `Kup ${formatCreditCount(chosenPkg.creditAmount)} ${creditsLabel(chosenPkg.creditAmount)} za ${formatGrossCents(packageGrossCents(chosenPkg), chosenPkg.currency)}`
+                            : 'Wybierz pakiet'}
+                    </Button>
+                </>
+            ) : (
+                <div style={{ alignSelf: 'flex-start' }}>
+                    <CreditsContactButton pkg={chosenPkg} size="md" />
+                </div>
+            )}
 
             {confirming && chosenPkg && (
                 <PurchaseConfirmModal

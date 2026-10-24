@@ -25,6 +25,12 @@ vi.mock('@/core/permissions', () => ({
     usePermissions: () => ({ ...permissions, can: () => true, defaultRoute: '/' }),
 }));
 
+const assignSafeUrl = vi.fn();
+vi.mock('@/common/utils/safeUrl', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/common/utils/safeUrl')>()),
+    assignSafeUrl: (url: string) => assignSafeUrl(url),
+}));
+
 vi.mock('../api/smsCreditApi', () => ({
     smsCreditApi: {
         getBalance: vi.fn(),
@@ -62,7 +68,12 @@ beforeEach(() => {
     });
     vi.mocked(smsCreditApi.getPackages).mockResolvedValue(PACKAGES);
     vi.mocked(smsCreditApi.getTransactions).mockResolvedValue({ items: [], page: { number: 1, size: 20, totalItems: 0, totalPages: 1 } });
-    vi.mocked(smsCreditApi.purchaseCredits).mockResolvedValue({ availableCredits: 3240, message: 'ok' });
+    // Tryb mock backendu: zamówienie zrealizowane od razu, bez strony płatności.
+    vi.mocked(smsCreditApi.purchaseCredits).mockResolvedValue({
+        orderId: 'o1', status: 'FULFILLED', amountCents: 24600, currency: 'PLN',
+        description: 'Pakiet Studio, 2000 kredytów SMS', paymentUrl: null,
+    });
+    sessionStorage.clear();
 });
 
 afterEach(() => {
@@ -99,7 +110,8 @@ describe('SmsCreditSection', () => {
     it('saldo jest nagłówkiem karty, bez powtórzonego tytułu sekcji', async () => {
         renderSection();
         expect(await screen.findByText('Na koncie')).toBeTruthy();
-        expect(await screen.findByText(/kupiono 3000, zużyto 1760/)).toBeTruthy();
+        // „łącznie dodano", nie „kupiono": suma obejmuje kredyty startowe, których nikt nie kupił.
+        expect(await screen.findByText(/łącznie dodano 3000, zużyto 1760/)).toBeTruthy();
         expect(screen.queryByText(/Saldo kredytów SMS/)).toBeNull();
     });
 
@@ -140,7 +152,27 @@ describe('SmsCreditSection', () => {
 
         await waitFor(() => expect(smsCreditApi.purchaseCredits).toHaveBeenCalledWith('k2'));
         expect(await screen.findByText('Kredyty dodane')).toBeTruthy();
+        expect(assignSafeUrl).not.toHaveBeenCalled();
         await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+    });
+
+    // Zakup idzie przez Przelewy24 jak abonament: przekierowanie na stronę płatności,
+    // a strona wyniku po powrocie odsyła z powrotem do sekcji kredytów.
+    it('„Kup za …" prowadzi do Przelewy24 i zapamiętuje powrót do sekcji kredytów', async () => {
+        vi.mocked(smsCreditApi.purchaseCredits).mockResolvedValue({
+            orderId: 'o2', status: 'PENDING', amountCents: 24600, currency: 'PLN',
+            description: 'Pakiet Studio, 2000 kredytów SMS',
+            paymentUrl: 'https://sandbox.przelewy24.pl/trnRequest/TOKEN',
+        });
+        renderSection();
+        await userEvent.click(await screen.findByRole('radio', { name: /Studio/ }));
+        await userEvent.click(screen.getByRole('button', { name: /^Kup 2000/ }));
+        await userEvent.click(await screen.findByRole('checkbox', { name: /Akceptuję regulamin/ }));
+        await userEvent.click(await screen.findByRole('button', { name: /Kup za 246,00/ }));
+
+        await waitFor(() => expect(assignSafeUrl).toHaveBeenCalledWith('https://sandbox.przelewy24.pl/trnRequest/TOKEN'));
+        expect(sessionStorage.getItem('payment-return:o2')).toBe('/settings?tab=credits');
+        expect(screen.queryByText('Kredyty dodane')).toBeNull();
     });
 
     it('bez zgody na regulamin pakiet nie jest kupowany', async () => {
@@ -174,6 +206,39 @@ describe('SmsCreditSection', () => {
         renderSection();
         expect(await screen.findByText('Nie udało się wczytać salda')).toBeTruthy();
         expect(screen.getByRole('button', { name: 'Spróbuj ponownie' })).toBeTruthy();
+    });
+
+    // Zakup bez podpiętej bramki kończył się dopiero na końcu błędem 503, po wyborze pakietu
+    // i zaznaczeniu zgody. Teraz zamiast „Kup" jest mail do obsługi z wybranym pakietem.
+    it('zakup online niedostępny: zamiast „Kup" mail do obsługi z wybranym pakietem', async () => {
+        vi.mocked(smsCreditApi.getBalance).mockResolvedValue({
+            availableCredits: 0, totalPurchased: 150, totalUsed: 150, updatedAt: '2026-09-20T10:00:00Z',
+            onlinePurchaseAvailable: false,
+        });
+        renderSection();
+        expect(await screen.findByText('Kredytów nie kupisz jeszcze w aplikacji')).toBeTruthy();
+
+        await userEvent.click(await screen.findByRole('radio', { name: /Studio, 2000 kredytów/ }));
+        expect(screen.queryByRole('button', { name: /^Kup/ })).toBeNull();
+        const link = screen.getByRole('link', { name: 'Napisz do nas o 2000 kredytów' });
+        const href = decodeURIComponent(link.getAttribute('href') ?? '');
+        expect(href).toMatch(/^mailto:pomoc@detailboost\.pl\?/);
+        expect(normalize(href)).toContain('pakiet Studio, 2000 kredytów za 246,00 zł brutto');
+
+        await userEvent.click(link);
+        expect(smsCreditApi.purchaseCredits).not.toHaveBeenCalled();
+    });
+
+    it('wysyłka w historii ma rodzaj „Wysyłka" (backend wysyła DEDUCTION)', async () => {
+        vi.mocked(smsCreditApi.getTransactions).mockResolvedValue({
+            items: [{
+                id: 't1', type: 'DEDUCTION', amount: -1, balanceAfter: 1239,
+                description: 'Wysłanie SMS', referenceId: null, createdAt: '2026-09-20T10:00:00Z',
+            }],
+            page: { number: 1, size: 20, totalItems: 1, totalPages: 1 },
+        });
+        renderSection();
+        expect(await screen.findByText('Wysyłka')).toBeTruthy();
     });
 
     it('poza właścicielem nie pyta o pakiety ani historię (backend odpowiedziałby 403)', async () => {

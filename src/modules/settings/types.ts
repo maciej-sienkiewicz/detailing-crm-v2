@@ -106,13 +106,21 @@ export interface UpdateVisitNumberingConfigRequest {
 
 // ─── SMS Credits ──────────────────────────────────────────────────────────────
 
-export type SmsCreditTransactionType = 'PURCHASE' | 'USAGE' | 'REFUND' | 'BONUS' | 'EXPIRY';
+/**
+ * Dokładnie wartości `SmsCreditTransactionType` z backendu. Front miał tu `USAGE` i `EXPIRY`,
+ * których serwer nie wysyła, a nie miał `DEDUCTION` - każda wysyłka w historii dostawała
+ * pustą plakietkę „Rodzaj".
+ */
+export type SmsCreditTransactionType = 'PURCHASE' | 'DEDUCTION' | 'REFUND' | 'BONUS';
 
 export interface SmsCreditBalance {
     availableCredits: number;
+    /** Kupione i przyznane (kredyty startowe) razem. */
     totalPurchased: number;
     totalUsed: number;
     updatedAt: string;
+    /** `false`: zakupu nie da się dokończyć w aplikacji, front prowadzi do kontaktu z obsługą. */
+    onlinePurchaseAvailable?: boolean;
 }
 
 export interface SmsCreditPackage {
@@ -134,10 +142,6 @@ export interface SmsCreditTransaction {
     createdAt: string;
 }
 
-export interface PurchaseCreditsResponse {
-    availableCredits: number;
-    message: string;
-}
 
 /**
  * Automatyczne tworzenie leadów — klasyfikacja przychodzącej poczty przez model.

@@ -14,6 +14,7 @@ import {
   useSenderNameDocumentUrl,
 } from '../hooks/useSmsSenderName';
 import { openInNewTab } from '@/common/utils/safeUrl';
+import { sanitizeSenderName } from '../utils/senderName';
 
 /**
  * Nazwa nadawcy SMS - to, co klient widzi zamiast numeru telefonu, plus podpisane
@@ -35,13 +36,6 @@ import { openInNewTab } from '@/common/utils/safeUrl';
 type Status = 'confirmed' | 'pending' | 'awaiting_document' | 'none';
 
 const MAX_LENGTH = 11;
-
-/**
- * Operator przyjmuje tylko litery bez ogonków, cyfry, spację, kropkę i myślnik.
- * Wielkość liter jest wyborem studia - „DetailBoost" to nie to samo co „DETAILBOOST",
- * a wcześniej pole na siłę podnosiło wszystko do wersalików.
- */
-const sanitize = (value: string) => value.replace(/[^A-Za-z0-9 .-]/g, '');
 
 const Card = styled(Panel)<{ $attention: boolean }>`
   overflow: hidden;
@@ -254,8 +248,12 @@ export const SmsSenderNameCard: React.FC = () => {
   const status = isLoading ? 'none' : statusOf(config);
   const needsSetup = !isLoading && status === 'none';
   // Nieustawiony nadawca to zadanie do zrobienia, nie ustawienie do schowania -
-  // karta otwiera się sama, dopóki nazwa nie zostanie zapisana.
-  const expanded = open || needsSetup;
+  // karta otwiera się sama, dopóki nazwa nie zostanie zapisana. Tak samo, dopóki brakuje
+  // upoważnienia: po zapisie nazwy karta się zwijała i następny krok (podpis) chował się
+  // za przyciskiem „Zmień", którego nikt nie kojarzył z „dokończ".
+  const awaitingDocument = !isLoading && status === 'awaiting_document';
+  const forcedOpen = needsSetup || awaitingDocument;
+  const expanded = open || forcedOpen;
 
   const dirty = name.trim() !== savedName;
   const tooLong = name.length > MAX_LENGTH;
@@ -348,7 +346,7 @@ export const SmsSenderNameCard: React.FC = () => {
           </p>
         </Titles>
 
-        {!needsSetup && (
+        {!forcedOpen && (
           <Button
             variant="outline"
             size="sm"
@@ -374,7 +372,7 @@ export const SmsSenderNameCard: React.FC = () => {
                   placeholder="np. DetailBoost"
                   autoComplete="off"
                   $compact
-                  onChange={e => setDraft(sanitize(e.target.value))}
+                  onChange={e => setDraft(sanitizeSenderName(e.target.value))}
                 />
                 <Counter $warn={tooLong}>{name.length}/{MAX_LENGTH}</Counter>
               </InputShell>
@@ -391,8 +389,8 @@ export const SmsSenderNameCard: React.FC = () => {
           </NameRow>
 
           <HelperText>
-            Do {MAX_LENGTH} znaków: litery bez polskich ogonków, cyfry, spacja, kropka i myślnik.
-            Wielkość liter zostaje taka, jaką wpiszesz.
+            Do {MAX_LENGTH} znaków: litery, cyfry, spacja, kropka i myślnik. Polska litera zmienia
+            się na literę bez ogonka, np. ł na l. Wielkość liter zostaje taka, jaką wpiszesz.
           </HelperText>
 
           <AuthRow>

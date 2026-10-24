@@ -12,8 +12,12 @@ export async function fetchAutomationConfig(): Promise<SmsAutomationConfig> {
   return data;
 }
 
+// Odmowę zapisu (np. nieznana zmienna w treści) pokazuje wywołujący: ustawienia w pasku
+// zapisu, kreator przy wizycie toastem. Globalny toast powtarzał ten sam tekst drugi raz.
 export async function updateAutomationConfig(config: SmsAutomationConfig): Promise<SmsAutomationConfig> {
-  const { data } = await apiClient.put<SmsAutomationConfig>('/v1/sms-campaigns/automation', config);
+  const { data } = await apiClient.put<SmsAutomationConfig>('/v1/sms-campaigns/automation', config, {
+    skipErrorToast: true,
+  });
   return data;
 }
 

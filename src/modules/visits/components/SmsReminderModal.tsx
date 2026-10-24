@@ -19,6 +19,7 @@ import { SmsActivationWizard } from './SmsActivationWizard';
 import { PiiValue } from '@/common/pii';
 import { pluralPl } from '@/common/utils/plural';
 import { isProblem, problemDetail } from '@/core/problem';
+import { daysFromNowForDate, reminderScheduledFor, scheduledDateFromDays } from '../utils/smsReminderSchedule';
 
 /* Czasownik odmienia się razem z liczebnikiem: „został 1 kredyt", „zostały 2 kredyty",
    „zostało 5 kredytów". Wcześniej szło tu `detail` z jednostką („5 szt."), więc ekran
@@ -368,24 +369,12 @@ const LowBalanceAction = styled.button`
 
 const DAY_PRESETS = [7, 14, 30, 60, 90];
 
-function scheduledDateFromDays(days: number): Date {
-    const d = new Date();
-    d.setDate(d.getDate() + days);
-    d.setHours(16, 0, 0, 0);
-    return d;
-}
-
 function formatPreviewDate(days: number): string {
     return scheduledDateFromDays(days).toLocaleDateString('pl-PL', {
         day: 'numeric',
         month: 'long',
         year: 'numeric',
     });
-}
-
-function daysFromNowForDate(isoDate: string): number {
-    const diff = new Date(isoDate).getTime() - Date.now();
-    return Math.max(1, Math.round(diff / 86_400_000));
 }
 
 // ── Props ─────────────────────────────────────────────────────────────────────
@@ -450,7 +439,7 @@ export const SmsReminderModal = ({ isOpen, visitId, customer, existingReminder, 
     const handleSubmit = async () => {
         if (!message.trim()) return;
         setSubmitError(null);
-        const scheduledFor = scheduledDateFromDays(days).toISOString();
+        const scheduledFor = reminderScheduledFor(days, existingReminder?.scheduledFor);
 
         try {
             if (isEditMode && existingReminder) {

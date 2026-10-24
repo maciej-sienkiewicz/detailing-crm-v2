@@ -1,7 +1,7 @@
 // Podgląd szablonu w Ustawieniach komunikacji: fragment w [...] działa jak na serwerze
 // (MessageTemplateRenderer) - znika, gdy zmienna w środku jest pusta.
 import { describe, expect, it } from 'vitest';
-import { previewSegments, resolveTemplate } from './template';
+import { previewSegments, resolveTemplate, unknownPlaceholders } from './template';
 
 describe('resolveTemplate - fragmenty opcjonalne', () => {
     const template = '[Dodano: {{dodane}}.] [Usunięto: {{usuniete}}.] Razem {{nowa_cena}}[, dopłata {{roznica}}].';
@@ -49,5 +49,25 @@ describe('previewSegments - podgląd z podświetlonymi wartościami', () => {
 
     it('nieznana zmienna zostaje widoczna jako tekst, a nie jako wstawiona wartość', () => {
         expect(previewSegments('{{nieznana}}')).toEqual([{ text: '{{nieznana}}', filled: false }]);
+    });
+});
+
+// `{{imię}}` (z „ę") nie było dla walidacji zmienną: zapis przechodził, a klient dostawał
+// SMS z dosłownym „{{imię}}". Teraz polskie znaki w nazwie zmiennej się „składają"
+// (`{{imię}}` to `{{imie}}`, jak na serwerze), a nazwa nieznana także bez nich jest zgłaszana.
+describe('zmienne z polskimi znakami', () => {
+    const allowed = ['imie', 'pojazd'];
+
+    it('{{imię}} to {{imie}}: podgląd wstawia wartość, walidacja nie protestuje', () => {
+        expect(resolveTemplate('Cześć {{imię}}!')).toBe('Cześć Jan!');
+        expect(unknownPlaceholders('Cześć {{imię}}!', allowed)).toEqual([]);
+    });
+
+    it('nazwa nieznana także bez ogonków jest zgłaszana, z myślnikiem też', () => {
+        expect(unknownPlaceholders('Cześć {{imie-nazwisko}}, {{studio}} {{studio}}', allowed)).toEqual(['imie-nazwisko', 'studio']);
+    });
+
+    it('znane zmienne ze spacjami w klamrach przechodzą', () => {
+        expect(unknownPlaceholders('Cześć {{ imie }}, {{pojazd}} gotowe.', allowed)).toEqual([]);
     });
 });
