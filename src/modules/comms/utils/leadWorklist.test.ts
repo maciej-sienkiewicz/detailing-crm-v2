@@ -46,6 +46,15 @@ const lead = (overrides: Partial<Lead> = {}): Lead => ({
     ...overrides,
 });
 
+/** Wycena sprawy: przyjęta pozycja o danym brutto i (opcjonalnie) sugestia AI, która NIE jest wyceną. */
+const quoted = (gross: number, suggested = 0): Partial<Lead> => ({
+    estimatedValue: gross + suggested,
+    services: [
+        { id: `a-${gross}`, status: 'ACCEPTED', totalGross: gross } as Lead['services'][number],
+        ...(suggested ? [{ id: `s-${suggested}`, status: 'SUGGESTED', totalGross: suggested } as Lead['services'][number]] : []),
+    ],
+});
+
 /** My napisaliśmy ostatni - ruch jest u klienta od `daysAgo`. */
 const waitingOnClient = (daysAgo: number, overrides: Partial<Lead> = {}) =>
     lead({
@@ -232,9 +241,9 @@ describe('dług studia w sekcjach', () => {
 describe('kwoty i liczniki', () => {
     it('suma sekcji „Ucichło" liczy pieniądze do odzyskania', () => {
         const worklist = buildWorklist([
-            waitingOnClient(7, { estimatedValue: 890_000 }),
-            waitingOnClient(8, { estimatedValue: 420_000 }),
-            waitingOnClient(1, { estimatedValue: 100_000 }),
+            waitingOnClient(7, quoted(890_000, 50_000)),
+            waitingOnClient(8, quoted(420_000)),
+            waitingOnClient(1, quoted(100_000)),
         ]);
 
         expect(worklist.silent.value).toBe(1_310_000);

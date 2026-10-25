@@ -53,6 +53,15 @@ const lead = (overrides: Partial<Lead> = {}): Lead => ({
     ...overrides,
 });
 
+/** Wycena sprawy: przyjęta pozycja o danym brutto i (opcjonalnie) sugestia AI, która NIE jest wyceną. */
+const quoted = (gross: number, suggested = 0): Partial<Lead> => ({
+    estimatedValue: gross + suggested,
+    services: [
+        { id: `a-${gross}`, status: 'ACCEPTED', totalGross: gross } as Lead['services'][number],
+        ...(suggested ? [{ id: `s-${suggested}`, status: 'SUGGESTED', totalGross: suggested } as Lead['services'][number]] : []),
+    ],
+});
+
 /** Odpisaliśmy `days` dni temu, klient milczy. */
 const replied = (days: number, overrides: Partial<Lead> = {}) =>
     lead({
@@ -215,9 +224,9 @@ describe('budowa tablicy', () => {
         expect(column.cards.map((card) => card.lead.id)).toEqual(['old', 'fresh']);
     });
 
-    it('suma wycen bez przeliczania', () => {
-        const a = replied(4, { estimatedValue: 190000 });
-        const b = replied(5, { estimatedValue: 154471 });
+    it('suma wycen bez przeliczania - z przyjętych pozycji, bez sugestii AI', () => {
+        const a = replied(4, quoted(190000, 29900));
+        const b = replied(5, quoted(154471));
         expect(buildBoard([a, b], DEFAULT_STAGNATION, NOW).find((c) => c.key === 'NEEDS_REMINDER')!.value).toBe(344471);
     });
 

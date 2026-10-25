@@ -65,6 +65,12 @@ interface Props {
  */
 const NARROW_TABLE_WIDTH = 560;
 
+/**
+ * Kwota w komórce tabeli z polskim przecinkiem dziesiętnym. Dawniej „202.44" w wierszach,
+ * a „202,44 zł" w podsumowaniu tej samej tabeli - dwa zapisy jednej liczby obok siebie.
+ */
+const decimalPl = (value: number): string => value.toFixed(2).replace('.', ',');
+
 const VAT_RATES = [23, 8, 5, 0, -1] as const;
 const VAT_LABEL = (rate: number) => rate === -1 ? 'zw.' : `${rate}%`;
 
@@ -437,8 +443,8 @@ export const ServicesTable = ({ services, onChange, onSaveService, scope = PRICE
                                     </S.ServiceNameWrap>
 
                                     <S.PriceDisplay>
-                                        <S.PriceDisplayMain $isDiscounted={isCheaper}>{finalNet.toFixed(2)}</S.PriceDisplayMain>
-                                        {isChanged && <S.PriceDisplayOriginal>{baseNet.toFixed(2)}</S.PriceDisplayOriginal>}
+                                        <S.PriceDisplayMain $isDiscounted={isCheaper}>{decimalPl(finalNet)}</S.PriceDisplayMain>
+                                        {isChanged && <S.PriceDisplayOriginal>{decimalPl(baseNet)}</S.PriceDisplayOriginal>}
                                     </S.PriceDisplay>
                                     <S.VatCell>{VAT_LABEL(service.vatRate)}</S.VatCell>
                                     <S.PriceCellButton
@@ -449,8 +455,8 @@ export const ServicesTable = ({ services, onChange, onSaveService, scope = PRICE
                                     >
                                         <Pencil aria-hidden="true" />
                                         <S.PriceCellAmounts>
-                                            <S.PriceDisplayMain $isBrutto $isDiscounted={isCheaper}>{finalGross.toFixed(2)}</S.PriceDisplayMain>
-                                            {isChanged && <S.PriceDisplayOriginal>{baseGross.toFixed(2)}</S.PriceDisplayOriginal>}
+                                            <S.PriceDisplayMain $isBrutto $isDiscounted={isCheaper}>{decimalPl(finalGross)}</S.PriceDisplayMain>
+                                            {isChanged && <S.PriceDisplayOriginal>{decimalPl(baseGross)}</S.PriceDisplayOriginal>}
                                         </S.PriceCellAmounts>
                                     </S.PriceCellButton>
 

@@ -3,20 +3,25 @@
 //
 // ── Przepływ (decyzja biznesu 2026-10-19) ─────────────────────────────────────
 //
-//   klient napisał                 → Oczekuje na odpowiedź
-//   odpisaliśmy                    → Odpowiedzieliśmy
-//   3 dni ciszy klienta            → Wymaga przypomnienia
-//   przypomnieliśmy się            → Odpowiedzieliśmy, z plakietką przypomnienia
-//   10 dni ciszy                   → Utrata
-//   10 kolejnych dni               → karta znika z tablicy
+//   klient napisał                 → Czeka na nas
+//   odpisaliśmy                    → Czeka na klienta
+//   3 dni ciszy klienta            → Do przypomnienia
+//   przypomnieliśmy się            → Czeka na klienta, z plakietką przypomnienia
+//   10 dni ciszy                   → Ucichło
+//   10 kolejnych dni               → karta schodzi z tablicy (na liście zostaje w „Ucichło")
+//
+// Nazwy kolumn są te same co grup listy spraw (leadWorklist.ts) - od 25.10.2026. Dawniej
+// tablica mówiła „Oczekuje na odpowiedź / Odpowiedzieliśmy / Utrata", a lista o tych samych
+// sprawach „Czeka na nas / Czeka na klienta / Ucichło": dwa słowniki na jedną rzecz,
+// a czerwona „Utrata" sugerowała sprawę straconą, choć jej status się nie zmienia.
 //
 // Ciszę liczymy od NASZEJ OSTATNIEJ wiadomości. Przypomnienie jest jedno na jedną ciszę:
-// po nim karta czeka w „Odpowiedzieliśmy" do 10. dnia od przypomnienia i drugi raz o nie
-// nie prosi. Bez przypomnienia - do „Utraty" po 10 dniach od naszej odpowiedzi.
+// po nim karta czeka w „Czeka na klienta" do 10. dnia od przypomnienia i drugi raz o nie
+// nie prosi. Bez przypomnienia - do „Ucichło" po 10 dniach od naszej odpowiedzi.
 //
-// „Utrata" to sam widok: status sprawy zostaje, jaki był. Zamkniętej sprawy nic w systemie
+// „Ucichło" to sam widok: status sprawy zostaje, jaki był. Zamkniętej sprawy nic w systemie
 // nie otwiera ponownie, więc automatyczne zamykanie zgubiłoby wiadomość klienta, który
-// odpisze po trzech tygodniach - a tak jego karta po prostu wraca do „Oczekuje".
+// odpisze po trzech tygodniach - a tak jego karta po prostu wraca do „Czeka na nas".
 //
 // ── Przeciągnięcie jest wyjątkiem ─────────────────────────────────────────────
 //
@@ -33,6 +38,7 @@
 // upuszczeniu nic nie przeskakuje.
 import type { Lead, LeadBoardStage } from '../types';
 import { CLOSED_STATUSES } from './leadFormat';
+import { quoteTotal } from './leadServiceLines';
 import {
     DEFAULT_STAGNATION,
     describeLeadUrgency,
@@ -73,30 +79,31 @@ export interface BoardColumnMeta {
 export const BOARD_COLUMNS: BoardColumnMeta[] = [
     {
         key: 'AWAITING_REPLY',
-        title: 'Oczekuje na odpowiedź',
+        title: 'Czeka na nas',
         empty: 'Nikt nie czeka na naszą odpowiedź.',
         tone: { dot: '#0369a1', tint: '#e7f6fd', ink: '#0e6fa0' },
         showsValue: false,
     },
     {
         key: 'REPLIED',
-        title: 'Odpowiedzieliśmy',
+        title: 'Czeka na klienta',
         empty: 'Tu trafiają sprawy, w których piłka jest u klienta.',
         tone: { dot: '#8b5cf6', tint: '#f3effe', ink: '#6d28d9' },
         showsValue: true,
     },
     {
         key: 'NEEDS_REMINDER',
-        title: 'Wymaga przypomnienia',
+        title: 'Do przypomnienia',
         empty: `Tu trafiają sprawy po ${REMIND_AFTER_DAYS} dniach ciszy klienta.`,
         tone: { dot: '#f59e0b', tint: '#fef6e4', ink: '#b45309' },
         showsValue: true,
     },
     {
         key: 'LAPSED',
-        title: 'Utrata',
-        empty: `Tu trafiają sprawy po ${LAPSE_AFTER_DAYS} dniach ciszy. Po kolejnych ${VANISH_AFTER_DAYS} znikają z tablicy.`,
-        tone: { dot: '#f43f5e', tint: '#fff0f2', ink: '#be123c' },
+        title: 'Ucichło',
+        empty: `Tu trafiają sprawy po ${LAPSE_AFTER_DAYS} dniach ciszy. Po kolejnych ${VANISH_AFTER_DAYS} schodzą z tablicy, a na liście zostają w „Ucichło".`,
+        // Szarość, nie czerwień: sprawa ucichła, ale nie przepadła - jej status się nie zmienia.
+        tone: { dot: '#94a3b8', tint: '#f1f5f9', ink: '#475569' },
         showsValue: true,
     },
 ];
@@ -184,7 +191,7 @@ export interface BoardCard {
     manual: boolean;
     /** Cisza klienta; null, gdy ruch jest nasz. */
     silence: Silence | null;
-    /** „Utrata": za ile karta zniknie z tablicy. */
+    /** „Ucichło": za ile karta zejdzie z tablicy. */
     vanishesInMs: number | null;
 }
 
@@ -240,7 +247,7 @@ export function buildBoard(
 
     return BOARD_COLUMNS.map((meta) => {
         const cards = buckets.get(meta.key)!.sort(byWaiting);
-        return { ...meta, cards, value: cards.reduce((sum, card) => sum + card.lead.estimatedValue, 0) };
+        return { ...meta, cards, value: cards.reduce((sum, card) => sum + quoteTotal(card.lead), 0) };
     });
 }
 
@@ -250,7 +257,7 @@ export function buildBoard(
  *  - NONE  - ta sama kolumna; kolejność w kolumnie nie jest ręczna.
  *  - STAGE - zapis położenia; null, gdy kolumna docelowa jest tą, którą wyznaczają fakty
  *            (przesunięcie „z powrotem" zdejmuje decyzję, zamiast ją przypinać - inaczej
- *            sprawa przypięta do „Odpowiedzieliśmy" nie poprosiłaby nigdy o przypomnienie).
+ *            sprawa przypięta do „Czeka na klienta" nie poprosiłaby nigdy o przypomnienie).
  */
 export type BoardMove =
     | { kind: 'NONE' }

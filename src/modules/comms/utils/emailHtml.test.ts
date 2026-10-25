@@ -4,7 +4,7 @@
 // przyciskiem „wiadomość graficzna").
 // @vitest-environment jsdom
 import { describe, expect, it } from 'vitest';
-import { describeHtml, dropLeadingIndent, isRichHtml, plainPreview, splitQuotedHistory, trimEmptyEdges } from './emailHtml';
+import { describeHtml, dropLeadingIndent, isRichHtml, plainPreview, splitQuotedHistory, splitSignature, trimEmptyEdges } from './emailHtml';
 
 const textOf = (html: string): string =>
     (new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html').body.textContent ?? '')
@@ -336,5 +336,46 @@ describe('dropLeadingIndent', () => {
     it('nie rusza twardych spacji w środku zdania', () => {
         const html = '<div>koszty przygotowania&nbsp; takiego auta</div>';
         expect(dropLeadingIndent(html)).toBe(html);
+    });
+});
+
+describe('splitSignature - stopka pod „•••", treść zostaje', () => {
+    it('nasza stopka z CRM (div.crm-signature) schodzi pod przełącznik', () => {
+        const html = '<div>Dzień dobry, sobota 9:00 jest wolna.</div><div class="crm-signature" style="margin-top:16px"><div>--</div>Zespół Studia<br>tel. 22 100 20 30</div>';
+        const { mainHtml, signatureHtml } = splitSignature(html);
+        expect(mainHtml).toContain('sobota 9:00');
+        expect(mainHtml).not.toContain('22 100 20 30');
+        expect(signatureHtml).toContain('22 100 20 30');
+    });
+
+    it('stopka Gmaila (div.gmail_signature)', () => {
+        const { mainHtml, signatureHtml } = splitSignature('<div dir="ltr">Pasuje, potwierdzam wtorek.</div><div class="gmail_signature">Marek Olszewski<br>Kierownik</div>');
+        expect(mainHtml).toContain('potwierdzam wtorek');
+        expect(signatureHtml).toContain('Kierownik');
+    });
+
+    it('linia „--" w czystym tekście: stopka i zastrzeżenie prawne odchodzą razem', () => {
+        const html = '<div>Pasuje, potwierdzam wtorek. Dziękuję!<br>--<br>Marek Olszewski<br>Ta wiadomość może zawierać informacje poufne.</div>';
+        const { mainHtml, signatureHtml } = splitSignature(html);
+        expect(mainHtml).toContain('Dziękuję!');
+        expect(mainHtml).not.toContain('poufne');
+        expect(signatureHtml).toContain('poufne');
+    });
+
+    it('linia „-- " w treści pre-wrap dzieli węzeł tekstowy w miejscu stopki', () => {
+        const { mainHtml, signatureHtml } = splitSignature('<div style="white-space:pre-wrap">Dzień dobry,\nproszę o termin.\n-- \nJan Kowalski</div>');
+        expect(mainHtml).toContain('proszę o termin.');
+        expect(mainHtml).not.toContain('Jan Kowalski');
+        expect(signatureHtml).toContain('Jan Kowalski');
+    });
+
+    it('bez stopki albo z „podpisem" długości listu - całość zostaje', () => {
+        expect(splitSignature('<div>Sama treść bez podpisu.</div>').signatureHtml).toBeNull();
+        const long = `<div>Krótko.<br>--<br>${'Bardzo długi tekst po kresce. '.repeat(40)}</div>`;
+        expect(splitSignature(long).signatureHtml).toBeNull();
+    });
+
+    it('sama stopka bez treści nad nią nie jest chowana', () => {
+        expect(splitSignature('<div class="crm-signature">Zespół Studia</div>').signatureHtml).toBeNull();
     });
 });

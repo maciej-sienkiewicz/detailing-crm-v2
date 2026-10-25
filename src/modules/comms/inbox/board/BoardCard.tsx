@@ -14,7 +14,7 @@ import styled, { css } from 'styled-components';
 import { BellRing, Clock, FileText, Hand, Hourglass, Instagram, Mail, PenLine, Phone } from 'lucide-react';
 import type { LeadSource } from '../../types';
 import type { BoardCard as BoardCardModel } from '../../utils/leadBoard';
-import { caseSentence, caseTitle, formatAmount, rowAge } from '../caseModel';
+import { caseSentence, caseTitle, formatAmount, quoteTotal, rowAge } from '../caseModel';
 import { ix } from '../tokens';
 import { EASE_SPRING } from './motion';
 
@@ -110,7 +110,8 @@ export const CardSurface = styled.div<{ $phone?: boolean }>`
         -webkit-box-orient: vertical;
         overflow: hidden;
     }
-    .hot { color: ${ix.accentInk}; font-weight: 600; }
+    /* Pogrubione w kolorze tekstu - niebieskie i pogrubione wyglądało jak link. */
+    .hot { color: ${ix.ink}; font-weight: 600; }
     .meta {
         display: flex;
         flex-wrap: wrap;
@@ -172,16 +173,17 @@ export const DragLayer = styled.div<{ $width: number }>`
 
 function sentence(card: BoardCardModel): { text: string; hot: boolean } {
     if (card.column === 'NEEDS_REMINDER') return { text: 'Czas się przypomnieć', hot: false };
-    if (card.column === 'LAPSED') return { text: 'Klient przestał odpowiadać', hot: false };
+    // Nie „Klient przestał odpowiadać" - to także powód przegranej, a sprawa wciąż jest otwarta.
+    if (card.column === 'LAPSED') return { text: 'Klient nie odpisuje', hot: false };
     return caseSentence(card.lead, card.urgency);
 }
 
-/** „za 6 dni", „jutro", „dziś" - kiedy karta zniknie z „Utraty". */
+/** Kiedy karta zejdzie z tablicy - „znika za 3 dni" nie mówiło, dokąd i czy sprawa przepada. */
 function vanishes(ms: number): string {
     const days = Math.ceil(ms / 86_400_000);
-    if (days <= 0) return 'znika dziś';
-    if (days === 1) return 'znika jutro';
-    return `znika za ${days} dni`;
+    if (days <= 0) return 'zejdzie z tablicy dziś';
+    if (days === 1) return 'zejdzie z tablicy jutro';
+    return `zejdzie z tablicy za ${days} dni`;
 }
 
 interface BoardCardProps extends HTMLAttributes<HTMLDivElement> {
@@ -207,7 +209,7 @@ export const BoardCardView = forwardRef<HTMLDivElement, BoardCardProps>(function
                     <p className="name" title={title}>{title}</p>
                     {person && <p className="person" title={person}>{person}</p>}
                 </div>
-                {lead.estimatedValue > 0 && <span className="amount">{formatAmount(lead.estimatedValue)}</span>}
+                {quoteTotal(lead) > 0 && <span className="amount">{formatAmount(quoteTotal(lead))}</span>}
             </div>
             <p className={`sentence${line.hot ? ' hot' : ''}`}>{line.text}</p>
             <div className="meta">
@@ -224,7 +226,7 @@ export const BoardCardView = forwardRef<HTMLDivElement, BoardCardProps>(function
                     </span>
                 )}
                 {card.vanishesInMs !== null && (
-                    <span title="Karta zniknie z tablicy. Sprawa zostaje otwarta - gdy klient odpisze, wróci do „Oczekuje na odpowiedź”.">
+                    <span title="Karta zejdzie z tablicy, a sprawa zostaje otwarta na liście w „Ucichło”. Gdy klient odpisze, wróci do „Czeka na nas”.">
                         <Hourglass aria-hidden="true" />
                         {vanishes(card.vanishesInMs)}
                     </span>

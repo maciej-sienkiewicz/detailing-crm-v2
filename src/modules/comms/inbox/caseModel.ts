@@ -5,12 +5,15 @@
 // w panelu sprawy i na telefonie. Policzone w czterech miejscach rozjechałyby się
 // pierwszego dnia, w którym ktoś zmieni jeden warunek.
 //
-// Kwoty: brutto z serwera (`totalGross` pozycji, `estimatedValue` sprawy) bez
-// przeliczania - CLAUDE.md §1. Formatowanie jedynie chowa zerowe grosze.
+// Kwoty: brutto z serwera (`totalGross` pozycji) bez przeliczania - CLAUDE.md §1.
+// Formatowanie jedynie chowa zerowe grosze.
 import type { ContactCard, Lead } from '../types';
 import { CLOSED_STATUSES } from '../utils/leadFormat';
 import { leadPhoneNumber } from '../utils/leadPrimaryAction';
 import type { LeadUrgency } from '../utils/leadUrgency';
+import { hasPendingSuggestions } from '../utils/leadServiceLines';
+
+export { quoteTotal, hasPendingSuggestions } from '../utils/leadServiceLines';
 
 const MINUTE = 60_000;
 const HOUR = 60 * MINUTE;
@@ -76,6 +79,17 @@ export function caseStatusChip(lead: Lead): { label: string; tone: 'accent' | 'n
     return { label: 'W kontakcie', tone: 'neutral' };
 }
 
+/**
+ * Czy plakietka mówi to samo co status w panelu sprawy obok. Wtedy jej nie pokazujemy:
+ * „Nowe zapytanie" nad statusem „Nowy" albo „Zrealizowana" nad „Zrealizowany" to jedna
+ * informacja dwa razy, do tego w dwóch rodzajach gramatycznych. Zostają plakietki, które
+ * dokładają coś do statusu: „Wycena wysłana", „Termin umówiony".
+ */
+export const chipRepeatsStatus = (lead: Lead): boolean => {
+    const { label } = caseStatusChip(lead);
+    return label !== 'Wycena wysłana' && label !== 'Termin umówiony';
+};
+
 /** Nagłówek karty wyceny - czy klient już ją zna. */
 export const quoteHeading = (lead: Lead): string =>
     weReplied(lead) ? 'Wycena' : 'Wycena, jeszcze nie wysłana';
@@ -112,7 +126,11 @@ export function caseNextStep(lead: Lead, urgency: LeadUrgency): CaseStep {
     if (urgency.turn === 'OURS' && !(weReplied(lead) && hasQuote(lead))) {
         return { kind: 'REPLY', title: hasQuote(lead) ? 'Wyślij wycenę' : 'Wyślij', hint: '' };
     }
-    return { kind: 'BOOK', title: 'Umów wizytę', hint: 'Klient dostanie potwierdzenie' };
+    // Rezerwacja przyjmuje oczekujące sugestie razem z wyceną (CaseDetail.openBooking).
+    // Kwota w panelu liczy już tylko przyjęte pozycje, więc przycisk mówi to wprost -
+    // inaczej rezerwacja wyszłaby drożej niż wycena, na którą patrzył człowiek.
+    const hint = hasPendingSuggestions(lead) ? 'Sugestie asystenta trafią do rezerwacji' : 'Klient dostanie potwierdzenie';
+    return { kind: 'BOOK', title: 'Umów wizytę', hint };
 }
 
 /** Odmiana „wizyta / wizyty / wizyt". */

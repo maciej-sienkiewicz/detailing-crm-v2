@@ -201,6 +201,9 @@ const MetaRow = styled.div`
     font-size: 13px;
     color: ${ix.muted};
 
+    /* Wspólna szerokość etykiet: pola „Do" i „Temat" zaczynają się w jednej linii. */
+    .label { flex: none; min-width: 48px; }
+
     input {
         flex: 1;
         min-width: 180px;
@@ -926,7 +929,7 @@ export function ReplyComposer({
                 <MetaRow>
                     {recipientShown ? (
                         <>
-                            Do:
+                            <span className="label">Do:</span>
                             <input
                                 value={to}
                                 onChange={(event) => setTo(event.target.value)}
@@ -949,7 +952,7 @@ export function ReplyComposer({
             )}
             {requireSubject && (
                 <MetaRow>
-                    Temat:
+                    <span className="label">Temat:</span>
                     <input
                         value={subject}
                         onChange={(event) => setSubject(event.target.value)}

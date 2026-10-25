@@ -284,7 +284,9 @@ function Report({ data, thin, yearSeries, year }: {
                 <Step>
                     <span className="label">Zapytania</span>
                     <span className="value">{data.totalCreated}</span>
-                    <span className="note">warte {formatMoney(totalValue)}</span>
+                    {/* Kwota z serwera to potencjał: przyjęte pozycje i sugestie asystenta razem.
+                        Panel sprawy pokazuje samą wycenę, więc tutaj mówimy wprost, co jest w sumie. */}
+                    <span className="note">warte {formatMoney(totalValue)} z sugestiami</span>
                 </Step>
                 <ChevronRight className="arrow" aria-hidden="true" />
                 <Step>
@@ -310,7 +312,7 @@ function Report({ data, thin, yearSeries, year }: {
                             <span className="title">W toku: {cases(open)}</span>
                             <span className="note">
                                 {data.silentValue > 0
-                                    ? `w tym bez odzewu klienta: ${formatMoney(data.silentValue)}`
+                                    ? `w tym ucichłe: ${formatMoney(data.silentValue)}`
                                     : 'czekają na odpowiedź albo decyzję'}
                             </span>
                         </span>

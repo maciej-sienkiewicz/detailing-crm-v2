@@ -1,4 +1,4 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useCallback, useContext, useRef, useState, useEffect, ReactNode } from 'react';
 import { acquireScrollLock } from '@/common/utils/scrollLock';
 
 interface SidebarContextValue {
@@ -7,6 +7,13 @@ interface SidebarContextValue {
     toggleCollapse: () => void;
     toggleMobileMenu: () => void;
     closeMobileMenu: () => void;
+    /**
+     * Widok, który potrzebuje szerokości (skrzynka Poczty i Zapytań na 1024-1279 px),
+     * prosi o zwinięty pasek na czas, gdy jest otwarty. Zwraca funkcję oddającą prośbę.
+     * Zapamiętany wybór użytkownika zostaje nietknięty, a ręczne rozwinięcie wygrywa
+     * do końca wizyty w tym widoku.
+     */
+    requestCompact: () => () => void;
 }
 
 const SidebarContext = createContext<SidebarContextValue | undefined>(undefined);
@@ -31,17 +38,23 @@ interface SidebarProviderProps {
 
 export const SidebarProvider = ({ children }: SidebarProviderProps) => {
     // Initialize with stored state synchronously
-    const [isCollapsed, setIsCollapsed] = useState(getStoredCollapsedState);
+    const [storedCollapsed, setIsCollapsed] = useState(getStoredCollapsedState);
     const [isMobileOpen, setIsMobileOpen] = useState(false);
+    // Liczba otwartych próśb o zwinięcie (requestCompact) i ręczne rozwinięcie w ich trakcie.
+    const [compactRequests, setCompactRequests] = useState(0);
+    const requestsRef = useRef(0);
+    const [expandedOverride, setExpandedOverride] = useState(false);
+    const compact = compactRequests > 0 && !expandedOverride;
+    const isCollapsed = storedCollapsed || compact;
 
     // Persist to localStorage
     useEffect(() => {
         try {
-            localStorage.setItem(STORAGE_KEY, String(isCollapsed));
+            localStorage.setItem(STORAGE_KEY, String(storedCollapsed));
         } catch {
             // TODO: handled error silently
         }
-    }, [isCollapsed]);
+    }, [storedCollapsed]);
 
     // Blokada scrolla tła po otwarciu menu bocznego — wariant 'fixed', bo sam
     // `overflow: hidden` nie wystarcza w mobilnych przeglądarkach (zwłaszcza
@@ -54,7 +67,33 @@ export const SidebarProvider = ({ children }: SidebarProviderProps) => {
         return acquireScrollLock('fixed');
     }, [isMobileOpen]);
 
-    const toggleCollapse = () => setIsCollapsed(prev => !prev);
+    const toggleCollapse = () => {
+        if (compactRequests > 0) {
+            // W widoku, który prosi o zwinięcie, ręczne rozwinięcie wygrywa z prośbą do końca
+            // wizyty. Zapamiętany wybór zmienia się tylko wtedy, gdy to on trzymał pasek zwinięty.
+            if (isCollapsed) {
+                setExpandedOverride(true);
+                setIsCollapsed(false);
+            } else {
+                setExpandedOverride(false);
+            }
+            return;
+        }
+        setIsCollapsed(prev => !prev);
+    };
+    const requestCompact = useCallback(() => {
+        requestsRef.current += 1;
+        setCompactRequests(requestsRef.current);
+        let released = false;
+        return () => {
+            if (released) return;
+            released = true;
+            requestsRef.current = Math.max(0, requestsRef.current - 1);
+            setCompactRequests(requestsRef.current);
+            // Ostatnia prośba oddana - następna wizyta w widoku zaczyna od zwiniętego paska.
+            if (requestsRef.current === 0) setExpandedOverride(false);
+        };
+    }, []);
     const toggleMobileMenu = () => setIsMobileOpen(prev => !prev);
     const closeMobileMenu = () => setIsMobileOpen(false);
 
@@ -66,6 +105,7 @@ export const SidebarProvider = ({ children }: SidebarProviderProps) => {
                 toggleCollapse,
                 toggleMobileMenu,
                 closeMobileMenu,
+                requestCompact,
             }}
         >
             {children}

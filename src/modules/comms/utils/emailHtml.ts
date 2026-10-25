@@ -387,6 +387,79 @@ export function splitQuotedHistory(html: string): SplitQuoteResult {
     return { mainHtml: body.innerHTML, quotedHtml: quoted.innerHTML };
 }
 
+export interface SplitSignatureResult {
+    /** Treść bez stopki. */
+    mainHtml: string;
+    /** Stopka nadawcy (podpis, adres, zastrzeżenie prawne) albo null. */
+    signatureHtml: string | null;
+}
+
+/** Kontenery stopki: nasza (backend, SendMailHandler), Gmail, Outlook, Thunderbird. */
+const SIGNATURE_SELECTORS = [
+    'div.crm-signature',
+    'div.gmail_signature',
+    '[data-smartmail="gmail_signature"]',
+    'div#Signature',
+    'div#signature',
+    'div.moz-signature',
+];
+
+/** Dłuższy „podpis" to już treść - nie chowamy listu, który akurat ma w środku „--". */
+const SIGNATURE_MAX_TEXT = 900;
+
+/**
+ * Linia „-- " w tekście: od niej zaczyna się stopka (konwencja wszystkich programów
+ * pocztowych). Dzielimy węzeł tekstowy dokładnie w tym miejscu, jak przy cytacie.
+ */
+function findTextSignatureCut(body: HTMLElement): Text | null {
+    const walker = body.ownerDocument.createTreeWalker(body, NodeFilter.SHOW_TEXT);
+    let node = walker.nextNode() as Text | null;
+    while (node) {
+        const value = node.nodeValue ?? '';
+        const lines = value.split('\n');
+        let offset = 0;
+        for (const line of lines) {
+            if (line.trim() === '--') {
+                return offset === 0 ? node : node.splitText(offset);
+            }
+            offset += line.length + 1;
+        }
+        node = walker.nextNode() as Text | null;
+    }
+    return null;
+}
+
+/**
+ * Stopka nadawcy - schowana pod tym samym „•••" co historia rozmowy.
+ *
+ * W dymku na telefonie stopka klienta z adresem firmy i zastrzeżeniem prawnym
+ * zajmowała więcej niż jego jedno zdanie odpowiedzi, a nasza własna stopka stała
+ * w każdej wiadomości studia (audyt 25.10.2026). Nic nie znika: stopka jest
+ * kliknięcie dalej, tak jak cytat.
+ */
+export function splitSignature(html: string): SplitSignatureResult {
+    if (!html || typeof DOMParser === 'undefined') return { mainHtml: html, signatureHtml: null };
+    let document: Document;
+    try {
+        document = new DOMParser().parseFromString(`<body>${html}</body>`, 'text/html');
+    } catch {
+        return { mainHtml: html, signatureHtml: null };
+    }
+    const body = document.body;
+    const anchor: Node | null = body.querySelector(SIGNATURE_SELECTORS.join(',')) ?? findTextSignatureCut(body);
+    if (!anchor || anchor === body) return { mainHtml: html, signatureHtml: null };
+
+    const signature = document.createElement('div');
+    collectFromAnchor(anchor, body).forEach((node) => signature.appendChild(node));
+
+    // Bez treści nad stopką albo z „podpisem" długości listu - zostawiamy całość.
+    if (visibleTextLength(body) === 0 && body.querySelector('img') === null) return { mainHtml: html, signatureHtml: null };
+    if (visibleTextLength(signature) === 0 || visibleTextLength(signature) > SIGNATURE_MAX_TEXT) {
+        return { mainHtml: html, signatureHtml: null };
+    }
+    return { mainHtml: body.innerHTML, signatureHtml: signature.innerHTML };
+}
+
 export interface HtmlShape {
     textLength: number;
     imageCount: number;

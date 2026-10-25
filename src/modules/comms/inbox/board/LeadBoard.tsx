@@ -1,7 +1,7 @@
 // src/modules/comms/inbox/board/LeadBoard.tsx
 // Tablica spraw - drugi, równoległy widok zakładki „Sprawy" (obok listy).
 //
-// Cztery kolumny: Oczekuje na odpowiedź, Odpowiedzieliśmy, Wymaga przypomnienia, Utrata.
+// Cztery kolumny: Czeka na nas, Czeka na klienta, Do przypomnienia, Ucichło.
 // Która sprawa gdzie stoi i co znaczy przeciągnięcie - utils/leadBoard.ts. Tu jest
 // wyłącznie widok: kolumny, karty, miejsce robione karcie w ręce i „Przypomnij"
 // w kolumnie, która o to prosi.
@@ -56,9 +56,16 @@ const Scroller = styled.div<{ $phone: boolean }>`
     scrollbar-color: rgba(15, 23, 42, 0.18) transparent;
 `;
 
-const Lane = styled.section<{ $phone: boolean; $over: boolean; $ring: string; $tint: string }>`
-    flex: ${p => (p.$phone ? '0 0 calc(100vw - 52px)' : '1 0 248px')};
+/**
+ * Kolumny równej szerokości: `min-width: 0`, bo dłuższy tekst karty („zejdzie z tablicy
+ * za 3 dni") rozpychał swoją kolumnę do 353 px przy 248 px sąsiadki i cztery kolumny
+ * przestawały się mieścić na ekranie 1440 px. Pusta kolumna jest węższa - nie ma czego
+ * w niej czytać, a nadal przyjmuje upuszczoną kartę.
+ */
+const Lane = styled.section<{ $phone: boolean; $over: boolean; $ring: string; $tint: string; $empty: boolean }>`
+    flex: ${p => (p.$phone ? '0 0 calc(100vw - 52px)' : p.$empty ? '0 0 200px' : '1 1 248px')};
     max-width: ${p => (p.$phone ? 'none' : '360px')};
+    min-width: ${p => (p.$phone ? 'auto' : p.$empty ? '200px' : '240px')};
     min-height: 0;
     display: flex;
     flex-direction: column;
@@ -181,11 +188,11 @@ const Skeleton = styled.div`
 `;
 
 /** Telefon: kolumna naraz na ekranie, więc skróty do pozostałych - z licznikami, jak zakładki. */
-const LaneChips = styled.div`
+const LaneChips = styled.div<{ $phone: boolean }>`
     display: flex;
     gap: 6px;
     overflow-x: auto;
-    padding: 0 16px 10px;
+    padding: ${p => (p.$phone ? '0 16px 10px' : '0 24px 10px')};
     scrollbar-width: none;
     &::-webkit-scrollbar { display: none; }
 
@@ -330,11 +337,26 @@ export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, o
 
     const draggedCard = session ? cards.get(session.id) ?? null : null;
 
-    // Telefon: która kolumna jest teraz na ekranie - dla podświetlenia skrótu.
+    // Kolumny nie mieszczą się w karcie (tablet, wąskie okno) - wtedy, jak na telefonie,
+    // nad tablicą stoją skróty do kolumn. Dawniej miał je tylko telefon, a tablet widział
+    // półtorej kolumny bez znaku, że za krawędzią są jeszcze dwie.
+    const [overflowing, setOverflowing] = useState(false);
+    useEffect(() => {
+        const scroller = boardRef.current;
+        if (!scroller || typeof ResizeObserver === 'undefined') return;
+        const check = () => setOverflowing(scroller.scrollWidth > scroller.clientWidth + 1);
+        check();
+        const observer = new ResizeObserver(check);
+        observer.observe(scroller);
+        return () => observer.disconnect();
+    }, [shown.length]);
+    const paged = phone || overflowing;
+
+    // Która kolumna jest teraz na ekranie - dla podświetlenia skrótu.
     const [visibleLane, setVisibleLane] = useState<BoardColumnKey>(BOARD_COLUMNS[0].key);
     useEffect(() => {
         const scroller = boardRef.current;
-        if (!phone || !scroller) return;
+        if (!paged || !scroller) return;
         let frame = 0;
         const onScroll = () => {
             cancelAnimationFrame(frame);
@@ -352,7 +374,7 @@ export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, o
         };
         scroller.addEventListener('scroll', onScroll, { passive: true });
         return () => { cancelAnimationFrame(frame); scroller.removeEventListener('scroll', onScroll); };
-    }, [phone]);
+    }, [paged]);
 
     // Skrót bieżącej kolumny nie może stać za krawędzią paska skrótów.
     const chipsRef = useRef<HTMLDivElement>(null);
@@ -397,8 +419,8 @@ export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, o
             {truncated && (
                 <Notice>Tablica pokazuje pierwsze 100 spraw w każdym statusie. Starsze znajdziesz w zamkniętych sprawach.</Notice>
             )}
-            {phone && (
-                <LaneChips ref={chipsRef} role="navigation" aria-label="Kolumny tablicy">
+            {paged && (
+                <LaneChips ref={chipsRef} $phone={phone} role="navigation" aria-label="Kolumny tablicy">
                     {shown.map((column) => (
                         <button key={column.key} type="button" aria-current={visibleLane === column.key} onClick={() => showLane(column.key)}>
                             <span className="dot" style={{ background: column.tone.dot }} aria-hidden="true" />
@@ -419,6 +441,7 @@ export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, o
                             $over={isOver}
                             $ring={`${column.tone.dot}66`}
                             $tint={column.tone.tint}
+                            $empty={column.cards.length === 0 && !session}
                             aria-labelledby={`lane-${column.key}`}
                         >
                             <LaneHead>

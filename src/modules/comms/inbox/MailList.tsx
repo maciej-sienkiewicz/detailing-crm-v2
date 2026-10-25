@@ -1,12 +1,13 @@
 // src/modules/comms/inbox/MailList.tsx
 // Lista wątków w zakładkach „Poczta" i „Wysłane" - z makiety „Poczta".
 //
-// Dni („Dziś", „Wczoraj") zamiast godziny przy każdym wierszu do porównywania, jeden
-// wiersz „Powiadomienia i reklamy" za wszystkie automaty i plakietki, które mówią, co
-// to za mail, zanim się go otworzy: „Sprawa" (wątek zapytania) i „Klient" (nadawca
+// Dzień stoi w nagłówku grupy („Dziś", „22 października"), więc wiersz pokazuje samą
+// godzinę - dawniej „22 paź" pod nagłówkiem „22 października" mówiło to samo dwa razy.
+// Jeden wiersz „Powiadomienia i reklamy" za wszystkie automaty i plakietki, które mówią,
+// co to za mail, zanim się go otworzy: „Sprawa" (wątek zapytania) i „Klient" (nadawca
 // jest w kartotece). Archiwizacja pod kursorem (komputer) albo przesunięciem w lewo
 // (telefon) - porządki bez otwierania wątku.
-import { useRef, useState, type TouchEvent } from 'react';
+import { useLayoutEffect, useRef, useState, type TouchEvent } from 'react';
 import styled, { css } from 'styled-components';
 import { Archive, Bell } from 'lucide-react';
 import type { CommThread, MailFolder } from '../types';
@@ -132,13 +133,19 @@ const HideOnHover = styled.span`
     ${RowWrap}:hover & { visibility: hidden; }
 `;
 
+/**
+ * Plakietka wiersza. „Sprawa" ma samą obwódkę: stoi przy większości wątków (w studiu
+ * demo przy 36 z 42), więc w kolorze zamieniała listę w ścianę plakietek i przestawała
+ * cokolwiek wyróżniać.
+ */
 const Tag = styled.span<{ $sale?: boolean; $warn?: boolean }>`
     flex: none;
-    padding: 1px 8px;
+    padding: ${p => (p.$sale ? '0 7px' : '1px 8px')};
     border-radius: 999px;
     font-size: 11px;
     font-weight: 600;
-    background: ${p => (p.$sale ? ix.accentTint : p.$warn ? '#fffbeb' : ix.surfaceAlt)};
+    border: ${p => (p.$sale ? `1px solid ${ix.line}` : 'none')};
+    background: ${p => (p.$sale ? 'transparent' : p.$warn ? '#fffbeb' : ix.surfaceAlt)};
     color: ${p => (p.$sale ? ix.accentInk : p.$warn ? '#b45309' : ix.text2)};
 
     @media (max-width: 767px) { font-size: 12px; }
@@ -196,17 +203,16 @@ const Empty = styled.p`
     color: ${ix.muted};
 `;
 
-/** „10:58" dla dziś i wczoraj (dzień stoi w nagłówku), „5 paź" dla starszych. */
-const timeLabel = (iso: string): string => {
-    const date = new Date(iso);
-    const now = new Date();
-    const days = Math.round(
-        (new Date(now.getFullYear(), now.getMonth(), now.getDate()).getTime() -
-            new Date(date.getFullYear(), date.getMonth(), date.getDate()).getTime()) / 86_400_000
-    );
-    if (days <= 1) return date.toLocaleTimeString('pl-PL', { hour: 'numeric', minute: '2-digit' });
-    return date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' });
-};
+/** „10:58" - dzień stoi w nagłówku grupy nad wierszem. */
+const timeLabel = (iso: string): string =>
+    new Date(iso).toLocaleTimeString('pl-PL', { hour: 'numeric', minute: '2-digit' });
+
+/**
+ * Pozycja przewinięcia każdej listy (Odebrane, Wysłane, Odrzucone) na czas sesji.
+ * Lista montuje się od nowa po powrocie ze sprawy albo z innego modułu i wracała
+ * wtedy na samą górę - trzeba było szukać miejsca, w którym się skończyło czytać.
+ */
+const scrollMemory = new Map<MailFolder, number>();
 
 interface MailRowProps {
     thread: CommThread;
@@ -324,8 +330,19 @@ export function MailList({ threads, folder, query, loaded, hasMore, onMore, acti
     // ma ją dostać wprost, a nie w zwiniętym wierszu.
     const rows = buildMailListRows(threads, { bundleAutomated: folder === 'INBOX' && !query.trim(), bundleOpen });
 
+    // Powrót do zapamiętanej pozycji - raz, kiedy lista ma już wiersze.
+    const scrollRef = useRef<HTMLDivElement>(null);
+    // Ten sam komponent obsługuje Odebrane i Wysłane, więc pamiętamy, dla której listy już wróciliśmy.
+    const restored = useRef<MailFolder | null>(null);
+    useLayoutEffect(() => {
+        const element = scrollRef.current;
+        if (!element || restored.current === folder || threads.length === 0) return;
+        restored.current = folder;
+        element.scrollTop = scrollMemory.get(folder) ?? 0;
+    }, [folder, threads.length]);
+
     return (
-        <Scroll $phone={phone}>
+        <Scroll ref={scrollRef} $phone={phone} onScroll={(event) => scrollMemory.set(folder, event.currentTarget.scrollTop)}>
             {loaded && threads.length === 0 && (
                 <Empty>
                     {query.trim()

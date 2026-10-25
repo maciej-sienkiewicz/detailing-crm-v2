@@ -10,11 +10,12 @@
 //  - zapytanie z telefonu bez maila → „Zadzwoń".
 // Po wysłaniu albo umówieniu otwiera się następna sprawa z kolejki.
 //
-// Panel sprawy niesie to, co dotyczy samej sprawy: ołówki przy wycenie i kliencie,
-// status i usunięcie. Reszta (pełne okno leada, kontakt poza pocztą, notatki
-// o kliencie, wcześniejsze rozmowy) jest w menu „⋯" - nie zniknęła, przestała
-// zasłaniać rozmowę. Odpowiedź czeka zwinięta do wąskiego „Odpisz" i rozsuwa się
-// dopiero na kliknięcie - rozwinięty edytor zabierał pół rozmowy.
+// Panel sprawy niesie to, co dotyczy samej sprawy: ołówki przy wycenie i kliencie
+// oraz status. Reszta (kontakt poza pocztą, notatki o kliencie, wcześniejsze rozmowy,
+// usunięcie) jest w menu „⋯" - także na telefonie, gdzie wcześniej go nie było
+// i kontaktu poza pocztą nie dało się w ogóle odnotować. Odpowiedź czeka zwinięta
+// do wąskiego „Odpisz" i rozsuwa się dopiero na kliknięcie - rozwinięty edytor
+// zabierał pół rozmowy.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
@@ -30,6 +31,7 @@ import {
     PhoneCall,
     Send,
     StickyNote,
+    Trash2,
     UserRound,
 } from 'lucide-react';
 import { ConfirmationModal, ChoiceModal } from '@/common/components/ConfirmationModal';
@@ -72,7 +74,7 @@ import { RecordCallbackDialog } from '../components/RecordCallbackDialog';
 import { ContactNotesPopover } from '../components/ContactNotesPopover';
 import { ContactCardPopover } from '../components/ContactCardPopover';
 import { ThreadHistoryPanel } from '../components/ThreadHistoryPanel';
-import { caseNextStep, caseStatusChip, caseSubtitle, caseTitle, formatAmount, type CaseStep } from './caseModel';
+import { caseNextStep, caseStatusChip, caseSubtitle, caseTitle, chipRepeatsStatus, formatAmount, quoteTotal, type CaseStep } from './caseModel';
 import { CaseRail, RailSheet, type CaseActions } from './CaseRail';
 import { ClientEditor } from './ClientEditor';
 import { BookingNote } from './BookingNote';
@@ -146,11 +148,37 @@ const InlineStep = styled.div`
     padding: 16px 28px 0;
 `;
 
-const Hint = styled.p`
+const Hint = styled.div`
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 10px;
     margin: 0;
     font-size: 14px;
     line-height: 1.5;
     color: ${ix.muted};
+`;
+
+/** Akcja przy zdaniu, które ją opisuje - odcień, bez wypełnienia (krok następny stoi w panelu). */
+const InlineAction = styled.button`
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    height: 36px;
+    padding: 0 14px;
+    border: 1px solid ${ix.line};
+    border-radius: 999px;
+    background: #ffffff;
+    color: ${ix.accentInk};
+    font-family: inherit;
+    font-size: 14px;
+    font-weight: 600;
+    cursor: pointer;
+
+    svg { width: 16px; height: 16px; }
+    &:hover { background: ${ix.accentTint}; }
+    &:focus-visible { outline: 2px solid ${ix.accent}; outline-offset: 2px; }
+    @media (hover: none) and (pointer: coarse) { height: 44px; }
 `;
 
 const Muted = styled.p`
@@ -167,7 +195,7 @@ const stepIcon = (step: CaseStep) =>
         : <Send />;
 
 /**
- * Sprawa w „Wymaga przypomnienia" (3 dni ciszy klienta, bez przypomnienia - leadBoard.ts):
+ * Sprawa w „Do przypomnienia" (3 dni ciszy klienta, bez przypomnienia - leadBoard.ts):
  * krokiem następnym jest przypomnienie, nie umówienie wizyty. Ta sama reguła co na tablicy,
  * więc podgląd sprawy z listy i z tablicy proponuje to samo. „Umów wizytę" zostaje w menu „⋯".
  */
@@ -355,30 +383,28 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
         },
         onChangeStatus: (next: LeadStatus) => status.requestStatus(lead.id, next),
         statusPending: status.isPending,
-        onDelete: () => { setSheetOpen(false); setDeleteStep('confirm'); },
     };
+    const total = quoteTotal(lead);
 
     const header = (
         <ConversationHeader title={caseTitle(lead)} subtitle={phone ? lead.customerName ?? undefined : caseSubtitle(lead)} phone={phone} onBack={onBack} titleId="case-title">
             {!railBeside ? (
-                <AmountChip ref={amountRef} type="button" onClick={() => setSheetOpen(true)} aria-label={lead.estimatedValue > 0 ? `Wycena: ${formatAmount(lead.estimatedValue)}` : 'Wycena i klient'}>
-                    {lead.estimatedValue > 0 ? formatAmount(lead.estimatedValue) : 'Wycena'}
+                <AmountChip ref={amountRef} type="button" onClick={() => setSheetOpen(true)} aria-label={total > 0 ? `Wycena: ${formatAmount(total)}` : 'Wycena i klient'}>
+                    {total > 0 ? formatAmount(total) : 'Wycena'}
                     <ChevronRight aria-hidden="true" />
                 </AmountChip>
-            ) : (
+            ) : !chipRepeatsStatus(lead) && (
                 <StatusChip $tone={chip.tone}>{chip.label}</StatusChip>
             )}
-            {!phone && (
-                <IconBtn
-                    ref={menuButtonRef}
-                    aria-label="Więcej: szczegóły sprawy, kontakt poza pocztą, notatki o kliencie"
-                    aria-haspopup="menu"
-                    aria-expanded={menu.isOpen()}
-                    onClick={(event) => menu.toggle(event, null)}
-                >
-                    <MoreHorizontal />
-                </IconBtn>
-            )}
+            <IconBtn
+                ref={menuButtonRef}
+                aria-label="Więcej: kontakt poza pocztą, notatki o kliencie, usunięcie sprawy"
+                aria-haspopup="menu"
+                aria-expanded={menu.isOpen()}
+                onClick={(event) => menu.toggle(event, null)}
+            >
+                <MoreHorizontal />
+            </IconBtn>
             {headerAction}
         </ConversationHeader>
     );
@@ -459,10 +485,13 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                         onPreview={attachmentPreview.open}
                         onOpenFull={setFullMessageId}
                         events={bookingEvents}
-                        alignBottom
+                        // Rozmowa czyta się od góry, jak w Poczcie. Dosunięta do dołu krótka
+                        // rozmowa zostawiała nad jedyną wiadomością pół ekranu pustki (na
+                        // telefonie ponad 1000 px). Długi wątek i tak otwiera się na końcu.
+                        alignBottom={false}
                     />
                 ) : (
-                    <NoThreadBody lead={lead} phone={phone} />
+                    <NoThreadBody lead={lead} phone={phone} onRecordContact={() => setCallbackOpen(true)} />
                 )}
                 {/* Bez panelu obok krok następny stoi nad odpowiedzią - jak na telefonie.
                     Jedyne wypełnienie w oknie nie może zniknąć razem z panelem. */}
@@ -506,12 +535,15 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                         )}
                     </>
                 )}
-                {thread && <MenuDivider />}
                 {thread && (
                     <MenuItem icon={<Archive />} onClick={() => { menu.close(); setArchived.mutate({ threadId: thread.id, archived: !thread.archived }); }}>
                         {thread.archived ? 'Przywróć rozmowę z archiwum' : 'Archiwizuj rozmowę'}
                     </MenuItem>
                 )}
+                <MenuDivider />
+                <MenuItem danger icon={<Trash2 />} onClick={() => { menu.close(); setSheetOpen(false); setDeleteStep('confirm'); }}>
+                    Usuń sprawę
+                </MenuItem>
             </ActionMenu>
 
             {contactAnchor && contact && (
@@ -523,7 +555,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                 />
             )}
             {notesAnchor && contact && (
-                <ContactNotesPopover contact={contact} anchor={notesAnchor} onClose={() => setNotesAnchor(null)} />
+                <ContactNotesPopover contact={contact} anchor={notesAnchor} title="Notatki o kliencie" onClose={() => setNotesAnchor(null)} />
             )}
             {historyOpen && thread && (
                 <ThreadHistoryPanel threadId={thread.id} email={thread.participantEmail} onClose={() => setHistoryOpen(false)} />
@@ -587,7 +619,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
 }
 
 /** Sprawa bez wątku: o co pytał klient i przebieg sprawy, zamiast pustej rozmowy. */
-function NoThreadBody({ lead, phone }: { lead: Lead; phone: boolean }) {
+function NoThreadBody({ lead, phone, onRecordContact }: { lead: Lead; phone: boolean; onRecordContact: () => void }) {
     const { data: timeline } = useLeadTimeline(lead.id);
     return (
         <ConversationScroll $phone={phone}>
@@ -596,10 +628,17 @@ function NoThreadBody({ lead, phone }: { lead: Lead; phone: boolean }) {
                 <div className="body">{lead.initialMessage ?? 'Klient nie zostawił treści zapytania.'}</div>
             </Request>
             {(timeline?.length ?? 0) > 0 && <LeadTimeline entries={timeline ?? []} />}
+            {/* Przycisk stoi przy zdaniu, które o nim mówi - dawniej tekst odsyłał do menu „⋯". */}
             {lead.source === 'INSTAGRAM' ? (
-                <Hint>Rozmowy z Instagrama nie ma już w CRM - odpisz w aplikacji Instagram i odnotuj kontakt w menu „⋯" (Kontakt poza pocztą).</Hint>
+                <Hint>
+                    Rozmowy z Instagrama nie ma już w CRM. Odpisz w aplikacji Instagram i zapisz tu, że rozmowa się odbyła.
+                    <InlineAction type="button" onClick={onRecordContact}><PhoneCall aria-hidden="true" /> Odnotuj kontakt</InlineAction>
+                </Hint>
             ) : !leadEmail(lead) && (
-                <Hint>Ta sprawa nie ma adresu e-mail - zadzwoń i odnotuj rozmowę w menu „⋯" (Kontakt poza pocztą).</Hint>
+                <Hint>
+                    Ta sprawa nie ma adresu e-mail. Zadzwoń do klienta i zapisz tu, jak poszła rozmowa.
+                    <InlineAction type="button" onClick={onRecordContact}><PhoneCall aria-hidden="true" /> Odnotuj rozmowę</InlineAction>
+                </Hint>
             )}
         </ConversationScroll>
     );

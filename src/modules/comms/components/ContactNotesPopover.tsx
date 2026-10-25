@@ -209,9 +209,11 @@ interface ContactNotesPopoverProps {
     /** Element, pod którym chmurka ma się zaczepić - zwykle plakietka w nagłówku. */
     anchor: HTMLElement | null;
     onClose: () => void;
+    /** Nagłówek - ten sam napis, który stał w menu („Notatki o nadawcy" przy poczcie od dostawcy). */
+    title?: string;
 }
 
-export function ContactNotesPopover({ contact, anchor, onClose }: ContactNotesPopoverProps) {
+export function ContactNotesPopover({ contact, anchor, onClose, title = 'Notatki o kliencie' }: ContactNotesPopoverProps) {
     const { email } = contact;
     const [draft, setDraft] = useState('');
     const [composing, setComposing] = useState(false);
@@ -287,9 +289,9 @@ export function ContactNotesPopover({ contact, anchor, onClose }: ContactNotesPo
     if (!anchor) return null;
 
     return createPortal(
-        <Card ref={cardRef} role="dialog" aria-label="Notatki do klienta">
+        <Card ref={cardRef} role="dialog" aria-label={title}>
             <CardHead>
-                <span className="title">Notatki do klienta</span>
+                <span className="title">{title}</span>
                 <button
                     type="button"
                     aria-pressed={historyShown}

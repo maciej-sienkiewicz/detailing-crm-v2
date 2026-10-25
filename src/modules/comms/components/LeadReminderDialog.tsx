@@ -1,5 +1,5 @@
 // src/modules/comms/components/LeadReminderDialog.tsx
-// „Przypomnij się" - z kolumny „Wymaga przypomnienia" (zbiorczo) albo z podglądu sprawy.
+// „Przypomnij się" - z kolumny „Do przypomnienia" (zbiorczo) albo z podglądu sprawy.
 //
 // Trzy kroki w jednym oknie:
 //   1. komu - sprawy z kolumny, zaznaczone wszystkie, które da się przypomnieć mailem
@@ -32,7 +32,7 @@ import { useCapability } from '@/modules/subscription/hooks/useCapability';
 
 /**
  * Uwagi dla asystenta. Prompt sam pisze przypomnienie, gdy ostatnie słowo należy do studia -
- * ale sprawa bywa w „Wymaga przypomnienia" z przeciągnięcia, a wtedy ostatnia wiadomość
+ * ale sprawa bywa w „Do przypomnienia" z przeciągnięcia, a wtedy ostatnia wiadomość
  * może być klienta. Uwagi mówią to wprost w każdym przypadku.
  */
 const REMINDER_INSTRUCTIONS =
@@ -337,7 +337,7 @@ export function LeadReminderDialog({ leads, onClose, zIndex }: LeadReminderDialo
                         {sentCount > 0 ? `Wysłano ${sentCount} ${remindersWord(sentCount)}. ` : ''}
                         {failed.length > 0
                             ? `${failed.length} ${pluralPl(failed.length, 'nie wyszło', 'nie wyszły', 'nie wyszło')} - powód przy sprawie.`
-                            : 'Karty wróciły do „Odpowiedzieliśmy" z plakietką przypomnienia.'}
+                            : 'Karty wróciły do „Czeka na klienta" z plakietką przypomnienia.'}
                     </Intro>
                 ) : single && remindable.length === 0 ? (
                     <Intro>{whyNot(leads[0])}. Przypomnienie mailem nie jest tu możliwe.</Intro>
@@ -347,7 +347,7 @@ export function LeadReminderDialog({ leads, onClose, zIndex }: LeadReminderDialo
                             ? 'Szkic pisze moduł Asystent AI, którego nie ma w Twoim pakiecie. Wpisz treść przypomnienia sam.'
                             : single
                                 ? 'Przeczytaj i popraw, jeśli trzeba - wyjdzie w rozmowie z klientem.'
-                                : 'Przeczytaj i popraw, jeśli trzeba. Odznaczone sprawy zostaną w „Wymaga przypomnienia”.'}
+                                : 'Przeczytaj i popraw, jeśli trzeba. Odznaczone sprawy zostaną w „Do przypomnienia”.'}
                     </Intro>
                 )}
                 <List>

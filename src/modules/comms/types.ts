@@ -288,7 +288,7 @@ export type LeadReplyState = 'AWAITING_OUR_REPLY' | 'AWAITING_CLIENT_REPLY' | 'N
 
 /**
  * Kolumna tablicy spraw, do której człowiek przeciągnął kartę (PUT /v1/leads/{id}/board-stage).
- * LAPSED to „Utrata" - sam widok, status sprawy się nie zmienia.
+ * LAPSED to „Ucichło" - sam widok, status sprawy się nie zmienia.
  */
 export type LeadBoardStage = 'AWAITING_REPLY' | 'REPLIED' | 'NEEDS_REMINDER' | 'LAPSED';
 

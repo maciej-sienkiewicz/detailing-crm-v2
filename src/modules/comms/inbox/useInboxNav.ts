@@ -3,7 +3,7 @@
 // wiadomość. Adres jest jedynym źródłem - odświeżenie strony, link z powiadomienia
 // i przycisk „wstecz" trafiają w to samo miejsce.
 import { useCallback, useMemo } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useLocation, useSearchParams } from 'react-router-dom';
 import { inboxTabFromParam, inboxTabParam, type InboxScope, type InboxTab } from '../utils/inboxTabs';
 
 export interface InboxLocation {
@@ -25,6 +25,9 @@ export interface InboxLocation {
 
 export function useInboxNav(scope: InboxScope = 'cases') {
     const [params, setParams] = useSearchParams();
+    // Stan historii (np. `returnTo` sprawy otwartej z Poczty) musi przeżyć każdą zmianę
+    // adresu w skrzynce - bez tego przejście j/k albo zmiana układu gubiły drogę powrotu.
+    const { state } = useLocation();
 
     const location: InboxLocation = useMemo(
         () => {
@@ -61,9 +64,9 @@ export function useInboxNav(scope: InboxScope = 'cases') {
                     out.thread = merged.threadId;
                 }
             }
-            setParams(out, { replace: true });
+            setParams(out, { replace: true, state });
         },
-        [location, setParams]
+        [location, setParams, state]
     );
 
     return {

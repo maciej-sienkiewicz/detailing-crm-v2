@@ -139,12 +139,17 @@ const PreviewHint = styled.div`
     > span { flex: 1; }
 `;
 
+/**
+ * Kroki łamią się do drugiego rzędu, zamiast przewijać w bok. Przewijany pasek ucinał
+ * piąty krok („Social medi…" na 1440 px, na telefonie znikał zupełnie) i nic nie
+ * mówiło, że za krawędzią jest jeszcze jeden.
+ */
 const Tabs = styled.nav`
     display: flex;
-    gap: 2px;
+    flex-wrap: wrap;
+    column-gap: 2px;
     padding: 0 16px;
     border-bottom: 1px solid ${p => p.theme.colors.border};
-    overflow-x: auto;
     flex-shrink: 0;
 `;
 

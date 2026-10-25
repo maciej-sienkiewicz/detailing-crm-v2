@@ -19,11 +19,17 @@
 //
 // Doklejoną historię rozmowy chowamy pod przełącznikiem w obu trybach (patrz
 // utils/emailHtml.ts) - bez tego każda kolejna odpowiedź powtarza cały wątek.
+// Pod tym samym „•••" leży stopka nadawcy (podpis, adres, zastrzeżenie prawne):
+// w dymku na telefonie bywała dłuższa niż sama odpowiedź.
+//
+// Listy dostają z powrotem numerację i punktory: reset Tailwinda (`ol, ul { list-style:
+// none }`) zabierał je z każdego maila, więc klient pytał „1., 2., 3.", a studio
+// odpowiadało „po kolei: 1. …" do pytań, których numerów nikt w CRM nie widział.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import DOMPurify from 'dompurify';
 import { ChevronUp, Image as ImageIcon, Maximize2 } from 'lucide-react';
-import { describeHtml, dropLeadingIndent, isRichHtml, splitQuotedHistory, trimEmptyEdges } from '../utils/emailHtml';
+import { describeHtml, dropLeadingIndent, isRichHtml, splitQuotedHistory, splitSignature, trimEmptyEdges } from '../utils/emailHtml';
 
 const Root = styled.div`
     display: flex;
@@ -55,6 +61,9 @@ const Prose = styled.div<{ $size?: 'reader' | 'bubble' }>`
     p + p { margin-top: 0.9em; }
     br + br { line-height: 0.5; }
     ul, ol { margin: 0.6em 0; padding-left: 1.4em; }
+    ol { list-style: decimal; }
+    ul { list-style: disc; }
+    ul ul { list-style: circle; }
     li { margin: 0.2em 0; }
     a { color: ${p => p.theme.colors.primary}; text-decoration: underline; }
     img { height: auto; border-radius: ${p => p.theme.radii.sm}; margin: 4px 0; }
@@ -367,9 +376,12 @@ export function MessageBody({
         else window.scrollBy(0, rest);
     }, []);
 
-    const { mainHtml, quotedHtml } = useMemo(() => {
+    const { mainHtml, quotedHtml, hasHistory } = useMemo(() => {
         const split = collapseQuoted ? splitQuotedHistory(html) : { mainHtml: html, quotedHtml: null };
-        return { mainHtml: trimEmptyEdges(split.mainHtml), quotedHtml: split.quotedHtml };
+        const signed = collapseQuoted ? splitSignature(split.mainHtml) : { mainHtml: split.mainHtml, signatureHtml: null };
+        // Schowane razem: najpierw stopka (stoi bezpośrednio pod treścią), potem historia.
+        const hidden = [signed.signatureHtml, split.quotedHtml].filter(Boolean).join('');
+        return { mainHtml: trimEmptyEdges(signed.mainHtml), quotedHtml: hidden || null, hasHistory: Boolean(split.quotedHtml) };
     }, [html, collapseQuoted]);
     const shape = useMemo(() => describeHtml(mainHtml), [mainHtml]);
     const rich = useMemo(() => isRichHtml(mainHtml), [mainHtml]);
@@ -390,8 +402,16 @@ export function MessageBody({
         const doc = frameRef.current?.contentDocument;
         const body = doc?.body;
         if (!frameRef.current || !doc || !body) return;
-        // documentElement bywa wyższy od body przy marginesach kolapsujących.
-        const next = Math.max(body.scrollHeight, doc.documentElement?.scrollHeight ?? 0) + 16;
+        // Dół ostatniego elementu z marginesem - łapie marginesy kolapsujące, dla których
+        // brano kiedyś documentElement.scrollHeight. Tamten nigdy nie bywa niższy niż sama
+        // ramka, więc ramka tylko rosła: gdy dymek się poszerzył (tabela przestała łamać
+        // wiersze), pod treścią zostawało ~100 px pustego miejsca.
+        const view = doc.defaultView;
+        const contentBottom = Array.from(body.children).reduce((max, element) => {
+            const margin = parseFloat(view?.getComputedStyle(element).marginBottom ?? '0') || 0;
+            return Math.max(max, element.getBoundingClientRect().bottom + margin);
+        }, 0);
+        const next = Math.ceil(Math.max(body.scrollHeight, contentBottom)) + 16;
         frameRef.current.style.height = `${next}px`;
         if (measureKey) rememberHeight(measureKey, next);
         setHeight(next);
@@ -450,11 +470,11 @@ export function MessageBody({
             $open={quotedShown}
             onClick={() => setQuotedShown((shown) => !shown)}
             aria-expanded={quotedShown}
-            title="Wcześniejsze wiadomości z tej rozmowy"
+            title={hasHistory ? 'Stopka i wcześniejsze wiadomości z tej rozmowy' : 'Stopka nadawcy'}
         >
             {quotedShown ? (
                 <>
-                    <ChevronUp size={12} /> Ukryj historię rozmowy
+                    <ChevronUp size={12} /> {hasHistory ? 'Ukryj historię rozmowy' : 'Ukryj stopkę'}
                 </>
             ) : (
                 '•••'

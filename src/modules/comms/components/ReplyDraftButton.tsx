@@ -207,9 +207,15 @@ interface ReplyDraftStyleDialogProps {
     sentMessageCount: number;
     onConfirm: (useSentStyle: boolean, remember: boolean) => void;
     onClose: () => void;
+    /**
+     * 'settings' - okno otwarte z menu jako ustawienie, bez wiadomości, na którą można by
+     * odpisać. Dawniej i tam stał przycisk „Napisz szkic", choć nie było czego pisać.
+     */
+    mode?: 'draft' | 'settings';
 }
 
-export function ReplyDraftStyleDialog({ initialChoice, sentMessageCount, onConfirm, onClose }: ReplyDraftStyleDialogProps) {
+export function ReplyDraftStyleDialog({ initialChoice, sentMessageCount, onConfirm, onClose, mode = 'draft' }: ReplyDraftStyleDialogProps) {
+    const settings = mode === 'settings';
     const [choice, setChoice] = useState<boolean | null>(initialChoice);
     const [remember, setRemember] = useState(true);
 
@@ -234,7 +240,11 @@ export function ReplyDraftStyleDialog({ initialChoice, sentMessageCount, onConfi
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Jak ma pisać asystent?</ModalTitle>
-                    <ModalSubtitle>Szkic zawsze przeczytasz i poprawisz przed wysłaniem.</ModalSubtitle>
+                    <ModalSubtitle>
+                        {settings
+                            ? 'Tak asystent napisze każdy szkic odpowiedzi. Szkic zawsze przeczytasz i poprawisz przed wysłaniem.'
+                            : 'Szkic zawsze przeczytasz i poprawisz przed wysłaniem.'}
+                    </ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
@@ -252,14 +262,16 @@ export function ReplyDraftStyleDialog({ initialChoice, sentMessageCount, onConfi
                         'Asystent proponuje własną odpowiedź: uprzejmą, konkretną i z jasnym następnym krokiem.'
                     )}
                 </Options>
-                <Remember>
-                    <input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} />
-                    Zapamiętaj wybór. Zmienisz go w Ustawieniach, w „Moim koncie”.
-                </Remember>
+                {!settings && (
+                    <Remember>
+                        <input type="checkbox" checked={remember} onChange={(event) => setRemember(event.target.checked)} />
+                        Zapamiętaj wybór. Zmienisz go w Ustawieniach, w „Moim koncie”.
+                    </Remember>
+                )}
             </ModalContent>
             <ModalFooter>
-                <PrimaryButton onClick={() => choice !== null && onConfirm(choice, remember)} disabled={choice === null}>
-                    <Sparkles size={14} /> Napisz szkic
+                <PrimaryButton onClick={() => choice !== null && onConfirm(choice, settings || remember)} disabled={choice === null}>
+                    {settings ? 'Zapisz' : <><Sparkles size={14} /> Napisz szkic</>}
                 </PrimaryButton>
             </ModalFooter>
         </ModalShell>
@@ -511,6 +523,7 @@ export function ReplyDraftStyleSettings({ onClose }: { onClose: () => void }) {
     if (preferences.isLoading) return null;
     return (
         <ReplyDraftStyleDialog
+            mode="settings"
             initialChoice={preferences.data?.useSentStyle ?? null}
             sentMessageCount={preferences.data?.sentMessageCount ?? 0}
             onConfirm={(useSentStyle) => {

@@ -2,21 +2,25 @@
 // Panel sprawy obok rozmowy - z makiety: kwota, klient i jeden krok następny.
 //
 // Wycena jest jedynym wyniesieniem w kolumnie (CLAUDE.md §2): biała karta z paskiem
-// marki, kwota jako nagłówek, pozycje jako dowód pod nią. Kwoty to brutto z serwera
-// (`totalGross` pozycji, `estimatedValue` sprawy) - bez przeliczania (CLAUDE.md §1).
+// marki, kwota jako nagłówek, pozycje jako dowód pod nią. Kwota to suma brutto
+// przyjętych pozycji z serwera (`quoteTotal`) - bez przeliczania (CLAUDE.md §1)
+// i bez sugestii, które dopiero czekają na decyzję.
+//
+// Usunięcie sprawy mieszka w menu „⋯": na dole panelu stoi krok następny, a jedyna
+// nieodwracalna operacja nie może zajmować jego miejsca.
 //
 // Na wąskim ekranie ten sam panel wysuwa się jako arkusz (RailSheet): na telefonie
 // od dołu, na tablecie z prawej - otwiera go kwota w nagłówku rozmowy.
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useRef, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { css } from 'styled-components';
-import { ChevronDown, Pencil, Phone, Trash2, X } from 'lucide-react';
+import { ChevronDown, Pencil, Phone, X } from 'lucide-react';
 import { acquireScrollLock } from '@/common/utils/scrollLock';
 import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, type ContactCard, type Lead, type LeadStatus } from '../types';
 import { LeadStatusPicker } from '../components/LeadStatusPicker';
 import { toQuoteRows } from '../utils/leadServiceLines';
 import { LeadSuggestions } from '../components/LeadSuggestions';
-import { clientLine, formatAmount, quoteHeading } from './caseModel';
+import { clientLine, formatAmount, quoteHeading, quoteTotal } from './caseModel';
 import { IconBtn } from './primitives';
 import { ix } from './tokens';
 
@@ -119,28 +123,6 @@ const StatusTrigger = styled.button<{ $bg: string; $fg: string }>`
     @media (hover: none) and (pointer: coarse) { height: 44px; }
 `;
 
-/** Usunięcie - ciche, ale czerwone: jedyna operacja w panelu, której nie da się cofnąć. */
-const DeleteBtn = styled.button.attrs({ type: 'button' })`
-    align-self: center;
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 6px 10px;
-    border: none;
-    border-radius: 999px;
-    background: transparent;
-    color: ${ix.late};
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 500;
-    cursor: pointer;
-
-    svg { width: 15px; height: 15px; }
-    &:hover { background: #fef2f2; }
-    &:focus-visible { outline: 2px solid ${ix.late}; outline-offset: 2px; }
-    @media (hover: none) and (pointer: coarse) { min-height: 44px; }
-`;
-
 const SuggestionsSlot = styled.div`
     margin-top: 14px;
     padding-top: 12px;
@@ -154,7 +136,7 @@ const Client = styled.section`
     padding: 0 4px;
 
     .who { flex: 1; min-width: 0; }
-    h3 { margin: 0; font-size: 15px; font-weight: 600; color: ${ix.ink}; overflow-wrap: anywhere; }
+    h3 { margin: 0; font-size: 15px; font-weight: 600; color: ${ix.ink}; overflow-wrap: break-word; }
     p { margin: 2px 0 0; font-size: 13px; color: ${ix.text2}; }
 `;
 
@@ -171,7 +153,6 @@ export interface CaseActions {
     onEditClient: (anchor: HTMLElement) => void;
     onChangeStatus: (status: LeadStatus) => void;
     statusPending?: boolean;
-    onDelete: () => void;
 }
 
 interface RailBodyProps extends CaseActions {
@@ -184,6 +165,15 @@ interface RailBodyProps extends CaseActions {
 
 const clientKnown = (lead: Lead, card: ContactCard | null | undefined): boolean =>
     Boolean(lead.customerId || card?.customer);
+
+/**
+ * Adres e-mail łamie się po „@", a nie w środku domeny. Bez tego wąski panel ciął
+ * „weronika.piotrowska37@onet." i „pl" na dwie linie - adres wyglądał na urwany.
+ */
+const breakAfterAt = (text: string): ReactNode => {
+    const at = text.indexOf('@');
+    return at > 0 ? <>{text.slice(0, at + 1)}<wbr />{text.slice(at + 1)}</> : text;
+};
 
 /** Karta wyceny i klient - wspólne dla panelu obok rozmowy i arkusza. */
 export function QuoteAndClient({ lead, contactCard, phone, onEditQuote, onEditClient }: Pick<RailBodyProps, 'lead' | 'contactCard' | 'phone' | 'onEditQuote' | 'onEditClient'>) {
@@ -201,7 +191,7 @@ export function QuoteAndClient({ lead, contactCard, phone, onEditQuote, onEditCl
                 </div>
                 {rows.length > 0 ? (
                     <>
-                        <p className="total">{formatAmount(lead.estimatedValue)}</p>
+                        <p className="total">{formatAmount(quoteTotal(lead))}</p>
                         {rows.map((row) => (
                             <p className="row" key={row.id}>
                                 <span>{row.quantity > 1 ? `${row.name} ×${row.quantity}` : row.name}</span>
@@ -220,7 +210,7 @@ export function QuoteAndClient({ lead, contactCard, phone, onEditQuote, onEditCl
             </QuoteCard>
             <Client aria-label="Klient">
                 <div className="who">
-                    <h3>{name}</h3>
+                    <h3>{breakAfterAt(name)}</h3>
                     <p>{clientLine(contactCard)}</p>
                 </div>
                 <EditBtn
@@ -271,23 +261,12 @@ export function CaseStatus({ status, onChange, pending }: { status: LeadStatus; 
     );
 }
 
-export function CaseDelete({ onDelete }: { onDelete: () => void }) {
-    return (
-        <DeleteBtn onClick={onDelete}>
-            <Trash2 aria-hidden="true" /> Usuń sprawę
-        </DeleteBtn>
-    );
-}
-
-export function CaseRail({ cta, onChangeStatus, statusPending, onDelete, ...props }: RailBodyProps) {
+export function CaseRail({ cta, onChangeStatus, statusPending, ...props }: RailBodyProps) {
     return (
         <Aside aria-label="Sprawa">
             <QuoteAndClient {...props} />
             <CaseStatus status={props.lead.status} onChange={onChangeStatus} pending={statusPending} />
-            <Bottom>
-                {cta}
-                <CaseDelete onDelete={onDelete} />
-            </Bottom>
+            {cta && <Bottom>{cta}</Bottom>}
         </Aside>
     );
 }
@@ -372,10 +351,19 @@ interface RailSheetProps extends CaseActions {
 }
 
 /** Arkusz wyceny z makiety „Telefon: arkusz wyceny". */
-export function RailSheet({ lead, contactCard, phone, side, onClose, onEditQuote, onEditClient, onChangeStatus, statusPending, onDelete, cta }: RailSheetProps) {
+export function RailSheet({ lead, contactCard, phone, side, onClose, onEditQuote, onEditClient, onChangeStatus, statusPending, cta }: RailSheetProps) {
     useEffect(() => acquireScrollLock(), []);
+    // Escape zamyka tylko okno na wierzchu - ta sama zasada co w useModalViewport. Bez niej
+    // pierwszy Escape nad „Dlaczego przepadło?" zamykał arkusz POD spodem, a okno zostawało.
+    const sheetRef = useRef<HTMLElement>(null);
     useEffect(() => {
-        const onKey = (event: KeyboardEvent) => { if (event.key === 'Escape') onClose(); };
+        const onKey = (event: KeyboardEvent) => {
+            if (event.key !== 'Escape') return;
+            const dialogs = document.querySelectorAll('[role="dialog"][aria-modal="true"]');
+            const top = dialogs[dialogs.length - 1];
+            if (top && sheetRef.current && top !== sheetRef.current) return;
+            onClose();
+        };
         document.addEventListener('keydown', onKey);
         return () => document.removeEventListener('keydown', onKey);
     }, [onClose]);
@@ -386,12 +374,12 @@ export function RailSheet({ lead, contactCard, phone, side, onClose, onEditQuote
     return createPortal(
         <>
             <Overlay onClick={onClose} aria-hidden="true" />
-            <Sheet $side={side} role="dialog" aria-modal="true" aria-labelledby="case-sheet-title">
+            <Sheet ref={sheetRef} $side={side} role="dialog" aria-modal="true" aria-labelledby="case-sheet-title">
                 {!side && <span className="handle" aria-hidden="true" />}
                 <div className="top">
                     <div>
                         <h2 id="case-sheet-title">{rows.length > 0 ? quoteHeading(lead) : 'Wycena'}</h2>
-                        <p className="total">{rows.length > 0 ? formatAmount(lead.estimatedValue) : 'Brak'}</p>
+                        <p className="total">{rows.length > 0 ? formatAmount(quoteTotal(lead)) : 'Brak'}</p>
                     </div>
                     <span style={{ display: 'inline-flex', gap: 4 }}>
                         <EditBtn onClick={onEditQuote} aria-label="Edytuj wycenę" title="Edytuj wycenę"><Pencil /></EditBtn>
@@ -411,7 +399,7 @@ export function RailSheet({ lead, contactCard, phone, side, onClose, onEditQuote
                 <LeadSuggestions lead={lead} />
                 <div className="client">
                     <div className="who">
-                        <p className="name">{name}</p>
+                        <p className="name">{breakAfterAt(name)}</p>
                         <p className="line">{clientLine(contactCard)}</p>
                     </div>
                     <EditBtn
@@ -428,7 +416,6 @@ export function RailSheet({ lead, contactCard, phone, side, onClose, onEditQuote
                 </div>
                 <CaseStatus status={lead.status} onChange={onChangeStatus} pending={statusPending} />
                 {cta}
-                <CaseDelete onDelete={onDelete} />
             </Sheet>
         </>,
         document.body

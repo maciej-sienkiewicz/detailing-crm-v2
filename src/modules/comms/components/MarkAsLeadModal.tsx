@@ -1,5 +1,6 @@
 // src/modules/comms/components/MarkAsLeadModal.tsx
-// Oznaczenie rozmowy jako leada. Dwa pola i ani jednego więcej - resztę system wie
+// Założenie sprawy z rozmowy („Zapytania" mówią „sprawa", więc okno też - dawniej
+// „Oznacz jako lead"). Dwa pola i ani jednego więcej - resztę system wie
 // sam: kontakt z wątku, klienta po adresie, treść pierwszej wiadomości, a markę
 // i model auta odczytuje z korespondencji już po zapisaniu (backend, LLM).
 //
@@ -50,12 +51,11 @@ const Field = styled.div`
     gap: 7px;
 `;
 
+/** Etykieta pola zdaniem, nie wersalikami 11 px - te są wycofane jako jedyna rama sekcji (CLAUDE.md §2). */
 const FieldLabel = styled.div`
-    font-size: 11.5px;
+    font-size: 14px;
     font-weight: ${p => p.theme.fontWeights.semibold};
-    letter-spacing: 0.04em;
-    text-transform: uppercase;
-    color: ${p => p.theme.colors.textMuted};
+    color: ${p => p.theme.colors.text};
 `;
 
 // ─── Usługi ───────────────────────────────────────────────────────────────────
@@ -111,10 +111,10 @@ export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModa
             {
                 onSuccess: (result) => {
                     showSuccess(
-                        'Lead utworzony',
-                        result.estimatedValue > 0
-                            ? `Wartość zapytania: ${formatGrosze(result.estimatedValue)}`
-                            : 'Znajdziesz go w Zapytaniach'
+                        'Sprawa założona',
+                        total > 0
+                            ? `Wycena: ${formatGrosze(total)}`
+                            : 'Znajdziesz ją w Zapytaniach'
                     );
                     onCreated(result.leadId);
                     onClose();
@@ -122,7 +122,7 @@ export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModa
                 onError: (error) => {
                     const message =
                         problemDetail(error);
-                    showError('Nie udało się utworzyć leada', message ?? 'Spróbuj ponownie');
+                    showError('Nie udało się założyć sprawy', message ?? 'Spróbuj ponownie');
                 },
             }
         );
@@ -135,7 +135,7 @@ export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModa
         <ModalShell isOpen onClose={onClose} size={servicesOpen ? 'lg' : 'sm'}>
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>Oznacz jako lead</ModalTitle>
+                    <ModalTitle>Załóż sprawę z tej rozmowy</ModalTitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
@@ -166,12 +166,17 @@ export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModa
                 </Body>
             </ModalContent>
             <ModalFooter>
-                <Total>
-                    {total > 0 ? formatGrosze(total) : '-'}
-                    <small>wartość potencjalnego zlecenia</small>
-                </Total>
+                {/* Bez usług nie ma czego pokazać - dawniej stał tu samotny „-". */}
+                {total > 0 ? (
+                    <Total>
+                        {formatGrosze(total)}
+                        <small>wycena brutto</small>
+                    </Total>
+                ) : (
+                    <Total as="span" style={{ fontWeight: 400 }}><small>Wycenę możesz dodać później</small></Total>
+                )}
                 <PrimaryButton onClick={submit} disabled={markAsLead.isPending}>
-                    {markAsLead.isPending ? 'Zapisywanie…' : 'Utwórz lead'}
+                    {markAsLead.isPending ? 'Zapisywanie…' : 'Załóż sprawę'}
                 </PrimaryButton>
             </ModalFooter>
         </ModalShell>

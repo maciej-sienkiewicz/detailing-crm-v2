@@ -32,7 +32,7 @@ describe('LeadLostReasonDialog - tryb zbiorczy', () => {
         const confirm = screen.getByRole('button', { name: 'Zamknij jako przegrane' });
         expect(confirm).toBeDisabled();
 
-        await userEvent.click(screen.getByRole('button', { name: 'Poza ofertą' }));
+        await userEvent.click(screen.getByRole('radio', { name: 'Poza ofertą' }));
         await userEvent.type(screen.getByPlaceholderText('Notatka (opcjonalnie)'), 'nie robimy folii');
         await userEvent.click(confirm);
 

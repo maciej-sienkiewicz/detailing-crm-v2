@@ -4,7 +4,7 @@
 // kwota, wynik z powodem, data), jedna linia filtrów i BEZ drugiej wyszukiwarki - szuka
 // się polem w nagłówku listy.
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { cleanup, render, screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
@@ -14,7 +14,7 @@ import { LeadArchive } from './LeadArchive';
 const lead = (over: Partial<Lead>): Lead => ({
     id: 'l1', status: 'COMPLETED', vehicleBrand: 'Porsche', vehicleModel: 'Cayenne', customerName: 'Tomasz Lewandowski',
     contactIdentifier: 't@mail.pl', estimatedValue: 904000, lostReasonLabel: null, closedAt: '2026-10-12T10:00:00Z',
-    createdAt: '2026-10-01T10:00:00Z', tagLabels: [],
+    createdAt: '2026-10-01T10:00:00Z', tagLabels: [], services: [],
     ...over,
 } as Lead);
 
@@ -66,5 +66,26 @@ describe('LeadArchive', () => {
     it('pusta lista po wyszukaniu mówi, że nic nie pasuje', () => {
         renderArchive([], { query: 'audi' });
         expect(screen.getByText('Nic nie pasuje do tego wyszukiwania.')).toBeTruthy();
+    });
+
+    it('„Przegrane" to jedna liczba przy każdym filtrze - bez doliczania „Nie przyszli"', () => {
+        // Odtworzenie z audytu: „Wszystkie" pokazywało 63 992 zł, „Przegrane" 61 100 zł.
+        const item = (gross: number) => ({ id: `s${gross}`, status: 'ACCEPTED', totalGross: gross }) as Lead['services'][number];
+        const items = [
+            lead({ id: 'w', status: 'COMPLETED', services: [item(100000)] }),
+            lead({ id: 'l', status: 'LOST', services: [item(50000)] }),
+            lead({ id: 'n', status: 'NO_SHOW', services: [item(20000)] }),
+        ];
+        const total = (label: string) =>
+            screen.getByText((_, element) => element?.tagName === 'SPAN' && new RegExp(`^${label}\\s`).test(element.textContent ?? '')).textContent;
+
+        renderArchive(items);
+        expect(total('Przegrane')).toBe('Przegrane 500 zł');
+        expect(total('Nie przyszli')).toBe('Nie przyszli 200 zł');
+
+        cleanup();
+        renderArchive(items, { status: 'LOST' });
+        expect(total('Przegrane')).toBe('Przegrane 500 zł');
+        expect(screen.queryByText((_, element) => element?.tagName === 'SPAN' && /^Wygrane\s/.test(element.textContent ?? ''))).toBeNull();
     });
 });

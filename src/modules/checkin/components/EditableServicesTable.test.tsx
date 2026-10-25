@@ -455,8 +455,8 @@ describe('EditableServicesTable', () => {
             // 100,00 zł netto przy 23% VAT -> 123,00 zł brutto. Kwota ustalona ręcznie
             // ma się pokazywać normalnie, a nie jako 0.
             renderTable([manualLine()]);
-            expect(screen.getAllByText('100.00').length).toBeGreaterThan(0);
-            expect(screen.getAllByText('123.00').length).toBeGreaterThan(0);
+            expect(screen.getAllByText('100,00').length).toBeGreaterThan(0);
+            expect(screen.getAllByText('123,00').length).toBeGreaterThan(0);
         });
     });
 });

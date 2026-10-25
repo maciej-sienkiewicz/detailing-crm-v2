@@ -12,7 +12,7 @@
 // z osobna - czego ilość nigdy nie potrafiła.
 import { applyAdjustment, grossToNet } from '@/common/utils/priceAdjustment';
 import type { ServiceLineItem } from '@/common/components/ServicesTable';
-import type { LeadServiceItem, LeadServiceItemInput } from '../types';
+import type { Lead, LeadServiceItem, LeadServiceItemInput } from '../types';
 
 /** Domyślna stawka dla pozycji sprzed V75, które znały wyłącznie brutto. */
 const DEFAULT_VAT_RATE = 23;
@@ -119,3 +119,19 @@ export function totalGrossOf(lines: ServiceLineItem[]): number {
         return sum + finalGrossCents;
     }, 0);
 }
+
+/**
+ * Kwota wyceny: suma brutto PRZYJĘTYCH pozycji, tak jak przysłał je serwer.
+ *
+ * Nie `estimatedValue`: backend liczy je jako potencjał sprawy, razem z sugestiami
+ * asystenta, których nikt jeszcze nie przyjął (LeadServiceItemsService). W panelu
+ * stało więc „548 zł" nad jedyną pozycją za 249 zł, a edytor tej samej wyceny
+ * pokazywał 249 zł - kto podał klientowi kwotę z nagłówka, podał złą cenę.
+ * Sumujemy gotowe `totalGross`, niczego nie przeliczając (CLAUDE.md §1).
+ */
+export const quoteTotal = (lead: Pick<Lead, 'services'>): number =>
+    lead.services.reduce((sum, item) => (item.status === 'ACCEPTED' ? sum + item.totalGross : sum), 0);
+
+/** Sugestie asystenta czekające na decyzję - rezerwacja przyjmuje je razem z wyceną. */
+export const hasPendingSuggestions = (lead: Pick<Lead, 'services'>): boolean =>
+    lead.services.some((item) => item.status === 'SUGGESTED');

@@ -3,13 +3,16 @@
 // (Odebrane, Wysłane) ma tylko Poczta - sprawy i poczta to osobne pozycje panelu
 // bocznego (decyzja z 23.10.2026), więc zakładka „Sprawy" przestała tu stać.
 //
-// Rzeczy rzadkie (stopka, skrzynki, podsumowanie, zamknięte sprawy, nowa wiadomość,
-// odrzucone) mieszkają pod kołem zębatym - nie zniknęły, przestały konkurować
-// z codzienną pracą o miejsce na ekranie.
+// Rzeczy rzadkie (stopka, skrzynki, podsumowanie, odrzucone, zaznaczanie) mieszkają
+// pod „⋯" - nie zniknęły, przestały konkurować z codzienną pracą o miejsce na ekranie.
+// Codzienne są na wierzchu (audyt 25.10.2026): „Nowa wiadomość" jako ołówek obok
+// szukania (na telefonie była wyłącznie pod kołem zębatym) i przełącznik „Lista |
+// Tablica" ten sam co nad tablicą - dawniej jedna strona miała segment z napisami,
+// a druga gołą ikonę. Koło zębate zastąpiło „⋯", bo w środku były głównie akcje.
 import { useEffect, useRef, useState, type ReactNode } from 'react';
 import styled from 'styled-components';
-import { Search, Settings, SquareKanban, X } from 'lucide-react';
-import { ActionMenu, useActionMenu } from '@/common/components/ui';
+import { List, MoreHorizontal, PenSquare, Search, SquareKanban, X } from 'lucide-react';
+import { ActionMenu, Segmented, useActionMenu } from '@/common/components/ui';
 import { useUnreadMailCount } from '../hooks/useComms';
 import type { InboxScope, InboxTab } from '../utils/inboxTabs';
 import { IconBtn, Tabs } from './primitives';
@@ -48,6 +51,11 @@ const PhoneIcon = styled.button.attrs({ type: 'button' })`
 
     svg { width: 20px; height: 20px; }
     &:focus-visible { outline: 2px solid ${ix.accent}; outline-offset: 2px; }
+`;
+
+const LayoutRow = styled.div<{ $phone: boolean }>`
+    margin: ${p => (p.$phone ? '4px 16px 4px' : '0 16px 8px')};
+    svg { width: 14px; height: 14px; }
 `;
 
 const SearchRow = styled.div<{ $phone: boolean }>`
@@ -100,11 +108,13 @@ interface ListHeaderProps {
     menu: (close: () => void) => ReactNode;
     /** Pasek pod zakładkami (np. „← Otwarte sprawy" w archiwum). */
     below?: ReactNode;
-    /** Przełączenie spraw na tablicę (kanban); brak - przycisku nie ma. */
+    /** Przełączenie spraw na tablicę (kanban); brak - przełącznika nie ma. */
     onBoard?: () => void;
+    /** Nowa wiadomość (Poczta); brak - przycisku nie ma. */
+    onCompose?: () => void;
 }
 
-export function ListHeader({ scope, tab, onTab, phone, query, onQuery, searchPlaceholder, menu, below, onBoard }: ListHeaderProps) {
+export function ListHeader({ scope, tab, onTab, phone, query, onQuery, searchPlaceholder, menu, below, onBoard, onCompose }: ListHeaderProps) {
     const unreadMail = useUnreadMailCount({ enabled: scope === 'mail' });
     const settings = useActionMenu();
     const [searchOpen, setSearchOpen] = useState(query !== '');
@@ -132,20 +142,35 @@ export function ListHeader({ scope, tab, onTab, phone, query, onQuery, searchPla
                 >
                     <Search />
                 </Icon>
-                {onBoard && (
-                    <Icon aria-label="Pokaż sprawy jako tablicę" title="Tablica spraw" onClick={onBoard}>
-                        <SquareKanban />
+                {onCompose && (
+                    <Icon aria-label="Nowa wiadomość" title="Nowa wiadomość" onClick={onCompose}>
+                        <PenSquare />
                     </Icon>
                 )}
                 <Icon
-                    aria-label="Ustawienia skrzynki"
+                    aria-label="Więcej: odrzucone, stopka, styl szkiców, skrzynki"
+                    title="Więcej"
                     aria-haspopup="menu"
                     aria-expanded={settings.isOpen()}
                     onClick={(event) => settings.toggle(event, null)}
                 >
-                    <Settings />
+                    <MoreHorizontal />
                 </Icon>
             </Head>
+            {onBoard && (
+                <LayoutRow $phone={phone}>
+                    <Segmented
+                        label="Układ spraw"
+                        size="sm"
+                        value="list"
+                        onChange={(value) => { if (value === 'board') onBoard(); }}
+                        options={[
+                            { value: 'list', label: <><List aria-hidden="true" />Lista</> },
+                            { value: 'board', label: <><SquareKanban aria-hidden="true" />Tablica</> },
+                        ]}
+                    />
+                </LayoutRow>
+            )}
             {searchOpen && (
                 <SearchRow $phone={phone} role="search">
                     <Search aria-hidden="true" />
@@ -175,7 +200,7 @@ export function ListHeader({ scope, tab, onTab, phone, query, onQuery, searchPla
                 />
             )}
             {below}
-            <ActionMenu anchor={settings.menu?.anchor ?? null} onClose={settings.close} label="Ustawienia skrzynki">
+            <ActionMenu anchor={settings.menu?.anchor ?? null} onClose={settings.close} label="Więcej">
                 {menu(settings.close)}
             </ActionMenu>
         </>

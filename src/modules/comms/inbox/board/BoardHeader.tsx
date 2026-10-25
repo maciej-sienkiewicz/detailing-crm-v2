@@ -24,7 +24,19 @@ const Head = styled.header<{ $phone: boolean }>`
         letter-spacing: -0.02em;
         color: ${ix.ink};
     }
-    .sub { margin: 2px 0 0; font-size: 13px; color: ${ix.muted}; }
+    .sub { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 8px; margin: 2px 0 0; font-size: 13px; color: ${ix.muted}; }
+    .sub button {
+        padding: 0;
+        border: none;
+        background: none;
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        color: ${ix.accentInk};
+        cursor: pointer;
+        &:hover { text-decoration: underline; }
+        &:focus-visible { outline: 2px solid ${ix.accent}; outline-offset: 2px; border-radius: 4px; }
+    }
     svg { width: 14px; height: 14px; }
 `;
 
@@ -72,17 +84,30 @@ const SearchPill = styled.label<{ $phone: boolean }>`
 interface BoardHeaderProps {
     phone: boolean;
     total: number;
+    /**
+     * Ile spraw stoi na tablicy. Sprawy z rezerwacją i te po 20 dniach ciszy schodzą
+     * z tablicy, ale zostają otwarte na liście - nagłówek mówi o tym wprost, zamiast
+     * pokazywać „Otwarte: 18" nad kolumnami, które sumują się do 17.
+     */
+    onBoard: number;
     query: string;
     onQuery: (query: string) => void;
     onList: () => void;
 }
 
-export function BoardHeader({ phone, total, query, onQuery, onList }: BoardHeaderProps) {
+export function BoardHeader({ phone, total, onBoard, query, onQuery, onList }: BoardHeaderProps) {
     return (
         <Head $phone={phone}>
             <div className="titles">
                 <h1>Zapytania</h1>
-                <p className="sub">{total > 0 ? `Otwarte: ${caseCount(total)}` : 'Tablica spraw'}</p>
+                <p className="sub">
+                    {total === 0 ? 'Tablica spraw' : onBoard >= total ? `Otwarte: ${caseCount(total)}` : (
+                        <>
+                            <span>Na tablicy {onBoard} z {caseCount(total)}</span>
+                            <button type="button" onClick={onList}>Pozostałe na liście</button>
+                        </>
+                    )}
+                </p>
             </div>
             <SearchPill $phone={phone} role="search">
                 <Search aria-hidden="true" />

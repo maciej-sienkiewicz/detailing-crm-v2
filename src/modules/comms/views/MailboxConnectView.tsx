@@ -1,10 +1,16 @@
 // src/modules/comms/views/MailboxConnectView.tsx
 // Podłączanie skrzynki: adres → automatyczna detekcja (MX) → hasło. Użytkownik
 // nigdy nie widzi słów IMAP/port, chyba że sam otworzy ustawienia ręczne.
+//
+// Najpierw to, co podłączone (czy moja skrzynka działa, kiedy ostatnio pobrała pocztę),
+// potem formularz - a przy podłączonej skrzynce formularz czeka za przyciskiem.
+// Dawniej formularz nowej skrzynki stał nad listą podłączonych i każdy, kto wchodził
+// sprawdzić swoją skrzynkę, najpierw widział pola na adres i hasło.
 import { useState } from 'react';
 import { Link } from 'react-router-dom';
 import styled from 'styled-components';
-import { ArrowLeft, CheckCircle2, Trash2 } from 'lucide-react';
+import { ArrowLeft, CheckCircle2, Plus, Trash2 } from 'lucide-react';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { PageHeader, PageHeaderGhostButton } from '@/common/components/PageHeader';
 import { useToast } from '@/common/components/Toast';
 import {
@@ -120,6 +126,8 @@ export default function MailboxConnectView() {
     const [showAdvanced, setShowAdvanced] = useState(false);
     const [manual, setManual] = useState({ imapHost: '', imapPort: '', smtpHost: '', smtpPort: '' });
     const [error, setError] = useState<string | null>(null);
+    const [adding, setAdding] = useState(false);
+    const [toDisconnect, setToDisconnect] = useState<{ id: string; email: string } | null>(null);
 
     const { data: accounts } = useMailAccounts();
     const detect = useDetectProvider();
@@ -168,6 +176,8 @@ export default function MailboxConnectView() {
     };
 
     const oauthProvider = detection && detection.providerType !== 'IMAP_SMTP';
+    const connected = (accounts ?? []).filter((account) => account.status !== 'DISABLED');
+    const showForm = connected.length === 0 || adding;
 
     return (
         <Screen>
@@ -183,115 +193,10 @@ export default function MailboxConnectView() {
                 }
             />
 
-            <Card>
-                <Helper>
-                    Podaj adres i hasło, resztę ustawimy sami.
-                </Helper>
-
-                <Field>
-                    Adres e-mail
-                    <input
-                        type="email"
-                        value={email}
-                        placeholder="biuro@twojafirma.pl"
-                        onChange={(event) => setEmail(event.target.value)}
-                        onBlur={runDetect}
-                    />
-                </Field>
-
-                {oauthProvider && (
-                    <ErrorText style={{ background: '#f0f6f9', color: '#075985' }}>
-                        Skrzynkę {detection?.providerType === 'GOOGLE_API' ? 'Gmail' : 'Microsoft 365'} podłączymy
-                        wkrótce. Na razie działa zwykła poczta firmowa z hostingu.
-                    </ErrorText>
-                )}
-
-                {!oauthProvider && (
-                    <>
-                        <Field>
-                            Hasło do skrzynki
-                            <input
-                                type="password"
-                                value={password}
-                                autoComplete="new-password"
-                                onChange={(event) => setPassword(event.target.value)}
-                            />
-                        </Field>
-                        {detection?.requiresAppPassword && (
-                            <Helper>
-                                Ten dostawca wymaga „hasła aplikacji" - wygeneruj je w panelu poczty
-                                {detection.guideUrl && (
-                                    <> (<a href={detection.guideUrl} target="_blank" rel="noreferrer">instrukcja</a>)</>
-                                )}{' '}
-                                i wklej powyżej zamiast zwykłego hasła.
-                            </Helper>
-                        )}
-
-                        <AdvancedToggle onClick={() => setShowAdvanced(!showAdvanced)}>
-                            {showAdvanced ? 'Ukryj ustawienia ręczne' : 'Ustawienia ręczne (zaawansowane)'}
-                        </AdvancedToggle>
-                        {showAdvanced && (
-                            <>
-                                <TwoColumns>
-                                    <Field>
-                                        Serwer IMAP
-                                        <input
-                                            value={manual.imapHost}
-                                            placeholder={detection?.imapHost ?? 'imap.example.pl'}
-                                            onChange={(event) => setManual({ ...manual, imapHost: event.target.value })}
-                                        />
-                                    </Field>
-                                    <Field>
-                                        Port
-                                        <input
-                                            value={manual.imapPort}
-                                            placeholder={String(detection?.imapPort ?? 993)}
-                                            onChange={(event) => setManual({ ...manual, imapPort: event.target.value })}
-                                        />
-                                    </Field>
-                                </TwoColumns>
-                                <TwoColumns>
-                                    <Field>
-                                        Serwer SMTP
-                                        <input
-                                            value={manual.smtpHost}
-                                            placeholder={detection?.smtpHost ?? 'smtp.example.pl'}
-                                            onChange={(event) => setManual({ ...manual, smtpHost: event.target.value })}
-                                        />
-                                    </Field>
-                                    <Field>
-                                        Port
-                                        <input
-                                            value={manual.smtpPort}
-                                            placeholder={String(detection?.smtpPort ?? 587)}
-                                            onChange={(event) => setManual({ ...manual, smtpPort: event.target.value })}
-                                        />
-                                    </Field>
-                                </TwoColumns>
-                            </>
-                        )}
-
-                        {error && <ErrorText>{error}</ErrorText>}
-
-                        <PrimaryButton
-                            onClick={submit}
-                            disabled={!email.includes('@') || password.length === 0 || connect.isPending}
-                            style={{ alignSelf: 'flex-start' }}
-                        >
-                            {connect.isPending ? 'Łączenie…' : 'Połącz skrzynkę'}
-                        </PrimaryButton>
-                    </>
-                )}
-            </Card>
-
-            <Card>
-                <CardTitle>Podłączone skrzynki</CardTitle>
-                {(accounts ?? []).filter((account) => account.status !== 'DISABLED').length === 0 && (
-                    <Helper>Nie podłączono jeszcze żadnej skrzynki.</Helper>
-                )}
-                {(accounts ?? [])
-                    .filter((account) => account.status !== 'DISABLED')
-                    .map((account) => (
+            {connected.length > 0 && (
+                <Card>
+                    <CardTitle>Podłączone skrzynki</CardTitle>
+                    {connected.map((account) => (
                         <AccountRow key={account.id}>
                             <CheckCircle2
                                 size={16}
@@ -311,18 +216,137 @@ export default function MailboxConnectView() {
                                 )}
                             </div>
                             <IconButton
-                                onClick={() => {
-                                    if (window.confirm(`Odłączyć skrzynkę ${account.emailAddress}? Hasło zostanie usunięte.`)) {
-                                        disconnect.mutate(account.id);
-                                    }
-                                }}
-                                aria-label="Odłącz"
+                                onClick={() => setToDisconnect({ id: account.id, email: account.emailAddress })}
+                                aria-label={`Odłącz skrzynkę ${account.emailAddress}`}
+                                title="Odłącz skrzynkę"
                             >
                                 <Trash2 size={14} />
                             </IconButton>
                         </AccountRow>
                     ))}
-            </Card>
+                </Card>
+            )}
+
+            {showForm ? (
+                <Card>
+                    {connected.length > 0 && <CardTitle>Podłącz kolejną skrzynkę</CardTitle>}
+                    <Helper>
+                        Podaj adres i hasło, resztę ustawimy sami.
+                    </Helper>
+
+                    <Field>
+                        Adres e-mail
+                        <input
+                            type="email"
+                            value={email}
+                            placeholder="biuro@twojafirma.pl"
+                            onChange={(event) => setEmail(event.target.value)}
+                            onBlur={runDetect}
+                        />
+                    </Field>
+
+                    {oauthProvider && (
+                        <ErrorText style={{ background: '#f0f6f9', color: '#075985' }}>
+                            Skrzynkę {detection?.providerType === 'GOOGLE_API' ? 'Gmail' : 'Microsoft 365'} podłączymy
+                            wkrótce. Na razie działa zwykła poczta firmowa z hostingu.
+                        </ErrorText>
+                    )}
+
+                    {!oauthProvider && (
+                        <>
+                            <Field>
+                                Hasło do skrzynki
+                                <input
+                                    type="password"
+                                    value={password}
+                                    autoComplete="new-password"
+                                    onChange={(event) => setPassword(event.target.value)}
+                                />
+                            </Field>
+                            {detection?.requiresAppPassword && (
+                                <Helper>
+                                    Ten dostawca wymaga „hasła aplikacji" - wygeneruj je w panelu poczty
+                                    {detection.guideUrl && (
+                                        <> (<a href={detection.guideUrl} target="_blank" rel="noreferrer">instrukcja</a>)</>
+                                    )}{' '}
+                                    i wklej powyżej zamiast zwykłego hasła.
+                                </Helper>
+                            )}
+
+                            <AdvancedToggle onClick={() => setShowAdvanced(!showAdvanced)}>
+                                {showAdvanced ? 'Ukryj ustawienia ręczne' : 'Ustawienia ręczne (zaawansowane)'}
+                            </AdvancedToggle>
+                            {showAdvanced && (
+                                <>
+                                    <TwoColumns>
+                                        <Field>
+                                            Serwer IMAP
+                                            <input
+                                                value={manual.imapHost}
+                                                placeholder={detection?.imapHost ?? 'imap.example.pl'}
+                                                onChange={(event) => setManual({ ...manual, imapHost: event.target.value })}
+                                            />
+                                        </Field>
+                                        <Field>
+                                            Port
+                                            <input
+                                                value={manual.imapPort}
+                                                placeholder={String(detection?.imapPort ?? 993)}
+                                                onChange={(event) => setManual({ ...manual, imapPort: event.target.value })}
+                                            />
+                                        </Field>
+                                    </TwoColumns>
+                                    <TwoColumns>
+                                        <Field>
+                                            Serwer SMTP
+                                            <input
+                                                value={manual.smtpHost}
+                                                placeholder={detection?.smtpHost ?? 'smtp.example.pl'}
+                                                onChange={(event) => setManual({ ...manual, smtpHost: event.target.value })}
+                                            />
+                                        </Field>
+                                        <Field>
+                                            Port
+                                            <input
+                                                value={manual.smtpPort}
+                                                placeholder={String(detection?.smtpPort ?? 587)}
+                                                onChange={(event) => setManual({ ...manual, smtpPort: event.target.value })}
+                                            />
+                                        </Field>
+                                    </TwoColumns>
+                                </>
+                            )}
+
+                            {error && <ErrorText>{error}</ErrorText>}
+
+                            <PrimaryButton
+                                onClick={submit}
+                                disabled={!email.includes('@') || password.length === 0 || connect.isPending}
+                                style={{ alignSelf: 'flex-start' }}
+                            >
+                                {connect.isPending ? 'Łączenie…' : 'Połącz skrzynkę'}
+                            </PrimaryButton>
+                        </>
+                    )}
+                </Card>
+            ) : (
+                <IconButton type="button" onClick={() => setAdding(true)} style={{ alignSelf: 'flex-start' }}>
+                    <Plus size={14} /> Podłącz kolejną skrzynkę
+                </IconButton>
+            )}
+
+            <ConfirmationModal
+                isOpen={toDisconnect !== null}
+                title="Odłączyć skrzynkę?"
+                message={toDisconnect ? `${toDisconnect.email} przestanie pobierać pocztę do CRM, a zapisane hasło zostanie usunięte. Wiadomości, które już są w CRM, zostaną.` : ''}
+                variant="danger"
+                confirmText="Odłącz"
+                onConfirm={() => {
+                    if (toDisconnect) disconnect.mutate(toDisconnect.id);
+                    setToDisconnect(null);
+                }}
+                onCancel={() => setToDisconnect(null)}
+            />
         </Screen>
     );
 }

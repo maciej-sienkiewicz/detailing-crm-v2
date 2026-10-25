@@ -9,7 +9,9 @@ import { Toast } from './Toast';
  */
 const ToastStack = styled.div`
     position: fixed;
-    bottom: 24px;
+    /* --toast-lift: widok z własnymi przyciskami przy dolnej krawędzi (kompozytor odpowiedzi
+       w skrzynce) podnosi stos, żeby komunikat nie leżał na „Wyślij". */
+    bottom: calc(24px + var(--toast-lift, 0px));
     right: 24px;
     z-index: 10000;
     display: flex;

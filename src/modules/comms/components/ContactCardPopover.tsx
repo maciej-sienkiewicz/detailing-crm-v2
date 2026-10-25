@@ -524,6 +524,9 @@ export function ContactCardPopover({
     }, [participantName, email]);
 
     const customer = data?.customer ?? null;
+    // Nazwa osoby, o ile ją znamy i nie jest po prostu adresem e-mail.
+    const knownName = customer?.fullName ?? participantName;
+    const displayName = knownName && knownName.trim().toLowerCase() !== email.trim().toLowerCase() ? knownName : null;
 
     return createPortal(
         <>
@@ -535,11 +538,14 @@ export function ContactCardPopover({
             >
                 <Head>
                     <div className="who">
-                        <div className="name">{customer?.fullName ?? participantName ?? email}</div>
-                        <div className="sub">
-                            <span>{email}</span>
-                            {customer?.phone && <span><PiiValue value={customer.phone} kind="phone" /></span>}
-                        </div>
+                        <div className="name">{displayName ?? email}</div>
+                        {/* Bez nazwiska nazwą jest adres - pod spodem nie powtarzamy go drugi raz. */}
+                        {(displayName || customer?.phone) && (
+                            <div className="sub">
+                                {displayName && <span>{email}</span>}
+                                {customer?.phone && <span><PiiValue value={customer.phone} kind="phone" /></span>}
+                            </div>
+                        )}
                     </div>
                     <button type="button" className="close" onClick={onClose} aria-label="Zamknij">
                         <X size={14} />

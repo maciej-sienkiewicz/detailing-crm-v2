@@ -14,6 +14,7 @@
 import styled from 'styled-components';
 import { formatMoney } from './shared';
 import { caseTitle } from '../inbox/caseModel';
+import { quoteTotal } from '../utils/leadServiceLines';
 import { ix } from '../inbox/tokens';
 import { LEAD_STATUS_COLORS, LEAD_STATUS_LABELS, type Lead, type LeadStatus } from '../types';
 import type { LeadBundle } from '../hooks/useLeads';
@@ -179,12 +180,19 @@ interface LeadArchiveProps {
 }
 
 export function LeadArchive({ bundle, query, status, onStatusChange, onOpen, activeId, phone }: LeadArchiveProps) {
-    const won = bundle.items
-        .filter((lead) => lead.status === 'COMPLETED')
-        .reduce((sum, lead) => sum + lead.estimatedValue, 0);
-    const lost = bundle.items
-        .filter((lead) => lead.status === 'LOST' || lead.status === 'NO_SHOW')
-        .reduce((sum, lead) => sum + lead.estimatedValue, 0);
+    // Jedna definicja na wynik, ta sama co w filtrach: „Przegrane" to wyłącznie LOST.
+    // Dawniej suma przy „Wszystkie" doliczała „Nie przyszli", więc ta sama etykieta
+    // pokazywała 63 992 zł albo 61 100 zł zależnie od filtra. Kwoty z przyjętych pozycji
+    // wyceny (quoteTotal), nie z potencjału z sugestiami.
+    const sumOf = (status: LeadStatus) => bundle.items
+        .filter((lead) => lead.status === status)
+        .reduce((sum, lead) => sum + quoteTotal(lead), 0);
+    const totals = ARCHIVE_FILTERS
+        .filter((filter): filter is { value: LeadStatus; label: string } => filter.value !== undefined)
+        .filter((filter) => status === undefined || status === filter.value)
+        .map((filter) => ({ label: filter.label, value: sumOf(filter.value), count: bundle.items.filter((lead) => lead.status === filter.value).length }))
+        // Przy „Wszystkie" bez pustych pozycji - „Nie przyszli 0 zł" nic nie mówi.
+        .filter((total) => status !== undefined || total.count > 0);
 
     return (
         <Scroll $phone={phone}>
@@ -204,8 +212,9 @@ export function LeadArchive({ bundle, query, status, onStatusChange, onOpen, act
 
             {bundle.items.length > 0 && (
                 <Totals $phone={phone}>
-                    <span>Wygrane <strong>{formatMoney(won)}</strong></span>
-                    <span>Przegrane <strong>{formatMoney(lost)}</strong></span>
+                    {totals.map((total) => (
+                        <span key={total.label}>{total.label} <strong>{formatMoney(total.value)}</strong></span>
+                    ))}
                 </Totals>
             )}
 
@@ -227,7 +236,7 @@ export function LeadArchive({ bundle, query, status, onStatusChange, onOpen, act
                     <span className="top">
                         <Dot $color={LEAD_STATUS_COLORS[lead.status].fg} aria-hidden="true" />
                         <span className="name">{caseTitle(lead)}</span>
-                        {lead.estimatedValue > 0 && <span className="value">{formatMoney(lead.estimatedValue)}</span>}
+                        {quoteTotal(lead) > 0 && <span className="value">{formatMoney(quoteTotal(lead))}</span>}
                     </span>
                     <span className="sub">
                         <span className="outcome">{outcome(lead)}</span>

@@ -100,6 +100,9 @@ export const ConversationScroll = styled.div<{ $phone: boolean; $bottom?: boolea
     flex-direction: column;
     gap: ${p => (p.$phone ? 18 : 20)}px;
     padding: ${p => (p.$phone ? '20px 16px' : '28px')};
+    /* Dymki mierzą się szerokością rozmowy, nie okna (Bubble niżej). */
+    container-type: inline-size;
+    container-name: conversation;
 
     /* Zamiast justify-content: flex-end - ten przy przepełnieniu odcina górę rozmowy
        poza zasięg przewijania. Margines u pierwszego dziecka dosuwa krótką rozmowę
@@ -107,10 +110,29 @@ export const ConversationScroll = styled.div<{ $phone: boolean; $bottom?: boolea
     > :first-child { margin-top: ${p => (p.$bottom === false ? '0' : 'auto')}; }
 `;
 
+/**
+ * Szerokość dymka zależy od szerokości ROZMOWY, nie od stałego procentu.
+ *
+ * Dawniej 70% (80% na telefonie) niezależnie od miejsca: w trzech kolumnach sprawy
+ * na ekranie 1440 px dymek miał 307 px, czyli około 36 znaków w linii, a 560-znakowa
+ * odpowiedź robiła się słupkiem wysokim na pół ekranu; obok każdego dymka zostawało
+ * 130-260 px pustego miejsca (audyt 25.10.2026). Teraz: w szerokiej rozmowie 85%,
+ * ale nie więcej niż 640 px (długość wiersza, przy której oko nie gubi linijek),
+ * w wąskiej (telefon, tablet, trzy kolumny) 92% i mniejszy wewnętrzny odstęp.
+ */
 const Bubble = styled.div<{ $out: boolean; $phone: boolean }>`
     align-self: ${p => (p.$out ? 'flex-end' : 'flex-start')};
-    max-width: ${p => (p.$phone ? '80%' : '70%')};
+    max-width: min(85%, 640px);
     min-width: 0;
+
+    /* Treść w ramce (mail z tabelą, newsletter) nie ma własnej szerokości - bez tego
+       dymek kurczył się do 300 px ramki i ściskał tabelę obok pustego miejsca. */
+    &:has(iframe) { width: 100%; }
+
+    @container conversation (max-width: 560px) {
+        max-width: 92%;
+        .body { padding: 10px 12px; }
+    }
 
     .label {
         margin: 0 0 6px;
@@ -269,7 +291,9 @@ export function Bubbles({ messages, phone, onDownload, onPreview, onOpenFull, be
                 const out = message.direction === 'OUTBOUND';
                 return (
                     <Bubble key={message.id} $out={out} $phone={phone}>
-                        <p className="label">{out ? 'Ty' : messageMoment(message.sentAt)}</p>
+                        {/* Data także przy własnej wiadomości: „kiedy odpisaliśmy?" to pierwsze pytanie
+                            przy reklamacji, a sam podpis „Ty" na nie nie odpowiadał. */}
+                        <p className="label">{out ? `Ty, ${messageMoment(message.sentAt).replace(/^\p{Lu}/u, (first) => first.toLowerCase())}` : messageMoment(message.sentAt)}</p>
                         <div className="body">
                             <MessageBody
                                 html={message.bodyHtml ?? ''}

@@ -8,12 +8,20 @@
 //
 // Gdy nadawca ma auto w studiu, nad treścią stoi zielony pasek z wizytą - pytanie
 // „kiedy mogę odebrać auto?" ma odpowiedź jedno kliknięcie dalej.
+//
+// Wątek sprawy też czyta się tutaj (od 25.10.2026). Dawniej kliknięcie go w Poczcie
+// przerzucało do Zapytań - nad tablicę, z inną pozycją menu i bez drogi powrotu.
+// Teraz nad rozmową stoi pasek sprawy (auto, stan, wycena) z „Otwórz sprawę".
+//
+// Menu wątku zależy od nadawcy: przy automatach (powiadomienia, hurtownie, reklamy)
+// nie ma „Umów wizytę" ani karty klienta - rezerwacja „dla: DetailChem Hurt" nie ma sensu.
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
 import {
     Archive,
     ArchiveRestore,
+    ArrowRight,
     CalendarPlus,
     Car,
     ChevronUp,
@@ -52,6 +60,8 @@ import { ThreadHistoryPanel } from '../components/ThreadHistoryPanel';
 import { AttachmentCards, Bubbles, ConversationHeader } from './Conversation';
 import { downloadAttachmentFile, messageMoment } from './messageFormat';
 import { useAttachmentPreview } from '../components/useAttachmentPreview';
+import { useLead } from '../hooks/useLeads';
+import { caseStatusChip, caseTitle, formatAmount, quoteTotal } from './caseModel';
 import { IconBtn } from './primitives';
 import { ix } from './tokens';
 
@@ -176,6 +186,66 @@ const Collapsed = styled.button`
     &:hover .snippet { color: ${ix.text2}; }
 `;
 
+/**
+ * Pasek sprawy nad wątkiem w Poczcie: co to za sprawa i ile jest w wycenie, a obok
+ * przejście do niej. Odcień i obwódka - wypełnione w oknie jest tylko „Odpisz".
+ */
+const CaseBar = styled.div<{ $phone: boolean }>`
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    flex-shrink: 0;
+    margin: ${p => (p.$phone ? '12px 16px 0' : '16px 28px 0')};
+    padding: 10px 10px 10px 16px;
+    border: 1px solid ${ix.line};
+    border-radius: 14px;
+    background: ${ix.surfaceSoft};
+
+    > svg { flex: none; width: 18px; height: 18px; color: ${ix.accentInk}; }
+    .text { flex: 1; min-width: 0; display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 10px; }
+    .name { font-size: 14px; font-weight: 600; color: ${ix.ink}; }
+    .state { font-size: 13px; color: ${ix.text2}; }
+    button {
+        display: inline-flex;
+        align-items: center;
+        gap: 6px;
+        flex: none;
+        height: 36px;
+        padding: 0 12px;
+        border: 1px solid ${ix.line};
+        border-radius: 999px;
+        background: #ffffff;
+        color: ${ix.accentInk};
+        font-family: inherit;
+        font-size: 13px;
+        font-weight: 600;
+        cursor: pointer;
+        svg { width: 15px; height: 15px; }
+        &:hover { background: ${ix.accentTint}; }
+        &:focus-visible { outline: 2px solid ${ix.accent}; outline-offset: 2px; }
+        @media (hover: none) and (pointer: coarse) { height: 44px; }
+    }
+`;
+
+function MailCaseBar({ leadId, phone, onOpen }: { leadId: string; phone: boolean; onOpen: () => void }) {
+    const { data: lead } = useLead(leadId);
+    if (!lead) return null;
+    const total = quoteTotal(lead);
+    const state = [caseStatusChip(lead).label, total > 0 ? `wycena ${formatAmount(total)}` : null].filter(Boolean).join(', ');
+    return (
+        <CaseBar $phone={phone} aria-label="Sprawa tej rozmowy">
+            <Tag aria-hidden="true" />
+            <span className="text">
+                <span className="name">Sprawa: {caseTitle(lead)}</span>
+                <span className="state">{state}</span>
+            </span>
+            <button type="button" onClick={onOpen}>
+                Otwórz sprawę <ArrowRight aria-hidden="true" />
+            </button>
+        </CaseBar>
+    );
+}
+
 const IN_STUDIO = new Set(['IN_PROGRESS', 'READY_FOR_PICKUP']);
 
 const sender = (message: CommMessage): string =>
@@ -276,6 +346,8 @@ export function MailDetail({ threadId, listThread, phone, onBack, onArchived, on
     const subtitle = `${who}, ${moment.replace(', ', ' ').replace(/^./, (first) => first.toLowerCase())}`;
     const multi = messages.length > 1;
     const conversational = Boolean(contactCard?.customer) || Boolean(thread.leadId);
+    // Automat (powiadomienie, hurtownia, reklama) - bez rezerwacji i karty klienta w menu.
+    const automated = Boolean(thread.automated) && !thread.leadId;
     // Rozwinięta jest najnowsza i to, czego nikt jeszcze nie czytał. Dawniej przy dwóch
     // wiadomościach rozwinięte były obie: stara z podpisem i stopką zajmowała cały ekran,
     // a nowa odpowiedź stała pod nią - wątek czytał się od końca.
@@ -283,6 +355,32 @@ export function MailDetail({ threadId, listThread, phone, onBack, onArchived, on
         expanded[message.id] ?? (index === messages.length - 1 || Boolean(unreadIds?.has(message.id)));
 
     const archive = () => setArchived.mutate({ threadId: thread.id, archived: !thread.archived }, { onSuccess: onArchived });
+
+    // Pasek wizyty i uwaga automatu - te same nad dymkami i nad listem.
+    const notices = (
+        <>
+            {visit && (
+                <VisitBar href={`/visits/${visit.id}`} onClick={(event) => { event.preventDefault(); navigate(`/visits/${visit.id}`); }}>
+                    <Car aria-hidden="true" />
+                    <span className="text">
+                        {visit.vehicleLabel} jest w studiu.{' '}
+                        {visit.status === 'READY_FOR_PICKUP' && <strong>Gotowe do odbioru.</strong>}
+                    </span>
+                    <span className="link">Otwórz wizytę</span>
+                </VisitBar>
+            )}
+            {thread.screening && (
+                <Notice role="status">
+                    <ShieldAlert aria-hidden="true" />
+                    <span className="text">
+                        {thread.screening === 'SPAM' ? 'Automat uznał to zgłoszenie za spam' : 'Automat uznał to zgłoszenie za test ze studia'}
+                        {thread.screeningReason ? `: ${thread.screeningReason}` : ''}.
+                    </span>
+                    <button type="button" onClick={() => setModal('lead')}>To jednak zapytanie klienta</button>
+                </Notice>
+            )}
+        </>
+    );
 
     return (
         <Pane aria-labelledby="mail-title">
@@ -301,6 +399,8 @@ export function MailDetail({ threadId, listThread, phone, onBack, onArchived, on
                 </IconBtn>
             </ConversationHeader>
 
+            {thread.leadId && <MailCaseBar leadId={thread.leadId} phone={phone} onOpen={() => onOpenCase(thread.leadId!)} />}
+
             {/* Nadawca z kartoteki to rozmowa z klientem - czyta się jak komunikator
                 (dymki, „Ty" po prawej). Reszta poczty (faktury, dostawcy) - jak list. */}
             {conversational ? (
@@ -311,51 +411,11 @@ export function MailDetail({ threadId, listThread, phone, onBack, onArchived, on
                     onDownload={download}
                     onOpenFull={setFullMessageId}
                     alignBottom={false}
-                    before={<>
-                {visit && (
-                    <VisitBar href={`/visits/${visit.id}`} onClick={(event) => { event.preventDefault(); navigate(`/visits/${visit.id}`); }}>
-                        <Car aria-hidden="true" />
-                        <span className="text">
-                            {visit.vehicleLabel} jest w studiu.{' '}
-                            {visit.status === 'READY_FOR_PICKUP' && <strong>Gotowe do odbioru.</strong>}
-                        </span>
-                        <span className="link">Otwórz wizytę</span>
-                    </VisitBar>
-                )}
-                {thread.screening && (
-                    <Notice role="status">
-                        <ShieldAlert aria-hidden="true" />
-                        <span className="text">
-                            {thread.screening === 'SPAM' ? 'Automat uznał to zgłoszenie za spam' : 'Automat uznał to zgłoszenie za test ze studia'}
-                            {thread.screeningReason ? `: ${thread.screeningReason}` : ''}.
-                        </span>
-                        <button type="button" onClick={() => setModal('lead')}>To jednak lead</button>
-                    </Notice>
-                )}
-                    </>}
+                    before={notices}
                 />
             ) : (
             <Reader ref={readerRef} $phone={phone}>
-                {visit && (
-                    <VisitBar href={`/visits/${visit.id}`} onClick={(event) => { event.preventDefault(); navigate(`/visits/${visit.id}`); }}>
-                        <Car aria-hidden="true" />
-                        <span className="text">
-                            {visit.vehicleLabel} jest w studiu.{' '}
-                            {visit.status === 'READY_FOR_PICKUP' && <strong>Gotowe do odbioru.</strong>}
-                        </span>
-                        <span className="link">Otwórz wizytę</span>
-                    </VisitBar>
-                )}
-                {thread.screening && (
-                    <Notice role="status">
-                        <ShieldAlert aria-hidden="true" />
-                        <span className="text">
-                            {thread.screening === 'SPAM' ? 'Automat uznał to zgłoszenie za spam' : 'Automat uznał to zgłoszenie za test ze studia'}
-                            {thread.screeningReason ? `: ${thread.screeningReason}` : ''}.
-                        </span>
-                        <button type="button" onClick={() => setModal('lead')}>To jednak lead</button>
-                    </Notice>
-                )}
+                {notices}
                 {!detailMatches && <p style={{ margin: 0, color: ix.muted, fontSize: 14 }}>Wczytywanie treści…</p>}
                 {messages.map((message, index) =>
                     isOpen(message, index) ? (
@@ -406,6 +466,8 @@ export function MailDetail({ threadId, listThread, phone, onBack, onArchived, on
                     collapsible={phone}
                     divider
                     layout="collapsed"
+                    // Na powiadomienie automatu nikt nie odpisuje - „Odpisz" bez wypełnienia.
+                    sendAppearance={automated ? 'tint' : 'pill'}
                     galleryContext={can('VISITS_VIEW') ? { customerId: contactCard?.customer?.id ?? null, label: visit ? `Wizyta ${visit.vehicleLabel}` : null } : undefined}
                 />
             )}
@@ -421,14 +483,18 @@ export function MailDetail({ threadId, listThread, phone, onBack, onArchived, on
                 ) : !activeForm && (
                     <MenuItem icon={<Tag />} onClick={() => { menu.close(); setModal('lead'); }}>To zapytanie klienta</MenuItem>
                 )}
-                <MenuItem icon={<FileInput />} onClick={() => { menu.close(); setModal('form'); }}>Zgłoszenie z formularza</MenuItem>
-                {canBook && (
+                {/* Ustawienie nadawcy, nie akcja na wiadomości: każdy kolejny mail z tego adresu
+                    stanie się sprawą. Dawna nazwa „Zgłoszenie z formularza" tego nie mówiła. */}
+                <MenuItem icon={<FileInput />} onClick={() => { menu.close(); setModal('form'); }}>Ten adres to formularz ze strony</MenuItem>
+                {canBook && !automated && (
                     <MenuItem icon={<CalendarPlus />} onClick={() => { menu.close(); setModal('booking'); }}>Umów wizytę</MenuItem>
                 )}
                 <MenuDivider />
-                <MenuItem icon={<UserRound />} onClick={() => { menu.close(); setContactAnchor(menuButtonRef.current); }}>Karta klienta</MenuItem>
+                {!automated && (
+                    <MenuItem icon={<UserRound />} onClick={() => { menu.close(); setContactAnchor(menuButtonRef.current); }}>Karta klienta</MenuItem>
+                )}
                 <MenuItem icon={<StickyNote />} onClick={() => { menu.close(); setNotesAnchor(menuButtonRef.current); }}>Notatki o nadawcy</MenuItem>
-                <MenuItem icon={<History />} onClick={() => { menu.close(); setModal('history'); }}>Wszystkie maile tej osoby</MenuItem>
+                <MenuItem icon={<History />} onClick={() => { menu.close(); setModal('history'); }}>{automated ? 'Wszystkie maile od tego nadawcy' : 'Wszystkie maile tej osoby'}</MenuItem>
             </ActionMenu>
 
             {fullMessageId && (() => {
@@ -454,7 +520,7 @@ export function MailDetail({ threadId, listThread, phone, onBack, onArchived, on
             {contactAnchor && contact && (
                 <ContactCardPopover contact={contact} participantName={thread.participantName} anchor={contactAnchor} onClose={() => setContactAnchor(null)} />
             )}
-            {notesAnchor && contact && <ContactNotesPopover contact={contact} anchor={notesAnchor} onClose={() => setNotesAnchor(null)} />}
+            {notesAnchor && contact && <ContactNotesPopover contact={contact} anchor={notesAnchor} title="Notatki o nadawcy" onClose={() => setNotesAnchor(null)} />}
         </Pane>
     );
 }

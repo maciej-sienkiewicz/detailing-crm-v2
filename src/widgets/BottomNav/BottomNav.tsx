@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Calendar, CalendarOff, Clock, FileText, Inbox, Menu } from 'lucide-react';
+import { Calendar, CalendarOff, Clock, FileText, Inbox, Mail, Menu } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
@@ -7,7 +7,7 @@ import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { usePermissions, ANY_FINANCE } from '@/core/permissions';
 import { useAuth } from '@/core/context/AuthContext';
 import type { PermissionRequirement } from '@/core/permissions';
-import { useNewLeadsCount } from '@/modules/comms';
+import { useNewLeadsCount, useUnreadMailCount } from '@/modules/comms';
 import { usePiiAccess } from '@/common/pii';
 import { useMobileChromeHidden } from '@/common/context/MobileChromeContext';
 import { useVirtualKeyboard } from '@/common/hooks';
@@ -94,7 +94,11 @@ const Label = styled.span<{ $isActive?: boolean }>`
     line-height: 1;
 `;
 
-const Badge = styled.span`
+/**
+ * Licznik. Czerwony tylko przy nowych sprawach (ktoś czeka na odpowiedź); nieprzeczytana
+ * poczta ma szary - ta sama zasada co w menu bocznym (decyzja z 21.10.2026).
+ */
+const Badge = styled.span<{ $neutral?: boolean }>`
     position: absolute;
     top: -3px;
     right: 4px;
@@ -102,7 +106,7 @@ const Badge = styled.span`
     height: 15px;
     padding: 0 4px;
     border-radius: 8px;
-    background: ${p => p.theme.colors.error};
+    background: ${p => (p.$neutral ? '#64748b' : p.theme.colors.error)};
     color: white;
     font-size: 9px;
     font-weight: ${p => p.theme.fontWeights.bold};
@@ -117,6 +121,7 @@ interface Shortcut {
     icon: LucideIcon;
     requires?: PermissionRequirement;
     badge?: number;
+    badgeNeutral?: boolean;
 }
 
 export const BottomNav = () => {
@@ -134,6 +139,7 @@ export const BottomNav = () => {
     // w trakcie pisania i tak nie jest potrzebna - wraca, gdy klawiatura się schowa.
     const keyboardOpen = useVirtualKeyboard();
     const casesWaiting = useNewLeadsCount({ enabled: can('LEADS_MANAGE') && hasPiiAccess });
+    const unreadMail = useUnreadMailCount({ enabled: can('LEADS_MANAGE') && hasPiiAccess });
 
     // Bez dostępu do danych osobowych poczta i finanse są dla użytkownika puste
     // albo zamaskowane. Zostaje to, z czego naprawdę korzysta: grafik, raport
@@ -145,6 +151,9 @@ export const BottomNav = () => {
             // „Zapytania": licznik spraw czekających na nas. Poczta jest osobną pozycją
             // menu (od 23.10.2026) - jej licznik pod Zapytaniami prowadził na sprawy.
             { path: '/inbox',         label: 'Zapytania', icon: Inbox,    requires: 'LEADS_MANAGE', badge: casesWaiting },
+            // Poczta na wierzchu (25.10.2026): dawniej tylko w pełnym menu, a nieprzeczytanych
+            // maili nie było widać nigdzie na ekranie telefonu.
+            { path: '/mail',          label: 'Poczta',    icon: Mail,     requires: 'LEADS_MANAGE', badge: unreadMail, badgeNeutral: true },
             { path: '/finances',      label: 'Finanse',   icon: FileText, requires: ANY_FINANCE },
         ]
         : [
@@ -178,7 +187,7 @@ export const BottomNav = () => {
                 </IconWrap>
                 <Label>Menu</Label>
             </Item>
-            {shortcuts.map(({ path, label, icon: Icon, badge }) => {
+            {shortcuts.map(({ path, label, icon: Icon, badge, badgeNeutral }) => {
                 const isActive = pathname === path || pathname.startsWith(`${path}/`);
                 return (
                     <Item
@@ -190,7 +199,7 @@ export const BottomNav = () => {
                     >
                         <IconWrap $isActive={isActive}>
                             <Icon aria-hidden="true" />
-                            {badge ? <Badge>{badge > 9 ? '9+' : badge}</Badge> : null}
+                            {badge ? <Badge $neutral={badgeNeutral}>{badge > 9 ? '9+' : badge}</Badge> : null}
                         </IconWrap>
                         <Label $isActive={isActive}>{label}</Label>
                     </Item>

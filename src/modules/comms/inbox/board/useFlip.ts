@@ -8,7 +8,7 @@
 //
 // Dlaczego tak, a nie biblioteka: ruch obejmuje trzy różne przyczyny naraz - miejsce
 // robione przeciąganej karcie, upuszczenie i sprawę przestawioną przez serwer (klient
-// odpisał, karta sama przechodzi z „Odpowiedzieliśmy" do „Oczekuje"). Jedna reguła
+// odpisał, karta sama przechodzi z „Czeka na klienta" do „Czeka na nas"). Jedna reguła
 // „cokolwiek się ruszyło, ma się przesunąć" obsługuje wszystkie trzy bez wiedzy o nich.
 //
 // Miejsce na przeciąganą kartę (`data-flip-static`) nosi jej identyfikator, ale samo się

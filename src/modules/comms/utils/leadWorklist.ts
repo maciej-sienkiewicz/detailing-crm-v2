@@ -21,6 +21,7 @@
 // się pierwszego dnia, w którym ktoś zmieni jeden z warunków.
 import type { Lead } from '../types';
 import { CLOSED_STATUSES } from './leadFormat';
+import { quoteTotal } from './leadServiceLines';
 import {
     DEFAULT_STAGNATION,
     describeLeadUrgency,
@@ -106,7 +107,7 @@ const section = (
     key,
     title: TITLES[key],
     entries: entries.sort(order),
-    value: entries.reduce((sum, entry) => sum + entry.lead.estimatedValue, 0),
+    value: entries.reduce((sum, entry) => sum + quoteTotal(entry.lead), 0),
 });
 
 /**

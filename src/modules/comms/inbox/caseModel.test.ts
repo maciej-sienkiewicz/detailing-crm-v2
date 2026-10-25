@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Lead, LeadServiceItem } from '../types';
 import { describeLeadUrgency } from '../utils/leadUrgency';
-import { caseNextStep, caseSentence, caseStatusChip, clientLine, formatAmount, rowAge } from './caseModel';
+import { caseNextStep, caseSentence, caseStatusChip, chipRepeatsStatus, clientLine, formatAmount, quoteTotal, rowAge } from './caseModel';
 
 const NOW = Date.UTC(2026, 9, 8, 12);
 const H = 3_600_000;
@@ -82,5 +82,35 @@ describe('clientLine', () => {
         expect(clientLine({ email: 'a', customer: { id: 'c', fullName: 'Jan', phone: null, completedVisitCount: 3, totalSpentGross: 0, lastVisitAt: null }, vehicles: [], recentVisits: [], risk: { abandonedBookings: 0, abandonedLeads: 0 } }))
             .toBe('Stały klient, 3 wizyty');
         expect(clientLine(null)).toBe('Nowy klient');
+    });
+});
+
+describe('quoteTotal - kwota wyceny to przyjęte pozycje, bez sugestii', () => {
+    const suggested = (gross: number): LeadServiceItem => ({ ...service(gross), id: `sug-${gross}`, status: 'SUGGESTED', source: 'AI' } as LeadServiceItem);
+
+    it('odtworzenie z audytu: 249 zł przyjęte + 299 zł sugestii to wycena 249 zł, nie 548 zł', () => {
+        // Serwer liczy estimatedValue z sugestiami (548 zł) - panel pokazywał je jako wycenę.
+        const l = lead({ services: [service(24900), suggested(29900)], estimatedValue: 54800 });
+        expect(quoteTotal(l)).toBe(24900);
+        expect(formatAmount(quoteTotal(l))).toBe('249 zł');
+    });
+
+    it('sumuje gotowe brutto pozycji z serwera, bez przeliczania (CLAUDE.md §1)', () => {
+        expect(quoteTotal(lead({ services: [service(189999), service(1)] }))).toBe(190000);
+        expect(quoteTotal(lead({ services: [] }))).toBe(0);
+    });
+
+    it('rezerwacja z sugestiami mówi to wprost - przyjmie je razem z wyceną', () => {
+        const l = lead({ ...replied, services: [service(24900), suggested(29900)] });
+        expect(caseNextStep(l, urgencyOf(l))).toMatchObject({ kind: 'BOOK', hint: 'Sugestie asystenta trafią do rezerwacji' });
+    });
+});
+
+describe('chipRepeatsStatus - plakietka nie powtarza statusu z panelu', () => {
+    it('„Nowe zapytanie" i „Zrealizowana" powtarzają status, „Wycena wysłana" dokłada informację', () => {
+        expect(chipRepeatsStatus(lead())).toBe(true);
+        expect(chipRepeatsStatus(lead({ status: 'COMPLETED' }))).toBe(true);
+        expect(chipRepeatsStatus(lead({ ...replied, services: [service(42000)] }))).toBe(false);
+        expect(chipRepeatsStatus(lead({ ...replied, appointmentId: 'a1' }))).toBe(false);
     });
 });

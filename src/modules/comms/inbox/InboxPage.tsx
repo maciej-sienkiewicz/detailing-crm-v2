@@ -16,14 +16,15 @@
 // Wszystko, co otwarte, mieszka w adresie (useInboxNav), więc odświeżenie strony
 // i link z powiadomienia trafiają w to samo miejsce.
 import { useCallback, useEffect, useMemo, useRef, useState, type ReactNode } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 import styled, { css } from 'styled-components';
-import { Archive, ArrowLeft, BarChart3, CheckSquare, Inbox, Mail, MailOpen, PenLine, PenSquare, RefreshCw, ShieldAlert, Sparkles } from 'lucide-react';
+import { Archive, ArrowLeft, BarChart3, CheckSquare, Inbox, Mail, MailOpen, PenLine, RefreshCw, ShieldAlert, Sparkles } from 'lucide-react';
 import { MenuDivider, MenuItem } from '@/common/components/ui';
 import { useContainerWidth, useDebounce, useMediaQuery } from '@/common/hooks';
 import { useToast } from '@/common/components/Toast';
 import { acquireScrollLock } from '@/common/utils/scrollLock';
 import { BOTTOM_NAV_SPACE } from '@/widgets/BottomNav';
+import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import {
     CLOSED_LEAD_STATUSES,
     OPEN_LEAD_STATUSES,
@@ -45,6 +46,7 @@ import {
 import type { CommThread, LeadStatus, MailFolder } from '../types';
 import type { InboxScope } from '../utils/inboxTabs';
 import { buildWorklist } from '../utils/leadWorklist';
+import { buildBoard } from '../utils/leadBoard';
 import { LeadArchive } from '../components/LeadArchive';
 import { MailboxSyncPanel } from '../components/MailboxSyncPanel';
 import { MailContextMenu } from '../components/MailContextMenu';
@@ -72,6 +74,13 @@ const MAIL_PAGE = 30;
 const CONVERSATION_MIN = 460;
 /** Panel sprawy obok rozmowy (makieta: 320, w ciasnym układzie 300). */
 const RAIL_MIN = 300;
+/**
+ * Ile rozmowa musi mieć, żeby obok niej stanął jeszcze panel sprawy. Dawniej wystarczało
+ * CONVERSATION_MIN (460): na ekranie 1440 px trzy kolumny zostawiały rozmowie 494 px,
+ * a dymkom około 36 znaków w linii - rozmowa była najwęższa na największym ekranie
+ * (audyt 25.10.2026). Poniżej tego progu panel otwiera kwota w nagłówku rozmowy.
+ */
+const CONVERSATION_WITH_RAIL_MIN = 600;
 
 const Page = styled.main<{ $phone: boolean }>`
     display: flex;
@@ -237,6 +246,7 @@ function PhoneFullScreen({ children }: { children: ReactNode }) {
 
 export default function InboxPage({ scope = 'cases' }: { scope?: InboxScope }) {
     const navigate = useNavigate();
+    const routerLocation = useLocation();
     const { showInfo } = useToast();
     const { can } = usePermissions();
     const nav = useInboxNav(scope);
@@ -246,6 +256,14 @@ export default function InboxPage({ scope = 'cases' }: { scope?: InboxScope }) {
     const [openedFrom, setOpenedFrom] = useState<{ id: string; rect: DOMRect } | null>(null);
     const phone = useMediaQuery('(max-width: 767px)');
     const [cardRef, cardWidth] = useContainerWidth<HTMLDivElement>();
+
+    // Na 768-1279 px rozwinięty pasek boczny (248 px) zabierał miejsce na drugą kolumnę:
+    // Poczta i Zapytania spadały do jednej - albo lista, albo rozmowa (audyt 25.10.2026).
+    // Na czas skrzynki prosimy o zwinięty pasek; zapamiętany wybór zostaje, a ręczne
+    // rozwinięcie przyciskiem w pasku nadal działa.
+    const { requestCompact } = useSidebar();
+    const midWidth = useMediaQuery('(min-width: 768px) and (max-width: 1279px)');
+    useEffect(() => (midWidth ? requestCompact() : undefined), [midWidth, requestCompact]);
 
     const [query, setQuery] = useState('');
     const [archiveQuery, setArchiveQuery] = useState('');
@@ -270,6 +288,10 @@ export default function InboxPage({ scope = 'cases' }: { scope?: InboxScope }) {
     // Poczta nie pokazuje spraw - bez ich pobierania.
     const open = useLeadsByStatuses(scope === 'cases' ? OPEN_LEAD_STATUSES : []);
     const worklist = useMemo(() => buildWorklist(open.items, thresholds), [open.items, thresholds]);
+    const onBoard = useMemo(
+        () => (scope === 'cases' ? buildBoard(open.items, thresholds).reduce((count, column) => count + column.cards.length, 0) : 0),
+        [scope, open.items, thresholds]
+    );
     const archiveSearch = useDebounce(archiveQuery, 300);
     const archiveBundle = useLeadsByStatuses(
         tab === 'sprawy' && archive ? (archiveStatus ? [archiveStatus] : CLOSED_LEAD_STATUSES) : [],
@@ -301,11 +323,35 @@ export default function InboxPage({ scope = 'cases' }: { scope?: InboxScope }) {
     const lastSyncAt = useRef(0);
     const activeAccount = accounts?.find((account) => account.status !== 'DISABLED');
 
+    // Kompozytor odpowiedzi stoi przy dolnej krawędzi, a toasty w prawym dolnym rogu:
+    // „Nie udało się wysłać" leżał na przyciskach „Napisz z AI" i „Wyślij". Na czas
+    // skrzynki podnosimy stos (ToastContainer, --toast-lift). Telefon ma własny odstęp.
+    useEffect(() => {
+        if (phone) return;
+        const root = document.documentElement;
+        root.style.setProperty('--toast-lift', '96px');
+        return () => { root.style.removeProperty('--toast-lift'); };
+    }, [phone]);
+
+    // ── Powrót ze sprawy ─────────────────────────────────────────────────────
+    // Sprawa otwarta z Poczty („Otwórz sprawę" przy wątku) niesie w stanie historii adres,
+    // z którego przyszła. Zamknięcie wraca tam - do tego samego wątku i tej samej pozycji
+    // listy - zamiast zostawiać na tablicy Zapytań (audyt 25.10.2026).
+    const returnTo = (routerLocation.state as { returnTo?: string } | null)?.returnTo ?? null;
+    const closeCase = useCallback(() => {
+        if (returnTo) navigate(-1);
+        else nav.openCase(null);
+    }, [returnTo, navigate, nav]);
+    const openCaseFromMail = useCallback(
+        (id: string) => navigate(`/inbox?lead=${encodeURIComponent(id)}`, { state: { returnTo: routerLocation.pathname + routerLocation.search } }),
+        [navigate, routerLocation.pathname, routerLocation.search]
+    );
+
     // ── Układ ───────────────────────────────────────────────────────────────
     const listWidth = tab === 'sprawy' ? 320 : 380;
     const measured = cardWidth ?? (typeof window !== 'undefined' ? window.innerWidth - 112 : 1280);
     const twoPane = !phone && measured >= listWidth + CONVERSATION_MIN;
-    const railBeside = twoPane && measured >= listWidth + CONVERSATION_MIN + RAIL_MIN;
+    const railBeside = twoPane && measured >= listWidth + CONVERSATION_WITH_RAIL_MIN + RAIL_MIN;
     const detailOpen = tab === 'sprawy' ? Boolean(leadId) : Boolean(threadId || compose);
 
     /** Po wysłaniu: następna sprawa, która czeka na nas - poza tą, na którą odpisano. */
@@ -364,11 +410,10 @@ export default function InboxPage({ scope = 'cases' }: { scope?: InboxScope }) {
         showInfo('Sprawdzamy pocztę…', 'Nowe wiadomości pojawią się za chwilę');
     }, [activeAccount, syncAccount, showInfo]);
 
+    // „Nowa wiadomość" ma własny przycisk w nagłówku listy, a „Zamknięte sprawy" własny
+    // wiersz na końcu listy - tu zostają rzeczy rzadkie i ustawienia.
     const settingsMenu = (close: () => void) => (
         <>
-            {tab !== 'sprawy' && (
-                <MenuItem icon={<PenSquare />} onClick={() => { close(); nav.openCompose(); }}>Nowa wiadomość</MenuItem>
-            )}
             {tab === 'sprawy' && !archive && (
                 <MenuItem icon={<CheckSquare />} onClick={() => { close(); setSelecting(true); }}>Zaznacz sprawy</MenuItem>
             )}
@@ -403,7 +448,7 @@ export default function InboxPage({ scope = 'cases' }: { scope?: InboxScope }) {
             </ModeBar>
         ) : tab === 'poczta' && rejected ? (
             <ModeBar>
-                <button type="button" onClick={() => nav.setRejected(false)}><ArrowLeft /> Odebrane</button>
+                <button type="button" onClick={() => nav.setRejected(false)}><ArrowLeft /> Wróć do odebranych</button>
                 <span className="what">Odrzucone przez automat</span>
             </ModeBar>
         ) : null;
@@ -426,6 +471,7 @@ export default function InboxPage({ scope = 'cases' }: { scope?: InboxScope }) {
                 menu={settingsMenu}
                 below={modeBar}
                 onBoard={tab === 'sprawy' && !archive ? () => switchLayout(true) : undefined}
+                onCompose={tab !== 'sprawy' && !noMailbox ? () => nav.openCompose() : undefined}
             />
             {mailboxSync.syncing ? (
                 <div style={{ padding: 16, overflowY: 'auto' }}><MailboxSyncPanel /></div>
@@ -451,6 +497,7 @@ export default function InboxPage({ scope = 'cases' }: { scope?: InboxScope }) {
                         phone={phone}
                         selecting={selecting}
                         onStopSelecting={() => setSelecting(false)}
+                        onShowClosed={() => nav.setArchive(true)}
                     />
                 )
             ) : noMailbox ? (
@@ -471,15 +518,11 @@ export default function InboxPage({ scope = 'cases' }: { scope?: InboxScope }) {
                         activeId={threadId}
                         phone={phone}
                         formSenders={formSenders}
-                        onOpen={(id) => {
-                            // Wątek sprawy otwiera się jako sprawa - z wyceną i krokiem następnym (makieta).
-                            const thread = threads.find((item) => item.id === id);
-                            if (thread?.leadId && tab === 'poczta') {
-                                navigate(`/inbox?lead=${encodeURIComponent(thread.leadId)}`);
-                                return;
-                            }
-                            nav.openThread(id);
-                        }}
+                        // Każdy wątek otwiera się w Poczcie, także wątek sprawy. Dawniej wątek ze sprawą
+                        // przenosił na tablicę Zapytań (36 z 42 wątków w studiu demo), a zamknięcie
+                        // zostawiało tam - Poczty nie dało się czytać po kolei. Sprawa jest teraz
+                        // paskiem nad rozmową z przyciskiem „Otwórz sprawę" (MailDetail).
+                        onOpen={(id) => nav.openThread(id)}
                         onArchive={(thread) => setArchived.mutate(
                             { threadId: thread.id, archived: !thread.archived },
                             { onSuccess: () => { if (thread.id === threadId) nav.openThread(null); } }
@@ -504,7 +547,7 @@ export default function InboxPage({ scope = 'cases' }: { scope?: InboxScope }) {
     );
 
     // ── Prawa część ──────────────────────────────────────────────────────────
-    const back = twoPane ? undefined : () => (tab === 'sprawy' ? nav.openCase(null) : compose ? nav.closeCompose() : nav.openThread(null));
+    const back = twoPane ? undefined : () => (tab === 'sprawy' ? closeCase() : compose ? nav.closeCompose() : nav.openThread(null));
 
     let detail: ReactNode = null;
     if (tab === 'sprawy' && leadId) {
@@ -543,13 +586,19 @@ export default function InboxPage({ scope = 'cases' }: { scope?: InboxScope }) {
                 phone={phone}
                 onBack={back}
                 onArchived={() => nav.openThread(null)}
-                onOpenCase={(id) => navigate(`/inbox?lead=${encodeURIComponent(id)}`)}
+                onOpenCase={openCaseFromMail}
             />
         );
     }
 
+    // W zamkniętych sprawach pusty panel nie proponuje otwartej sprawy - to inny tryb pracy.
     const placeholder =
-        tab === 'sprawy' ? (
+        tab === 'sprawy' && archive ? (
+            <Placeholder>
+                <Archive />
+                Wybierz zamkniętą sprawę z listy.
+            </Placeholder>
+        ) : tab === 'sprawy' ? (
             <Placeholder>
                 <Inbox />
                 {worklist.head ? (
@@ -579,6 +628,7 @@ export default function InboxPage({ scope = 'cases' }: { scope?: InboxScope }) {
                         <BoardHeader
                             phone={phone}
                             total={open.items.length}
+                            onBoard={onBoard}
                             query={query}
                             onQuery={setQuery}
                             onList={() => switchLayout(false)}
@@ -606,7 +656,7 @@ export default function InboxPage({ scope = 'cases' }: { scope?: InboxScope }) {
                         findCard={(id) => document.querySelector<HTMLElement>(`[data-board-column] [data-flip="${CSS.escape(id)}"]`)}
                         onClose={() => {
                             setOpenedFrom(null);
-                            nav.openCase(null);
+                            closeCase();
                         }}
                     />
                 )}

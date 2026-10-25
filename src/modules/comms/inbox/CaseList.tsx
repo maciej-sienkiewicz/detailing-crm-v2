@@ -90,7 +90,9 @@ const Row = styled.button<{ $phone: boolean; $active: boolean }>`
         text-overflow: ellipsis;
         white-space: nowrap;
     }
-    .hot { font-weight: 600; color: ${ix.accentInk}; }
+    /* Klient odpisał - pogrubione, ale w kolorze tekstu: niebieskie i pogrubione
+       „Obiecaliśmy: …" wyglądało jak link, a nim nie jest. */
+    .hot { font-weight: 600; color: ${ix.ink}; }
     input { flex: none; width: 16px; height: 16px; margin: 0; accent-color: ${ix.accentInk}; }
 `;
 
@@ -125,16 +127,18 @@ const Empty = styled.p`
     color: ${ix.muted};
 `;
 
+/** Dwa rzędy: co zaznaczono (i wyjście), pod spodem akcje - w kolumnie 320 px jeden rząd łamał się w przypadkowym miejscu. */
 const BulkBar = styled.div`
     display: flex;
-    align-items: center;
-    flex-wrap: wrap;
+    flex-direction: column;
     gap: 8px;
     padding: 10px 12px calc(10px + env(safe-area-inset-bottom, 0px));
     border-top: 1px solid ${ix.line};
     background: #ffffff;
 
+    .head { display: flex; align-items: center; gap: 8px; }
     .count { flex: 1 1 auto; font-size: 13px; font-weight: 600; color: ${ix.ink}; }
+    .actions { display: flex; flex-wrap: wrap; gap: 8px; }
 `;
 
 const BulkBtn = styled.button<{ $danger?: boolean }>`
@@ -167,6 +171,8 @@ interface CaseListProps {
     phone: boolean;
     selecting: boolean;
     onStopSelecting: () => void;
+    /** Wiersz „Zamknięte sprawy" na końcu listy - jak folder, a nie pozycja ukryta w menu. */
+    onShowClosed?: () => void;
 }
 
 type FoldKey = 'SILENT' | 'CLIENT' | 'BOOKED';
@@ -179,7 +185,7 @@ const matches = (entry: WorklistEntry, needle: string): boolean =>
         [entry.lead.contactIdentifier],
     );
 
-export function CaseList({ worklist, query, loading, truncated, activeId, onOpen, phone, selecting, onStopSelecting }: CaseListProps) {
+export function CaseList({ worklist, query, loading, truncated, activeId, onOpen, phone, selecting, onStopSelecting, onShowClosed }: CaseListProps) {
     const [open, setOpen] = useState<Record<FoldKey, boolean>>({ SILENT: false, CLIENT: false, BOOKED: false });
     const [selected, setSelected] = useState<ReadonlySet<string>>(new Set());
     const [confirm, setConfirm] = useState<null | 'delete' | 'appointments' | 'lost'>(null);
@@ -226,6 +232,10 @@ export function CaseList({ worklist, query, loading, truncated, activeId, onOpen
     const row = ({ lead, urgency }: WorklistEntry, waiting: boolean) => {
         const sentence = caseSentence(lead, urgency);
         const title = caseTitle(lead);
+        // Osoba obok auta: właściciel myśli „pan Kwiatkowski od BMW", a dwa „BMW Seria 3
+        // Touring" pod sobą bez nazwiska były nie do rozróżnienia. Bez auta tytułem jest osoba.
+        const who = lead.vehicleBrand ? (lead.customerName?.trim() || lead.contactIdentifier) : null;
+        const text = who ? sentence.text.replace(/^\p{Lu}/u, (first) => first.toLowerCase()) : sentence.text;
         return (
             <Row
                 key={lead.id}
@@ -256,7 +266,10 @@ export function CaseList({ worklist, query, loading, truncated, activeId, onOpen
                         {rowAge(urgency.waitingMs)}
                     </span>
                 </span>
-                <span className={`sub${sentence.hot ? ' hot' : ''}`}>{sentence.text}</span>
+                <span className="sub">
+                    {who && <>{who}, </>}
+                    <span className={sentence.hot ? 'hot' : undefined}>{text}</span>
+                </span>
             </Row>
         );
     };
@@ -304,6 +317,12 @@ export function CaseList({ worklist, query, loading, truncated, activeId, onOpen
                         ? `${bookedReplies} ${pluralPl(bookedReplies, 'klient napisał', 'klientów napisało', 'klientów napisało')}`
                         : undefined
                 )}
+                {onShowClosed && !needle && !selecting && (
+                    <Fold type="button" $phone={phone} onClick={onShowClosed}>
+                        Zamknięte sprawy
+                        <ChevronRight aria-hidden="true" />
+                    </Fold>
+                )}
                 {nothing && needle && <Empty>Nic nie pasuje do „{query.trim()}".</Empty>}
                 {truncated && (
                     <Empty>Otwartych spraw jest więcej, niż mieści jedna strona. Zamknij część zapytań, żeby zobaczyć resztę.</Empty>
@@ -312,27 +331,31 @@ export function CaseList({ worklist, query, loading, truncated, activeId, onOpen
 
             {selecting && (
                 <BulkBar>
-                    <span className="count">{selected.size === 0 ? 'Zaznacz sprawy' : `Zaznaczono ${selected.size}`}</span>
-                    <LeadStatusPicker
-                        onChange={(status) => (status === 'LOST' ? setConfirm('lost') : runStatus(status))}
-                        disabled={selected.size === 0 || bulkStatus.isPending}
-                        renderTrigger={({ open: menuOpen, toggle: toggleMenu, disabled }) => (
-                            <BulkBtn type="button" disabled={disabled} aria-haspopup="listbox" aria-expanded={menuOpen} onClick={toggleMenu}>
-                                <CircleDot /> {bulkStatus.isPending ? 'Zmieniam…' : 'Zmień status'}
-                            </BulkBtn>
-                        )}
-                    />
-                    <BulkBtn
-                        type="button"
-                        $danger
-                        disabled={selected.size === 0 || bulkDelete.isPending}
-                        onClick={() => setConfirm(withAppointment > 0 ? 'appointments' : 'delete')}
-                    >
-                        <Trash2 /> {bulkDelete.isPending ? 'Usuwanie…' : 'Usuń'}
-                    </BulkBtn>
-                    <BulkBtn type="button" onClick={stop} aria-label="Zakończ zaznaczanie">
-                        <X />
-                    </BulkBtn>
+                    <div className="head">
+                        <span className="count">{selected.size === 0 ? 'Zaznacz sprawy' : `Zaznaczono ${selected.size}`}</span>
+                        <BulkBtn type="button" onClick={stop} aria-label="Zakończ zaznaczanie">
+                            <X />
+                        </BulkBtn>
+                    </div>
+                    <div className="actions">
+                        <LeadStatusPicker
+                            onChange={(status) => (status === 'LOST' ? setConfirm('lost') : runStatus(status))}
+                            disabled={selected.size === 0 || bulkStatus.isPending}
+                            renderTrigger={({ open: menuOpen, toggle: toggleMenu, disabled }) => (
+                                <BulkBtn type="button" disabled={disabled} aria-haspopup="listbox" aria-expanded={menuOpen} onClick={toggleMenu}>
+                                    <CircleDot /> {bulkStatus.isPending ? 'Zmieniam…' : 'Zmień status'}
+                                </BulkBtn>
+                            )}
+                        />
+                        <BulkBtn
+                            type="button"
+                            $danger
+                            disabled={selected.size === 0 || bulkDelete.isPending}
+                            onClick={() => setConfirm(withAppointment > 0 ? 'appointments' : 'delete')}
+                        >
+                            <Trash2 /> {bulkDelete.isPending ? 'Usuwanie…' : 'Usuń'}
+                        </BulkBtn>
+                    </div>
                 </BulkBar>
             )}
 

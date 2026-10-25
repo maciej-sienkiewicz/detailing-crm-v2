@@ -657,7 +657,7 @@ export const useMoveLeadOnBoard = () => {
 /**
  * „Przypomnij" - jedno przypomnienie, wysłane w rozmowie klienta. Okno zbiorcze woła to
  * po kolei, sprawa po sprawie: każda ma własną treść, a odmowa jednej nie wstrzymuje reszty.
- * Lead z odpowiedzi trafia od razu do pamięci - karta przechodzi do „Odpowiedzieliśmy"
+ * Lead z odpowiedzi trafia od razu do pamięci - karta przechodzi do „Czeka na klienta"
  * z plakietką, zanim lista zdąży się odświeżyć.
  */
 export const useSendLeadReminder = () => {
