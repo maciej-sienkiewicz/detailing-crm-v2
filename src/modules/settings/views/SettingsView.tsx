@@ -74,7 +74,6 @@ import {
     CREDITS_HELP,
     INVOICES_HELP,
 } from '../helpContent';
-import { isBaysAvailable } from '@/modules/bays/featureFlag';
 import { BaysSettingsSection } from '@/modules/bays/components/BaysSettingsSection';
 
 // ─── Sekcje ──────────────────────────────────────────────────────────────────
@@ -151,12 +150,11 @@ const GROUPS: SectionGroup[] = [
                 description: 'Tablety w recepcji i na hali oraz komputer, na którym teraz pracujesz.',
                 keywords: 'tablet parowanie podpis hala odhaczanie usług zrobione lista kontrolna skróty klawiszowe klawiatura blokada bezczynność komputer',
             },
-            // Stanowiska: sekcja istnieje tylko w wersji z tą funkcją.
-            ...(isBaysAvailable() ? [{
-                id: 'bays' as const, label: 'Stanowiska', summary: 'Hala i plan stanowisk', icon: <LayoutGrid />,
+            {
+                id: 'bays', label: 'Stanowiska', summary: 'Hala i plan stanowisk', icon: <LayoutGrid />,
                 description: 'Czy dzielicie warsztat na stanowiska, jakie to stanowiska i na ile okienek dzielić ich dzień w planie.',
                 keywords: 'stanowiska hala podnośnik kabina myjnia plan okienka podział dnia tablica',
-            }] : []),
+            },
         ],
     },
     {

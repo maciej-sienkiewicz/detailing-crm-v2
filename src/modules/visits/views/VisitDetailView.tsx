@@ -66,7 +66,7 @@ import { useFeature } from '@/modules/subscription/hooks/useFeature';
 import { useCapability } from '@/modules/subscription';
 import { formatDateTime } from '@/common/utils';
 import { pluralPl } from '@/common/utils/plural';
-import { isBaysAvailable, VisitBayStrip } from '@/modules/bays';
+import { VisitBayStrip } from '@/modules/bays';
 
 // ─── Układ ────────────────────────────────────────────────────────────────────
 
@@ -721,16 +721,13 @@ export const VisitDetailView = () => {
                             </D2dStrip>
                         )}
 
-                        {/* Stanowiska (za przełącznikiem): pasek z własnymi danymi,
-                            wizyta nie dostaje żadnego pola. Gdy studio ich nie używa, pasek
-                            sam się nie renderuje. */}
-                        {isBaysAvailable() && (
-                            <VisitBayStrip
-                                visitId={visit.id}
-                                done={visit.status === 'COMPLETED' || visit.status === 'REJECTED' || visit.status === 'ARCHIVED'}
-                                canEdit={canEditVisit}
-                            />
-                        )}
+                        {/* Stanowiska: pasek z własnymi danymi, wizyta nie dostaje żadnego pola.
+                            Gdy studio ich nie używa, pasek sam się nie renderuje. */}
+                        <VisitBayStrip
+                            visitId={visit.id}
+                            done={visit.status === 'COMPLETED' || visit.status === 'REJECTED' || visit.status === 'ARCHIVED'}
+                            canEdit={canEditVisit}
+                        />
 
                         <Slot id="visit-services" $order={1}>
                             <ServicesTable

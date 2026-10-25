@@ -18,7 +18,6 @@ import { employeesTabRoutes } from '@/modules/employees/employeesRoutes';
 import { ModuleGate } from '@/modules/subscription/components/ModuleGate';
 import type { FeatureKey } from '@/modules/subscription/types';
 import { LEGAL_DOCUMENTS, legalPath } from '@/modules/legal/documents';
-import { isBaysAvailable } from '@/modules/bays/featureFlag';
 
 // ── Widoki ładowane na żądanie ───────────────────────────────────────────────
 //
@@ -236,12 +235,12 @@ export const router = createBrowserRouter([
             path: '/operations',
             ...lazyPage(() => import('@/modules/operations/views/OperationListView').then(m => m.OperationListView), 'VISITS_VIEW'),
         },
-        // Stanowiska - za przełącznikiem wersji; bez niego trasy nie ma wcale.
-        // Decyzję studia (Ustawienia → Stanowiska) sprawdza już sam widok.
-        ...(isBaysAvailable() ? [{
+        // Stanowiska: trasa jest zawsze, a decyzję studia (Ustawienia → Stanowiska)
+        // sprawdza sam widok - przy wyłączonych mówi, gdzie je włączyć.
+        {
             path: '/bays',
             ...lazyPage(() => import('@/modules/bays/views/BaysView').then(m => m.BaysView), 'VISITS_VIEW'),
-        }] : []),
+        },
         {
             path: '/visits/:visitId',
             ...lazyPage(() => import('@/modules/visits/views/VisitDetailView').then(m => m.VisitDetailView), 'VISITS_VIEW'),
