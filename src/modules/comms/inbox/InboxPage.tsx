@@ -415,11 +415,11 @@ export default function InboxPage({ scope = 'cases' }: { scope?: InboxScope }) {
     const settingsMenu = (close: () => void) => (
         <>
             {tab === 'sprawy' && !archive && (
-                <MenuItem icon={<CheckSquare />} onClick={() => { close(); setSelecting(true); }}>Zaznacz sprawy</MenuItem>
+                <MenuItem icon={<CheckSquare />} onClick={() => { close(); setSelecting(true); }}>Zaznacz leady</MenuItem>
             )}
             {tab === 'sprawy' && (
                 <MenuItem icon={<Archive />} onClick={() => { close(); nav.setArchive(!archive); }}>
-                    {archive ? 'Otwarte sprawy' : 'Zamknięte sprawy'}
+                    {archive ? 'Otwarte leady' : 'Zamknięte leady'}
                 </MenuItem>
             )}
             {tab === 'poczta' && (
@@ -443,8 +443,8 @@ export default function InboxPage({ scope = 'cases' }: { scope?: InboxScope }) {
     const modeBar =
         tab === 'sprawy' && archive ? (
             <ModeBar>
-                <button type="button" onClick={() => nav.setArchive(false)}><ArrowLeft /> Otwarte sprawy</button>
-                <span className="what">Zamknięte sprawy</span>
+                <button type="button" onClick={() => nav.setArchive(false)}><ArrowLeft /> Otwarte leady</button>
+                <span className="what">Zamknięte leady</span>
             </ModeBar>
         ) : tab === 'poczta' && rejected ? (
             <ModeBar>
@@ -459,7 +459,7 @@ export default function InboxPage({ scope = 'cases' }: { scope?: InboxScope }) {
 
     // ── Kolumna listy ────────────────────────────────────────────────────────
     const list = (
-        <ListColumn $width={twoPane ? listWidth : null} aria-label={tab === 'sprawy' ? 'Sprawy' : tab === 'wyslane' ? 'Wysłane' : 'Poczta'}>
+        <ListColumn $width={twoPane ? listWidth : null} aria-label={tab === 'sprawy' ? 'Leady' : tab === 'wyslane' ? 'Wysłane' : 'Poczta'}>
             <ListHeader
                 scope={scope}
                 tab={tab}
@@ -596,16 +596,16 @@ export default function InboxPage({ scope = 'cases' }: { scope?: InboxScope }) {
         tab === 'sprawy' && archive ? (
             <Placeholder>
                 <Archive />
-                Wybierz zamkniętą sprawę z listy.
+                Wybierz zamknięty lead z listy.
             </Placeholder>
         ) : tab === 'sprawy' ? (
             <Placeholder>
                 <Inbox />
                 {worklist.head ? (
                     <>
-                        Wybierz sprawę z listy.
+                        Wybierz lead z listy.
                         <button type="button" onClick={() => nav.openCase(worklist.head!.lead.id)}>
-                            Zacznij od najdłużej czekającej: {caseTitle(worklist.head.lead)}
+                            Zacznij od najdłużej czekającego: {caseTitle(worklist.head.lead)}
                         </button>
                     </>
                 ) : (

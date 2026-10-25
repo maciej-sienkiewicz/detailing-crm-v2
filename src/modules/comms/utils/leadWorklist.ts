@@ -196,8 +196,8 @@ export function overdueCount(
 
 /** „1 sprawa", „3 sprawy", „11 spraw" - polska odmiana bez zaskoczeń przy 12-14. */
 export function caseCount(n: number): string {
-    if (n === 1) return '1 sprawa';
+    if (n === 1) return '1 lead';
     const rest = n % 10;
     const teens = n % 100;
-    return rest >= 2 && rest <= 4 && (teens < 12 || teens > 14) ? `${n} sprawy` : `${n} spraw`;
+    return rest >= 2 && rest <= 4 && (teens < 12 || teens > 14) ? `${n} leady` : `${n} leadów`;
 }

@@ -394,8 +394,16 @@ export interface SplitSignatureResult {
     signatureHtml: string | null;
 }
 
-/** Kontenery stopki: nasza (backend, SendMailHandler), Gmail, Outlook, Thunderbird. */
+/**
+ * Kontenery stopki: nasza (backend, SendMailHandler), Gmail, Outlook, Thunderbird.
+ *
+ * Uwaga: zapisana wiadomość przechodzi przez sanitizer backendu (Safelist.relaxed), który
+ * usuwa `class` - selektory klas działają tylko na HTML-u spoza bazy. Naszą stopkę niesie
+ * dlatego `data-crm-signature` (od 25.10.2026), a starsze wiadomości rozpoznaje
+ * `findCrmSignatureWrapper`.
+ */
 const SIGNATURE_SELECTORS = [
+    '[data-crm-signature]',
     'div.crm-signature',
     'div.gmail_signature',
     '[data-smartmail="gmail_signature"]',
@@ -403,6 +411,18 @@ const SIGNATURE_SELECTORS = [
     'div#signature',
     'div.moz-signature',
 ];
+
+/**
+ * Stopka z CRM wysłana przed znacznikiem `data-crm-signature`: po sanitizacji zostaje z niej
+ * ostatni `<div style="margin-top:16px">` treści (SendMailHandler.signatureMarkup). Ten styl
+ * wstawia wyłącznie backend - edytor odpowiedzi takiego nie tworzy.
+ */
+function findCrmSignatureWrapper(body: HTMLElement): HTMLElement | null {
+    const last = body.lastElementChild as HTMLElement | null;
+    if (!last || last.tagName !== 'DIV') return null;
+    const style = (last.getAttribute('style') ?? '').replace(/[\s;]/g, '').toLowerCase();
+    return style === 'margin-top:16px' ? last : null;
+}
 
 /** Dłuższy „podpis" to już treść - nie chowamy listu, który akurat ma w środku „--". */
 const SIGNATURE_MAX_TEXT = 900;
@@ -446,7 +466,8 @@ export function splitSignature(html: string): SplitSignatureResult {
         return { mainHtml: html, signatureHtml: null };
     }
     const body = document.body;
-    const anchor: Node | null = body.querySelector(SIGNATURE_SELECTORS.join(',')) ?? findTextSignatureCut(body);
+    const anchor: Node | null =
+        body.querySelector(SIGNATURE_SELECTORS.join(',')) ?? findCrmSignatureWrapper(body) ?? findTextSignatureCut(body);
     if (!anchor || anchor === body) return { mainHtml: html, signatureHtml: null };
 
     const signature = document.createElement('div');

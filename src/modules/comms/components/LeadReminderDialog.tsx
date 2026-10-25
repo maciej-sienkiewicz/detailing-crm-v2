@@ -296,7 +296,7 @@ export function LeadReminderDialog({ leads, onClose, zIndex }: LeadReminderDialo
         body = (
             <>
                 <Intro>
-                    Asystent napisze osobne przypomnienie dla każdej zaznaczonej sprawy, na podstawie jej rozmowy.
+                    Asystent napisze osobne przypomnienie dla każdego zaznaczonego leada, na podstawie jego rozmowy.
                     Przeczytasz je i poprawisz, zanim cokolwiek wyjdzie.
                 </Intro>
                 <List>
@@ -336,7 +336,7 @@ export function LeadReminderDialog({ leads, onClose, zIndex }: LeadReminderDialo
                     <Intro>
                         {sentCount > 0 ? `Wysłano ${sentCount} ${remindersWord(sentCount)}. ` : ''}
                         {failed.length > 0
-                            ? `${failed.length} ${pluralPl(failed.length, 'nie wyszło', 'nie wyszły', 'nie wyszło')} - powód przy sprawie.`
+                            ? `${failed.length} ${pluralPl(failed.length, 'nie wyszło', 'nie wyszły', 'nie wyszło')} - powód przy leadzie.`
                             : 'Karty wróciły do „Czeka na klienta" z plakietką przypomnienia.'}
                     </Intro>
                 ) : single && remindable.length === 0 ? (
@@ -347,7 +347,7 @@ export function LeadReminderDialog({ leads, onClose, zIndex }: LeadReminderDialo
                             ? 'Szkic pisze moduł Asystent AI, którego nie ma w Twoim pakiecie. Wpisz treść przypomnienia sam.'
                             : single
                                 ? 'Przeczytaj i popraw, jeśli trzeba - wyjdzie w rozmowie z klientem.'
-                                : 'Przeczytaj i popraw, jeśli trzeba. Odznaczone sprawy zostaną w „Do przypomnienia”.'}
+                                : 'Przeczytaj i popraw, jeśli trzeba. Odznaczone leady zostaną w „Do przypomnienia”.'}
                     </Intro>
                 )}
                 <List>
@@ -447,7 +447,7 @@ export function LeadReminderDialog({ leads, onClose, zIndex }: LeadReminderDialo
                 <ModalTitleGroup>
                     <ModalTitle id="lead-reminder-title">Przypomnij się</ModalTitle>
                     <ModalSubtitle>
-                        {single ? caseTitle(leads[0]) : `${leads.length} ${pluralPl(leads.length, 'sprawa czeka', 'sprawy czekają', 'spraw czeka')} na przypomnienie`}
+                        {single ? caseTitle(leads[0]) : `${leads.length} ${pluralPl(leads.length, 'lead czeka', 'leady czekają', 'leadów czeka')} na przypomnienie`}
                     </ModalSubtitle>
                 </ModalTitleGroup>
                 {!sending && <CloseBtn onClick={onClose} />}

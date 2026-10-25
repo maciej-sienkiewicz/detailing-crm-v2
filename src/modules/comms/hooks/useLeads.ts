@@ -298,7 +298,7 @@ export const useRecordLeadCallback = () => {
              * przeczytał, że jest inaczej. Fałszywy komunikat kosztuje zaufanie do
              * wszystkich następnych.
              */
-            showSuccess('Kontakt odnotowany', 'Zapisany w przebiegu sprawy');
+            showSuccess('Kontakt odnotowany', 'Zapisany w historii leada');
         },
         onError: (error) => {
             const message =
@@ -393,15 +393,15 @@ export const useBulkDeleteLeads = () => {
 
             if (result.deleted > 0) {
                 showSuccess(
-                    result.deleted === 1 ? 'Sprawa usunięta' : `Usunięto ${result.deleted} ${pluralPl(result.deleted, 'sprawę', 'sprawy', 'spraw')}`,
+                    result.deleted === 1 ? 'Lead usunięty' : `Usunięto ${result.deleted} ${pluralPl(result.deleted, 'lead', 'leady', 'leadów')}`,
                     'Korespondencja została w skrzynce'
                 );
             }
             if (result.skipped.length > 0) {
                 showInfo(
                     result.skipped.length === 1
-                        ? 'Jednej sprawy nie usunięto'
-                        : `${result.skipped.length} spraw nie usunięto`,
+                        ? 'Jednego leada nie usunięto'
+                        : `${result.skipped.length} leadów nie usunięto`,
                     result.skipped[0].reason
                 );
             }
@@ -409,7 +409,7 @@ export const useBulkDeleteLeads = () => {
         onError: (error) => {
             const message =
                 problemDetail(error);
-            showError('Nie udało się usunąć zaznaczonych spraw', message ?? 'Spróbuj ponownie');
+            showError('Nie udało się usunąć zaznaczonych leadów', message ?? 'Spróbuj ponownie');
         },
     });
 };
@@ -443,15 +443,15 @@ export const useBulkChangeLeadStatus = () => {
             invalidate();
             if (result.changed > 0) {
                 showSuccess(
-                    result.changed === 1 ? 'Status zmieniony' : `Zmieniono status ${result.changed} spraw`,
+                    result.changed === 1 ? 'Status zmieniony' : `Zmieniono status ${result.changed} leadów`,
                     `Nowy status: ${LEAD_STATUS_LABELS[status]}`
                 );
             }
             if (result.skipped.length > 0) {
                 showInfo(
                     result.skipped.length === 1
-                        ? 'Jednej sprawy nie zmieniono'
-                        : `${result.skipped.length} spraw nie zmieniono`,
+                        ? 'Jednego leada nie zmieniono'
+                        : `${result.skipped.length} leadów nie zmieniono`,
                     result.skipped[0].reason
                 );
             }
@@ -459,7 +459,7 @@ export const useBulkChangeLeadStatus = () => {
         onError: (error) => {
             const message =
                 problemDetail(error);
-            showError('Nie udało się zmienić statusu zaznaczonych spraw', message ?? 'Spróbuj ponownie');
+            showError('Nie udało się zmienić statusu zaznaczonych leadów', message ?? 'Spróbuj ponownie');
         },
     });
 };

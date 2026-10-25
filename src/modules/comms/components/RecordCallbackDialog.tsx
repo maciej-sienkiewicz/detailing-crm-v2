@@ -142,7 +142,7 @@ export function RecordCallbackDialog({ leadId, onClose }: RecordCallbackDialogPr
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle id="callback-title">Kontakt poza pocztą</ModalTitle>
-                    <ModalSubtitle>Telefon, SMS albo spotkanie. Zapiszemy to w przebiegu sprawy.</ModalSubtitle>
+                    <ModalSubtitle>Telefon, SMS albo spotkanie. Zapiszemy to w historii leada.</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
@@ -186,7 +186,7 @@ export function RecordCallbackDialog({ leadId, onClose }: RecordCallbackDialogPr
                             onClick={() => setOwed(true)}
                         >
                             <span className="title">Mam coś wysłać</span>
-                            <span className="sub">Sprawa zostaje w „Czeka na nas”</span>
+                            <span className="sub">Lead zostaje w „Czeka na nas”</span>
                         </ChoiceButton>
                     </Choice>
                 </Question>

@@ -1,6 +1,5 @@
 // src/modules/comms/components/MarkAsLeadModal.tsx
-// Założenie sprawy z rozmowy („Zapytania" mówią „sprawa", więc okno też - dawniej
-// „Oznacz jako lead"). Dwa pola i ani jednego więcej - resztę system wie
+// Utworzenie leada z rozmowy. Dwa pola i ani jednego więcej - resztę system wie
 // sam: kontakt z wątku, klienta po adresie, treść pierwszej wiadomości, a markę
 // i model auta odczytuje z korespondencji już po zapisaniu (backend, LLM).
 //
@@ -111,10 +110,10 @@ export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModa
             {
                 onSuccess: (result) => {
                     showSuccess(
-                        'Sprawa założona',
+                        'Lead utworzony',
                         total > 0
                             ? `Wycena: ${formatGrosze(total)}`
-                            : 'Znajdziesz ją w Zapytaniach'
+                            : 'Znajdziesz go w Zapytaniach'
                     );
                     onCreated(result.leadId);
                     onClose();
@@ -122,7 +121,7 @@ export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModa
                 onError: (error) => {
                     const message =
                         problemDetail(error);
-                    showError('Nie udało się założyć sprawy', message ?? 'Spróbuj ponownie');
+                    showError('Nie udało się utworzyć leada', message ?? 'Spróbuj ponownie');
                 },
             }
         );
@@ -135,7 +134,7 @@ export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModa
         <ModalShell isOpen onClose={onClose} size={servicesOpen ? 'lg' : 'sm'}>
             <ModalHeader>
                 <ModalTitleGroup>
-                    <ModalTitle>Załóż sprawę z tej rozmowy</ModalTitle>
+                    <ModalTitle>Utwórz lead z tej rozmowy</ModalTitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
@@ -176,7 +175,7 @@ export function MarkAsLeadModal({ threadId, onClose, onCreated }: MarkAsLeadModa
                     <Total as="span" style={{ fontWeight: 400 }}><small>Wycenę możesz dodać później</small></Total>
                 )}
                 <PrimaryButton onClick={submit} disabled={markAsLead.isPending}>
-                    {markAsLead.isPending ? 'Zapisywanie…' : 'Załóż sprawę'}
+                    {markAsLead.isPending ? 'Zapisywanie…' : 'Utwórz lead'}
                 </PrimaryButton>
             </ModalFooter>
         </ModalShell>

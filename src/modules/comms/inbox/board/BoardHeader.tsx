@@ -101,7 +101,7 @@ export function BoardHeader({ phone, total, onBoard, query, onQuery, onList }: B
             <div className="titles">
                 <h1>Zapytania</h1>
                 <p className="sub">
-                    {total === 0 ? 'Tablica spraw' : onBoard >= total ? `Otwarte: ${caseCount(total)}` : (
+                    {total === 0 ? 'Tablica leadów' : onBoard >= total ? `Otwarte: ${caseCount(total)}` : (
                         <>
                             <span>Na tablicy {onBoard} z {caseCount(total)}</span>
                             <button type="button" onClick={onList}>Pozostałe na liście</button>
@@ -125,7 +125,7 @@ export function BoardHeader({ phone, total, onBoard, query, onQuery, onList }: B
                 )}
             </SearchPill>
             <Segmented
-                label="Układ spraw"
+                label="Układ leadów"
                 size="sm"
                 value="board"
                 onChange={(value) => { if (value === 'list') onList(); }}

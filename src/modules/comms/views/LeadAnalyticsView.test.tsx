@@ -50,8 +50,8 @@ describe('LeadAnalyticsView', () => {
     it('co z resztą: w toku (otwarte statusy) i przegrane z najczęstszymi powodami', () => {
         renderView();
 
-        expect(screen.getByText('W toku: 6 spraw')).toBeTruthy();
-        expect(screen.getByText('Przegrane: 6 spraw')).toBeTruthy();
+        expect(screen.getByText('W toku: 6 leadów')).toBeTruthy();
+        expect(screen.getByText('Przegrane: 6 leadów')).toBeTruthy();
         expect(screen.getByText('Za drogo (4), Konkurencja (2)')).toBeTruthy();
         expect(screen.getByText('45 min')).toBeTruthy();
     });

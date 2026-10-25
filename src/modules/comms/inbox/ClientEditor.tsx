@@ -78,7 +78,7 @@ function NewClient({ lead, onClose }: { lead: Lead; onClose: () => void }) {
                 onClose();
                 assign.mutate(
                     { leadId: lead.id, customerId: customer.id },
-                    { onError: () => showError('Nie udało się przypiąć klienta', 'Karta klienta powstała – przypnij ją w szczegółach sprawy.') }
+                    { onError: () => showError('Nie udało się przypiąć klienta', 'Karta klienta powstała – przypnij ją w szczegółach leada.') }
                 );
             }}
         />

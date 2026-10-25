@@ -375,6 +375,27 @@ describe('splitSignature - stopka pod „•••", treść zostaje', () => {
         expect(splitSignature(long).signatureHtml).toBeNull();
     });
 
+    it('zgłoszenie 25.10.2026: zapisana stopka z CRM bez klasy (sanitizer) - rozpoznana po opakowaniu', () => {
+        // Backend usuwa `class`, więc z <div class="crm-signature" style="margin-top:16px">
+        // zostaje sam styl. Tabela stopki z logo wrzucała całą odpowiedź do ramki z białym tłem.
+        const html = '<p>Dzień dobry, usuniemy to od ręki za 50 zł netto.</p><p>Pozdrawiam,</p>'
+            + '<div style="margin-top:16px"><table><tr><td><img src="data:image/png;base64,AAAA"></td><td>Jakub Bartłomiejczak<br>T: 517 131 366</td></tr></table></div>';
+        const { mainHtml, signatureHtml } = splitSignature(html);
+        expect(mainHtml).toContain('Pozdrawiam,');
+        expect(mainHtml).not.toContain('<table');
+        expect(signatureHtml).toContain('Bartłomiejczak');
+        expect(isRichHtml(mainHtml)).toBe(false);
+    });
+
+    it('znacznik data-crm-signature (backend od 25.10.2026)', () => {
+        const { signatureHtml } = splitSignature('<p>Treść</p><div data-crm-signature="1" style="margin-top:16px"><div>--</div>Anna</div>');
+        expect(signatureHtml).toContain('Anna');
+    });
+
+    it('div z innym stylem na końcu treści to nie stopka', () => {
+        expect(splitSignature('<p>Treść</p><div style="margin-top:8px">Dopisek</div>').signatureHtml).toBeNull();
+    });
+
     it('sama stopka bez treści nad nią nie jest chowana', () => {
         expect(splitSignature('<div class="crm-signature">Zespół Studia</div>').signatureHtml).toBeNull();
     });

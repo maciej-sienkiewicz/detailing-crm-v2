@@ -10,7 +10,7 @@
 // Okno stoi na ModalShell (25.10.2026). Dawniej miało własną nakładkę bez
 // przewijania: trzynaście powodów jeden pod drugim było wyższe niż okno laptopa
 // (1366×650), nagłówek uciekał nad ekran, a „Zamknij jako przegrane" pod niego -
-// sprawy nie dało się zamknąć jako przegranej. Nie było też X, Esc ani blokady
+// leada nie dało się zamknąć jako przegranego. Nie było też X, Esc ani blokady
 // przewijania tła (CLAUDE.md §3). Teraz lista przewija się w środku, przyciski
 // stoją w stopce, a powody są w dwóch grupach zamiast jednej długiej kolumny.
 import { useState } from 'react';
@@ -139,7 +139,7 @@ export function LeadLostReasonDialog({ leadId, bulk, onClose, onSaved }: LeadLos
                     onClose();
                 },
                 onError: (error) => {
-                    showError('Nie udało się zamknąć sprawy', problemDetail(error) ?? 'Spróbuj ponownie');
+                    showError('Nie udało się zamknąć leada', problemDetail(error) ?? 'Spróbuj ponownie');
                 },
             }
         );

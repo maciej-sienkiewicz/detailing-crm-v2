@@ -92,14 +92,14 @@ export function MarkAsFormLeadModal({ senderEmail, messageId, onClose }: MarkAsF
                 switch (result.status) {
                     case 'CREATED':
                         showSuccess(
-                            'Sprawa założona',
-                            'Znajdziesz ją w Zapytaniach. Kolejne maile z tego adresu dodamy automatycznie.'
+                            'Lead utworzony',
+                            'Znajdziesz go w Zapytaniach. Kolejne maile z tego adresu dodamy automatycznie.'
                         );
                         onClose();
                         break;
                     case 'ALREADY_PROCESSED':
                         showSuccess(
-                            'Z tej wiadomości jest już sprawa',
+                            'Z tej wiadomości jest już lead',
                             'Nadawca pozostaje oznaczony - kolejne maile obsłuży automat.'
                         );
                         onClose();
@@ -108,7 +108,7 @@ export function MarkAsFormLeadModal({ senderEmail, messageId, onClose }: MarkAsF
                         // Nadawca został oznaczony, ale z TEJ wiadomości lead nie powstał -
                         // to dwie osobne prawdy i obie muszą paść.
                         showError(
-                            'Nadawca oznaczony, ale sprawa nie powstała',
+                            'Nadawca oznaczony, ale lead nie powstał',
                             result.reason ?? 'Nie udało się odczytać danych klienta z treści.'
                         );
                         onClose();
@@ -128,7 +128,7 @@ export function MarkAsFormLeadModal({ senderEmail, messageId, onClose }: MarkAsF
             onSuccess: () => {
                 showSuccess(
                     'Automat wyłączony',
-                    'Maile z tego adresu nie będą już zamieniane na sprawy. Oznaczenie dowolnego maila włączy go z powrotem.'
+                    'Maile z tego adresu nie będą już zamieniane na leady. Oznaczenie dowolnego maila włączy go z powrotem.'
                 );
                 onClose();
             },
@@ -156,19 +156,19 @@ export function MarkAsFormLeadModal({ senderEmail, messageId, onClose }: MarkAsF
                             <ActiveNote>
                                 Ten nadawca jest oznaczony jako formularz. Automat działa
                                 {source && source.leadCount > 0
-                                    ? ` i założył już ${source.leadCount} ${leadsLabel(source.leadCount)}.`
+                                    ? ` i utworzył już ${source.leadCount} ${leadsLabel(source.leadCount)}.`
                                     : '.'}
                             </ActiveNote>
                             <p>
-                                Możesz też założyć sprawę z tej wiadomości, np. starszej, której automat
+                                Możesz też utworzyć lead z tej wiadomości, np. starszej, której automat
                                 nie objął.
                             </p>
                         </>
                     ) : (
                         <p>
-                            Odczytamy dane klienta z <strong>treści</strong> tej wiadomości i założymy
-                            sprawę. <strong>Każdy kolejny mail z tego adresu</strong> też stanie się
-                            sprawą, automatycznie. Użyj tego dla adresu, z którego przychodzą zgłoszenia
+                            Odczytamy dane klienta z <strong>treści</strong> tej wiadomości i utworzymy
+                            lead. <strong>Każdy kolejny mail z tego adresu</strong> też stanie się
+                            leadem, automatycznie. Użyj tego dla adresu, z którego przychodzą zgłoszenia
                             z formularza na stronie.
                         </p>
                     )}
@@ -194,15 +194,15 @@ export function MarkAsFormLeadModal({ senderEmail, messageId, onClose }: MarkAsF
                     {mark.isPending
                         ? 'Czytam treść wiadomości…'
                         : isActive
-                          ? 'Załóż sprawę z tej wiadomości'
-                          : 'Oznacz i załóż sprawę'}
+                          ? 'Utwórz lead z tej wiadomości'
+                          : 'Oznacz i utwórz lead'}
                 </PrimaryButton>
             </ModalFooter>
         </ModalShell>
     );
 }
 
-/** Odmiana „sprawa/sprawy/spraw" w bierniku („założył 1 sprawę") - komunikat ma brzmieć po polsku. */
+/** Odmiana „lead/leady/leadów" w bierniku („utworzył 1 lead") - komunikat ma brzmieć po polsku. */
 function leadsLabel(count: number): string {
-    return pluralPl(count, 'sprawę', 'sprawy', 'spraw');
+    return pluralPl(count, 'lead', 'leady', 'leadów');
 }

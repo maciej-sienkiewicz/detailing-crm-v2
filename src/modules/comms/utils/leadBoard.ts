@@ -87,21 +87,21 @@ export const BOARD_COLUMNS: BoardColumnMeta[] = [
     {
         key: 'REPLIED',
         title: 'Czeka na klienta',
-        empty: 'Tu trafiają sprawy, w których piłka jest u klienta.',
+        empty: 'Tu trafiają leady, w których piłka jest u klienta.',
         tone: { dot: '#8b5cf6', tint: '#f3effe', ink: '#6d28d9' },
         showsValue: true,
     },
     {
         key: 'NEEDS_REMINDER',
         title: 'Do przypomnienia',
-        empty: `Tu trafiają sprawy po ${REMIND_AFTER_DAYS} dniach ciszy klienta.`,
+        empty: `Tu trafiają leady po ${REMIND_AFTER_DAYS} dniach ciszy klienta.`,
         tone: { dot: '#f59e0b', tint: '#fef6e4', ink: '#b45309' },
         showsValue: true,
     },
     {
         key: 'LAPSED',
         title: 'Ucichło',
-        empty: `Tu trafiają sprawy po ${LAPSE_AFTER_DAYS} dniach ciszy. Po kolejnych ${VANISH_AFTER_DAYS} schodzą z tablicy, a na liście zostają w „Ucichło".`,
+        empty: `Tu trafiają leady po ${LAPSE_AFTER_DAYS} dniach ciszy. Po kolejnych ${VANISH_AFTER_DAYS} schodzą z tablicy, a na liście zostają w „Ucichło".`,
         // Szarość, nie czerwień: sprawa ucichła, ale nie przepadła - jej status się nie zmienia.
         tone: { dot: '#94a3b8', tint: '#f1f5f9', ink: '#475569' },
         showsValue: true,

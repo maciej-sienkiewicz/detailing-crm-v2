@@ -226,7 +226,7 @@ export const BoardCardView = forwardRef<HTMLDivElement, BoardCardProps>(function
                     </span>
                 )}
                 {card.vanishesInMs !== null && (
-                    <span title="Karta zejdzie z tablicy, a sprawa zostaje otwarta na liście w „Ucichło”. Gdy klient odpisze, wróci do „Czeka na nas”.">
+                    <span title="Karta zejdzie z tablicy, a lead zostaje otwarty na liście w „Ucichło”. Gdy klient odpisze, wróci do „Czeka na nas”.">
                         <Hourglass aria-hidden="true" />
                         {vanishes(card.vanishesInMs)}
                     </span>

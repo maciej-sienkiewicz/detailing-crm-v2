@@ -11,7 +11,7 @@
 //
 // Wątek sprawy też czyta się tutaj (od 25.10.2026). Dawniej kliknięcie go w Poczcie
 // przerzucało do Zapytań - nad tablicę, z inną pozycją menu i bez drogi powrotu.
-// Teraz nad rozmową stoi pasek sprawy (auto, stan, wycena) z „Otwórz sprawę".
+// Teraz nad rozmową stoi pasek leada (auto, stan, wycena) z „Otwórz lead".
 //
 // Menu wątku zależy od nadawcy: przy automatach (powiadomienia, hurtownie, reklamy)
 // nie ma „Umów wizytę" ani karty klienta - rezerwacja „dla: DetailChem Hurt" nie ma sensu.
@@ -57,7 +57,7 @@ import { MarkAsFormLeadModal } from '../components/MarkAsFormLeadModal';
 import { ContactCardPopover } from '../components/ContactCardPopover';
 import { ContactNotesPopover } from '../components/ContactNotesPopover';
 import { ThreadHistoryPanel } from '../components/ThreadHistoryPanel';
-import { AttachmentCards, Bubbles, ConversationHeader } from './Conversation';
+import { AttachmentCards, MailThread, ConversationHeader } from './Conversation';
 import { downloadAttachmentFile, messageMoment } from './messageFormat';
 import { useAttachmentPreview } from '../components/useAttachmentPreview';
 import { useLead } from '../hooks/useLeads';
@@ -233,14 +233,14 @@ function MailCaseBar({ leadId, phone, onOpen }: { leadId: string; phone: boolean
     const total = quoteTotal(lead);
     const state = [caseStatusChip(lead).label, total > 0 ? `wycena ${formatAmount(total)}` : null].filter(Boolean).join(', ');
     return (
-        <CaseBar $phone={phone} aria-label="Sprawa tej rozmowy">
+        <CaseBar $phone={phone} aria-label="Lead tej rozmowy">
             <Tag aria-hidden="true" />
             <span className="text">
-                <span className="name">Sprawa: {caseTitle(lead)}</span>
+                <span className="name">Lead: {caseTitle(lead)}</span>
                 <span className="state">{state}</span>
             </span>
             <button type="button" onClick={onOpen}>
-                Otwórz sprawę <ArrowRight aria-hidden="true" />
+                Otwórz lead <ArrowRight aria-hidden="true" />
             </button>
         </CaseBar>
     );
@@ -356,7 +356,7 @@ export function MailDetail({ threadId, listThread, phone, onBack, onArchived, on
 
     const archive = () => setArchived.mutate({ threadId: thread.id, archived: !thread.archived }, { onSuccess: onArchived });
 
-    // Pasek wizyty i uwaga automatu - te same nad dymkami i nad listem.
+    // Pasek wizyty i uwaga automatu - te same nad wątkiem rozmowy i nad listem.
     const notices = (
         <>
             {visit && (
@@ -401,10 +401,11 @@ export function MailDetail({ threadId, listThread, phone, onBack, onArchived, on
 
             {thread.leadId && <MailCaseBar leadId={thread.leadId} phone={phone} onOpen={() => onOpenCase(thread.leadId!)} />}
 
-            {/* Nadawca z kartoteki to rozmowa z klientem - czyta się jak komunikator
-                (dymki, „Ty" po prawej). Reszta poczty (faktury, dostawcy) - jak list. */}
+            {/* Nadawca z kartoteki to rozmowa z klientem - wątek z nagłówkiem „kto, kiedy"
+                przy każdej wiadomości, jak w leadzie. Reszta poczty (faktury, dostawcy) - jak
+                list, z rozwijaniem starszych wiadomości. */}
             {conversational ? (
-                <Bubbles
+                <MailThread
                     messages={messages}
                     loading={!detailMatches}
                     phone={phone}
@@ -479,12 +480,12 @@ export function MailDetail({ threadId, listThread, phone, onBack, onArchived, on
                     </MenuItem>
                 )}
                 {thread.leadId ? (
-                    <MenuItem icon={<Tag />} onClick={() => { menu.close(); onOpenCase(thread.leadId!); }}>Otwórz sprawę</MenuItem>
+                    <MenuItem icon={<Tag />} onClick={() => { menu.close(); onOpenCase(thread.leadId!); }}>Otwórz lead</MenuItem>
                 ) : !activeForm && (
                     <MenuItem icon={<Tag />} onClick={() => { menu.close(); setModal('lead'); }}>To zapytanie klienta</MenuItem>
                 )}
                 {/* Ustawienie nadawcy, nie akcja na wiadomości: każdy kolejny mail z tego adresu
-                    stanie się sprawą. Dawna nazwa „Zgłoszenie z formularza" tego nie mówiła. */}
+                    stanie się leadem. Dawna nazwa „Zgłoszenie z formularza" tego nie mówiła. */}
                 <MenuItem icon={<FileInput />} onClick={() => { menu.close(); setModal('form'); }}>Ten adres to formularz ze strony</MenuItem>
                 {canBook && !automated && (
                     <MenuItem icon={<CalendarPlus />} onClick={() => { menu.close(); setModal('booking'); }}>Umów wizytę</MenuItem>

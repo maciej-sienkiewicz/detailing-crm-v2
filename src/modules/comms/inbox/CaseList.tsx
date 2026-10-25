@@ -319,20 +319,20 @@ export function CaseList({ worklist, query, loading, truncated, activeId, onOpen
                 )}
                 {onShowClosed && !needle && !selecting && (
                     <Fold type="button" $phone={phone} onClick={onShowClosed}>
-                        Zamknięte sprawy
+                        Zamknięte leady
                         <ChevronRight aria-hidden="true" />
                     </Fold>
                 )}
                 {nothing && needle && <Empty>Nic nie pasuje do „{query.trim()}".</Empty>}
                 {truncated && (
-                    <Empty>Otwartych spraw jest więcej, niż mieści jedna strona. Zamknij część zapytań, żeby zobaczyć resztę.</Empty>
+                    <Empty>Otwartych leadów jest więcej, niż mieści jedna strona. Zamknij część zapytań, żeby zobaczyć resztę.</Empty>
                 )}
             </Scroll>
 
             {selecting && (
                 <BulkBar>
                     <div className="head">
-                        <span className="count">{selected.size === 0 ? 'Zaznacz sprawy' : `Zaznaczono ${selected.size}`}</span>
+                        <span className="count">{selected.size === 0 ? 'Zaznacz leady' : `Zaznaczono ${selected.size}`}</span>
                         <BulkBtn type="button" onClick={stop} aria-label="Zakończ zaznaczanie">
                             <X />
                         </BulkBtn>
@@ -361,7 +361,7 @@ export function CaseList({ worklist, query, loading, truncated, activeId, onOpen
 
             <ConfirmationModal
                 isOpen={confirm === 'delete'}
-                title={selected.size === 1 ? 'Usunąć zaznaczoną sprawę?' : `Usunąć ${selected.size} ${pluralPl(selected.size, 'zaznaczoną sprawę', 'zaznaczone sprawy', 'zaznaczonych spraw')}?`}
+                title={selected.size === 1 ? 'Usunąć zaznaczony lead?' : `Usunąć ${selected.size} ${pluralPl(selected.size, 'zaznaczony lead', 'zaznaczone leady', 'zaznaczonych leadów')}?`}
                 message="Tego nie da się cofnąć. Maile zostaną w skrzynce."
                 variant="danger"
                 confirmText="Usuń"
@@ -371,7 +371,7 @@ export function CaseList({ worklist, query, loading, truncated, activeId, onOpen
             <ChoiceModal
                 isOpen={confirm === 'appointments'}
                 title="Co zrobić z rezerwacjami?"
-                message={`Zaznaczone sprawy z rezerwacją w kalendarzu: ${withAppointment}. Możesz usunąć rezerwacje razem ze sprawami albo zostawić je jako samodzielne terminy.`}
+                message={`Zaznaczone leady z rezerwacją w kalendarzu: ${withAppointment}. Możesz usunąć rezerwacje razem z leadami albo zostawić je jako samodzielne terminy.`}
                 variant="danger"
                 primaryText="Usuń też rezerwacje"
                 onPrimary={() => runDelete(true)}

@@ -35,7 +35,7 @@ const THIN_DATA_BELOW = 10;
 const MONTH_ABBR = ['sty', 'lut', 'mar', 'kwi', 'maj', 'cze', 'lip', 'sie', 'wrz', 'paź', 'lis', 'gru'];
 
 const orders = (n: number) => `${n} ${pluralPl(n, 'zlecenie', 'zlecenia', 'zleceń')}`;
-const cases = (n: number) => `${n} ${pluralPl(n, 'sprawa', 'sprawy', 'spraw')}`;
+const cases = (n: number) => `${n} ${pluralPl(n, 'lead', 'leady', 'leadów')}`;
 
 // ── Układ ────────────────────────────────────────────────────────────────────
 
@@ -285,7 +285,7 @@ function Report({ data, thin, yearSeries, year }: {
                     <span className="label">Zapytania</span>
                     <span className="value">{data.totalCreated}</span>
                     {/* Kwota z serwera to potencjał: przyjęte pozycje i sugestie asystenta razem.
-                        Panel sprawy pokazuje samą wycenę, więc tutaj mówimy wprost, co jest w sumie. */}
+                        Panel leada pokazuje samą wycenę, więc tutaj mówimy wprost, co jest w sumie. */}
                     <span className="note">warte {formatMoney(totalValue)} z sugestiami</span>
                 </Step>
                 <ChevronRight className="arrow" aria-hidden="true" />

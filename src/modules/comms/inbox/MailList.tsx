@@ -291,7 +291,7 @@ function MailRow({ thread, folder, phone, active, nested, isForm, onOpen, onArch
                     {thread.screening && <Tag $warn title={thread.screeningReason ?? undefined}>{thread.screening === 'SPAM' ? 'Spam' : 'Test ze studia'}</Tag>}
                     {isForm && !thread.leadId && <Tag>Formularz</Tag>}
                     {folder === 'SENT' && thread.inboundCount === 0 && <Tag>Bez odpowiedzi</Tag>}
-                    {thread.leadId ? <Tag $sale>Sprawa</Tag> : thread.knownCustomer ? <Tag>Klient</Tag> : null}
+                    {thread.leadId ? <Tag $sale>Lead</Tag> : thread.knownCustomer ? <Tag>Klient</Tag> : null}
                 </span>
             </Row>
             {!phone && (

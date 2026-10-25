@@ -261,11 +261,11 @@ describe('kwoty i liczniki', () => {
         expect(overdueCount(worklist, DEFAULT_STAGNATION)).toBe(2);
     });
 
-    it('odmienia słowo „sprawa" tak, jak mówi się po polsku', () => {
-        expect(caseCount(1)).toBe('1 sprawa');
-        expect(caseCount(3)).toBe('3 sprawy');
-        expect(caseCount(5)).toBe('5 spraw');
-        expect(caseCount(12)).toBe('12 spraw');
-        expect(caseCount(22)).toBe('22 sprawy');
+    it('odmienia słowo „lead" tak, jak mówi się po polsku', () => {
+        expect(caseCount(1)).toBe('1 lead');
+        expect(caseCount(3)).toBe('3 leady');
+        expect(caseCount(5)).toBe('5 leadów');
+        expect(caseCount(12)).toBe('12 leadów');
+        expect(caseCount(22)).toBe('22 leady');
     });
 });

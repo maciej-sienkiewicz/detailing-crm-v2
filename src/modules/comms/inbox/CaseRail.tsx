@@ -200,7 +200,7 @@ export function QuoteAndClient({ lead, contactCard, phone, onEditQuote, onEditCl
                         ))}
                     </>
                 ) : (
-                    <p className="empty">Sprawa nie ma jeszcze wyceny.</p>
+                    <p className="empty">Lead nie ma jeszcze wyceny.</p>
                 )}
                 {/* Propozycje asystenta pod przyjętymi pozycjami: „Razem" liczy tylko
                     przyjęte, a to są propozycje czekające na decyzję. */}
@@ -234,7 +234,7 @@ export function QuoteAndClient({ lead, contactCard, phone, onEditQuote, onEditCl
 export function CaseStatus({ status, onChange, pending }: { status: LeadStatus; onChange: (status: LeadStatus) => void; pending?: boolean }) {
     const colors = LEAD_STATUS_COLORS[status];
     return (
-        <StatusRow aria-label="Status sprawy">
+        <StatusRow aria-label="Status leada">
             <span className="label">Status</span>
             <LeadStatusPicker
                 status={status}
@@ -263,7 +263,7 @@ export function CaseStatus({ status, onChange, pending }: { status: LeadStatus; 
 
 export function CaseRail({ cta, onChangeStatus, statusPending, ...props }: RailBodyProps) {
     return (
-        <Aside aria-label="Sprawa">
+        <Aside aria-label="Lead">
             <QuoteAndClient {...props} />
             <CaseStatus status={props.lead.status} onChange={onChangeStatus} pending={statusPending} />
             {cta && <Bottom>{cta}</Bottom>}

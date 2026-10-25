@@ -1,10 +1,14 @@
 // src/modules/comms/inbox/Conversation.tsx
-// Wspólne części rozmowy w skrzynce „Zapytania": nagłówek, dymki i załączniki.
+// Wspólne części rozmowy w skrzynce „Zapytania": nagłówek, wątek maila i załączniki.
 //
-// Rozmowa w sprawie czyta się jak komunikator (dymki, „Ty" po prawej), bo to jest
-// wymiana zdań z jedną osobą. Poczta (faktura, dostawca) czyta się jak list -
-// tam stoi MailReader w MailDetail. Obie drogi biorą treść z MessageBody: ta sama
-// sanityzacja, ten sam podział na treść i doklejoną historię.
+// Wątek maila (lead i Poczta) to sekcje na szerokość tekstu, nie dymki: mail jest
+// listem - powitanie, akapity, pozdrowienia - i w dymku dosuniętym do prawej
+// wyglądał jak ściana tekstu przesunięta w bok. Porównanie A/B z 25.10.2026: na
+// telefonie sekcje mieszczą 44 znaki w wierszu zamiast 40 i rozmowa jest o 5%
+// krótsza, na komputerze obie wersje miały tę samą długość. Dymki zostały tam,
+// gdzie rozmowa jest czatem - na Instagramie (InstagramConversation).
+// Treść zawsze z MessageBody: ta sama sanityzacja, ten sam podział na treść,
+// stopkę i doklejoną historię.
 import { Fragment, useEffect, useRef, type ReactNode } from 'react';
 import styled from 'styled-components';
 import { ArrowLeft, ChevronLeft, Paperclip } from 'lucide-react';
@@ -91,18 +95,16 @@ export function ConversationHeader({ title, subtitle, phone, onBack, children, t
 }
 
 /** Przewijana część rozmowy. Treść dosuwa się do dołu, gdy jest jej mało (makieta). */
-export const ConversationScroll = styled.div<{ $phone: boolean; $bottom?: boolean }>`
+export const ConversationScroll = styled.div<{ $phone: boolean; $bottom?: boolean; $dense?: boolean }>`
     flex: 1;
     min-height: 0;
     overflow-y: auto;
     overscroll-behavior: contain;
     display: flex;
     flex-direction: column;
-    gap: ${p => (p.$phone ? 18 : 20)}px;
+    /* Sekcje wątku maila niosą nagłówek z nadawcą, więc stoją ciaśniej niż dymki. */
+    gap: ${p => (p.$dense ? 12 : p.$phone ? 18 : 20)}px;
     padding: ${p => (p.$phone ? '20px 16px' : '28px')};
-    /* Dymki mierzą się szerokością rozmowy, nie okna (Bubble niżej). */
-    container-type: inline-size;
-    container-name: conversation;
 
     /* Zamiast justify-content: flex-end - ten przy przepełnieniu odcina górę rozmowy
        poza zasięg przewijania. Margines u pierwszego dziecka dosuwa krótką rozmowę
@@ -111,44 +113,44 @@ export const ConversationScroll = styled.div<{ $phone: boolean; $bottom?: boolea
 `;
 
 /**
- * Szerokość dymka zależy od szerokości ROZMOWY, nie od stałego procentu.
+ * Wiadomość wątku maila: sekcja z nagłówkiem (kto, kiedy) na delikatnym tle. Klient -
+ * chłodna szarość, studio - jasny odcień marki.
  *
- * Dawniej 70% (80% na telefonie) niezależnie od miejsca: w trzech kolumnach sprawy
- * na ekranie 1440 px dymek miał 307 px, czyli około 36 znaków w linii, a 560-znakowa
- * odpowiedź robiła się słupkiem wysokim na pół ekranu; obok każdego dymka zostawało
- * 130-260 px pustego miejsca (audyt 25.10.2026). Teraz: w szerokiej rozmowie 85%,
- * ale nie więcej niż 640 px (długość wiersza, przy której oko nie gubi linijek),
- * w wąskiej (telefon, tablet, trzy kolumny) 92% i mniejszy wewnętrzny odstęp.
+ * Stronę rozmowy niesie przede wszystkim pasek z lewej, a nie samo tło: u studia
+ * nasycony kolor marki, u klienta jasna szarość. Różnią się jasnością, nie tylko
+ * odcieniem, więc „kto pisał" widać także bez rozróżniania błękitu od szarości
+ * i przy szybkim przewijaniu.
+ *
+ * Szerokość sekcji to szerokość tekstu (560 px, ok. 75 znaków Inter 15 px - górna
+ * granica wygodnego wiersza) z odstępami. Sekcja na całą rozmowę zostawiała na
+ * szerokim ekranie pusty pas zabarwionego tła po prawej. Mail projektowany (tabela,
+ * newsletter) bierze całą szerokość - ma własny układ i 560 px by go ścisnęło.
+ *
+ * Bez cieni: to płaszczyzny, nie wyniesione karty (CLAUDE.md §2, wyniesienie niesie temat).
  */
-const Bubble = styled.div<{ $out: boolean; $phone: boolean }>`
-    align-self: ${p => (p.$out ? 'flex-end' : 'flex-start')};
-    max-width: min(85%, 640px);
+const Section = styled.article<{ $out: boolean; $phone: boolean }>`
     min-width: 0;
+    max-width: calc(560px + 44px);
+    padding: ${p => (p.$phone ? '12px 14px 14px' : '14px 20px 16px')};
+    border: 1px solid ${p => (p.$out ? '#d7ecf7' : ix.lineSoft)};
+    border-left: 3px solid ${p => (p.$out ? ix.accent : '#cbd5e1')};
+    border-radius: 12px;
+    /* Studio: odcień marki ok. 5% (accentTint to 10% - na dużej płaszczyźnie za mocny). */
+    background: ${p => (p.$out ? '#f3f9fd' : ix.surfaceSoft)};
 
-    /* Treść w ramce (mail z tabelą, newsletter) nie ma własnej szerokości - bez tego
-       dymek kurczył się do 300 px ramki i ściskał tabelę obok pustego miejsca. */
-    &:has(iframe) { width: 100%; }
+    &:has(iframe) { max-width: none; }
 
-    @container conversation (max-width: 560px) {
-        max-width: 92%;
-        .body { padding: 10px 12px; }
+    .head {
+        display: flex;
+        align-items: baseline;
+        gap: 4px 12px;
+        flex-wrap: wrap;
+        margin: 0 0 8px;
     }
-
-    .label {
-        margin: 0 0 6px;
-        font-size: 12px;
-        color: ${ix.muted};
-        text-align: ${p => (p.$out ? 'right' : 'left')};
-    }
-    .body {
-        padding: 12px 16px;
-        border: 1px solid ${p => (p.$out ? ix.surfaceAlt : ix.line)};
-        border-radius: ${p => (p.$phone ? 18 : 16)}px;
-        background: ${p => (p.$out ? ix.surfaceAlt : '#ffffff')};
-        color: ${ix.ink};
-        overflow-wrap: anywhere;
-    }
-    .failed { margin-top: 4px; font-size: 12px; color: ${ix.late}; text-align: right; }
+    .who { font-size: 13px; font-weight: 600; color: ${p => (p.$out ? ix.accentInk : ix.inkSoft)}; }
+    .when { margin-left: auto; font-size: 12px; color: ${ix.muted}; font-variant-numeric: tabular-nums; }
+    .text { color: ${ix.ink}; overflow-wrap: anywhere; }
+    .failed { margin-top: 6px; font-size: 12px; color: ${ix.late}; }
 `;
 
 const Files = styled.div<{ $out: boolean }>`
@@ -247,7 +249,7 @@ export function AttachmentCards({
     );
 }
 
-interface BubblesProps {
+interface MailThreadProps {
     messages: CommMessage[];
     phone: boolean;
     onDownload: (attachmentId: string, fileName: string) => void;
@@ -264,14 +266,13 @@ interface BubblesProps {
     alignBottom?: boolean;
     /**
      * Zdarzenia spoza poczty wpięte w rozmowę w swoim miejscu na osi czasu - np. pasek
-     * rezerwacji. Wątek pokazuje wtedy całą sprawę, a nie tylko maile.
+     * rezerwacji. Wątek pokazuje wtedy całego leada, a nie tylko maile.
      */
     events?: ConversationEvent[];
 }
 
-
-/** Rozmowa jako dymki: klient po lewej z datą, „Ty" po prawej. Otwiera się na końcu. */
-export function Bubbles({ messages, phone, onDownload, onPreview, onOpenFull, before, loading, alignBottom = true, events = [] }: BubblesProps) {
+/** Wątek maila jako sekcje: kto i kiedy w nagłówku, treść pod spodem. Otwiera się na końcu. */
+export function MailThread({ messages, phone, onDownload, onPreview, onOpenFull, before, loading, alignBottom = true, events = [] }: MailThreadProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const lastId = messages[messages.length - 1]?.id;
 
@@ -282,7 +283,7 @@ export function Bubbles({ messages, phone, onDownload, onPreview, onOpenFull, be
     }, [lastId]);
 
     return (
-        <ConversationScroll ref={scrollRef} $phone={phone} $bottom={alignBottom}>
+        <ConversationScroll ref={scrollRef} $phone={phone} $bottom={alignBottom} $dense>
             {before}
             {loading && messages.length === 0 && <p style={{ margin: 'auto', color: ix.muted, fontSize: 14 }}>Wczytywanie rozmowy…</p>}
             {withEvents(messages, events).map((item) => {
@@ -290,11 +291,14 @@ export function Bubbles({ messages, phone, onDownload, onPreview, onOpenFull, be
                 const message = item;
                 const out = message.direction === 'OUTBOUND';
                 return (
-                    <Bubble key={message.id} $out={out} $phone={phone}>
-                        {/* Data także przy własnej wiadomości: „kiedy odpisaliśmy?" to pierwsze pytanie
-                            przy reklamacji, a sam podpis „Ty" na nie nie odpowiadał. */}
-                        <p className="label">{out ? `Ty, ${messageMoment(message.sentAt).replace(/^\p{Lu}/u, (first) => first.toLowerCase())}` : messageMoment(message.sentAt)}</p>
-                        <div className="body">
+                    <Section key={message.id} $out={out} $phone={phone} aria-label={out ? 'Wiadomość studia' : 'Wiadomość klienta'}>
+                        {/* Data także przy własnej wiadomości: „kiedy odpisaliśmy?" to pierwsze
+                            pytanie przy reklamacji, a sam podpis „Ty" na nie nie odpowiadał. */}
+                        <p className="head">
+                            <span className="who">{out ? 'Ty' : message.fromName ?? message.fromEmail}</span>
+                            <span className="when">{messageMoment(message.sentAt)}</span>
+                        </p>
+                        <div className="text">
                             <MessageBody
                                 html={message.bodyHtml ?? ''}
                                 cacheKey={message.id}
@@ -304,9 +308,9 @@ export function Bubbles({ messages, phone, onDownload, onPreview, onOpenFull, be
                                 onOpenFull={() => onOpenFull(message.id)}
                             />
                         </div>
-                        <AttachmentCards attachments={message.attachments} outbound={out} onDownload={onDownload} onPreview={onPreview} />
+                        <AttachmentCards attachments={message.attachments} onDownload={onDownload} onPreview={onPreview} />
                         {out && message.sendStatus === 'FAILED' && <p className="failed">Nie wysłano - spróbuj ponownie</p>}
-                    </Bubble>
+                    </Section>
                 );
             })}
         </ConversationScroll>

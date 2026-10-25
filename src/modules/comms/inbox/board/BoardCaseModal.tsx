@@ -162,7 +162,7 @@ export function BoardCaseModal({ leadId, phone, origin, findCard, onClose }: Boa
     useModalViewport(true, overlayRef, requestClose);
 
     const closeButton = (
-        <IconBtn aria-label="Zamknij sprawę i wróć do tablicy" onClick={requestClose}>
+        <IconBtn aria-label="Zamknij lead i wróć do tablicy" onClick={requestClose}>
             <X />
         </IconBtn>
     );

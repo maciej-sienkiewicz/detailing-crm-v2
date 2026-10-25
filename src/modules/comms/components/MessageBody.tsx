@@ -19,8 +19,15 @@
 //
 // Doklejoną historię rozmowy chowamy pod przełącznikiem w obu trybach (patrz
 // utils/emailHtml.ts) - bez tego każda kolejna odpowiedź powtarza cały wątek.
-// Pod tym samym „•••" leży stopka nadawcy (podpis, adres, zastrzeżenie prawne):
-// w dymku na telefonie bywała dłuższa niż sama odpowiedź.
+// Pod tym samym przełącznikiem leży stopka nadawcy (podpis, adres, zastrzeżenie
+// prawne): w dymku na telefonie bywała dłuższa niż sama odpowiedź. Także nasza własna -
+// klient widzi ją u siebie, a w CRM to szum. Schowana stopka zostawia po sobie napis
+// „Stopka schowana", a nie samo „•••": bez niego odpowiedź studia urwana na
+// „Pozdrawiam," wyglądała jak wysłana bez podpisu (prośba z 25.10.2026).
+//
+// Ramka maila projektowanego jest przezroczysta: biała ramka w szarym dymku wyglądała
+// jak wiadomość w wiadomości (zgłoszenie 25.10.2026 - stopka z logo w tabeli wrzucała
+// całą odpowiedź studia do ramki z innym krojem pisma).
 //
 // Listy dostają z powrotem numerację i punktory: reset Tailwinda (`ol, ul { list-style:
 // none }`) zabierał je z każdego maila, więc klient pytał „1., 2., 3.", a studio
@@ -28,7 +35,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import styled from 'styled-components';
 import DOMPurify from 'dompurify';
-import { ChevronUp, Image as ImageIcon, Maximize2 } from 'lucide-react';
+import { ChevronDown, ChevronUp, Image as ImageIcon, Maximize2 } from 'lucide-react';
 import { describeHtml, dropLeadingIndent, isRichHtml, splitQuotedHistory, splitSignature, trimEmptyEdges } from '../utils/emailHtml';
 
 const Root = styled.div`
@@ -59,6 +66,9 @@ const Prose = styled.div<{ $size?: 'reader' | 'bubble' }>`
 
     p, div { margin: 0; }
     p + p { margin-top: 0.9em; }
+    /* Pusty akapit <p><br></p> to już odstęp - tak edytor CRM zapisuje pustą linię. Razem
+       z marginesem akapitu dawał podwójną przerwę między zdaniami odpowiedzi studia. */
+    p:has(> br:only-child), p:has(> br:only-child) + p { margin-top: 0; }
     br + br { line-height: 0.5; }
     ul, ol { margin: 0.6em 0; padding-left: 1.4em; }
     ol { list-style: decimal; }
@@ -111,7 +121,8 @@ const Frame = styled.iframe<{ $ready: boolean }>`
     width: 100%;
     border: none;
     display: block;
-    background: #ffffff;
+    background: transparent;
+    color-scheme: light;
     min-height: 24px;
     opacity: ${({ $ready }) => ($ready ? 1 : 0)};
     transition: opacity 120ms ease-out;
@@ -124,20 +135,21 @@ const Footer = styled.div`
     gap: 8px;
 `;
 
-/** „⋯" w stylu Gmaila: rozwija doklejoną historię rozmowy, nie krzycząc o tym. */
-const QuoteToggle = styled.button<{ $open: boolean }>`
+/** „⋯" w stylu Gmaila (sama historia) albo „Stopka schowana": rozwija schowaną część, nie krzycząc o tym. */
+const QuoteToggle = styled.button<{ $dots: boolean }>`
     display: inline-flex;
     align-items: center;
     gap: 5px;
     border: 1px solid transparent;
     background: ${p => p.theme.colors.surfaceAlt};
-    color: ${p => p.theme.colors.textMuted};
+    /* Napis ma się dać przeczytać - kropki są znakiem, nie tekstem, więc mogą być bledsze. */
+    color: ${({ $dots, theme }) => ($dots ? theme.colors.textMuted : theme.colors.textSecondary)};
     border-radius: ${p => p.theme.radii.full};
-    padding: ${({ $open }) => ($open ? '4px 12px' : '2px 10px')};
+    padding: ${({ $dots }) => ($dots ? '2px 10px' : '4px 12px')};
     font-size: 12px;
     line-height: 1.4;
     font-weight: ${p => p.theme.fontWeights.medium};
-    letter-spacing: ${({ $open }) => ($open ? 'normal' : '0.12em')};
+    letter-spacing: ${({ $dots }) => ($dots ? '0.12em' : 'normal')};
     cursor: pointer;
     font-family: inherit;
 
@@ -200,11 +212,13 @@ const GraphicalCard = styled.button`
 
 const FRAME_STYLES = `
     <style>
-        html, body { margin: 0; padding: 0; }
+        html, body { margin: 0; padding: 0; background: transparent; }
         body {
-            font-family: -apple-system, 'Segoe UI', Roboto, sans-serif;
-            font-size: 14px;
-            line-height: 1.55;
+            /* Rozmiar i rytm jak tekst rozmowy - ramka nie może wyglądać jak obca strona. Inter
+               bywa tu tylko systemowy (@font-face aplikacji do ramki nie sięga), stąd zapas. */
+            font-family: 'Inter', -apple-system, 'Segoe UI', Roboto, sans-serif;
+            font-size: 15px;
+            line-height: 1.5;
             color: #1f2937;
             word-break: break-word;
             padding: 2px;
@@ -376,12 +390,17 @@ export function MessageBody({
         else window.scrollBy(0, rest);
     }, []);
 
-    const { mainHtml, quotedHtml, hasHistory } = useMemo(() => {
+    const { mainHtml, quotedHtml, hasHistory, hasSignature } = useMemo(() => {
         const split = collapseQuoted ? splitQuotedHistory(html) : { mainHtml: html, quotedHtml: null };
         const signed = collapseQuoted ? splitSignature(split.mainHtml) : { mainHtml: split.mainHtml, signatureHtml: null };
         // Schowane razem: najpierw stopka (stoi bezpośrednio pod treścią), potem historia.
         const hidden = [signed.signatureHtml, split.quotedHtml].filter(Boolean).join('');
-        return { mainHtml: trimEmptyEdges(signed.mainHtml), quotedHtml: hidden || null, hasHistory: Boolean(split.quotedHtml) };
+        return {
+            mainHtml: trimEmptyEdges(signed.mainHtml),
+            quotedHtml: hidden || null,
+            hasHistory: Boolean(split.quotedHtml),
+            hasSignature: Boolean(signed.signatureHtml),
+        };
     }, [html, collapseQuoted]);
     const shape = useMemo(() => describeHtml(mainHtml), [mainHtml]);
     const rich = useMemo(() => isRichHtml(mainHtml), [mainHtml]);
@@ -465,20 +484,23 @@ export function MessageBody({
         return () => area.removeEventListener('wheel', handleWheel);
     }, [handleWheel]);
 
+    // Sama historia zostaje pod „•••" (zwyczaj z Gmaila). Schowana stopka mówi o sobie
+    // wprost - inaczej urwany podpis wygląda jak błąd, a nie jak decyzja.
+    const toggle = hasSignature
+        ? hasHistory
+            ? { closed: 'Stopka i historia schowane', open: 'Ukryj stopkę i historię', title: 'Pokaż stopkę i wcześniejsze wiadomości' }
+            : { closed: 'Stopka schowana', open: 'Ukryj stopkę', title: 'Pokaż stopkę' }
+        : { closed: '•••', open: 'Ukryj historię rozmowy', title: 'Wcześniejsze wiadomości z tej rozmowy' };
+    const dots = !quotedShown && !hasSignature;
     const quoteToggle = quotedHtml && (
         <QuoteToggle
-            $open={quotedShown}
+            $dots={dots}
             onClick={() => setQuotedShown((shown) => !shown)}
             aria-expanded={quotedShown}
-            title={hasHistory ? 'Stopka i wcześniejsze wiadomości z tej rozmowy' : 'Stopka nadawcy'}
+            title={quotedShown ? undefined : toggle.title}
         >
-            {quotedShown ? (
-                <>
-                    <ChevronUp size={12} /> {hasHistory ? 'Ukryj historię rozmowy' : 'Ukryj stopkę'}
-                </>
-            ) : (
-                '•••'
-            )}
+            {quotedShown ? <ChevronUp size={12} /> : !dots && <ChevronDown size={12} />}
+            {quotedShown ? toggle.open : toggle.closed}
         </QuoteToggle>
     );
 

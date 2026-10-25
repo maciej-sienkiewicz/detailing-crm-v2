@@ -196,7 +196,7 @@ export function LeadArchive({ bundle, query, status, onStatusChange, onOpen, act
 
     return (
         <Scroll $phone={phone}>
-            <Filters $phone={phone} role="group" aria-label="Wynik sprawy">
+            <Filters $phone={phone} role="group" aria-label="Wynik leada">
                 {ARCHIVE_FILTERS.map((filter) => (
                     <Filter
                         key={filter.label}
@@ -220,7 +220,7 @@ export function LeadArchive({ bundle, query, status, onStatusChange, onOpen, act
 
             {!bundle.isLoading && bundle.items.length === 0 && (
                 <Note $phone={phone}>
-                    {query ? 'Nic nie pasuje do tego wyszukiwania.' : 'Nie ma jeszcze zamkniętych spraw.'}
+                    {query ? 'Nic nie pasuje do tego wyszukiwania.' : 'Nie ma jeszcze zamkniętych leadów.'}
                 </Note>
             )}
 
@@ -247,7 +247,7 @@ export function LeadArchive({ bundle, query, status, onStatusChange, onOpen, act
 
             {bundle.truncated && (
                 <Note $phone={phone}>
-                    Widać 100 najnowszych spraw z każdej kategorii. Starsze znajdziesz wyszukiwarką
+                    Widać 100 najnowszych leadów z każdej kategorii. Starsze znajdziesz wyszukiwarką
                     albo filtrem.
                 </Note>
             )}

@@ -160,7 +160,7 @@ export function ListHeader({ scope, tab, onTab, phone, query, onQuery, searchPla
             {onBoard && (
                 <LayoutRow $phone={phone}>
                     <Segmented
-                        label="Układ spraw"
+                        label="Układ leadów"
                         size="sm"
                         value="list"
                         onChange={(value) => { if (value === 'board') onBoard(); }}

@@ -308,7 +308,7 @@ export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, o
             {
                 onError: (error) => {
                     const message = problemDetail(error);
-                    showError('Nie udało się przenieść sprawy', message ?? 'Karta wróciła na poprzednie miejsce');
+                    showError('Nie udało się przenieść leada', message ?? 'Karta wróciła na poprzednie miejsce');
                 },
                 onSettled: () => release(card.lead.id),
             }
@@ -417,7 +417,7 @@ export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, o
     return (
         <>
             {truncated && (
-                <Notice>Tablica pokazuje pierwsze 100 spraw w każdym statusie. Starsze znajdziesz w zamkniętych sprawach.</Notice>
+                <Notice>Tablica pokazuje pierwsze 100 leadów w każdym statusie. Starsze znajdziesz w zamkniętych leadach.</Notice>
             )}
             {paged && (
                 <LaneChips ref={chipsRef} $phone={phone} role="navigation" aria-label="Kolumny tablicy">
@@ -430,7 +430,7 @@ export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, o
                     ))}
                 </LaneChips>
             )}
-            <Scroller ref={boardRef} $phone={phone} aria-label="Tablica spraw" aria-describedby="board-help">
+            <Scroller ref={boardRef} $phone={phone} aria-label="Tablica leadów" aria-describedby="board-help">
                 {shown.map((column) => {
                     const isOver = Boolean(session && !session.landing && session.over === column.key && session.from !== column.key);
                     return (
@@ -447,7 +447,7 @@ export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, o
                             <LaneHead>
                                 <span className="dot" style={{ background: column.tone.dot }} aria-hidden="true" />
                                 <h2 id={`lane-${column.key}`}>{column.title}</h2>
-                                <span className="count" style={{ background: column.tone.tint, color: column.tone.ink }} aria-label={`${column.cards.length} ${pluralPl(column.cards.length, 'sprawa', 'sprawy', 'spraw')}`}>
+                                <span className="count" style={{ background: column.tone.tint, color: column.tone.ink }} aria-label={`${column.cards.length} ${pluralPl(column.cards.length, 'lead', 'leady', 'leadów')}`}>
                                     {column.cards.length}
                                 </span>
                             </LaneHead>
@@ -495,7 +495,7 @@ export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, o
                                                 data-flip={card.lead.id}
                                                 role="button"
                                                 tabIndex={0}
-                                                aria-label={`${caseTitle(card.lead)}, ${column.title}. Enter otwiera sprawę, Shift i strzałka przenosi do sąsiedniej kolumny.`}
+                                                aria-label={`${caseTitle(card.lead)}, ${column.title}. Enter otwiera lead, Shift i strzałka przenosi do sąsiedniej kolumny.`}
                                                 style={hiddenId === card.lead.id ? { visibility: 'hidden' } : undefined}
                                                 onPointerDown={(event) => onPointerDown(event, card.lead.id, card.column)}
                                                 onClick={(event) => onCardClick(event, card)}
@@ -527,7 +527,7 @@ export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, o
                 document.body
             )}
 
-            <ActionMenu anchor={moveMenu.menu?.anchor ?? null} onClose={moveMenu.close} label="Przenieś sprawę">
+            <ActionMenu anchor={moveMenu.menu?.anchor ?? null} onClose={moveMenu.close} label="Przenieś lead">
                 {moveMenu.menu && BOARD_COLUMNS.filter((column) => column.key !== moveMenu.menu!.item.column).map((column) => (
                     <MenuItem
                         key={column.key}

@@ -79,7 +79,7 @@ import { CaseRail, RailSheet, type CaseActions } from './CaseRail';
 import { ClientEditor } from './ClientEditor';
 import { BookingNote } from './BookingNote';
 import { confirmationDraft } from './bookingNoteModel';
-import { Bubbles, ConversationHeader, ConversationScroll, type ConversationEvent } from './Conversation';
+import { MailThread, ConversationHeader, ConversationScroll, type ConversationEvent } from './Conversation';
 import { downloadAttachmentFile } from './messageFormat';
 import { useAttachmentPreview } from '../components/useAttachmentPreview';
 import { FooterPrimary, IconBtn, StatusChip } from './primitives';
@@ -315,7 +315,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                     'Uzupełnij kwoty sugestii',
                     Array.isArray(names) && names.length
                         ? `Podaj kwotę dla: ${names.join(', ')}`
-                        : 'Któraś sugestia czeka na kwotę - podaj ją w wycenie sprawy.'
+                        : 'Któraś sugestia czeka na kwotę - podaj ją w wycenie leada.'
                 );
             },
         });
@@ -341,8 +341,8 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
         return (
             <Pane>
                 <Column>
-                    <ConversationHeader title="Sprawa" phone={phone} onBack={onBack} />
-                    <ConversationScroll $phone={phone}><Muted>Tej sprawy już nie ma.</Muted></ConversationScroll>
+                    <ConversationHeader title="Lead" phone={phone} onBack={onBack} />
+                    <ConversationScroll $phone={phone}><Muted>Tego leada już nie ma.</Muted></ConversationScroll>
                 </Column>
             </Pane>
         );
@@ -351,7 +351,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
         return (
             <Pane>
                 <Column>
-                    <ConversationScroll $phone={phone}><Muted>Wczytywanie sprawy…</Muted></ConversationScroll>
+                    <ConversationScroll $phone={phone}><Muted>Wczytywanie leada…</Muted></ConversationScroll>
                 </Column>
             </Pane>
         );
@@ -398,7 +398,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
             )}
             <IconBtn
                 ref={menuButtonRef}
-                aria-label="Więcej: kontakt poza pocztą, notatki o kliencie, usunięcie sprawy"
+                aria-label="Więcej: kontakt poza pocztą, notatki o kliencie, usunięcie leada"
                 aria-haspopup="menu"
                 aria-expanded={menu.isOpen()}
                 onClick={(event) => menu.toggle(event, null)}
@@ -477,7 +477,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                 {instagram && (igLoading || igConversation) ? (
                     <InstagramBubbles conversation={igConversation} loading={igLoading} phone={phone} />
                 ) : threadId ? (
-                    <Bubbles
+                    <MailThread
                         messages={detailMatches ? detail!.messages : []}
                         loading={threadLoading || !detailMatches}
                         phone={phone}
@@ -520,7 +520,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                 />
             )}
 
-            <ActionMenu anchor={menu.menu?.anchor ?? null} onClose={menu.close} label="Akcje sprawy">
+            <ActionMenu anchor={menu.menu?.anchor ?? null} onClose={menu.close} label="Akcje leada">
                 {canBook && step.kind !== 'BOOK' && !lead.appointmentId && (
                     <MenuItem icon={<CalendarPlus />} onClick={() => { menu.close(); openBooking(); }}>Umów wizytę</MenuItem>
                 )}
@@ -542,7 +542,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                 )}
                 <MenuDivider />
                 <MenuItem danger icon={<Trash2 />} onClick={() => { menu.close(); setSheetOpen(false); setDeleteStep('confirm'); }}>
-                    Usuń sprawę
+                    Usuń lead
                 </MenuItem>
             </ActionMenu>
 
@@ -596,7 +596,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
             {callbackOpen && <RecordCallbackDialog leadId={lead.id} onClose={() => setCallbackOpen(false)} />}
             <ConfirmationModal
                 isOpen={deleteStep === 'confirm'}
-                title="Usunąć tę sprawę?"
+                title="Usunąć ten lead?"
                 message="Tego nie da się cofnąć. Maile zostaną w skrzynce."
                 variant="danger"
                 confirmText="Usuń"
@@ -606,7 +606,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
             <ChoiceModal
                 isOpen={deleteStep === 'appointment'}
                 title="Co zrobić z rezerwacją?"
-                message="Ta sprawa ma rezerwację w kalendarzu. Możesz usunąć ją razem ze sprawą albo zostawić jako samodzielny termin."
+                message="Ten lead ma rezerwację w kalendarzu. Możesz usunąć ją razem z leadem albo zostawić jako samodzielny termin."
                 variant="danger"
                 primaryText="Usuń też rezerwację"
                 onPrimary={() => performDelete(true)}
@@ -636,7 +636,7 @@ function NoThreadBody({ lead, phone, onRecordContact }: { lead: Lead; phone: boo
                 </Hint>
             ) : !leadEmail(lead) && (
                 <Hint>
-                    Ta sprawa nie ma adresu e-mail. Zadzwoń do klienta i zapisz tu, jak poszła rozmowa.
+                    Ten lead nie ma adresu e-mail. Zadzwoń do klienta i zapisz tu, jak poszła rozmowa.
                     <InlineAction type="button" onClick={onRecordContact}><PhoneCall aria-hidden="true" /> Odnotuj rozmowę</InlineAction>
                 </Hint>
             )}
