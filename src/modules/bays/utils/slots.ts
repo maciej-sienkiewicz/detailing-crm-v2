@@ -27,19 +27,25 @@ export interface StudioHours {
     /** null - sobota zamknięta. */
     saturdayOpens: number | null;
     saturdayCloses: number | null;
+    /** null - niedziela zamknięta (domyślnie). Brak pola - serwer sprzed V223. */
+    sundayOpens?: number | null;
+    sundayCloses?: number | null;
 }
 
-/** Domyślne godziny serwera (V222): pn-pt 6-20, sb 6-14, niedziela zamknięta. */
+/** Domyślne godziny serwera (V222, V223): pn-pt 6-20, sb 6-14, niedziela zamknięta. */
 export const DEFAULT_STUDIO_HOURS: StudioHours = {
-    dayOpens: 6 * 60, dayCloses: 20 * 60, saturdayOpens: 6 * 60, saturdayCloses: 14 * 60,
+    dayOpens: 6 * 60, dayCloses: 20 * 60, saturdayOpens: 6 * 60, saturdayCloses: 14 * 60, sundayOpens: null, sundayCloses: null,
 };
 
 export const toOpeningHours = (h: StudioHours): OpeningHours => {
     const weekday: DayHours = { opens: h.dayOpens, closes: h.dayCloses };
-    const saturday = h.saturdayOpens != null && h.saturdayCloses != null
-        ? { opens: h.saturdayOpens, closes: h.saturdayCloses }
-        : null;
-    return { 0: null, 1: weekday, 2: weekday, 3: weekday, 4: weekday, 5: weekday, 6: saturday };
+    const optional = (opens: number | null | undefined, closes: number | null | undefined): DayHours | null =>
+        (opens != null && closes != null ? { opens, closes } : null);
+    return {
+        0: optional(h.sundayOpens, h.sundayCloses),
+        1: weekday, 2: weekday, 3: weekday, 4: weekday, 5: weekday,
+        6: optional(h.saturdayOpens, h.saturdayCloses),
+    };
 };
 
 export const DEFAULT_HOURS: OpeningHours = toOpeningHours(DEFAULT_STUDIO_HOURS);
@@ -62,13 +68,10 @@ export const setStudioHours = (h: StudioHours): boolean => {
 
 /** Klucz do zależności `useMemo` - oś zależy od godzin, nie tylko od dni. */
 export const hoursKey = (hours: OpeningHours = studio): string =>
-    [1, 6].map(d => {
-        const h = hours[d as 1 | 6];
+    [1, 6, 0].map(d => {
+        const h = hours[d as 0 | 1 | 6];
         return h ? `${h.opens}-${h.closes}` : 'x';
     }).join('/');
-
-/** Podziały dnia do wyboru w ustawieniach stanowiska. */
-export const SLOT_OPTIONS = [1, 2, 3, 4, 6, 9] as const;
 
 const pad = (n: number) => String(n).padStart(2, '0');
 

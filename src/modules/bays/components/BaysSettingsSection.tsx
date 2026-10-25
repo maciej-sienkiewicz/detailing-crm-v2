@@ -80,7 +80,7 @@ const clock = (m: number) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2,
 const hoursRows = (h: StudioHours) => [
     { day: 'Poniedziałek–piątek', text: `${clock(h.dayOpens)}–${clock(h.dayCloses)}` },
     { day: 'Sobota', text: h.saturdayOpens != null && h.saturdayCloses != null ? `${clock(h.saturdayOpens)}–${clock(h.saturdayCloses)}` : 'zamknięte' },
-    { day: 'Niedziela', text: 'zamknięte' },
+    { day: 'Niedziela', text: h.sundayOpens != null && h.sundayCloses != null ? `${clock(h.sundayOpens)}–${clock(h.sundayCloses)}` : 'zamknięte' },
 ];
 
 export function BaysSettingsSection() {

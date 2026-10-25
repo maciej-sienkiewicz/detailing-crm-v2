@@ -68,7 +68,7 @@ const openDays = (from: string, n: number, dir: 1 | -1 = 1): string[] => {
 
 export function WeekView({ snap: initial, now, canEdit }: Props) {
     const isTabletUp = useBreakpoint('md');
-    const { showError, showWarning } = useToast();
+    const { showError, showSuccess, showWarning } = useToast();
     const patchBoard = usePatchBoard();
     const [span, setSpan] = useState<Span>(6);
     // Kotwica zakresu: poniedziałek w trybie tygodnia, pierwszy pokazany dzień w pozostałych.
@@ -90,6 +90,7 @@ export function WeekView({ snap: initial, now, canEdit }: Props) {
     const move = useBaysMutation(baysApi.moveBooking);
     const create = useBaysMutation(baysApi.createBooking);
     const remove = useBaysMutation(baysApi.deleteBooking);
+    const end = useBaysMutation(baysApi.endStint);
 
     const bayById = (id: string) => snap.bays.find(b => b.id === id);
     const shift = (dir: 1 | -1) => {
@@ -153,9 +154,30 @@ export function WeekView({ snap: initial, now, canEdit }: Props) {
         }
     };
 
-    const removeBooking = async (bookingId: string) => {
+    const removeBooking = async (bookingId: string, announce = false) => {
+        const plate = snap.cars.find(c => c.id === snap.bookings.find(b => b.id === bookingId)?.carId)?.licensePlate;
         await patchBoard(s => ({ ...s, bookings: s.bookings.filter(b => b.id !== bookingId) }));
-        remove.mutate([bookingId], { onError: () => showError('Nie udało się usunąć z planu', 'Spróbuj ponownie.') });
+        remove.mutate([bookingId], {
+            onError: () => showError('Nie udało się usunąć z planu', 'Spróbuj ponownie.'),
+            // Upuszczenie poza osią to gest, który łatwo zrobić przypadkiem - mówimy, co się stało.
+            onSuccess: () => { if (announce) showSuccess(`${plate ?? 'Auto'}: zdjęte z planu`, 'Zaplanujesz je ponownie z paska „Bez planu" albo zaznaczając czas na osi.'); },
+        });
+    };
+
+    /**
+     * „Wyrzucenie" auta, które stoi na stanowisku: zamknięcie odcinka pracy (jak „Zakończ"
+     * z wyborem „czeka na przypisanie") i usunięcie jego planu na tym stanowisku. Odcinek
+     * zostaje w historii jako zrobiony - fakt, że auto tu stało, nie znika.
+     */
+    const unassign = async (bar: WeekBar) => {
+        if (!bar.car.visitId) return;
+        try {
+            await end.mutateAsync([bar.car.visitId, 'DONE']);
+            if (bar.bookingId) await remove.mutateAsync([bar.bookingId]);
+            showSuccess(`${bar.car.licensePlate}: zdjęte ze stanowiska`, 'Auto czeka na przypisanie.');
+        } catch {
+            showError('Nie udało się zdjąć auta ze stanowiska', 'Spróbuj ponownie.');
+        }
     };
 
     const onMove = (m: MoveRequest) => {
@@ -200,6 +222,7 @@ export function WeekView({ snap: initial, now, canEdit }: Props) {
                     onRange={onRange}
                     onTapCell={(bayId, cell) => setStep({ kind: 'duration', bayId, cell })}
                     onMove={onMove}
+                    onUnplan={id => void removeBooking(id, true)}
                     onOpenBar={(bar, bayId) => setPreview({ bar, bayId })}
                 />
             ) : (
@@ -223,6 +246,7 @@ export function WeekView({ snap: initial, now, canEdit }: Props) {
                     canEdit={canEdit}
                     onClose={() => setPreview(null)}
                     onDeleteBooking={id => void removeBooking(id)}
+                    onUnassign={() => void unassign(preview.bar)}
                 />
             )}
             {step?.kind === 'duration' && (

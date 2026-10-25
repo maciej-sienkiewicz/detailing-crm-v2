@@ -12,7 +12,7 @@ import { Button, ui } from '@/common/components/ui';
 import { formatClockTime } from '@/common/dateTime';
 import type { BaysSnapshot } from '../types';
 import { buildWeekRows, cellIsFree, freeCellsOn, type WeekBar } from '../utils/weekLayout';
-import { cellText, dayMonth, dayShort, formatMinutes, toDateKey, type Cell } from '../utils/slots';
+import { cellText, dayMonth, dayShort, toDateKey, type Cell } from '../utils/slots';
 import { Avatar, Plate } from './primitives';
 
 const DayStrip = styled.div`
@@ -181,7 +181,7 @@ export function WeekDayList({ snap, now, days, day, onDay, canEdit, onPlan, onOp
                                                     <span>
                                                         {b.kind === 'plan' ? `Plan: ${b.car.jobTitle}`
                                                             : curing ? `Schnie do ${formatClockTime(b.curingUntil)}`
-                                                                : `${b.car.jobTitle}, ${b.kind === 'active' ? 'trwa ' : ''}${formatMinutes(b.minutes)}`}
+                                                                : b.car.jobTitle}
                                                     </span>
                                                 </span>
                                             </Item>

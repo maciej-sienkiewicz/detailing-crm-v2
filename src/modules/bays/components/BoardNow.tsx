@@ -1,27 +1,23 @@
 // src/modules/bays/components/BoardNow.tsx
 //
-// „Teraz": gdzie fizycznie stoi każde auto. Po lewej plac (auto u nas, poza
-// stanowiskami), po prawej hala. Auto gotowe znika z tablicy - wydanie prowadzi
-// wizyta, a osobna kolumna „Do wydania" powtarzała tylko listę wizyt gotowych.
+// „Teraz": dzień hali. Po lewej auta, które czekają na przypisanie do stanowiska,
+// po prawej oś dnia - kolumna na stanowisko, czas biegnie w dół (NowTimeline).
+// Auto gotowe znika z tablicy: wydanie prowadzi wizyta.
 //
-// Plac jest kolumną na równi ze stanowiskami i to jest najważniejsza decyzja tego
-// widoku: auto „u nas, ale nikt przy nim nie pracuje" (czeka na część, na decyzję
-// klienta, na wolny podnośnik) jest dziś niewidoczne - kalendarz pokazuje je jako
+// Auto „u nas, ale nikt przy nim nie pracuje" (czeka na część, na decyzję klienta,
+// na wolny podnośnik) ma własną kolumnę na równi z halą - kalendarz pokazuje je jako
 // trwającą wizytę i nie da się odróżnić pracy od czekania.
 //
-// Ekran ma być czytelny z dwóch metrów (tablet na hali), więc mówi mało: nazwa
-// kolumny, karta w trzech liniach, JEDEN przycisk na karcie - krok, który przy tym
-// aucie zwykle jest następny. Rzadsze akcje są pod „Więcej". Bez paska liczb nad
-// tablicą (liczby stoją w nagłówkach kolumn) i bez podpisów, które tłumaczyły nazwy
-// kolumn: „Na placu" mówi to samo.
+// Ekran ma być czytelny z dwóch metrów (tablet na hali): JEDEN przycisk na karcie -
+// krok, który przy tym aucie zwykle jest następny. Rzadsze akcje są pod „Więcej".
 //
 // Przeciąganie to skrót na komputerze, nigdy jedyna droga (telefon, klawiatura,
 // tablet w rękawicach).
 
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
-import styled, { css } from 'styled-components';
-import { ArrowDownToLine, CalendarClock, MoreHorizontal, PackageSearch } from 'lucide-react';
+import styled from 'styled-components';
+import { ArrowDownToLine, CalendarClock, Check, MoreHorizontal, PackageSearch } from 'lucide-react';
 import { ActionMenu, Button, IconButton, MenuItem, StatusPill, ui, useActionMenu } from '@/common/components/ui';
 import { formatClockTime } from '@/common/dateTime';
 import { useToast } from '@/common/components/Toast';
@@ -29,14 +25,17 @@ import type { BayPerson, BaysSnapshot } from '../types';
 import { buildBoard, viewOf, type CarView } from '../utils/boardState';
 import { formatMinutes, rangeText } from '../utils/slots';
 import { baysApi, isConflict } from '../api/baysApi';
-import { useBaysMutation } from '../hooks/useBays';
+import { useBaysMutation, usePatchBoard } from '../hooks/useBays';
+import { usePermissions } from '@/core/permissions';
+import type { WeekBar } from '../utils/weekLayout';
+import { NowTimeline } from './NowTimeline';
+import { BarPreviewDrawer } from './BarPreviewDrawer';
 import { CarCard, Meta } from './primitives';
 import { BayPickerDialog, FinishDialog, PauseDialog, type FinishChoice } from './dialogs';
 
 /*
- * Na szerokim ekranie: plac z lewej, stanowiska w siatce, która się zawija - pięć
- * czy dziewięć stanowisk mieści się bez przewijania w bok. Węższy ekran: plac nad
- * halą, w kolejności drogi auta.
+ * Na szerokim ekranie: oczekujące z lewej, oś dnia obok. Węższy ekran: oczekujące
+ * nad osią, w kolejności drogi auta.
  */
 const Layout = styled.div`
     container: bays-board / inline-size;
@@ -46,43 +45,25 @@ const Layout = styled.div`
 const Areas = styled.div`
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: 'yard' 'hall';
     gap: 12px;
     align-items: start;
 
     @container bays-board (min-width: 900px) {
         grid-template-columns: 264px minmax(0, 1fr);
-        grid-template-areas: 'yard hall';
     }
 `;
 
-const Hall = styled.div`
-    grid-area: hall;
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(224px, 1fr));
-    gap: 12px;
-    align-items: start;
-    min-width: 0;
-`;
-
-/* Stanowisko leży na szarym tle (miejsce w hali); plac ma tylko
-   przerywany obrys - to miejsca POZA halą. Jedyna różnica, którą niesie tło. */
-const Column = styled.section<{ $drop: boolean; $kind: 'yard' | 'bay' }>`
+/* Ta sama ramka co oś obok (obwódka, promień, biel) - miejsce na równi z halą, nie dopisek. */
+const Waiting = styled.section<{ $drop: boolean }>`
     display: flex;
     flex-direction: column;
     gap: 8px;
     min-width: 0;
-    padding: 10px;
+    padding: 12px 10px 10px;
     border-radius: ${ui.radiusPanel};
-    background: ${p => (p.$kind === 'bay' ? ui.surfaceAlt : 'transparent')};
-    border: 1px ${p => (p.$kind === 'bay' ? 'solid' : 'dashed')} ${p => (p.$kind === 'bay' ? 'transparent' : ui.lineStrong)};
-    grid-area: ${p => (p.$kind === 'bay' ? 'auto' : p.$kind)};
+    border: 1px solid ${p => (p.$drop ? ui.brand : ui.line)};
+    background: ${p => (p.$drop ? ui.brandTint : ui.surface)};
     transition: background 150ms ease, border-color 150ms ease;
-
-    ${p => p.$drop && css`
-        background: ${ui.brandTint};
-        border: 1px dashed ${ui.brand};
-    `}
 `;
 
 const ColumnHead = styled.header`
@@ -90,7 +71,7 @@ const ColumnHead = styled.header`
     align-items: baseline;
     justify-content: space-between;
     gap: 8px;
-    padding: 2px 4px;
+    padding: 0 4px 2px;
 `;
 
 const ColumnTitle = styled.h2`
@@ -107,8 +88,7 @@ const Count = styled.span`
     font-variant-numeric: tabular-nums;
 `;
 
-/* Plac na pełnej szerokości (tablet, telefon w poziomie): karty w siatce
-   zamiast jednej pod drugą na całą szerokość - w wąskiej kolumnie z lewej i tak jedna. */
+/* Na pełnej szerokości (tablet, telefon) karty w siatce; w wąskiej kolumnie i tak jedna. */
 const Cards = styled.div`
     display: grid;
     grid-template-columns: repeat(auto-fill, minmax(232px, 1fr));
@@ -116,15 +96,9 @@ const Cards = styled.div`
     align-items: start;
 `;
 
-const Empty = styled.div`
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    gap: 6px;
-    min-height: 44px;
-    padding: 8px;
-    border: 1.5px dashed ${ui.line};
-    border-radius: ${ui.radiusRow};
+const Empty = styled.p`
+    margin: 0;
+    padding: 4px 4px 2px;
     font-size: 13px;
     color: ${ui.textMuted};
 `;
@@ -148,6 +122,10 @@ interface Props {
 export function BoardNow({ snap, now, canEdit }: Props) {
     const board = buildBoard(snap, now);
     const { showSuccess, showError, showInfo } = useToast();
+    const { can } = usePermissions();
+    const patchBoard = usePatchBoard();
+    const removeBooking = useBaysMutation(baysApi.deleteBooking);
+    const [preview, setPreview] = useState<{ bar: WeekBar; bayId: string } | null>(null);
     const navigate = useNavigate();
     const [dialog, setDialog] = useState<Dialog | null>(null);
     const [draggingId, setDraggingId] = useState<string | null>(null);
@@ -198,7 +176,7 @@ export function BoardNow({ snap, now, canEdit }: Props) {
         await end.mutateAsync([visitOf(view), 'DONE']);
         setDialog(null);
         if (choice === 'ready') { goReady(view); return; }
-        showSuccess(`${view.car.licensePlate} na placu`, `Odcinek pracy zamknięty, ${formatMinutes(view.currentMinutes)}.`);
+        showSuccess(`${view.car.licensePlate} czeka na przypisanie`, `Odcinek pracy zamknięty, ${formatMinutes(view.currentMinutes)}.`);
     };
 
     /* Upuszczenie karty: ten sam skutek co przycisk, a gdy trzeba o coś zapytać
@@ -267,75 +245,83 @@ export function BoardNow({ snap, now, canEdit }: Props) {
         </CarCard>
     );
 
-    const bayCard = (v: CarView) => {
+    /** Trwająca praca na osi dnia - jedyny blok z akcjami. */
+    const activeCard = (bar: WeekBar) => {
+        const v = viewById(bar.carId);
+        if (!v) return null;
         const stint = v.place.kind === 'bay' ? v.place.stint : null;
-        // Plan już minął, a auto stoi: nextBooking go nie zwróci, więc szukamy po całym planie.
-        const plan = snap.bookings.filter(b => b.carId === v.car.id).sort((a, b) => b.end.localeCompare(a.end))[0];
-        const overPlan = !!plan && new Date(plan.end) < now;
         return (
             <CarCard
-                key={v.car.id}
                 plate={v.car.licensePlate}
                 vehicle={v.car.vehicleName}
                 job={v.car.jobTitle}
-                aside={v.curing && stint?.curingUntil ? `schnie do ${formatClockTime(stint.curingUntil)}` : formatMinutes(v.currentMinutes)}
+                aside={v.curing && stint?.curingUntil ? `schnie do ${formatClockTime(stint.curingUntil)}` : stint ? `od ${formatClockTime(stint.startedAt)}` : null}
                 asideTitle={stint ? `Na stanowisku od ${formatClockTime(stint.startedAt)}` : undefined}
                 people={peopleOf(v)}
                 {...dragProps(v.car.id)}
                 actions={canEdit && (
                     <>
-                        <Button variant="tintedSuccess" size="sm" onClick={() => setDialog({ kind: 'finish', view: v })}>Skończone</Button>
+                        {/* Obrys i ikona: przy kilku autach naraz pełna zieleń byłaby kilkoma
+                            wypełnieniami w oknie, a sam odcień czytał się jak plakietka stanu. */}
+                        <Button variant="outline" size="sm" onClick={() => setDialog({ kind: 'finish', view: v })}>
+                            <Check aria-hidden="true" />Zakończ
+                        </Button>
                         {more(v)}
                     </>
                 )}
             >
-                {overPlan && <Meta $tone="warn">Dłużej niż plan</Meta>}
+                {bar.overPlan && <Meta $tone="warn">Dłużej niż plan</Meta>}
             </CarCard>
         );
+    };
+
+    const deleteBooking = async (bookingId: string) => {
+        await patchBoard(s => ({ ...s, bookings: s.bookings.filter(b => b.id !== bookingId) }));
+        removeBooking.mutate([bookingId], { onError: () => showError('Nie udało się usunąć z planu', 'Spróbuj ponownie.') });
     };
 
     return (
         <>
             <Layout>
                 <Areas>
-                    <Column $kind="yard" $drop={sameTarget(dropOver, { kind: 'yard' })} {...dropProps({ kind: 'yard' })} aria-labelledby="col-yard">
-                        <ColumnHead title="Auto jest u nas, nikt przy nim nie pracuje">
-                            <ColumnTitle id="col-yard">Na placu</ColumnTitle>
+                    <Waiting $drop={sameTarget(dropOver, { kind: 'yard' })} {...dropProps({ kind: 'yard' })} aria-labelledby="col-yard">
+                        <ColumnHead title="Auto jest u nas, ale nie stoi na żadnym stanowisku">
+                            <ColumnTitle id="col-yard">Oczekuje na przypisanie</ColumnTitle>
                             <Count>{board.yard.length}</Count>
                         </ColumnHead>
-                        {board.yard.length === 0 ? <Empty>Pusto</Empty> : <Cards>{board.yard.map(yardCard)}</Cards>}
-                    </Column>
+                        {board.yard.length === 0 ? <Empty>Każde auto ma stanowisko.</Empty> : <Cards>{board.yard.map(yardCard)}</Cards>}
+                    </Waiting>
 
-                    <Hall>
-                        {board.bays.map(col => {
-                            const target: DropTarget = { kind: 'bay', bayId: col.bay.id };
-                            return (
-                                <Column key={col.bay.id} $kind="bay" $drop={sameTarget(dropOver, target)} {...dropProps(target)} aria-labelledby={`col-${col.bay.id}`}>
-                                    <ColumnHead>
-                                        <ColumnTitle id={`col-${col.bay.id}`}>{col.bay.name}</ColumnTitle>
-                                        {col.bay.capacity > 1 && <Count title="Zajęte miejsca">{col.items.length} z {col.bay.capacity}</Count>}
-                                    </ColumnHead>
-                                    {col.items.map(bayCard)}
-                                    {col.freeSpots > 0 && (
-                                        <Empty>{col.freeSince ? `Wolne od ${formatClockTime(col.freeSince)}` : 'Wolne'}</Empty>
-                                    )}
-                                </Column>
-                            );
-                        })}
-                    </Hall>
-
+                    <NowTimeline
+                        snap={snap}
+                        now={now}
+                        renderActive={activeCard}
+                        onOpenBar={(bar, bayId) => setPreview({ bar, bayId })}
+                        dropProps={bayId => dropProps({ kind: 'bay', bayId })}
+                        dropOverBayId={dropOver?.kind === 'bay' ? dropOver.bayId : null}
+                    />
                 </Areas>
             </Layout>
 
             <ActionMenu anchor={menu.menu?.anchor ?? null} onClose={menu.close} label="Więcej akcji">
                 {menu.menu && (
                     <>
-                        <MenuItem onClick={() => { setDialog({ kind: 'pause', view: menu.menu!.item }); menu.close(); }}>Wstrzymaj, zjeżdża na plac</MenuItem>
+                        <MenuItem onClick={() => { setDialog({ kind: 'pause', view: menu.menu!.item }); menu.close(); }}>Wstrzymaj, zjeżdża ze stanowiska</MenuItem>
                         <MenuItem onClick={() => { setDialog({ kind: 'pick', view: menu.menu!.item }); menu.close(); }}>Przenieś na inne stanowisko</MenuItem>
                     </>
                 )}
             </ActionMenu>
 
+            {preview && (
+                <BarPreviewDrawer
+                    bar={preview.bar}
+                    bayName={bayName(preview.bayId)}
+                    now={now}
+                    canEdit={can('VISITS_CREATE')}
+                    onClose={() => setPreview(null)}
+                    onDeleteBooking={id => void deleteBooking(id)}
+                />
+            )}
             {dialog?.kind === 'pick' && (
                 <BayPickerDialog
                     view={dialog.view}
@@ -359,7 +345,7 @@ export function BoardNow({ snap, now, canEdit }: Props) {
                     onConfirm={async (reason, note) => {
                         await end.mutateAsync([visitOf(dialog.view), reason, note]);
                         setDialog(null);
-                        showSuccess(`${dialog.view.car.licensePlate} na placu`, 'Stanowisko jest wolne.');
+                        showSuccess(`${dialog.view.car.licensePlate} czeka na przypisanie`, 'Stanowisko jest wolne.');
                     }}
                 />
             )}

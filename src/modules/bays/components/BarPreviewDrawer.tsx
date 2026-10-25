@@ -23,7 +23,7 @@ import { appointmentDetailQuery } from '@/modules/appointments/api/appointmentDe
 import { useVisitViewConfig } from '@/modules/settings/hooks/useCompany';
 import type { ServiceLineItem } from '@/modules/visits/types';
 import type { WeekBar } from '../utils/weekLayout';
-import { clockText, formatMinutes, rangeText, relativeDay, toDateKey } from '../utils/slots';
+import { clockText, rangeText, relativeDay, toDateKey } from '../utils/slots';
 import { Plate } from './primitives';
 
 const KIND_PILL = {
@@ -125,6 +125,8 @@ interface Props {
     canEdit: boolean;
     onClose: () => void;
     onDeleteBooking: (bookingId: string) => void;
+    /** Auto stoi na stanowisku: zdjęcie z osi zamyka odcinek pracy. Brak - akcji nie ma (tablica „Teraz" ma własne). */
+    onUnassign?: () => void;
 }
 
 /** Usługa czekająca na zgodę klienta: dopisana albo do usunięcia - mówimy, która. */
@@ -221,11 +223,12 @@ function AppointmentServices({ appointmentId }: { appointmentId: string }) {
     );
 }
 
-export function BarPreviewDrawer({ bar, bayName, now, canEdit, onClose, onDeleteBooking }: Props) {
+export function BarPreviewDrawer({ bar, bayName, now, canEdit, onClose, onDeleteBooking, onUnassign }: Props) {
     const navigate = useNavigate();
     const { car } = bar;
     const pill = KIND_PILL[bar.kind];
     const canDelete = canEdit && bar.kind === 'plan' && !!bar.bookingId;
+    const canUnassign = canEdit && bar.kind === 'active' && !!car.visitId && !!onUnassign;
 
     return (
         <SideDrawer
@@ -240,6 +243,9 @@ export function BarPreviewDrawer({ bar, bayName, now, canEdit, onClose, onDelete
                     {canDelete && (
                         <Button variant="tintedDanger" size="lg" onClick={() => { onDeleteBooking(bar.bookingId!); onClose(); }}>Usuń z planu</Button>
                     )}
+                    {canUnassign && (
+                        <Button variant="tintedDanger" size="lg" onClick={() => { onUnassign!(); onClose(); }}>Zdejmij ze stanowiska</Button>
+                    )}
                     {car.visitId ? (
                         <Button variant="primary" size="lg" style={{ marginLeft: 'auto' }} onClick={() => navigate(`/visits/${car.visitId}`)}>Otwórz wizytę</Button>
                     ) : car.appointmentId ? (
@@ -252,7 +258,6 @@ export function BarPreviewDrawer({ bar, bayName, now, canEdit, onClose, onDelete
                 <Section aria-label="Na stanowisku">
                     <Head>
                         <BayName>{bayName}</BayName>
-                        <Progress $all={false}>{bar.kind === 'plan' ? 'plan' : bar.kind === 'active' ? 'trwa' : 'trwało'} {formatMinutes(bar.minutes)}</Progress>
                     </Head>
                     <Muted>{rangeText(bar.start, bar.end, now)}</Muted>
                 </Section>

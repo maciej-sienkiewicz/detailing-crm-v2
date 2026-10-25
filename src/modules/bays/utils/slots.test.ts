@@ -85,6 +85,17 @@ describe('godziny hali z ustawień studia', () => {
         expect(longestDay(hours)).toBe(14 * 60);
     });
 
+    it('włączona niedziela wchodzi do tygodnia ze swoimi godzinami', () => {
+        const hours = toOpeningHours({ ...DEFAULT_STUDIO_HOURS, sundayOpens: 8 * 60, sundayCloses: 14 * 60 });
+        expect(hours[0]).toEqual({ opens: 480, closes: 840 });
+        expect(weekDays(mondayOf(new Date('2026-10-28T12:00:00')), hours)).toHaveLength(7);
+    });
+
+    it('serwer sprzed niedzieli (brak pól) zostawia ją zamkniętą', () => {
+        const { sundayOpens: _o, sundayCloses: _c, ...old } = DEFAULT_STUDIO_HOURS;
+        expect(toOpeningHours(old)[0]).toBeNull();
+    });
+
     it('zamknięta sobota znika z tygodnia', () => {
         const hours = toOpeningHours({ ...DEFAULT_STUDIO_HOURS, saturdayOpens: null, saturdayCloses: null });
         expect(weekDays(mondayOf(new Date('2026-10-28T12:00:00')), hours)).toHaveLength(5);

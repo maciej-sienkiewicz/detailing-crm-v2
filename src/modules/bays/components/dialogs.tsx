@@ -266,7 +266,7 @@ export function BayPickerDialog({ view, snap, suggestedBayId, initialBayId, titl
                             block
                             value={evictHow}
                             onChange={setEvictHow}
-                            options={[{ value: 'yard', label: 'Zjeżdża na plac' }, { value: 'done', label: 'Skończone' }]}
+                            options={[{ value: 'yard', label: 'Zjeżdża, czeka na przypisanie' }, { value: 'done', label: 'Skończone' }]}
                         />
                     )}
                 </Group>
@@ -312,7 +312,7 @@ export function FinishDialog({ view, onClose, onConfirm, busy }: {
                 <ChoiceCard type="radio" name="finish" checked={choice === 'move'} onChange={() => setChoice('move')}
                     icon={<ArrowRightLeft />} title="Na inne stanowisko" detail="Na przykład na myjnię" />
                 <ChoiceCard type="radio" name="finish" checked={choice === 'yard'} onChange={() => setChoice('yard')}
-                    icon={<ParkingSquare />} title="Na plac" detail="Czeka na dalszą pracę" />
+                    icon={<ParkingSquare />} title="Czeka na przypisanie" detail="Zjeżdża ze stanowiska, praca będzie dalej" />
             </ChoiceList>
         </Shell>
     );
@@ -339,7 +339,7 @@ export function PauseDialog({ view, onClose, onConfirm, busy }: {
             footer={(
                 <>
                     <Button variant="outline" size="lg" onClick={onClose}>Anuluj</Button>
-                    <Button variant="primary" size="lg" disabled={busy} onClick={() => onConfirm(reason, note.trim())}>Zjeżdża na plac</Button>
+                    <Button variant="primary" size="lg" disabled={busy} onClick={() => onConfirm(reason, note.trim())}>Zjeżdża ze stanowiska</Button>
                 </>
             )}
         >

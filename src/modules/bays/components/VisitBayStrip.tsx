@@ -9,7 +9,7 @@
 
 import { useState } from 'react';
 import styled from 'styled-components';
-import { ChevronDown, Warehouse } from 'lucide-react';
+import { Check, ChevronDown, Warehouse } from 'lucide-react';
 import { Button, ui } from '@/common/components/ui';
 import { formatClockTime } from '@/common/dateTime';
 import { useToast } from '@/common/components/Toast';
@@ -121,7 +121,7 @@ export function VisitBayStrip(props: Props) {
     } else if (car.stage === 'HANDED_OVER') {
         state = <strong>Wydane</strong>;
     } else {
-        state = <><strong>Na placu</strong>{car.waiting && <span>{car.waiting.note || (car.waiting.reason === 'WAITING_PART' ? 'czeka na część' : 'czeka na klienta')}</span>}</>;
+        state = <><strong>Oczekuje na przypisanie</strong>{car.waiting && <span>{car.waiting.note || (car.waiting.reason === 'WAITING_PART' ? 'czeka na część' : 'czeka na klienta')}</span>}</>;
     }
 
     return (
@@ -140,7 +140,7 @@ export function VisitBayStrip(props: Props) {
                     <Actions>
                         {v.place.kind === 'bay' ? (
                             <>
-                                <Button variant="tintedSuccess" size="sm" onClick={() => setDialog('finish')}>Skończone</Button>
+                                <Button variant="outline" size="sm" onClick={() => setDialog('finish')}><Check aria-hidden="true" />Zakończ</Button>
                                 <Button variant="outline" size="sm" onClick={() => setDialog('pause')}>Wstrzymaj</Button>
                             </>
                         ) : v.place.kind === 'yard' ? (

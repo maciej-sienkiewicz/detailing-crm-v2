@@ -24,17 +24,32 @@ import { Toggle } from '@/common/components/Toggle';
 import { pluralPl } from '@/common/utils/plural';
 import type { Bay, BayKind, BayPerson, BaysSettings } from '../types';
 import { KIND_LABEL } from '../utils/labels';
-import { SLOT_OPTIONS, formatMinutes, longestDay, toOpeningHours, type StudioHours } from '../utils/slots';
+import { formatMinutes, longestDay, toOpeningHours, type StudioHours } from '../utils/slots';
 
-/** „Co 1 h 30 min" - liczone z godzin w edycji, nie z zapisanych. Krótkie prace (myjnia) dziel drobniej. */
-const slotOptionLabel = (n: number, day: number) =>
-    n === 1 ? 'Cały dzień' : n === 2 ? 'Pół dnia' : `Co ${formatMinutes(Math.round(day / n))}`;
+/**
+ * „Co 1 h 30 min" - liczone z godzin w edycji, nie z zapisanych. Krótkie prace (myjnia)
+ * dziel drobniej. Liczbę okienek wpisuje się wprost: gotowa lista (1, 2, 3, 4, 6, 9)
+ * nie pasowała do hali 6-20, w której godzinne okienka to 14.
+ */
+const slotHint = (n: number, day: number) =>
+    n === 1 ? 'cały dzień' : n === 2 ? 'pół dnia' : `co ${formatMinutes(Math.round(day / n))}`;
+
+/** Granice serwera (BayService.saveSetup). */
+const MIN_SLOTS = 1;
+const MAX_SLOTS = 24;
+const slotsValid = (n: number) => Number.isInteger(n) && n >= MIN_SLOTS && n <= MAX_SLOTS;
 
 const HALF_HOURS = Array.from({ length: 49 }, (_, i) => i * 30);
 const clock = (m: number) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
 const OPENS = HALF_HOURS.slice(0, -1).map(m => ({ value: m, label: clock(m) }));
 const CLOSES = HALF_HOURS.slice(1).map(m => ({ value: m, label: clock(m) }));
-const SATURDAY_DEFAULT = { opens: 6 * 60, closes: 14 * 60 };
+/** Godziny, które podstawia włączenie soboty albo niedzieli - krótszy dzień, jak domyślna sobota. */
+const WEEKEND_DEFAULT = { opens: 6 * 60, closes: 14 * 60 };
+
+const WEEKEND = [
+    { id: 'saturday', name: 'Sobota', opens: 'saturdayOpens', closes: 'saturdayCloses' },
+    { id: 'sunday', name: 'Niedziela', opens: 'sundayOpens', closes: 'sundayCloses' },
+] as const;
 
 const Section = styled.section`
     display: flex;
@@ -160,6 +175,11 @@ const Closed = styled.span`
     @media (max-width: 560px) { display: none; }
 `;
 
+const FieldHint = styled.span<{ $error?: boolean }>`
+    font-size: 12px;
+    color: ${p => (p.$error ? ui.dangerInk : ui.textMuted)};
+`;
+
 const HoursError = styled.p`
     margin: 0;
     font-size: 12.5px;
@@ -192,10 +212,12 @@ export function BaysSettingsDrawer({ bays, settings, people, onClose, onSave }: 
         dayCloses: settings.dayCloses,
         saturdayOpens: settings.saturdayOpens,
         saturdayCloses: settings.saturdayCloses,
+        sundayOpens: settings.sundayOpens ?? null,
+        sundayCloses: settings.sundayCloses ?? null,
     });
     const day = longestDay(toOpeningHours(hours));
-    const hoursValid = validDay(hours.dayOpens, hours.dayCloses) && validDay(hours.saturdayOpens, hours.saturdayCloses);
-    const saturdayOpen = hours.saturdayOpens != null;
+    const hoursValid = validDay(hours.dayOpens, hours.dayCloses)
+        && WEEKEND.every(d => validDay(hours[d.opens] ?? null, hours[d.closes] ?? null));
     const [saving, setSaving] = useState(false);
     const patch = (id: string, change: Partial<Bay>) => setDraft(d => d.map(b => (b.id === id ? { ...b, ...change } : b)));
 
@@ -220,7 +242,7 @@ export function BaysSettingsDrawer({ bays, settings, people, onClose, onSave }: 
             footer={(
                 <>
                     <Button variant="outline" size="lg" onClick={onClose} style={{ marginLeft: 'auto' }}>Anuluj</Button>
-                    <Button variant="primary" size="lg" disabled={saving || !hoursValid || draft.some(b => !b.name.trim())}
+                    <Button variant="primary" size="lg" disabled={saving || !hoursValid || draft.some(b => !b.name.trim() || !slotsValid(b.slotsPerDay))}
                         onClick={async () => { setSaving(true); await onSave(draft, { trackPeople, ...hours }); setSaving(false); }}>Zapisz</Button>
                 </>
             )}
@@ -244,28 +266,33 @@ export function BaysSettingsDrawer({ bays, settings, people, onClose, onSave }: 
                             {select('bays-day-opens', 'Od', hours.dayOpens, OPENS, v => setHours(h => ({ ...h, dayOpens: Number(v) })))}
                             {select('bays-day-closes', 'Do', hours.dayCloses, CLOSES, v => setHours(h => ({ ...h, dayCloses: Number(v) })))}
                         </HoursRow>
-                        <HoursRow>
-                            <DayName>
-                                <Toggle
-                                    inputId="bays-saturday"
-                                    size="sm"
-                                    checked={saturdayOpen}
-                                    ariaLabel="Sobota czynna"
-                                    onChange={on => setHours(h => ({
-                                        ...h,
-                                        saturdayOpens: on ? SATURDAY_DEFAULT.opens : null,
-                                        saturdayCloses: on ? SATURDAY_DEFAULT.closes : null,
-                                    }))}
-                                />
-                                <label htmlFor="bays-saturday">Sobota</label>
-                            </DayName>
-                            {saturdayOpen ? (
-                                <>
-                                    {select('bays-sat-opens', 'Od', hours.saturdayOpens ?? 0, OPENS, v => setHours(h => ({ ...h, saturdayOpens: Number(v) })))}
-                                    {select('bays-sat-closes', 'Do', hours.saturdayCloses ?? 0, CLOSES, v => setHours(h => ({ ...h, saturdayCloses: Number(v) })))}
-                                </>
-                            ) : <Closed>Zamknięte, sobota znika z planu</Closed>}
-                        </HoursRow>
+                        {WEEKEND.map(d => {
+                            const open = hours[d.opens] != null;
+                            return (
+                                <HoursRow key={d.id}>
+                                    <DayName>
+                                        <Toggle
+                                            inputId={`bays-${d.id}`}
+                                            size="sm"
+                                            checked={open}
+                                            ariaLabel={`${d.name} czynna`}
+                                            onChange={on => setHours(h => ({
+                                                ...h,
+                                                [d.opens]: on ? WEEKEND_DEFAULT.opens : null,
+                                                [d.closes]: on ? WEEKEND_DEFAULT.closes : null,
+                                            }))}
+                                        />
+                                        <label htmlFor={`bays-${d.id}`}>{d.name}</label>
+                                    </DayName>
+                                    {open ? (
+                                        <>
+                                            {select(`bays-${d.id}-opens`, 'Od', hours[d.opens] ?? 0, OPENS, v => setHours(h => ({ ...h, [d.opens]: Number(v) })))}
+                                            {select(`bays-${d.id}-closes`, 'Do', hours[d.closes] ?? 0, CLOSES, v => setHours(h => ({ ...h, [d.closes]: Number(v) })))}
+                                        </>
+                                    ) : <Closed>Zamknięte, {d.name.toLowerCase()} znika z planu</Closed>}
+                                </HoursRow>
+                            );
+                        })}
                     </List>
                     {!hoursValid && <HoursError role="alert">Godzina zamknięcia musi być późniejsza niż otwarcia.</HoursError>}
                 </Section>
@@ -291,9 +318,27 @@ export function BaysSettingsDrawer({ bays, settings, people, onClose, onSave }: 
                                     {select(`bay-kind-${b.id}`, 'Rodzaj', b.kind,
                                         Object.entries(KIND_LABEL).map(([value, label]) => ({ value, label })),
                                         v => patch(b.id, { kind: v as BayKind }))}
-                                    {select(`bay-slots-${b.id}`, 'Podział dnia', b.slotsPerDay,
-                                        SLOT_OPTIONS.map(n => ({ value: n, label: slotOptionLabel(n, day) })),
-                                        v => patch(b.id, { slotsPerDay: Number(v) }))}
+                                    <Field>
+                                        <FieldLabel htmlFor={`bay-slots-${b.id}`}>Podział dnia</FieldLabel>
+                                        <InputShell $compact>
+                                            <BareInput
+                                                $compact
+                                                id={`bay-slots-${b.id}`}
+                                                type="number"
+                                                inputMode="numeric"
+                                                min={MIN_SLOTS}
+                                                max={MAX_SLOTS}
+                                                step={1}
+                                                // Puste pole w trakcie pisania to 0 - zapis czeka, aż wpiszesz liczbę.
+                                                value={b.slotsPerDay || ''}
+                                                onChange={e => patch(b.id, { slotsPerDay: e.target.value === '' ? 0 : Number(e.target.value) })}
+                                                aria-describedby={`bay-slots-hint-${b.id}`}
+                                            />
+                                        </InputShell>
+                                        <FieldHint id={`bay-slots-hint-${b.id}`} $error={!slotsValid(b.slotsPerDay)}>
+                                            {slotsValid(b.slotsPerDay) ? `${b.slotsPerDay} ${pluralPl(b.slotsPerDay, 'okienko', 'okienka', 'okienek')}, ${slotHint(b.slotsPerDay, day)}` : `Od ${MIN_SLOTS} do ${MAX_SLOTS} okienek`}
+                                        </FieldHint>
+                                    </Field>
                                     {select(`bay-cap-${b.id}`, 'Ile aut naraz', b.capacity,
                                         [1, 2, 3, 4].map(n => ({ value: n, label: `${n} ${pluralPl(n, 'auto', 'auta', 'aut')}` })),
                                         v => patch(b.id, { capacity: Number(v) }))}

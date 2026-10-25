@@ -8,7 +8,8 @@
 //     z etykietą na żywo, zanim puścisz przycisk;
 //   - przeciągnięcie paska PLANU → inne stanowisko albo inny czas (długość zostaje);
 //   - chwycenie krawędzi paska planu → rozciągnięcie albo skrócenie;
-//   - przeciągnięcie auta z paska „Bez planu" → plan bez formularza (auto już jest).
+//   - przeciągnięcie auta z paska „Bez planu" → plan bez formularza (auto już jest);
+//   - przeciągnięcie paska planu na strefę u dołu ekranu → zdjęcie z planu.
 //
 // Faktu (zrobione, trwa) nie da się przeciągnąć - fakt zmienia się zdarzeniem na hali.
 // Nałożenie planu jest dozwolone, ale nigdy ciche: przed zapisem okno pyta.
@@ -16,17 +17,19 @@
 // Pozycja paska to czas, nie numer kolumny: wiersze z różnym podziałem dnia leżą na
 // tej samej osi, a pionowa linia „teraz" przecina je wszystkie w tym samym miejscu.
 //
-// Tło jest WSPÓLNE dla wszystkich wierszy: granice dni, linie pełnych godzin z linijki
-// i jedno „minione" od lewej do teraz. Dawniej każdy wiersz rysował własne okienka
-// przerywaną kreską - przy myjni co 2 h i podnośniku co pół dnia kreski nie trafiały
-// w siebie, granica dnia ginęła wśród nich i oko nie miało się czego trzymać. Okienka
-// wiersza widać dopiero pod kursorem i przy upuszczaniu, czyli wtedy, gdy się do nich celuje.
+// Tło: mocna granica dnia, co drugi dzień na ciemniejszym tle i jedno „minione" od lewej
+// do teraz - wspólne dla wszystkich wierszy. Okienka są per wiersz (przerywana kreska),
+// bo to w nie trafia zaznaczenie: linie pełnych godzin w wierszach, niezgodne z okienkami,
+// sprawiały, że jedno okienko pod kursorem wyglądało jak kilka. Linijki godzin nie ma -
+// godzinę okienka mówi podpowiedź pod kursorem i etykieta zaznaczenia.
+// Pod kursorem podświetla się dokładnie to okienko, które zajmie kliknięcie.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { css } from 'styled-components';
-import { Hourglass, MoveHorizontal } from 'lucide-react';
+import { CalendarX2, Hourglass, MoveHorizontal } from 'lucide-react';
 import { ui } from '@/common/components/ui';
+import { useToast } from '@/common/components/Toast';
 import { formatClockTime } from '@/common/dateTime';
 import { pluralPl } from '@/common/utils/plural';
 import type { BaysSnapshot } from '../types';
@@ -62,6 +65,8 @@ interface Props {
     onRange: (r: RangeRequest) => void;
     onTapCell: (bayId: string, cell: Cell) => void;
     onMove: (m: MoveRequest) => void;
+    /** Pasek planu upuszczony na strefę „zdejmij z planu". */
+    onUnplan: (bookingId: string) => void;
     /** Kliknięcie paska: podgląd usług auta (BarPreviewDrawer w WeekView). */
     onOpenBar: (bar: WeekBar, bayId: string) => void;
 }
@@ -112,21 +117,11 @@ const Corner = styled.div`
     border-right: 1px solid ${ui.line};
 `;
 
-/* Pod nazwami dni pas na linijkę godzin i znacznik „teraz" - nic go nie zasłania. */
+/* Same nazwy dni. Bez linijki godzin: w wierszach liczą się okienka stanowiska
+   („Podział dnia"), a godziny nad nimi nie trafiały w ich granice. */
 const Axis = styled.div`
     position: relative;
     display: flex;
-    padding-bottom: 18px;
-`;
-
-const Tick = styled.span`
-    position: absolute;
-    bottom: 3px;
-    transform: translateX(-50%);
-    font-size: 10.5px;
-    font-variant-numeric: tabular-nums;
-    color: ${ui.textFaint};
-    pointer-events: none;
 `;
 
 /* Granica dnia - mocniejsza niż linie godzin, ciągnie się przez nagłówek i wszystkie wiersze. */
@@ -149,20 +144,6 @@ const DayHead = styled.div<{ $today: boolean; $alt: boolean }>`
 
     strong { font-size: 13.5px; font-weight: 700; color: ${p => (p.$today ? ui.brandDeep : ui.ink)}; }
     span { font-size: 12px; color: ${p => (p.$today ? ui.brandDeep : ui.textMuted)}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-`;
-
-const NowPill = styled.span`
-    position: absolute;
-    bottom: 3px;
-    transform: translateX(-50%);
-    z-index: 3;
-    padding: 0 4px;
-    background: ${ui.surface};
-    color: ${ui.brandInk};
-    font-size: 10.5px;
-    font-weight: 600;
-    font-variant-numeric: tabular-nums;
-    pointer-events: none;
 `;
 
 const Row = styled.div`
@@ -244,24 +225,32 @@ const DayLine = styled(Abs)`
     border-left: 1px solid ${DAY_LINE};
 `;
 
-const HourLine = styled(Abs)`
-    width: 0;
-    border-left: 1px solid ${ui.lineSoft};
-`;
-
 const Past = styled(Abs)`
     left: 0;
     background: rgba(241, 245, 249, 0.6);
 `;
 
-/* Okienka wiersza: tylko pod kursorem i w wierszu, nad którym wisi przenoszone auto. */
 const SlotLine = styled(Abs)`
     width: 0;
-    border-left: 1px dashed ${ui.lineStrong};
-    opacity: 0;
-    transition: opacity 120ms ease;
+    border-left: 1px dashed ${ui.line};
+`;
 
-    ${Track}:hover &, ${Track}[data-target='true'] & { opacity: 0.45; }
+/* Okienko pod kursorem: to, co zajmie kliknięcie albo początek zaznaczenia. */
+const HoverCell = styled(Abs)`
+    top: 3px;
+    bottom: 3px;
+    border-radius: 8px;
+    /* Samo tło, bez obrysu: przerywany obrys to plan, a to jeszcze nie jest plan. */
+    background: ${ui.brandTint};
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+    white-space: nowrap;
+    font-size: 11.5px;
+    font-weight: 600;
+    font-variant-numeric: tabular-nums;
+    color: ${ui.brandDeep};
 `;
 
 const Closed = styled(Abs)`
@@ -382,6 +371,33 @@ const Ghost = styled.div<{ $warn: boolean }>`
     span { font-weight: 500; }
 `;
 
+/*
+ * Strefa „zdejmij z planu" - pojawia się tylko w trakcie przeciągania planu, przyklejona
+ * do dołu okna: wstawiona nad osią przesuwałaby całą siatkę pod kursorem.
+ */
+const UnplanZone = styled.div<{ $over: boolean }>`
+    position: fixed;
+    left: 50%;
+    bottom: 24px;
+    z-index: 1900;
+    transform: translateX(-50%);
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 28px;
+    border-radius: ${ui.radiusPanel};
+    border: 2px dashed ${p => (p.$over ? ui.dangerInk : ui.dangerLine)};
+    background: ${p => (p.$over ? ui.dangerTint : 'rgba(255, 255, 255, 0.96)')};
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.16);
+    color: ${ui.dangerInk};
+    font-size: 14px;
+    font-weight: 600;
+    white-space: nowrap;
+    transition: background 120ms ease, border-color 120ms ease;
+
+    svg { width: 18px; height: 18px; }
+`;
+
 const Tray = styled.div`
     display: flex;
     flex-wrap: wrap;
@@ -432,34 +448,19 @@ const Swatch = styled.span<{ $tone: keyof typeof BAR_TONES }>`
 
 type Drag =
     | { kind: 'select'; rowId: string; anchor: number; current: number }
-    | { kind: 'move'; carId: string; bookingId: string | null; minutes: number; grabMs: number; rowId: string; startIdx: number; len: number; moved: boolean; startX: number }
-    | { kind: 'resize'; carId: string; bookingId: string; rowId: string; edge: 'start' | 'end'; startIdx: number; endIdx: number };
-
-/**
- * Pełne godziny linijki: co godzinę w widoku dnia, co dwie przy trzech dniach, co cztery
- * w tygodniu (8, 12, 16 - wystarczy, żeby oko trafiło w porę dnia). Bez skrajnych godzin:
- * na krawędzi dnia cyfra wpadałaby na sąsiada.
- */
-const tickTimes = (d: string, span: number): Date[] => {
-    const h = hoursOf(d);
-    if (!h) return [];
-    const step = span === 1 ? 1 : span <= 3 ? 2 : 4;
-    const out: Date[] = [];
-    for (let m = Math.ceil((h.opens + 1) / 60) * 60; m < h.closes; m += 60) {
-        if ((m / 60) % step !== 0) continue;
-        const t = new Date(`${d}T00:00:00`);
-        t.setMinutes(m);
-        out.push(t);
-    }
-    return out;
-};
+    | { kind: 'move'; carId: string; bookingId: string | null; minutes: number; grabMs: number; rowId: string; startIdx: number; len: number; moved: boolean; startX: number; out?: boolean }
+    | { kind: 'resize'; carId: string; bookingId: string | null; rowId: string; edge: 'start' | 'end'; startIdx: number; endIdx: number; minEnd: number; keepStart: Date | null };
 
 /** Opis podziału dnia pod nazwą stanowiska: ile trwa jedno okienko. */
 const slotHint = (n: number, day: number) => (n === 1 ? 'cały dzień' : n === 2 ? 'pół dnia' : `co ${formatMinutes(Math.round(day / n))}`);
 
-export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMove, onOpenBar }: Props) {
+export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMove, onUnplan, onOpenBar }: Props) {
     const { rows } = useMemo(() => buildWeekRows(snap, days, now), [snap, days, now]);
     const [drag, setDrag] = useState<Drag | null>(null);
+    const [hover, setHover] = useState<{ rowId: string; idx: number } | null>(null);
+    const { showInfo } = useToast();
+    /** Chwycony pasek „trwa": fakt się nie przesuwa - przy próbie mówimy, co zrobić zamiast tego. */
+    const activeGrab = useRef<number | null>(null);
     const dragRef = useRef<Drag | null>(null);
     dragRef.current = drag;
     const tracks = useRef(new Map<string, HTMLDivElement>());
@@ -557,10 +558,17 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                 if (!row) return;
                 const i = cellAt(row, e.clientX);
                 const next = d.edge === 'end'
-                    ? { ...d, endIdx: Math.max(d.startIdx, i) }
+                    ? { ...d, endIdx: Math.max(d.startIdx, d.minEnd, i) }
                     : { ...d, startIdx: Math.max(firstOpen(row), Math.min(d.endIdx, i)) };
                 if (next.startIdx !== d.startIdx || next.endIdx !== d.endIdx) setDrag(next);
             } else {
+                const out = !!d.bookingId && !!document.elementFromPoint(e.clientX, e.clientY)?.closest('[data-unplan]');
+                if (out !== !!d.out) setDrag({ ...d, out });
+                if (out) {
+                    const a = avatarRef.current;
+                    if (a) a.style.transform = `translate(${e.clientX - grabRef.current.dx}px, ${e.clientY - grabRef.current.dy}px)`;
+                    return;
+                }
                 const row = rowAt(e.clientX, e.clientY) ?? rowById(d.rowId);
                 if (!row) return;
                 const el = tracks.current.get(row.rowId);
@@ -573,8 +581,8 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                 const moved = d.moved || Math.abs(e.clientX - d.startX) > 4;
                 const a = avatarRef.current;
                 if (a) a.style.transform = `translate(${e.clientX - grabRef.current.dx}px, ${e.clientY - grabRef.current.dy}px)`;
-                if (moved !== d.moved || row.rowId !== d.rowId || startIdx !== d.startIdx || len !== d.len) {
-                    setDrag({ ...d, rowId: row.rowId, startIdx, len, moved });
+                if (out !== !!d.out || moved !== d.moved || row.rowId !== d.rowId || startIdx !== d.startIdx || len !== d.len) {
+                    setDrag({ ...d, rowId: row.rowId, startIdx, len, moved, out });
                 }
             }
         };
@@ -601,13 +609,14 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                 const row = rowById(d.rowId);
                 if (!row) return;
                 suppressClick.current = true;
-                const start = row.cells[d.startIdx].start;
+                const start = d.keepStart ?? row.cells[d.startIdx].start;
                 const end = row.cells[d.endIdx].end;
                 onMove({ bookingId: d.bookingId, carId: d.carId, bayId: d.rowId, start, end, overlaps: overlapsInRange(row, start, end, d.carId) });
                 return;
             }
             if (!d.moved) return;
             suppressClick.current = true;
+            if (d.out && d.bookingId) { onUnplan(d.bookingId); return; }
             const target = moveTarget(d);
             if (!target) return;
             onMove({
@@ -649,6 +658,10 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
 
     const onBarDown = (e: React.PointerEvent, bar: WeekBar, row: WeekRow) => {
         e.stopPropagation();
+        // Nowy gest: blokada kliknięcia z poprzedniego przeciągania już nie obowiązuje
+        // (upuszczenie poza paskiem, np. na strefę „zdejmij z planu", nie zjada jej kliknięciem).
+        suppressClick.current = false;
+        if (bar.kind === 'active' && canEdit && e.pointerType === 'mouse') activeGrab.current = e.clientX;
         if (bar.kind !== 'plan' || !canEdit || e.pointerType === 'touch' || e.button !== 0) return;
         // Bez tego przeglądarka zaczyna zaznaczać tekst albo własne przeciąganie elementu.
         e.preventDefault();
@@ -669,11 +682,17 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
 
     const onHandleDown = (e: React.PointerEvent, bar: WeekBar, row: WeekRow, edge: 'start' | 'end') => {
         e.stopPropagation();
-        if (!bar.bookingId || e.button !== 0) return;
+        if (e.button !== 0) return;
         e.preventDefault();
         setDrag({
             kind: 'resize', carId: bar.carId, bookingId: bar.bookingId, rowId: row.rowId, edge,
             startIdx: cellIndexAt(row.cells, bar.start), endIdx: cellIndexAt(row.cells, new Date(bar.end.getTime() - 60_000)),
+            // Trwająca praca nie skończy się w przeszłości: najkrócej do okienka z „teraz".
+            minEnd: bar.kind === 'active' ? cellIndexAt(row.cells, now) : 0,
+            // Przedłużenie trwającej pracy zmienia tylko koniec - początek planu (albo wjazd) zostaje.
+            keepStart: bar.kind === 'active'
+                ? new Date(snap.bookings.find(b => b.id === bar.bookingId)?.start ?? bar.start)
+                : null,
         });
     };
 
@@ -702,10 +721,10 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
             title = bayName(row.rowId);
             if (start && end) hits = overlapsInRange(row, start, end);
         } else if (d.kind === 'resize') {
-            start = row.cells[d.startIdx]?.start; end = row.cells[d.endIdx]?.end;
+            start = d.keepStart ?? row.cells[d.startIdx]?.start; end = row.cells[d.endIdx]?.end;
             title = snap.cars.find(c => c.id === d.carId)?.licensePlate ?? '';
             if (start && end) hits = overlapsInRange(row, start, end, d.carId);
-        } else if (d.startIdx >= 0 && d.moved) {
+        } else if (d.startIdx >= 0 && d.moved && !d.out) {
             const t = moveTarget(d);
             if (t) { start = t.start; end = t.end; }
             title = `${snap.cars.find(c => c.id === d.carId)?.licensePlate ?? ''} na ${bayName(row.rowId)}`;
@@ -738,9 +757,11 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
         const sub = bar.kind === 'plan'
             ? `${bar.car.jobTitle}, ${durationLabel(bar.minutes)}`
             : curing ? `Schnie do ${formatClockTime(bar.curingUntil)}`
-                : `${bar.car.jobTitle}, ${bar.kind === 'active' ? 'trwa ' : ''}${formatMinutes(bar.minutes)}`;
-        const ghosted = !!drag && drag.kind !== 'select' && (drag.kind === 'resize' || drag.moved) && drag.carId === bar.carId && bar.kind === 'plan';
+                : bar.car.jobTitle;
+        const ghosted = !!drag && drag.kind !== 'select' && (drag.kind === 'resize' || drag.moved) && drag.carId === bar.carId && bar.kind !== 'done';
         const editable = bar.kind === 'plan' && canEdit && !!bar.bookingId;
+        // Trwająca praca: początek to fakt (wjazd), koniec to plan - ten wolno przeciągnąć.
+        const endEditable = editable || (bar.kind === 'active' && canEdit && !!bar.car.visitId);
         return (
             <Bar
                 key={bar.id}
@@ -754,6 +775,12 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                 $live={!drag}
                 style={barBox(bar, row)}
                 onPointerDown={e => onBarDown(e, bar, row)}
+                onPointerMove={e => {
+                    if (activeGrab.current === null || Math.abs(e.clientX - activeGrab.current) < 8) return;
+                    activeGrab.current = null;
+                    showInfo(`${bar.car.licensePlate} stoi na stanowisku`, 'Na inne stanowisko przeniesiesz je w widoku Teraz. Koniec planu zmienisz, chwytając prawą krawędź paska.');
+                }}
+                onPointerUp={() => { activeGrab.current = null; }}
                 onClick={e => {
                     e.stopPropagation();
                     if (suppressClick.current) { suppressClick.current = false; return; }
@@ -770,13 +797,20 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                     <Plate $size="sm" style={{ color: 'inherit' }}>{bar.car.licensePlate}</Plate>
                     <span>{sub}</span>
                 </BarText>
-                {editable && <Handle $side="end" onPointerDown={e => onHandleDown(e, bar, row, 'end')} aria-hidden="true" />}
+                {endEditable && <Handle $side="end" onPointerDown={e => onHandleDown(e, bar, row, 'end')} aria-hidden="true" />}
             </Bar>
         );
     };
 
-    const ticks = days.flatMap(d => tickTimes(d, days.length));
     const pastX = weekX(now, days);
+    const hoverBox = (row: WeekRow) => {
+        if (!hover || drag || hover.rowId !== row.rowId) return null;
+        const c = row.cells[hover.idx];
+        if (!c || c.end <= now || !cellIsFree(row, c)) return null;
+        const b = cellBox(c, days);
+        // Godziny okienka w nim samym - zastępują linijkę godzin nad osią.
+        return <HoverCell style={{ left: pct(b.x), width: pct(b.w) }}>{clockText(c.start)}–{clockText(c.end)}</HoverCell>;
+    };
 
     const dayBackground = (row: WeekRow) => (
         <>
@@ -792,7 +826,6 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                     </span>
                 );
             })}
-            {ticks.map(t => <HourLine key={t.getTime()} style={{ left: pct(weekX(t, days)) }} />)}
             {pastX > 0 && <Past style={{ width: pct(pastX) }} />}
             {row.cells.map((c, ci) => {
                 // Pierwsze okienko dnia zaczyna się na granicy dnia - tam kreska już jest.
@@ -832,8 +865,6 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                                     </DayHead>
                                 );
                             })}
-                            {ticks.map(t => <Tick key={t.getTime()} style={{ left: pct(weekX(t, days)) }}>{t.getHours()}</Tick>)}
-                            {nowVisible && <NowPill style={{ left: pct(nowX) }}>{clockText(now)}</NowPill>}
                         </Axis>
                     </HeadRow>
 
@@ -851,10 +882,17 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                                 $target={drag?.kind === 'move' && drag.moved && drag.rowId === row.rowId}
                                 data-target={drag?.kind === 'move' && drag.moved && drag.rowId === row.rowId}
                                 onPointerDown={e => onTrackDown(e, row)}
+                                onPointerMove={e => {
+                                    if (!canEdit || drag || e.pointerType !== 'mouse') return;
+                                    const idx = cellAt(row, e.clientX);
+                                    if (hover?.rowId !== row.rowId || hover.idx !== idx) setHover({ rowId: row.rowId, idx });
+                                }}
+                                onPointerLeave={() => setHover(null)}
                                 onClick={e => onTrackClick(e, row)}
                             >
                                 {dayBackground(row)}
                                 {row.bars.map(b => renderBar(b, row))}
+                                {hoverBox(row)}
                                 {ghostFor(row)}
                                 {nowVisible && <NowLine style={{ left: pct(nowX) }} />}
                             </Track>
@@ -862,6 +900,13 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                     ))}
                 </Grid>
             </Scroller>
+
+            {drag?.kind === 'move' && drag.moved && drag.bookingId && createPortal(
+                <UnplanZone data-unplan $over={!!drag.out} aria-hidden="true">
+                    <CalendarX2 aria-hidden="true" />Upuść tutaj, żeby zdjąć z planu
+                </UnplanZone>,
+                document.body,
+            )}
 
             {drag?.kind === 'move' && drag.moved && (() => {
                 const car = snap.cars.find(c => c.id === drag.carId);
