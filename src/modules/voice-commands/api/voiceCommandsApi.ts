@@ -27,6 +27,17 @@ export const voiceCommandsApi = {
         return response.data;
     },
 
+    /**
+     * Odkłada token w ciasteczku pod adresem manifestu skrótu (useVoiceShortcutManifest).
+     * Manifest pobiera sama przeglądarka, bez naszego nagłówka - a w adresie token trafiłby do logów.
+     */
+    rememberShortcut: async (token: string): Promise<void> => {
+        await apiClient.post(`${BASE}/shortcut`, null, {
+            headers: { 'X-Mobile-Token': token },
+            skipErrorToast: true,
+        });
+    },
+
     createLead: async (payload: CreateLeadRequest): Promise<CreateVoiceItemResponse> => {
         const form = new FormData();
         form.append('token', payload.token);

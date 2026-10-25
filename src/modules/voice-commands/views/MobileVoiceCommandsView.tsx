@@ -1,6 +1,7 @@
 // src/modules/voice-commands/views/MobileVoiceCommandsView.tsx
 
 import { useVoiceCommandsLogic } from '../hooks/useVoiceCommandsLogic';
+import { useVoiceShortcutManifest } from '../hooks/useVoiceShortcutManifest';
 import {
     Container,
     LoadingWrap, Spinner, SpinnerSm, LoadingText,
@@ -30,6 +31,8 @@ function formatSeconds(s: number): string {
 
 export const MobileVoiceCommandsView = ({ token }: Props) => {
     const logic = useVoiceCommandsLogic(token);
+    // Ikona dodana z tej strony ma otwierać skrót, a nie logowanie do CRM.
+    useVoiceShortcutManifest(token, logic.sessionState === 'active');
 
     // ─── Loading ──────────────────────────────────────────────────────────────
 

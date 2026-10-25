@@ -124,7 +124,7 @@ export function VoiceShortcutSetup() {
                     <QrBox><QRCodeSVG value={url} size={136} fgColor={ui.ink} bgColor="#ffffff" level="M" /></QrBox>
                     <Steps>
                         <li>Zeskanuj kod aparatem telefonu.</li>
-                        <li>Dodaj otwartą stronę do ekranu głównego. W Safari: Udostępnij, Do ekranu początkowego. W Chrome: menu ⋮, Dodaj do ekranu głównego.</li>
+                        <li>Dodaj otwartą stronę do ekranu głównego. W Safari: Udostępnij, Do ekranu początkowego. W Chrome: menu ⋮, Dodaj do ekranu głównego. Ikona „Lead głosem” otwiera się bez logowania.</li>
                         <li>Dotknij „Nowy lead” albo „Notatka” i mów.</li>
                     </Steps>
                 </QrLayout>
