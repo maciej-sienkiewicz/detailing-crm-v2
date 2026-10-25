@@ -154,6 +154,20 @@ export const CalendarIcon = menuIcon('Calendar', {
     ],
 });
 
+/** Stanowiska (prototyp za przełącznikiem `bays`): hala z dachem i trzema bramami. */
+export const BaysIcon = menuIcon('Bays', {
+    fill: [
+        'M12 2.6 21.5 8.2V14.5A6.5 6.5 0 0 1 15 21H2.5V8.2Z',
+    ],
+    mask: [
+        { d: 'M5.2 11.4h3.6V21H5.2z' },
+        { d: 'M10.2 11.4h3.6V21h-3.6z' },
+        { d: 'M15.2 11.4h3.6v3.2h-3.6z' },
+        { d: 'M9.29 27L27 9.29', line: CUT },
+        { d: 'M6.89 27L27 6.89', line: CUT },
+    ],
+});
+
 /** Zlecenia zbiorcze */
 export const BatchOrdersIcon = menuIcon('BatchOrders', {
     fill: [

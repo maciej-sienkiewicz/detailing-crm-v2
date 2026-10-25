@@ -34,6 +34,7 @@ import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react
 import { useNavigate, useSearchParams, type Location } from 'react-router-dom';
 import styled from 'styled-components';
 import {
+    LayoutGrid,
     Building2, ChevronLeft, ChevronRight, Crown, FileSignature, HelpCircle, Inbox, ListChecks, Megaphone,
     MessageSquare, MonitorSmartphone, Plug, Receipt, Search, Smartphone, Tag, UserCog, UserRound, Wallet,
 } from 'lucide-react';
@@ -73,12 +74,14 @@ import {
     CREDITS_HELP,
     INVOICES_HELP,
 } from '../helpContent';
+import { isBaysAvailable } from '@/modules/bays/featureFlag';
+import { BaysSettingsSection } from '@/modules/bays/components/BaysSettingsSection';
 
 // ─── Sekcje ──────────────────────────────────────────────────────────────────
 
 type SectionId =
     | 'account' | 'phone'
-    | 'company' | 'services' | 'labels' | 'documents' | 'tablets'
+    | 'company' | 'services' | 'labels' | 'documents' | 'tablets' | 'bays'
     | 'templates' | 'leads' | 'campaigns'
     | 'finance'
     | 'roles' | 'integrations' | 'plan' | 'credits';
@@ -148,6 +151,12 @@ const GROUPS: SectionGroup[] = [
                 description: 'Tablety w recepcji i na hali oraz komputer, na którym teraz pracujesz.',
                 keywords: 'tablet parowanie podpis hala odhaczanie usług zrobione lista kontrolna skróty klawiszowe klawiatura blokada bezczynność komputer',
             },
+            // Stanowiska (prototyp): sekcja istnieje tylko w wersji z tą funkcją.
+            ...(isBaysAvailable() ? [{
+                id: 'bays' as const, label: 'Stanowiska', summary: 'Hala i plan stanowisk', icon: <LayoutGrid />,
+                description: 'Czy dzielicie warsztat na stanowiska, jakie to stanowiska i na ile okienek dzielić ich dzień w planie.',
+                keywords: 'stanowiska hala podnośnik kabina myjnia plan okienka podział dnia tablica',
+            }] : []),
         ],
     },
     {
@@ -296,6 +305,8 @@ const SECTION_REQUIREMENTS: Partial<Record<SectionId, AccessRequirement>> = {
     finance: 'OWNER_ONLY',
     // Łączy i odłącza tylko właściciel - tak samo sprawdza backend.
     integrations: 'OWNER_ONLY',
+    // Włączenie stanowisk zmienia menu i wizytę całemu zespołowi - decyzja właściciela.
+    bays: 'OWNER_ONLY',
 };
 
 // Pakiet i kredyty to sprzedaż: zakup pakietu, modułów i kredytów SMS. W aplikacji ze
@@ -671,6 +682,8 @@ export function SettingsView() {
         );
     } else if (section === 'tablets') {
         content = <StudioDevicesSection />;
+    } else if (section === 'bays') {
+        content = <BaysSettingsSection />;
     } else if (section === 'leads') {
         content = <LeadsSettingsSection />;
     } else if (section === 'campaigns') {

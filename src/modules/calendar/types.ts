@@ -234,6 +234,13 @@ export interface EventCreationData {
     start: Date;
     end: Date;
     allDay: boolean;
+    /**
+     * Godziny są dokładne i formularz ma je wziąć bez zmian. Bez flagi zakres dłuższy
+     * niż doba jest traktowany jak zaznaczenie dni w widoku miesiąca (koniec wyłączny,
+     * godziny 9:00-20:00) - tak przychodzi z FullCalendar. Oś stanowisk podaje
+     * prawdziwe godziny połówek dnia („cz po południu" = 12:00).
+     */
+    exact?: boolean;
 }
 
 /**

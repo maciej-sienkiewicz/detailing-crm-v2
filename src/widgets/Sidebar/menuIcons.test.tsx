@@ -8,7 +8,7 @@ const all = Object.entries(icons).filter(([name]) => name.endsWith('Icon')) as A
 
 describe('menuIcons', () => {
     it('każda ikona to SVG 24×24 w kolorze tekstu, ukryte przed czytnikiem ekranu', () => {
-        expect(all.length).toBe(22);
+        expect(all.length).toBe(23);
         all.forEach(([, Icon]) => {
             const { container, unmount } = render(<Icon />);
             const svg = container.querySelector('svg')!;

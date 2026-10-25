@@ -322,7 +322,7 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref, initialData 
                 setIsAllDay(true);
                 setStartDateTime(formatDate(eventData.start));
                 setEndDateTime(`${formatDate(eventData.start)}T23:59:59`);
-            } else if (daysDiff > 1) {
+            } else if (daysDiff > 1 && !eventData.exact) {
                 setIsAllDay(false);
                 const startDate = new Date(eventData.start);
                 startDate.setHours(9, 0, 0, 0);

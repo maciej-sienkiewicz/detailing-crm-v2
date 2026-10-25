@@ -6,6 +6,7 @@
 import {
     ActivityIcon,
     BatchOrdersIcon,
+    BaysIcon,
     CalendarIcon,
     CampaignsIcon,
     CustomersIcon,
@@ -63,6 +64,8 @@ export interface MenuSectionsInput {
     trackWorkTime: boolean;
     /** Konto ma rekord pracownika (`/auth/me.employeeId`) - tylko wtedy jest „Urlop". */
     hasEmployeeRecord: boolean;
+    /** Prototyp stanowisk włączony (`isBaysEnabled()`); bez niego pozycji nie ma. */
+    showBays?: boolean;
     onReportProblem: () => void;
 }
 
@@ -75,6 +78,7 @@ export const buildMenuSections = ({
     can,
     trackWorkTime,
     hasEmployeeRecord,
+    showBays = false,
     onReportProblem,
 }: MenuSectionsInput): MenuSection[] => {
     const canSeeDashboard = can(ANY_DASHBOARD);
@@ -101,6 +105,7 @@ export const buildMenuSections = ({
                 { path: '/operations',   label: 'Wizyty',            icon: VisitsIcon, requires: 'VISITS_VIEW',
                     match: ['/visits', '/appointments', '/checkin', '/reservations'] },
                 { path: '/calendar',     label: 'Kalendarz',         icon: CalendarIcon, requires: 'VISITS_VIEW' },
+                { path: '/bays',         label: 'Stanowiska',        icon: BaysIcon, requires: 'VISITS_VIEW', showWhen: showBays },
                 { path: '/batch-orders', label: 'Zlecenia zbiorcze', icon: BatchOrdersIcon, requires: 'BATCH_ORDERS' },
             ],
         },

@@ -66,6 +66,7 @@ import { useFeature } from '@/modules/subscription/hooks/useFeature';
 import { useCapability } from '@/modules/subscription';
 import { formatDateTime } from '@/common/utils';
 import { pluralPl } from '@/common/utils/plural';
+import { isBaysAvailable, VisitBayStrip } from '@/modules/bays';
 
 // ─── Układ ────────────────────────────────────────────────────────────────────
 
@@ -718,6 +719,22 @@ export const VisitDetailView = () => {
                                     <D2dChange variant="ghost" size="sm" onClick={() => setIsDoorToDoorOpen(true)}>Zmień</D2dChange>
                                 )}
                             </D2dStrip>
+                        )}
+
+                        {/* Stanowiska (prototyp za przełącznikiem): pasek z własnymi danymi,
+                            wizyta nie dostaje żadnego pola. Gdy studio ich nie używa, pasek
+                            sam się nie renderuje. */}
+                        {isBaysAvailable() && (
+                            <VisitBayStrip
+                                visitId={visit.id}
+                                licensePlate={visit.vehicle.licensePlate}
+                                vehicleName={`${visit.vehicle.brand} ${visit.vehicle.model}`.trim()}
+                                jobTitle={visit.title || visit.services.map(s => s.serviceName).join(', ')}
+                                arrivedAt={visit.scheduledDate ?? null}
+                                promisedAt={visit.estimatedCompletionDate ?? null}
+                                done={visit.status === 'COMPLETED' || visit.status === 'REJECTED' || visit.status === 'ARCHIVED'}
+                                canEdit={canEditVisit}
+                            />
                         )}
 
                         <Slot id="visit-services" $order={1}>

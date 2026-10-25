@@ -17,6 +17,7 @@ import { useScheduleSocket } from '@/modules/dashboard/hooks/useScheduleSocket';
 import { useMyTasksUnreadCount } from '@/modules/notifications';
 import { SidebarMenu } from './SidebarMenu';
 import { buildMenuSections } from './menuSections';
+import { useBaysEnabled } from '@/modules/bays/featureFlag';
 import { UserSwitcherPanel, useKnownProfiles } from '@/modules/pin-switcher';
 import { ReportProblemModal } from '@/modules/support/components/ReportProblemModal';
 import { useCompanySettings } from '@/modules/settings/hooks/useCompany';
@@ -79,6 +80,7 @@ export const Sidebar = () => {
     // Wszystkie plakietki to jedno zapytanie GET /v1/me/badges (modules/badges).
     const canManageEmployees = can('EMPLOYEES_MANAGE');
     const pendingWorkTime = usePendingCardsCount(canManageEmployees) + usePendingSheetsCount(canManageEmployees);
+    const baysOn = useBaysEnabled();
     const menuSections = buildMenuSections({
         newLeadsCount,
         unreadMailCount,
@@ -88,6 +90,7 @@ export const Sidebar = () => {
         can,
         trackWorkTime: user?.trackWorkTime ?? false,
         hasEmployeeRecord: Boolean(user?.employeeId),
+        showBays: baysOn,
         onReportProblem: () => setShowReportProblem(true),
     });
 
