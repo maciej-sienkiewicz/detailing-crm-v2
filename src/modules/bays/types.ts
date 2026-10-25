@@ -96,6 +96,8 @@ export interface BayStint {
 }
 
 export interface BaysSettings {
+    /** Studio korzysta ze stanowisk (Ustawienia → Stanowiska). */
+    enabled: boolean;
     /**
      * Czy zapisywać, kto pracuje przy aucie. Domyślnie NIE: małe studio nie dzieli
      * pracy na osoby, a pytanie „kto?" przy każdym wjeździe to klik, z którego nic

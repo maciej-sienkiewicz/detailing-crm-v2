@@ -7,16 +7,15 @@
 // Dane bierze z modułu stanowisk, nie z odpowiedzi wizyty - wizyta nie dostaje
 // ani jednego pola. Bez przełącznika funkcji tego paska po prostu nie ma.
 
-import { useEffect, useState } from 'react';
-import { useQueryClient } from '@tanstack/react-query';
+import { useState } from 'react';
 import styled from 'styled-components';
 import { ChevronDown, Warehouse } from 'lucide-react';
 import { Button, ui } from '@/common/components/ui';
 import { formatClockTime } from '@/common/dateTime';
 import { useToast } from '@/common/components/Toast';
-import { BAYS_KEY, useBaysMutation, useBaysNow, useBaysSnapshot } from '../hooks/useBays';
+import { useBaysMutation, useBaysNow, useBaysSnapshot } from '../hooks/useBays';
 import { useBaysEnabled } from '../featureFlag';
-import { baysApi } from '../api/baysApi';
+import { baysApi, isConflict } from '../api/baysApi';
 import { viewOf } from '../utils/boardState';
 import { dayMonth, dayShort, formatMinutes, rangeText, toDateKey } from '../utils/slots';
 import { BayPickerDialog, FinishDialog, PauseDialog } from './dialogs';
@@ -90,34 +89,23 @@ const REASON: Record<string, string> = {
 
 interface Props {
     visitId: string;
-    licensePlate: string;
-    vehicleName: string;
-    jobTitle: string;
-    arrivedAt: string | null;
-    promisedAt: string | null;
+    /** Wizyta zamknięta (wydana, odrzucona) - pasek tylko pokazuje historię. */
     done: boolean;
     canEdit: boolean;
 }
 
 export function VisitBayStrip(props: Props) {
     const enabled = useBaysEnabled();
-    const { data: snap } = useBaysSnapshot();
+    const { data: snap } = useBaysSnapshot(undefined, enabled);
     const now = useBaysNow();
-    const { showSuccess } = useToast();
+    const { showSuccess, showInfo, showError } = useToast();
     const [open, setOpen] = useState(false);
     const [dialog, setDialog] = useState<'pick' | 'finish' | 'pause' | null>(null);
     const start = useBaysMutation(baysApi.startStint);
     const end = useBaysMutation(baysApi.endStint);
-    const queryClient = useQueryClient();
+    // Wizyty nie ma w odczycie hali, dopóki przyjęcie nie jest skończone (szkic) - wtedy
+    // auta fizycznie jeszcze nie ma na placu i pasek się nie pokazuje.
     const car = snap?.cars.find(c => c.visitId === props.visitId);
-
-    // Prototyp: wizyta, której dane przykładowe nie znają, staje na placu od przyjęcia.
-    useEffect(() => {
-        if (!enabled || !snap || car) return;
-        baysApi.ensureVisitCar(props);
-        void queryClient.invalidateQueries({ queryKey: BAYS_KEY });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [enabled, snap, car, props.visitId]);
 
     if (!enabled || !snap || !car) return null;
     const v = viewOf(car, snap, now);
@@ -179,23 +167,29 @@ export function VisitBayStrip(props: Props) {
                     suggestedBayId={v.nextBooking?.bayId}
                     onClose={() => setDialog(null)}
                     onConfirm={async (bayId, people, evict) => {
-                        if (evict) await end.mutateAsync([evict.carId, evict.how === 'done' ? 'DONE' : 'MOVED']);
-                        await start.mutateAsync([car.id, bayId, people]);
-                        setDialog(null);
-                        showSuccess(`Auto na stanowisku ${bayName(bayId)}`);
+                        try {
+                            await start.mutateAsync([props.visitId, bayId, snap.settings.trackPeople ? people : [], evict]);
+                            setDialog(null);
+                            showSuccess(`Auto na stanowisku ${bayName(bayId)}`);
+                        } catch (e) {
+                            // Zajęte w międzyczasie: okno zostaje, odczyt hali już się odświeża.
+                            showError(isConflict(e) ? 'Stanowisko jest już zajęte' : 'Nie udało się zapisać wjazdu', isConflict(e) ? 'Wybierz, co z autem, które tam stoi, albo inne stanowisko.' : 'Spróbuj ponownie.');
+                        }
                     }}
                 />
             )}
             {dialog === 'finish' && (
                 <FinishDialog view={v} onClose={() => setDialog(null)} onConfirm={async choice => {
                     if (choice === 'move') { setDialog('pick'); return; }
-                    await end.mutateAsync([car.id, 'DONE', { ready: choice === 'ready' }]);
+                    await end.mutateAsync([props.visitId, 'DONE']);
                     setDialog(null);
+                    // Gotowość ma własny kreator w nagłówku wizyty - tu go nie omijamy.
+                    if (choice === 'ready') showInfo('Odcinek zamknięty', 'Oznacz wizytę jako gotową przyciskiem u góry.');
                 }} />
             )}
             {dialog === 'pause' && (
                 <PauseDialog view={v} onClose={() => setDialog(null)} onConfirm={async (reason, note) => {
-                    await end.mutateAsync([car.id, reason, { note }]);
+                    await end.mutateAsync([props.visitId, reason, note]);
                     setDialog(null);
                 }} />
             )}

@@ -10,13 +10,12 @@
 import { useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { useQueryClient } from '@tanstack/react-query';
 import { Button, Panel, SectionTitle, ui } from '@/common/components/ui';
 import { useToast } from '@/common/components/Toast';
 import { pluralPl } from '@/common/utils/plural';
 import { SettingSwitchRow } from '@/modules/settings/components/SettingSwitchRow';
-import { setBaysEnabled, useBaysEnabled } from '../featureFlag';
-import { useBaysMutation, useBaysSnapshot, BAYS_KEY } from '../hooks/useBays';
+import { useBaysSettings } from '../featureFlag';
+import { useBaysMutation, useBaysSnapshot } from '../hooks/useBays';
 import { baysApi } from '../api/baysApi';
 import { formatMinutes, longestDay } from '../utils/slots';
 import { BaysSettingsDrawer } from './BaysSettingsDrawer';
@@ -76,16 +75,17 @@ const describe = (n: number, capacity: number, active: boolean) => {
 };
 
 export function BaysSettingsSection() {
-    const enabled = useBaysEnabled();
+    const { data: settings } = useBaysSettings();
+    // Stan nieznany (wczytywanie) - przełącznika nie ma, zamiast udawanego „wyłączone".
+    const enabled = settings?.enabled;
     const navigate = useNavigate();
-    const queryClient = useQueryClient();
     const { showSuccess } = useToast();
-    const { data: snap } = useBaysSnapshot();
+    const { data: snap } = useBaysSnapshot(undefined, enabled === true);
     const saveSetup = useBaysMutation(baysApi.saveSetup);
     const [editing, setEditing] = useState(false);
 
-    const toggle = (next: boolean) => {
-        setBaysEnabled(next);
+    const toggle = async (next: boolean) => {
+        await saveSetup.mutateAsync([{ enabled: next }]);
         showSuccess(
             next ? 'Stanowiska włączone' : 'Stanowiska wyłączone',
             next ? 'Pozycja „Stanowiska” jest w menu, a w wizycie pasek „Na hali”.' : 'Plan i historia zostają zapisane.',
@@ -100,7 +100,8 @@ export function BaysSettingsSection() {
                     label="Korzystaj ze stanowisk"
                     hint="Tablica hali (gdzie stoi każde auto) i plan tygodnia po stanowiskach. Wyłącz, jeśli nie dzielicie warsztatu na stanowiska."
                     checked={enabled}
-                    onChange={toggle}
+                    disabled={saveSetup.isPending}
+                    onChange={next => void toggle(next)}
                 />
             </Body>
 
@@ -130,8 +131,7 @@ export function BaysSettingsSection() {
                     settings={snap.settings}
                     people={snap.people}
                     onClose={() => setEditing(false)}
-                    onSave={async (bays, settings) => { await saveSetup.mutateAsync([bays, settings]); setEditing(false); showSuccess('Stanowiska zapisane'); }}
-                    onReset={async () => { await baysApi.reset(); await queryClient.invalidateQueries({ queryKey: BAYS_KEY }); setEditing(false); }}
+                    onSave={async (bays, next) => { await saveSetup.mutateAsync([next, bays]); setEditing(false); showSuccess('Stanowiska zapisane'); }}
                 />
             )}
         </Stack>

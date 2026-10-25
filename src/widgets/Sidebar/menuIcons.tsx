@@ -154,7 +154,7 @@ export const CalendarIcon = menuIcon('Calendar', {
     ],
 });
 
-/** Stanowiska (prototyp za przełącznikiem `bays`): hala z dachem i trzema bramami. */
+/** Stanowiska (za przełącznikiem `bays`): hala z dachem i trzema bramami. */
 export const BaysIcon = menuIcon('Bays', {
     fill: [
         'M12 2.6 21.5 8.2V14.5A6.5 6.5 0 0 1 15 21H2.5V8.2Z',

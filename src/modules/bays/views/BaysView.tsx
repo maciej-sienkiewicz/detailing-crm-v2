@@ -13,20 +13,18 @@ import { useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { LayoutGrid, Settings2 } from 'lucide-react';
-import { useQueryClient } from '@tanstack/react-query';
 import { PageContainer } from '@/common/components/PageContainer';
 import { PageHeader, PageHeaderPrimaryButton, MobilePageHeader, MobilePageHeaderButton, MobilePageHeaderIconButton } from '@/common/components/PageHeader';
-import { Button, IconButton, Notice, Segmented, ui } from '@/common/components/ui';
+import { Button, IconButton, Notice, Segmented } from '@/common/components/ui';
 import { useBreakpoint } from '@/common/hooks';
 import { useToast } from '@/common/components/Toast';
 import { formatClockTime } from '@/common/dateTime';
-import { usePersonalDataActions } from '@/core/permissions';
+import { usePermissions, usePersonalDataActions } from '@/core/permissions';
 import { BoardNow } from '../components/BoardNow';
 import { WeekView } from '../components/WeekView';
 import { BaysSettingsDrawer } from '../components/BaysSettingsDrawer';
-import { useBaysMutation, useBaysNow, useBaysSnapshot, BAYS_KEY } from '../hooks/useBays';
+import { useBaysMutation, useBaysNow, useBaysSnapshot } from '../hooks/useBays';
 import { baysApi } from '../api/baysApi';
-import { isDemoClock } from '../api/clock';
 import { useBaysEnabled } from '../featureFlag';
 import { dayLong, dayMonth, dayShort, toDateKey } from '../utils/slots';
 
@@ -48,35 +46,32 @@ const HeaderActions = styled.div`
     gap: 10px;
 `;
 
-const Muted = styled.span`
-    color: ${ui.textFaint};
-`;
-
 type ViewMode = 'now' | 'week';
 
 export function BaysView() {
     const isDesktop = useBreakpoint('lg');
     const navigate = useNavigate();
-    const queryClient = useQueryClient();
     const { showSuccess } = useToast();
     const { canCreateVisit } = usePersonalDataActions();
     const [params, setParams] = useSearchParams();
     const mode: ViewMode = params.get('view') === 'week' ? 'week' : 'now';
     const setMode = (m: ViewMode) => setParams(p => { const n = new URLSearchParams(p); if (m === 'week') n.set('view', 'week'); else n.delete('view'); return n; }, { replace: true });
-    const { data: snap } = useBaysSnapshot();
+    const enabled = useBaysEnabled();
+    const { data: snap } = useBaysSnapshot(undefined, enabled);
     const now = useBaysNow();
     const [settingsOpen, setSettingsOpen] = useState(false);
     const saveSetup = useBaysMutation(baysApi.saveSetup);
-    // Prototyp: edytować może każdy, kto może zakładać wizyty. Docelowo - istniejące prawa wizyt.
-    const canEdit = canCreateVisit;
-    const enabled = useBaysEnabled();
+    // Te same prawa co serwer: wjazd i zjazd to dokumentowanie pracy (każdy z dostępem
+    // do wizyt, czyli każdy, kto tu wszedł), plan to zajęcie terminu (zakładanie wizyt),
+    // a lista stanowisk to decyzja właściciela.
+    const { can, isOwner } = usePermissions();
+    const canPlan = can('VISITS_CREATE');
 
     const day = dayLong(toDateKey(now));
     // Na telefonie skrót dnia: pełna nazwa z dopiskiem ucinała się w pasku nagłówka.
     const dateLine = (
         <>
             {isDesktop ? day.charAt(0).toUpperCase() + day.slice(1) : dayShort(toDateKey(now))}, {dayMonth(toDateKey(now))}, {formatClockTime(now)}
-            {isDemoClock() && <Muted>{isDesktop ? ' (zegar prototypu, dane przykładowe)' : ' (prototyp)'}</Muted>}
         </>
     );
 
@@ -100,7 +95,7 @@ export function BaysView() {
                         actions={(
                             <HeaderActions>
                                 {segmented}
-                                <IconButton label="Ustawienia stanowisk" onClick={() => setSettingsOpen(true)}><Settings2 /></IconButton>
+                                {isOwner && <IconButton label="Ustawienia stanowisk" onClick={() => setSettingsOpen(true)}><Settings2 /></IconButton>}
                                 {canCreateVisit && (
                                     <PageHeaderPrimaryButton onClick={() => navigate('/checkin/new')}>
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
@@ -121,7 +116,7 @@ export function BaysView() {
                             subtitle={dateLine}
                             actions={(
                                 <>
-                                    <MobilePageHeaderIconButton aria-label="Ustawienia stanowisk" onClick={() => setSettingsOpen(true)}><Settings2 /></MobilePageHeaderIconButton>
+                                    {isOwner && <MobilePageHeaderIconButton aria-label="Ustawienia stanowisk" onClick={() => setSettingsOpen(true)}><Settings2 /></MobilePageHeaderIconButton>}
                                     {canCreateVisit && (
                                         <MobilePageHeaderButton onClick={() => navigate('/checkin/new')}>
                                             <span aria-hidden="true">+</span>
@@ -147,8 +142,8 @@ export function BaysView() {
                 )}
 
                 {enabled && snap && (mode === 'now'
-                    ? <BoardNow snap={snap} now={now} canEdit={canEdit} />
-                    : <WeekView snap={snap} now={now} canEdit={canEdit} />)}
+                    ? <BoardNow snap={snap} now={now} canEdit />
+                    : <WeekView snap={snap} now={now} canEdit={canPlan} />)}
             </PageBody>
 
             {settingsOpen && snap && (
@@ -157,8 +152,7 @@ export function BaysView() {
                     settings={snap.settings}
                     people={snap.people}
                     onClose={() => setSettingsOpen(false)}
-                    onSave={async (bays, settings) => { await saveSetup.mutateAsync([bays, settings]); setSettingsOpen(false); showSuccess('Stanowiska zapisane'); }}
-                    onReset={async () => { await baysApi.reset(); await queryClient.invalidateQueries({ queryKey: BAYS_KEY }); setSettingsOpen(false); }}
+                    onSave={async (bays, next) => { await saveSetup.mutateAsync([next, bays]); setSettingsOpen(false); showSuccess('Stanowiska zapisane'); }}
                 />
             )}
         </ViewContainer>

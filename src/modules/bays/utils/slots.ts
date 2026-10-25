@@ -22,7 +22,10 @@ export type OpeningHours = Record<0 | 1 | 2 | 3 | 4 | 5 | 6, DayHours | null>;
 
 const WEEKDAY: DayHours = { opens: 8 * 60, closes: 17 * 60 };
 
-/** Godziny prototypu. Prawdziwe przyjdą z ustawień firmy. */
+/**
+ * Godziny otwarcia. Na razie stałe (pn-pt 8-17, sb 8-13) - firma ich jeszcze nigdzie
+ * nie zapisuje; gdy pojawią się w ustawieniach, wystarczy podać je tutaj.
+ */
 export const DEFAULT_HOURS: OpeningHours = {
     0: null,
     1: WEEKDAY,

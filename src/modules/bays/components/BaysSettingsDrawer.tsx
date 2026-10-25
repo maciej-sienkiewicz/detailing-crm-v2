@@ -129,11 +129,10 @@ interface Props {
     settings: BaysSettings;
     people: BayPerson[];
     onClose: () => void;
-    onSave: (bays: Bay[], settings: BaysSettings) => Promise<void>;
-    onReset: () => void;
+    onSave: (bays: Bay[], settings: Pick<BaysSettings, 'trackPeople'>) => Promise<void>;
 }
 
-export function BaysSettingsDrawer({ bays, settings, people, onClose, onSave, onReset }: Props) {
+export function BaysSettingsDrawer({ bays, settings, people, onClose, onSave }: Props) {
     const [draft, setDraft] = useState<Bay[]>(bays);
     const [trackPeople, setTrackPeople] = useState(settings.trackPeople);
     const [saving, setSaving] = useState(false);
@@ -213,12 +212,10 @@ export function BaysSettingsDrawer({ bays, settings, people, onClose, onSave, on
                     <Footnote>
                         <Button
                             variant="tinted"
-                            onClick={() => setDraft(d => [...d, { id: `b-${Date.now()}`, name: `Stanowisko ${d.length + 1}`, kind: 'WORK_AREA', capacity: 1, slotsPerDay: 2, defaultPersonId: null, active: true }])}
+                            onClick={() => setDraft(d => [...d, { id: `new-${Date.now()}`, name: `Stanowisko ${d.length + 1}`, kind: 'WORK_AREA', capacity: 1, slotsPerDay: 2, defaultPersonId: null, active: true }])}
                         >
                             <Plus aria-hidden="true" />Dodaj stanowisko
                         </Button>
-                        {/* Tylko prototyp: dane przykładowe żyją w przeglądarce. */}
-                        <Button variant="ghost" size="sm" onClick={onReset}>Przywróć dane przykładowe</Button>
                     </Footnote>
                 </Section>
             </DrawerBody>

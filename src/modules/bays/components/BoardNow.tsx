@@ -18,6 +18,7 @@
 // tablet w rękawicach).
 
 import { useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import styled, { css } from 'styled-components';
 import { ArrowDownToLine, CalendarClock, MoreHorizontal, PackageSearch } from 'lucide-react';
 import { ActionMenu, Button, IconButton, MenuItem, StatusPill, ui, useActionMenu } from '@/common/components/ui';
@@ -26,7 +27,7 @@ import { useToast } from '@/common/components/Toast';
 import type { BayPerson, BaysSnapshot } from '../types';
 import { buildBoard, viewOf, type CarView } from '../utils/boardState';
 import { formatMinutes, rangeText } from '../utils/slots';
-import { baysApi, BayOccupiedError } from '../api/baysApi';
+import { baysApi, isConflict } from '../api/baysApi';
 import { useBaysMutation } from '../hooks/useBays';
 import { CarCard, Meta } from './primitives';
 import { BayPickerDialog, FinishDialog, PauseDialog, type FinishChoice } from './dialogs';
@@ -146,7 +147,8 @@ interface Props {
 
 export function BoardNow({ snap, now, canEdit }: Props) {
     const board = buildBoard(snap, now);
-    const { showSuccess, showError } = useToast();
+    const { showSuccess, showError, showInfo } = useToast();
+    const navigate = useNavigate();
     const [dialog, setDialog] = useState<Dialog | null>(null);
     const [draggingId, setDraggingId] = useState<string | null>(null);
     const [dropOver, setDropOver] = useState<DropTarget | null>(null);
@@ -158,7 +160,6 @@ export function BoardNow({ snap, now, canEdit }: Props) {
     const start = useBaysMutation(baysApi.startStint);
     const end = useBaysMutation(baysApi.endStint);
     const clear = useBaysMutation(baysApi.clearWaiting);
-    const handOver = useBaysMutation(baysApi.handOver);
     const busy = start.isPending || end.isPending;
 
     const bayName = (id: string) => snap.bays.find(b => b.id === id)?.name ?? '';
@@ -168,26 +169,36 @@ export function BoardNow({ snap, now, canEdit }: Props) {
     };
     const peopleOf = (v: CarView): BayPerson[] => (track ? v.people : []);
 
+    /** Id wizyty auta - na stanowisko wjeżdża tylko auto przyjęte, czyli z wizytą. */
+    const visitOf = (view: CarView) => view.car.visitId ?? view.car.id;
+
+    /**
+     * Gotowość do wydania idzie kreatorem wizyty (powiadomienie klienta, sprawdzenie
+     * usług) - tablica go nie omija, tylko prowadzi do niego.
+     */
+    const goReady = (view: CarView) => {
+        showInfo(`${view.car.licensePlate}: oznacz w wizycie jako gotowe`, 'Odcinek na stanowisku jest zamknięty.');
+        navigate(`/visits/${visitOf(view)}`);
+    };
+
     const enterBay = async (view: CarView, bayId: string, personIds: string[], evict: { carId: string; how: 'yard' | 'done' } | null) => {
         try {
-            if (evict) await end.mutateAsync([evict.carId, evict.how === 'done' ? 'DONE' : 'MOVED']);
-            await start.mutateAsync([view.car.id, bayId, track ? personIds : []]);
+            await start.mutateAsync([visitOf(view), bayId, track ? personIds : [], evict]);
             setDialog(null);
             showSuccess(`${view.car.licensePlate}: ${bayName(bayId)}`, `Czas liczy się od ${formatClockTime(now)}.`);
         } catch (e) {
-            if (e instanceof BayOccupiedError) setDialog({ kind: 'pick', view, initialBayId: bayId });
+            // Ktoś zajął stanowisko w międzyczasie: to samo okno co przy zajętym od początku.
+            if (isConflict(e)) setDialog({ kind: 'pick', view, initialBayId: bayId });
             else showError('Nie udało się zapisać wjazdu', 'Spróbuj ponownie.');
         }
     };
 
     const finish = async (view: CarView, choice: FinishChoice) => {
         if (choice === 'move') { setDialog({ kind: 'pick', view }); return; }
-        await end.mutateAsync([view.car.id, 'DONE', { ready: choice === 'ready' }]);
+        await end.mutateAsync([visitOf(view), 'DONE']);
         setDialog(null);
-        showSuccess(
-            choice === 'ready' ? `${view.car.licensePlate} gotowe do wydania` : `${view.car.licensePlate} na placu`,
-            `Odcinek pracy zamknięty, ${formatMinutes(view.currentMinutes)}.`,
-        );
+        if (choice === 'ready') { goReady(view); return; }
+        showSuccess(`${view.car.licensePlate} na placu`, `Odcinek pracy zamknięty, ${formatMinutes(view.currentMinutes)}.`);
     };
 
     /* Upuszczenie karty: ten sam skutek co przycisk, a gdy trzeba o coś zapytać
@@ -210,7 +221,7 @@ export function BoardNow({ snap, now, canEdit }: Props) {
             setDialog({ kind: 'pause', view });
         } else if (target.kind === 'ready' && from.kind !== 'ready') {
             if (from.kind === 'bay') setDialog({ kind: 'finish', view });
-            else void end.mutateAsync([view.car.id, 'DONE', { ready: true }]);
+            else goReady(view);
         }
     };
 
@@ -245,7 +256,7 @@ export function BoardNow({ snap, now, canEdit }: Props) {
             tone={v.car.waiting ? 'warn' : 'plain'}
             {...dragProps(v.car.id)}
             actions={canEdit && (v.car.waiting ? (
-                <Button variant="outline" size="sm" onClick={() => clear.mutate([v.car.id])}>
+                <Button variant="outline" size="sm" onClick={() => clear.mutate([visitOf(v)])}>
                     {v.car.waiting.reason === 'WAITING_PART' ? 'Część dotarła' : 'Klient zdecydował'}
                 </Button>
             ) : (
@@ -295,10 +306,8 @@ export function BoardNow({ snap, now, canEdit }: Props) {
             aside={v.car.readyAt ? `od ${formatClockTime(v.car.readyAt)}` : null}
             asideTitle="Gotowe do wydania od"
             actions={canEdit && (
-                <Button variant="outline" size="sm" onClick={async () => {
-                    await handOver.mutateAsync([v.car.id]);
-                    showSuccess(`${v.car.licensePlate} wydane`, 'W CRM wydanie robi się w wizycie, tu tylko je odnotowujemy.');
-                }}>Wydaj</Button>
+                // Wydanie (protokół, rozliczenie) jest w wizycie; po nim auto samo znika z tablicy.
+                <Button variant="outline" size="sm" onClick={() => navigate(`/visits/${v.car.visitId ?? v.car.id}`)}>Wydaj</Button>
             )}
         />
     );
@@ -373,7 +382,7 @@ export function BoardNow({ snap, now, canEdit }: Props) {
                     busy={busy}
                     onClose={() => setDialog(null)}
                     onConfirm={async (reason, note) => {
-                        await end.mutateAsync([dialog.view.car.id, reason, { note }]);
+                        await end.mutateAsync([visitOf(dialog.view), reason, note]);
                         setDialog(null);
                         showSuccess(`${dialog.view.car.licensePlate} na placu`, 'Stanowisko jest wolne.');
                     }}

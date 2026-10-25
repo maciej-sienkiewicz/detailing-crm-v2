@@ -10,7 +10,7 @@
 //   2. plan stanowiska wskazujący na nią.
 // Wspólna transakcja wymagałaby wpięcia stanowisk w endpoint rezerwacji, czyli
 // dokładnie tego sprzężenia, którego unikamy. Gdy krok 2 się nie uda, rezerwacja
-// istnieje i ląduje w „Bez planu" - nic nie ginie, a skutek awarii widać.
+// istnieje w kalendarzu, a człowiek dostaje o tym komunikat - nic nie ginie.
 //
 // O planie rozstrzyga to, co jest w formularzu w chwili zapisu, nie zaznaczenie:
 // kto w formularzu przesunął koniec na piątek, ma plan do piątku - przyciągnięty do
@@ -47,7 +47,6 @@ const idOf = (response: unknown): string | null => {
 export function BayBookingFlow({ bayId, bayName, slotsPerDay, start, end, onClose }: Props) {
     const { createBookingAsync } = useQuickEventCreation();
     const { showSuccess, showError, showWarning } = useToast();
-    const addCar = useBaysMutation(baysApi.addBookedCar);
     const createBooking = useBaysMutation(baysApi.createBooking);
 
     const handleSave = async (data: QuickEventFormData) => {
@@ -61,19 +60,14 @@ export function BayBookingFlow({ bayId, bayName, slotsPerDay, start, end, onClos
         }
 
         const range = bookingRangeFromDates(new Date(data.startDateTime), new Date(data.endDateTime), slotsPerDay);
+        const appointmentId = idOf(response);
         try {
-            const vehicle = data.vehicle;
-            const carId = await addCar.mutateAsync([{
-                appointmentId: idOf(response),
-                licensePlate: vehicle?.licensePlate || 'bez tablicy',
-                vehicleName: vehicle ? [vehicle.brand, vehicle.model].filter(Boolean).join(' ') + (vehicle.year ? `, ${vehicle.year}` : '') : 'Pojazd',
-                jobTitle: data.title || 'Rezerwacja',
-                promisedAt: data.endDateTime ? new Date(data.endDateTime).toISOString() : null,
-            }]);
-            if (range) await createBooking.mutateAsync([bayId, carId, range.start, range.end]);
-            showSuccess('Rezerwacja utworzona', range ? `${bayName}, ${rangeText(range.start, range.end, new Date())}.` : 'Znajdziesz ją w kalendarzu.');
+            if (!appointmentId || !range) throw new Error('Brak rezerwacji albo zakresu');
+            await createBooking.mutateAsync([bayId, { visitId: null, appointmentId }, range.start, range.end]);
+            showSuccess('Rezerwacja utworzona', `${bayName}, ${rangeText(range.start, range.end, new Date())}.`);
         } catch {
-            showWarning('Rezerwacja zapisana, stanowisko nie', 'Przeciągnij ją z paska Bez planu na stanowisko.');
+            // Rezerwacja już jest w kalendarzu - tracimy tylko plan stanowiska, i mówimy to wprost.
+            showWarning('Rezerwacja zapisana, stanowisko nie', 'Przeciągnij ją na stanowisko w widoku tygodnia.');
         }
         onClose();
     };

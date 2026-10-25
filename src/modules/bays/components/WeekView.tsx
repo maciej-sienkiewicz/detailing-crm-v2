@@ -13,7 +13,7 @@ import type { BaysSnapshot } from '../types';
 import { addDays, dayMonth, fromDateKey, hoursOf, mondayOf, toDateKey, weekDays, rangeText, relativeDay, clockText, type Cell } from '../utils/slots';
 import { buildWeekRows, overlapsInRange, type WeekBar } from '../utils/weekLayout';
 import { baysApi } from '../api/baysApi';
-import { useBaysMutation } from '../hooks/useBays';
+import { useBaysMutation, useBaysSnapshot } from '../hooks/useBays';
 import { WeekPlanner, type MoveRequest, type RangeRequest } from './WeekPlanner';
 import { WeekDayList } from './WeekDayList';
 import { BayBookingFlow } from './BayBookingFlow';
@@ -65,7 +65,7 @@ const openDays = (from: string, n: number, dir: 1 | -1 = 1): string[] => {
     return dir === 1 ? out : out.reverse();
 };
 
-export function WeekView({ snap, now, canEdit }: Props) {
+export function WeekView({ snap: initial, now, canEdit }: Props) {
     const isTabletUp = useBreakpoint('md');
     const { showSuccess, showWarning } = useToast();
     const [span, setSpan] = useState<Span>(6);
@@ -75,6 +75,13 @@ export function WeekView({ snap, now, canEdit }: Props) {
         () => (span === 6 ? weekDays(mondayOf(fromDateKey(anchor))) : openDays(anchor, span)),
         [span, anchor],
     );
+    // Odczyt hali w zakresie pokazanej osi; do czasu odpowiedzi - odczyt tablicy (ten tydzień).
+    const range = useMemo(() => ({
+        from: fromDateKey(days[0] ?? toDateKey(now)),
+        to: addDays(fromDateKey(days[days.length - 1] ?? toDateKey(now)), 1),
+    }), [days, now]);
+    const { data: weekSnap } = useBaysSnapshot(range);
+    const snap = weekSnap ?? initial;
     const [day, setDay] = useState(() => toDateKey(now));
     const [step, setStep] = useState<Step | null>(null);
     const move = useBaysMutation(baysApi.moveBooking);
@@ -117,7 +124,7 @@ export function WeekView({ snap, now, canEdit }: Props) {
         setStep(null);
         const car = snap.cars.find(c => c.id === m.carId);
         if (m.bookingId) await move.mutateAsync([m.bookingId, m.bayId, m.start, m.end]);
-        else await create.mutateAsync([m.bayId, m.carId, m.start, m.end]);
+        else if (car) await create.mutateAsync([m.bayId, { visitId: car.visitId, appointmentId: car.visitId ? null : car.appointmentId }, m.start, m.end]);
         // Plan za obiecanym odbiorem: ostrzeżenie, ale termin odbioru zmienia tylko
         // człowiek - od niego zależą SMS-y do klienta.
         if (car?.promisedAt && m.end > new Date(car.promisedAt)) {

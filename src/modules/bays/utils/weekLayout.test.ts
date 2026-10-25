@@ -10,7 +10,7 @@ const days = weekDays(mondayOf(NOW));
 const iso = (s: string) => new Date(s).toISOString();
 
 const snap = (over: Partial<BaysSnapshot> = {}): BaysSnapshot => ({
-    settings: { trackPeople: false },
+    settings: { enabled: true, trackPeople: false },
     bays: [
         { id: 'b1', name: 'Podnośnik 1', kind: 'LIFT', capacity: 1, slotsPerDay: 2, defaultPersonId: null, active: true },
         { id: 'b2', name: 'Myjnia', kind: 'WASH', capacity: 2, slotsPerDay: 6, defaultPersonId: null, active: true },

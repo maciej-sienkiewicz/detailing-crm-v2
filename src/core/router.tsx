@@ -236,7 +236,7 @@ export const router = createBrowserRouter([
             path: '/operations',
             ...lazyPage(() => import('@/modules/operations/views/OperationListView').then(m => m.OperationListView), 'VISITS_VIEW'),
         },
-        // Stanowiska - prototyp za przełącznikiem wersji; bez niego trasy nie ma wcale.
+        // Stanowiska - za przełącznikiem wersji; bez niego trasy nie ma wcale.
         // Decyzję studia (Ustawienia → Stanowiska) sprawdza już sam widok.
         ...(isBaysAvailable() ? [{
             path: '/bays',

@@ -1,4 +1,4 @@
-// src/modules/bays - stanowiska (prototyp za przełącznikiem).
+// src/modules/bays - stanowiska (za przełącznikiem wersji i ustawieniem studia).
 //
 // Poza tym folderem stanowiska istnieją tylko tu, każde wpięcie za przełącznikiem
 // (`isBaysAvailable` - wersja aplikacji, `useBaysEnabled` - decyzja studia):
