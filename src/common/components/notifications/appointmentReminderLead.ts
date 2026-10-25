@@ -17,7 +17,7 @@ const UNIT_MINUTES: Record<LeadUnit, number> = { MINUTES: 1, HOURS: 60, DAYS: 24
 
 export const MAX_LEAD_MINUTES = 30 * 24 * 60;
 
-/** Czas po włączeniu przypomnienia, zanim osoba wpisze własny. */
+/** Czas, zanim osoba wpisze własny - ten sam co domyślny na serwerze (NotificationCategory.APPOINTMENT_REMINDER). */
 export const DEFAULT_LEAD = 'PT1H';
 
 export const LEAD_ERROR = 'Wpisz od 1 minuty do 30 dni.';

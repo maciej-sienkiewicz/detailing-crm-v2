@@ -4,8 +4,12 @@
 // a nie wyborem z kilku gotowych czasów. Testy pilnują, że wpis trafia na serwer
 // w zapisie, który serwer rozumie (czas ISO-8601), że wpis spoza zakresu nie idzie
 // na serwer, i że bez wsparcia serwera nie ma pól bez skutku.
+//
+// Włącznika tu nie ma (od 25.10.2026): czy przypomnienie przychodzi, decyduje tabela
+// „Rodzaje powiadomień". Drugi włącznik w tym wierszu dawał ekran „włączone w tabeli"
+// przy przypomnieniu, które nie przychodziło.
 import { describe, expect, it, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme/theme';
@@ -37,7 +41,7 @@ vi.mock('./marketPreferences', async (importOriginal) => {
 import { AppointmentReminderSetting } from './AppointmentReminderSetting';
 
 const reminder = (value: string): NotificationPreference => ({
-    category: 'APPOINTMENT_REMINDER', value, options: ['OFF'], defaultValue: 'OFF',
+    category: 'APPOINTMENT_REMINDER', value, options: [], defaultValue: 'PT1H',
 });
 
 const renderSetting = () =>
@@ -49,37 +53,33 @@ const renderSetting = () =>
         </QueryClientProvider>
     );
 
-const group = () => screen.getByRole('group', { name: 'Przypomnienie o rezerwacji' });
-const pressed = () =>
-    within(group()).getAllByRole('button').find((button) => button.getAttribute('aria-pressed') === 'true')?.textContent;
 const amount = () => screen.getByRole('textbox', { name: 'Ile przed rezerwacją' }) as HTMLInputElement;
 const unit = () => screen.getByRole('combobox', { name: 'Jednostka czasu' }) as HTMLSelectElement;
 
 describe('AppointmentReminderSetting', () => {
     beforeEach(() => {
         can.mockReset().mockReturnValue(true);
-        list.mockReset().mockResolvedValue([reminder('OFF')]);
+        list.mockReset().mockResolvedValue([reminder('PT1H')]);
         update.mockReset().mockImplementation(async (_category, value) => reminder(value));
         showError.mockReset();
     });
 
-    it('domyślnie wyłączone, bez pól czasu', async () => {
+    it('bez własnego wyboru pokazuje godzinę przed rezerwacją, bez włącznika', async () => {
         renderSetting();
-        await waitFor(() => expect(pressed()).toBe('Wyłączone'));
-        expect(screen.queryByRole('textbox', { name: 'Ile przed rezerwacją' })).toBeNull();
-        expect(screen.getByText(/Włącz i wpisz, ile przed każdą rezerwacją/)).toBeTruthy();
-    });
-
-    it('włączenie zapisuje godzinę i pokazuje pola do wpisania własnego czasu', async () => {
-        renderSetting();
-        await waitFor(() => expect(pressed()).toBe('Wyłączone'));
-
-        fireEvent.click(within(group()).getByRole('button', { name: 'Włączone' }));
-
-        await waitFor(() => expect(update).toHaveBeenCalledWith('APPOINTMENT_REMINDER', 'PT1H'));
-        expect(amount().value).toBe('1');
+        await waitFor(() => expect(amount().value).toBe('1'));
         expect(unit().value).toBe('HOURS');
         expect(screen.getByText(/godzinę przed każdą rezerwacją/)).toBeTruthy();
+        expect(screen.queryByRole('button', { name: 'Wyłączone' })).toBeNull();
+        expect(screen.queryByRole('button', { name: 'Włączone' })).toBeNull();
+    });
+
+    it('dawne „OFF" ze starszego serwera pokazuje godzinę i niczego samo nie zapisuje', async () => {
+        list.mockResolvedValue([reminder('OFF')]);
+        renderSetting();
+        await waitFor(() => expect(amount().value).toBe('1'));
+        expect(unit().value).toBe('HOURS');
+        await new Promise((resolve) => setTimeout(resolve, 900));
+        expect(update).not.toHaveBeenCalled();
     });
 
     it('zapisuje czas wpisany przez osobę: 45 minut', async () => {

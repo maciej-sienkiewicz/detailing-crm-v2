@@ -8,7 +8,7 @@
 // aplikacji przyszły z dawnej strony „Skróty mobilne" (/mobile-shortcuts), do której
 // nic w aplikacji nie linkowało.
 
-import { useState } from 'react';
+import { useState, type ReactNode } from 'react';
 import styled from 'styled-components';
 import { QRCodeSVG } from 'qrcode.react';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
@@ -19,6 +19,8 @@ import { useCapability } from '@/modules/subscription';
 import { PushNotificationsPanel } from '@/modules/push/components/PushNotificationsPanel';
 import { NativePushPanel } from '@/modules/push/native/NativePushPanel';
 import { isMobileDevice } from '@/modules/push/utils/webPush';
+import { reachNote, useOwnCategoryReach } from '@/modules/push/hooks/useOwnCategoryReach';
+import type { PushNotificationCategory } from '@/modules/push/types';
 import {
     APPOINTMENT_REMINDER_PERMISSION, AppointmentReminderSetting, MarketNotificationPreferences,
 } from '@/common/components/notifications';
@@ -39,6 +41,12 @@ import type { PhoneFeatureId } from './phoneFeatures';
  * Wcześniej raport stał między „To urządzenie" a kodem QR, a reklamy osobną ramą pod
  * całością, i nic nie mówiło, jak te części się łączą. Przypomnienie stoi pierwsze:
  * dotyczy codziennej pracy przy aucie, raport i reklamy - spraw właściciela.
+ *
+ * Włącznik jest jeden: tabela „Rodzaje powiadomień". Sekcja niżej ustawia tylko „kiedy
+ * i jak często", a wiersz rodzaju wyłączonego na wszystkich własnych urządzeniach jest
+ * wyszarzony ze zdaniem, gdzie go włączyć (ReachGate). Do 25.10.2026 przypomnienie
+ * i raport miały tu własne „Wyłączone" i ekran pokazywał „włączone" w tabeli przy
+ * powiadomieniu, które nie przychodziło.
  */
 function PushSetup() {
     const { can } = usePermissions();
@@ -58,16 +66,30 @@ function PushSetup() {
                     <SummariesHead>
                         <SectionTitle as="h3">Przypomnienia i podsumowania</SectionTitle>
                         <SummariesLead>
-                            Ustaw, kiedy i jak często przychodzą. Urządzenia, które je dostają,
-                            wybierz w tabeli „Rodzaje powiadomień”.
+                            Ustaw, kiedy i jak często przychodzą. Czy przychodzą i na które
+                            urządzenie, decyduje tabela „Rodzaje powiadomień”.
                         </SummariesLead>
                     </SummariesHead>
-                    {showReminder && <AppointmentReminderSetting />}
-                    {showReport && <ReportNotificationSetting />}
-                    {showMarketPreferences && <MarketNotificationPreferences embedded />}
+                    {showReminder && <ReachGate category="APPOINTMENT_REMINDERS"><AppointmentReminderSetting /></ReachGate>}
+                    {showReport && <ReachGate category="REPORTS"><ReportNotificationSetting /></ReachGate>}
+                    {showMarketPreferences && <ReachGate category="COMPETITION"><MarketNotificationPreferences embedded /></ReachGate>}
                 </Summaries>
             )}
         </Stack>
+    );
+}
+
+/**
+ * Wiersz „kiedy i jak często" dla rodzaju, który nie dochodzi: wyszarzony, ze zdaniem,
+ * gdzie go włączyć. Pola zostają czynne - czas czy częstotliwość można ustawić z góry.
+ */
+function ReachGate({ category, children }: { category: PushNotificationCategory; children: ReactNode }) {
+    const note = reachNote(useOwnCategoryReach(category), category);
+    return (
+        <Gate $muted={note !== null}>
+            <div className="settings">{children}</div>
+            {note && <GateNote>{note}</GateNote>}
+        </Gate>
     );
 }
 
@@ -267,6 +289,28 @@ const SummariesHead = styled.div`
     display: flex;
     flex-direction: column;
     gap: 4px;
+`;
+
+const Gate = styled.div<{ $muted: boolean }>`
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 8px;
+    max-width: 100%;
+
+    .settings {
+        max-width: 100%;
+        opacity: ${p => (p.$muted ? 0.5 : 1)};
+        transition: opacity 150ms ease;
+    }
+`;
+
+const GateNote = styled.p`
+    margin: 0;
+    max-width: 68ch;
+    font-size: 13px;
+    line-height: 1.5;
+    color: ${ui.inkSoft};
 `;
 
 const SummariesLead = styled.p`

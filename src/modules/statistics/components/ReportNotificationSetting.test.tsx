@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 //
 // „Powiadomienie o nowym raporcie" w panelu Powiadomień: ustawienie osoby z dostępem do raportu.
+// Tylko „jak często" - czy raport przychodzi, decyduje tabela „Rodzaje powiadomień".
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
@@ -38,7 +39,7 @@ function renderSetting() {
 describe('ReportNotificationSetting', () => {
     beforeEach(() => {
         access.allowed = true;
-        api.getNotification.mockResolvedValue('OFF');
+        api.getNotification.mockResolvedValue('WEEKLY');
         api.updateNotification.mockImplementation(async frequency => frequency);
     });
 
@@ -47,10 +48,26 @@ describe('ReportNotificationSetting', () => {
         vi.clearAllMocks();
     });
 
-    it('włącza powiadomienie co miesiąc', async () => {
+    it('nie ma „Wyłączone" - to robi tabela', async () => {
         renderSetting();
         await waitFor(() =>
-            expect(screen.getByRole('button', { name: 'Wyłączone' }).getAttribute('aria-pressed')).toBe('true'),
+            expect(screen.getByRole('button', { name: 'Co tydzień' }).getAttribute('aria-pressed')).toBe('true'),
+        );
+        expect(screen.queryByRole('button', { name: 'Wyłączone' })).toBeNull();
+    });
+
+    it('dawne „OFF" ze starszego serwera wygląda jak co tydzień', async () => {
+        api.getNotification.mockResolvedValue('OFF');
+        renderSetting();
+        await waitFor(() =>
+            expect(screen.getByRole('button', { name: 'Co tydzień' }).getAttribute('aria-pressed')).toBe('true'),
+        );
+    });
+
+    it('zmienia częstotliwość na co miesiąc', async () => {
+        renderSetting();
+        await waitFor(() =>
+            expect(screen.getByRole('button', { name: 'Co tydzień' }).getAttribute('aria-pressed')).toBe('true'),
         );
 
         fireEvent.click(screen.getByRole('button', { name: 'Co miesiąc' }));

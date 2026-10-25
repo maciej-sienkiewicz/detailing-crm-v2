@@ -1,16 +1,22 @@
 // src/common/components/notifications/AppointmentReminderSetting.tsx
 //
 // „Przypomnienie o rezerwacji" w Ustawieniach → Telefon → Powiadomienia, w sekcji
-// „Przypomnienia i podsumowania". Ile wcześniej (albo wcale) ustawia każda osoba dla
-// siebie - push trafia na JEJ telefon (serwer: NotificationCategory.APPOINTMENT_REMINDER,
-// AppointmentReminderJob). Na które urządzenia, decyduje tabela „Rodzaje powiadomień".
+// „Przypomnienia i podsumowania". Ile wcześniej, ustawia każda osoba dla siebie - push
+// trafia na JEJ telefon (serwer: NotificationCategory.APPOINTMENT_REMINDER,
+// AppointmentReminderJob). Czy przychodzi i na które urządzenia, decyduje wyłącznie
+// tabela „Rodzaje powiadomień".
+//
+// Do 25.10.2026 wiersz miał własne „Wyłączone / Włączone", domyślnie wyłączone, a tabela
+// domyślnie włączone. Ekran mówił w tabeli „włączone", a przypomnienie nie przychodziło -
+// dwa włączniki do jednej rzeczy. Został jeden (tabela), a tu - sam czas, domyślnie godzina.
 //
 // Czas wpisuje się liczbą i jednostką, od 1 minuty do 30 dni. Pierwsza wersja miała
 // sześć gotowych czasów do wyboru, a biznes chce dowolnego. Gotowe czasy przy okazji
 // nie mieściły się na telefonie: „2 godz." i „1 dzień" chowały się za krawędzią.
 //
-// Domyślnie wyłączone: przypomnienie dotyczy każdej rezerwacji studia, więc włączone
-// wszystkim naraz zasypałoby telefony zespołu.
+// Ciszę dla nowych osób trzyma tabela: nowo sparowane urządzenie ma przypomnienia
+// wyciszone (serwer: PushNotificationCategory.OFF_BY_DEFAULT) - dotyczą każdej rezerwacji
+// studia, więc włączone wszystkim naraz zasypałyby telefony zespołu.
 //
 // Zapis bez przycisku, jak pozostałe ustawienia w tej sekcji: po chwili bez pisania,
 // po wyjściu z pola i po zmianie jednostki. Przycisk „Zapisz" byłby tu drugim
@@ -20,7 +26,7 @@
 
 import { useEffect, useId, useRef, useState } from 'react';
 import styled from 'styled-components';
-import { Segmented, touch, ui } from '@/common/components/ui';
+import { touch, ui } from '@/common/components/ui';
 import { usePermissions } from '@/core/permissions';
 import {
     DEFAULT_LEAD, LEAD_ERROR, UNITS, draftMinutes, leadMinutes, reminderHint, toDraft, toIso, unitLabel,
@@ -30,7 +36,6 @@ import { useNotificationPreferences } from './useNotificationPreferences';
 
 const CATEGORY = 'APPOINTMENT_REMINDER';
 const TITLE = 'Przypomnienie o rezerwacji';
-const OFF_HINT = 'Włącz i wpisz, ile przed każdą rezerwacją z kalendarza przychodzi przypomnienie.';
 
 /** Tyle bez pisania i czas idzie na serwer - nie po każdej cyfrze. */
 const SAVE_DELAY_MS = 800;
@@ -48,8 +53,6 @@ function Setting() {
     const { preferences, update } = useNotificationPreferences();
     /** To, co osoba właśnie wpisuje; null = pola pokazują zapisany czas. */
     const [draft, setDraft] = useState<LeadDraft | null>(null);
-    /** Czas sprzed wyłączenia - ponowne włączenie go przywraca, zamiast wracać do godziny. */
-    const [lastOn, setLastOn] = useState(DEFAULT_LEAD);
     const timer = useRef<ReturnType<typeof setTimeout> | null>(null);
     const pending = useRef<(() => void) | null>(null);
     const hintId = useId();
@@ -68,10 +71,9 @@ function Setting() {
     // Wprost z odpowiedzi, bez preferenceValue(): ta odrzuca wartość spoza `options`, a przy
     // wpisywanym czasie `options` to samo „OFF". Wiersz, którego serwer nie przyjmuje, i tak
     // przychodzi już jako wartość domyślna (NotificationPreferenceService.list).
-    const saved = entry?.value ?? 'OFF';
-    const savedMinutes = leadMinutes(saved);
-    const on = savedMinutes !== null;
-    const shown = draft ?? toDraft(savedMinutes ?? leadMinutes(lastOn) ?? 60);
+    // Serwer sprzed zmiany odda jeszcze „OFF" - pokazujemy wtedy czas domyślny.
+    const saved = entry?.value ?? DEFAULT_LEAD;
+    const shown = draft ?? toDraft(leadMinutes(saved) ?? leadMinutes(DEFAULT_LEAD) ?? 60);
     const minutes = draftMinutes(shown);
 
     const cancelPending = () => {
@@ -120,61 +122,36 @@ function Setting() {
         setDraft(null);
     };
 
-    const toggle = (next: 'ON' | 'OFF') => {
-        cancelPending();
-        setDraft(null);
-        if (next === 'OFF') {
-            if (on) setLastOn(saved);
-            update(CATEGORY, 'OFF');
-        } else {
-            update(CATEGORY, lastOn);
-        }
-    };
-
-    const invalid = on && minutes === null;
+    const invalid = minutes === null;
 
     return (
         <Row aria-busy={preferences.isLoading}>
             <RowTitle>{TITLE}</RowTitle>
-            <Controls>
-                <Segmented
-                    label={TITLE}
-                    size="sm"
-                    options={[
-                        { value: 'OFF' as const, label: 'Wyłączone' },
-                        { value: 'ON' as const, label: 'Włączone' },
-                    ]}
-                    value={on ? 'ON' : 'OFF'}
-                    onChange={(next) => { if (next !== (on ? 'ON' : 'OFF')) toggle(next); }}
+            <Fields>
+                <Amount
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={5}
+                    value={shown.amount}
+                    aria-label="Ile przed rezerwacją"
+                    aria-invalid={invalid}
+                    aria-describedby={hintId}
+                    onChange={(event) => changeAmount(event.target.value)}
+                    onBlur={commit}
+                    onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); }}
                 />
-                {on && (
-                    <Fields>
-                        <Amount
-                            type="text"
-                            inputMode="numeric"
-                            maxLength={5}
-                            value={shown.amount}
-                            aria-label="Ile przed rezerwacją"
-                            aria-invalid={invalid}
-                            aria-describedby={hintId}
-                            onChange={(event) => changeAmount(event.target.value)}
-                            onBlur={commit}
-                            onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur(); }}
-                        />
-                        <Unit
-                            aria-label="Jednostka czasu"
-                            value={shown.unit}
-                            onChange={(event) => changeUnit(event.target.value as LeadUnit)}
-                        >
-                            {UNITS.map((unit) => <option key={unit} value={unit}>{unitLabel(unit, shown.amount)}</option>)}
-                        </Unit>
-                        <span>przed rezerwacją</span>
-                    </Fields>
-                )}
-            </Controls>
+                <Unit
+                    aria-label="Jednostka czasu"
+                    value={shown.unit}
+                    onChange={(event) => changeUnit(event.target.value as LeadUnit)}
+                >
+                    {UNITS.map((unit) => <option key={unit} value={unit}>{unitLabel(unit, shown.amount)}</option>)}
+                </Unit>
+                <span>przed rezerwacją</span>
+            </Fields>
             {invalid
                 ? <ErrorText id={hintId} role="alert">{LEAD_ERROR}</ErrorText>
-                : <Hint id={hintId}>{on && minutes !== null ? reminderHint(minutes) : OFF_HINT}</Hint>}
+                : <Hint id={hintId}>{reminderHint(minutes)}</Hint>}
         </Row>
     );
 }
@@ -191,14 +168,6 @@ const RowTitle = styled.span`
     font-size: 14px;
     font-weight: 600;
     color: ${ui.ink};
-`;
-
-const Controls = styled.div`
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 10px 14px;
-    max-width: 100%;
 `;
 
 const Fields = styled.div`

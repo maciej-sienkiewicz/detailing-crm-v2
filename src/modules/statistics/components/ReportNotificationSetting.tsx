@@ -4,6 +4,10 @@
 // i podsumowania". Ustawienie należy do osoby (trafia na JEJ telefon), więc każdy
 // z dostępem do raportu ustawia je sam. Push przychodzi w dniu, w którym domknął się okres.
 //
+// Tu tylko „jak często". Czy raport przychodzi, decyduje wyłącznie tabela „Rodzaje
+// powiadomień" (serwer: OwnerReportScheduler). Do 25.10.2026 wiersz miał też
+// „Wyłączone" - domyślne - i tabela mówiła „włączone" przy raporcie, który nie przychodził.
+//
 // Sam wiersz, bez własnej ramy i nagłówka: stał osobną ramą między „To urządzenie"
 // a kodem QR, z dala od podsumowań reklam - dwa ustawienia „jak często" w dwóch
 // końcach widoku. Ramę i nagłówek daje teraz sekcja, która trzyma je razem.
@@ -17,7 +21,6 @@ import { ownerReportApi, type ReportFrequency } from '../api/ownerReportApi';
 const KEY = ['owner-report', 'notification'];
 
 const OPTIONS = [
-    { value: 'OFF' as const, label: 'Wyłączone' },
     { value: 'WEEKLY' as const, label: 'Co tydzień' },
     { value: 'BIWEEKLY' as const, label: 'Co 2 tygodnie' },
     { value: 'MONTHLY' as const, label: 'Co miesiąc' },
@@ -40,12 +43,14 @@ function Setting() {
         onSuccess: frequency => queryClient.setQueryData(KEY, frequency),
     });
 
-    const value = update.isPending && update.variables ? update.variables : current.data ?? 'OFF';
+    // Bez wyboru serwer liczy co tydzień; starszy serwer odda jeszcze „OFF" - pokazujemy to samo.
+    const stored = current.data && current.data !== 'OFF' ? current.data : 'WEEKLY';
+    const value = update.isPending && update.variables ? update.variables : stored;
 
     return (
         <Row>
             <RowTitle>Nowy raport</RowTitle>
-            {/* Cztery opcje nie mieszczą się w szerokości telefonu - przewijane, a nie ucięte. */}
+            {/* Trzy opcje bywają szersze niż telefon - przewijane, a nie ucięte. */}
             <Scroll>
                 <Segmented
                     label="Powiadomienie o nowym raporcie"
