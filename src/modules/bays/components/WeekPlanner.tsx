@@ -15,12 +15,18 @@
 //
 // Pozycja paska to czas, nie numer kolumny: wiersze z różnym podziałem dnia leżą na
 // tej samej osi, a pionowa linia „teraz" przecina je wszystkie w tym samym miejscu.
+//
+// Tło jest WSPÓLNE dla wszystkich wierszy: granice dni, linie pełnych godzin z linijki
+// i jedno „minione" od lewej do teraz. Dawniej każdy wiersz rysował własne okienka
+// przerywaną kreską - przy myjni co 2 h i podnośniku co pół dnia kreski nie trafiały
+// w siebie, granica dnia ginęła wśród nich i oko nie miało się czego trzymać. Okienka
+// wiersza widać dopiero pod kursorem i przy upuszczaniu, czyli wtedy, gdy się do nich celuje.
 
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import styled, { css } from 'styled-components';
 import { Hourglass, MoveHorizontal } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
-import { ActionMenu, MenuItem, StatusPill, ui, useActionMenu } from '@/common/components/ui';
+import { ui } from '@/common/components/ui';
 import { formatClockTime } from '@/common/dateTime';
 import { pluralPl } from '@/common/utils/plural';
 import type { BaysSnapshot } from '../types';
@@ -56,7 +62,8 @@ interface Props {
     onRange: (r: RangeRequest) => void;
     onTapCell: (bayId: string, cell: Cell) => void;
     onMove: (m: MoveRequest) => void;
-    onDeleteBooking: (bookingId: string) => void;
+    /** Kliknięcie paska: podgląd usług auta (BarPreviewDrawer w WeekView). */
+    onOpenBar: (bar: WeekBar, bayId: string) => void;
 }
 
 /** Wiersz ma stałą wysokość jednego paska; nałożone paski dzielą ją między siebie. */
@@ -106,10 +113,10 @@ const Corner = styled.div`
 `;
 
 /* Pod nazwami dni pas na linijkę godzin i znacznik „teraz" - nic go nie zasłania. */
-const Axis = styled.div<{ $ruler: boolean }>`
+const Axis = styled.div`
     position: relative;
     display: flex;
-    padding-bottom: ${p => (p.$ruler ? '18px' : '0')};
+    padding-bottom: 18px;
 `;
 
 const Tick = styled.span`
@@ -122,15 +129,23 @@ const Tick = styled.span`
     pointer-events: none;
 `;
 
-const DayHead = styled.div<{ $today: boolean }>`
+/* Granica dnia - mocniejsza niż linie godzin, ciągnie się przez nagłówek i wszystkie wiersze. */
+const DAY_LINE = '#cbd5e1';
+/* Co drugi dzień leży na odrobinę ciemniejszym tle: dzień czyta się jako pas, nie jako
+   odcinek między dwiema kreskami. */
+const DAY_ALT = '#fafbfd';
+const TODAY_BG = '#f3f8fb';
+
+const DayHead = styled.div<{ $today: boolean; $alt: boolean }>`
     flex: 1 1 0;
     min-width: 0;
     display: flex;
     flex-direction: column;
     gap: 1px;
     padding: 9px 10px;
-    border-left: 1px solid ${ui.line};
-    background: ${p => (p.$today ? '#f6fafc' : 'transparent')};
+    border-left: 1px solid ${DAY_LINE};
+    &:first-child { border-left: none; }
+    background: ${p => (p.$today ? TODAY_BG : p.$alt ? DAY_ALT : 'transparent')};
 
     strong { font-size: 13.5px; font-weight: 700; color: ${p => (p.$today ? ui.brandDeep : ui.ink)}; }
     span { font-size: 12px; color: ${p => (p.$today ? ui.brandDeep : ui.textMuted)}; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -172,11 +187,45 @@ const RowLabel = styled.div`
     span { font-size: 12px; color: ${ui.textMuted}; }
 `;
 
-const Track = styled.div<{ $lanes: number; $selectable: boolean }>`
+const Track = styled.div<{ $lanes: number; $selectable: boolean; $target: boolean }>`
     position: relative;
     height: ${p => rowHeight(p.$lanes)}px;
     cursor: ${p => (p.$selectable ? 'cell' : 'default')};
     touch-action: pan-x pan-y;
+    /* Wiersz, nad którym wisi przenoszone auto - widać, na które stanowisko trafi. */
+    background: ${p => (p.$target ? 'rgba(240, 246, 249, 0.85)' : 'transparent')};
+    transition: background 120ms ease;
+`;
+
+/*
+ * Pasek „w ręce": idzie za kursorem co do piksela (pozycja pisana wprost w styl, bez
+ * renderu Reacta), a obrys w wierszu pokazuje okienka, do których się przyciągnie.
+ * Samo skakanie obrysu o całe okienka wyglądało na zacinanie się przeciągania.
+ */
+const DragAvatar = styled.div`
+    position: fixed;
+    left: 0;
+    top: 0;
+    z-index: 2000;
+    pointer-events: none;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 1px;
+    padding: 0 10px;
+    box-sizing: border-box;
+    border-radius: 8px;
+    border: 1.5px solid ${ui.brandLine};
+    background: ${ui.surface};
+    color: ${ui.inkSoft};
+    box-shadow: 0 10px 28px rgba(15, 23, 42, 0.18);
+    /* Półprzezroczysty: pod spodem widać obrys okienek, do których pasek się przyciągnie. */
+    opacity: 0.78;
+    overflow: hidden;
+    white-space: nowrap;
+    will-change: transform;
+
+    span { font-size: 12px; overflow: hidden; text-overflow: ellipsis; }
 `;
 
 const Abs = styled.div`
@@ -186,17 +235,37 @@ const Abs = styled.div`
     pointer-events: none;
 `;
 
-const CellBox = styled(Abs)<{ $past: boolean; $firstOfDay: boolean }>`
-    border-left: 1px ${p => (p.$firstOfDay ? 'solid' : 'dashed')} ${p => (p.$firstOfDay ? ui.line : ui.lineSoft)};
-    background: ${p => (p.$past ? 'rgba(241, 245, 249, 0.7)' : 'transparent')};
+const DayBand = styled(Abs)<{ $today: boolean }>`
+    background: ${p => (p.$today ? TODAY_BG : DAY_ALT)};
+`;
+
+const DayLine = styled(Abs)`
+    width: 0;
+    border-left: 1px solid ${DAY_LINE};
+`;
+
+const HourLine = styled(Abs)`
+    width: 0;
+    border-left: 1px solid ${ui.lineSoft};
+`;
+
+const Past = styled(Abs)`
+    left: 0;
+    background: rgba(241, 245, 249, 0.6);
+`;
+
+/* Okienka wiersza: tylko pod kursorem i w wierszu, nad którym wisi przenoszone auto. */
+const SlotLine = styled(Abs)`
+    width: 0;
+    border-left: 1px dashed ${ui.lineStrong};
+    opacity: 0;
+    transition: opacity 120ms ease;
+
+    ${Track}:hover &, ${Track}[data-target='true'] & { opacity: 0.45; }
 `;
 
 const Closed = styled(Abs)`
     background: repeating-linear-gradient(135deg, ${ui.surfaceAlt} 0 6px, ${ui.surface} 6px 12px);
-`;
-
-const TodayTint = styled(Abs)`
-    background: rgba(240, 246, 249, 0.45);
 `;
 
 /* Linia „teraz" ma tylko wskazać miejsce, nie konkurować z planem: włos, półprzezroczysty,
@@ -235,7 +304,7 @@ const Bar = styled.div<{ $tone: keyof typeof BAR_TONES; $conflict: boolean; $ove
 
     &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: 1px; }
 
-    /* Wąski pasek: zostaje sama tablica, opis jest w dymku i w menu. */
+    /* Wąski pasek: zostaje sama tablica, opis jest w dymku i w podglądzie. */
     @container (max-width: 90px) {
         padding: 0 6px;
         > span:first-child:not(:last-child) { display: none; }
@@ -284,7 +353,7 @@ const BarText = styled.span<{ $compact?: boolean }>`
     }
 
     @container (max-width: 90px) { > span:last-child { display: none; } }
-    /* Pasek węższy niż tablica: sam kolor, bez uciętych liter - opis w dymku i w menu. */
+    /* Pasek węższy niż tablica: sam kolor, bez uciętych liter - opis w dymku i w podglądzie. */
     @container (max-width: 52px) { display: none; }
 `;
 
@@ -366,18 +435,40 @@ type Drag =
     | { kind: 'move'; carId: string; bookingId: string | null; minutes: number; grabMs: number; rowId: string; startIdx: number; len: number; moved: boolean; startX: number }
     | { kind: 'resize'; carId: string; bookingId: string; rowId: string; edge: 'start' | 'end'; startIdx: number; endIdx: number };
 
+/**
+ * Pełne godziny linijki: co godzinę w widoku dnia, co dwie przy trzech dniach, co cztery
+ * w tygodniu (8, 12, 16 - wystarczy, żeby oko trafiło w porę dnia). Bez skrajnych godzin:
+ * na krawędzi dnia cyfra wpadałaby na sąsiada.
+ */
+const tickTimes = (d: string, span: number): Date[] => {
+    const h = hoursOf(d);
+    if (!h) return [];
+    const step = span === 1 ? 1 : span <= 3 ? 2 : 4;
+    const out: Date[] = [];
+    for (let m = Math.ceil((h.opens + 1) / 60) * 60; m < h.closes; m += 60) {
+        if ((m / 60) % step !== 0) continue;
+        const t = new Date(`${d}T00:00:00`);
+        t.setMinutes(m);
+        out.push(t);
+    }
+    return out;
+};
+
 /** Opis podziału dnia pod nazwą stanowiska: ile trwa jedno okienko. */
 const slotHint = (n: number, day: number) => (n === 1 ? 'cały dzień' : n === 2 ? 'pół dnia' : `co ${formatMinutes(Math.round(day / n))}`);
 
-export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMove, onDeleteBooking }: Props) {
-    const navigate = useNavigate();
+export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMove, onOpenBar }: Props) {
     const { rows } = useMemo(() => buildWeekRows(snap, days, now), [snap, days, now]);
     const [drag, setDrag] = useState<Drag | null>(null);
     const dragRef = useRef<Drag | null>(null);
     dragRef.current = drag;
     const tracks = useRef(new Map<string, HTMLDivElement>());
+    const scrollerRef = useRef<HTMLDivElement>(null);
+    const avatarRef = useRef<HTMLDivElement>(null);
+    /** Gdzie w pasku chwycono (px) i jego rozmiar - podgląd stoi pod kursorem tak, jak go złapano. */
+    const grabRef = useRef({ dx: 0, dy: 0, w: 160, h: 40 });
+    const pointerRef = useRef({ x: 0, y: 0 });
     const suppressClick = useRef(false);
-    const menu = useActionMenu<WeekBar>();
     const todayKey = toDateKey(now);
     const day = longestDay();
     const nowX = weekX(now, days);
@@ -404,6 +495,19 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
         const i = row.cells.findIndex(c => c.end > now);
         return i === -1 ? row.cells.length : i;
     };
+    /**
+     * Okienko, którego POCZĄTEK leży najbliżej chwili - przyciąganie zaokrągla, a nie
+     * ucina w dół: pasek przesunięty o trzy czwarte okienka idzie do następnego.
+     */
+    const nearestCell = (row: WeekRow, t: Date): number => {
+        let best = 0;
+        let bestDiff = Infinity;
+        row.cells.forEach((c, i) => {
+            const diff = Math.abs(c.start.getTime() - t.getTime());
+            if (diff < bestDiff) { best = i; bestDiff = diff; }
+        });
+        return best;
+    };
     const range = (row: WeekRow, a: number, b: number) => {
         const lo = Math.max(firstOpen(row), Math.min(a, b));
         const hi = Math.min(row.cells.length - 1, Math.max(a, b, lo));
@@ -421,9 +525,30 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
     // Ruch i koniec gestu łapiemy na oknie: kursor poza siatką też kończy zaznaczenie.
     useEffect(() => {
         if (!drag) return;
-        const moveHandler = (e: PointerEvent) => {
+        let raf = 0;
+        /**
+         * Przewijanie osi przy krawędzi - tydzień na tablecie nie mieści się w oknie.
+         * Lewa strefa zaczyna się za przyklejoną kolumną nazw stanowisk.
+         */
+        const autoScroll = () => {
+            raf = 0;
+            const el = scrollerRef.current;
+            if (!el || !dragRef.current || el.scrollWidth <= el.clientWidth) return;
+            const r = el.getBoundingClientRect();
+            const { x, y } = pointerRef.current;
+            const left = r.left + (window.innerWidth < 1024 ? 124 : 168);
+            const edge = 56;
+            const speed = x > r.left && x < left + edge ? -Math.ceil((left + edge - x) / 8)
+                : x > r.right - edge && x < r.right + 80 ? Math.ceil((x - (r.right - edge)) / 8) : 0;
+            if (speed === 0) return;
+            el.scrollLeft += speed;
+            track(x, y);
+            raf = requestAnimationFrame(autoScroll);
+        };
+        const track = (clientX: number, clientY: number) => {
             const d = dragRef.current;
             if (!d) return;
+            const e = { clientX, clientY };
             if (d.kind === 'select') {
                 const row = rowById(d.rowId);
                 if (row) { const i = cellAt(row, e.clientX); if (i !== d.current) setDrag({ ...d, current: i }); }
@@ -444,13 +569,23 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                 const t = new Date(timeAtWeekX((e.clientX - r.left) / r.width, days).getTime() - d.grabMs);
                 // Inny podział dnia w nowym wierszu: długość w okienkach liczymy od czasu, nie od liczby okienek.
                 const len = Math.max(1, Math.round(d.minutes / (day / row.bay.slotsPerDay)));
-                const startIdx = cellIndexAt(row.cells, t);
+                const startIdx = nearestCell(row, t);
                 const moved = d.moved || Math.abs(e.clientX - d.startX) > 4;
+                const a = avatarRef.current;
+                if (a) a.style.transform = `translate(${e.clientX - grabRef.current.dx}px, ${e.clientY - grabRef.current.dy}px)`;
                 if (moved !== d.moved || row.rowId !== d.rowId || startIdx !== d.startIdx || len !== d.len) {
                     setDrag({ ...d, rowId: row.rowId, startIdx, len, moved });
                 }
             }
         };
+        const moveHandler = (e: PointerEvent) => {
+            pointerRef.current = { x: e.clientX, y: e.clientY };
+            track(e.clientX, e.clientY);
+            if (!raf && dragRef.current?.kind !== 'select') raf = requestAnimationFrame(autoScroll);
+        };
+        // Gest przerwany przez system (zmiana okna, dotyk przejęty przez przewijanie):
+        // nic nie zapisujemy, podgląd znika - zamiast paska „przyklejonego" do kursora.
+        const cancel = () => setDrag(null);
         const up = () => {
             const d = dragRef.current;
             setDrag(null);
@@ -483,10 +618,15 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
         const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setDrag(null); };
         window.addEventListener('pointermove', moveHandler);
         window.addEventListener('pointerup', up);
+        window.addEventListener('pointercancel', cancel);
+        window.addEventListener('blur', cancel);
         window.addEventListener('keydown', esc);
         return () => {
+            if (raf) cancelAnimationFrame(raf);
             window.removeEventListener('pointermove', moveHandler);
             window.removeEventListener('pointerup', up);
+            window.removeEventListener('pointercancel', cancel);
+            window.removeEventListener('blur', cancel);
             window.removeEventListener('keydown', esc);
         };
         // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -510,9 +650,14 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
     const onBarDown = (e: React.PointerEvent, bar: WeekBar, row: WeekRow) => {
         e.stopPropagation();
         if (bar.kind !== 'plan' || !canEdit || e.pointerType === 'touch' || e.button !== 0) return;
+        // Bez tego przeglądarka zaczyna zaznaczać tekst albo własne przeciąganie elementu.
+        e.preventDefault();
         const el = tracks.current.get(row.rowId);
         if (!el) return;
         const r = el.getBoundingClientRect();
+        const box = (e.currentTarget as HTMLElement).getBoundingClientRect();
+        grabRef.current = { dx: e.clientX - box.left, dy: e.clientY - box.top, w: box.width, h: box.height };
+        pointerRef.current = { x: e.clientX, y: e.clientY };
         const t = timeAtWeekX((e.clientX - r.left) / r.width, days);
         const startIdx = cellIndexAt(row.cells, bar.start);
         const endIdx = cellIndexAt(row.cells, new Date(bar.end.getTime() - 60_000));
@@ -535,6 +680,7 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
     const onTrayDown = (e: React.PointerEvent, carId: string) => {
         if (!canEdit || e.pointerType === 'touch' || e.button !== 0) return;
         e.preventDefault();
+        grabRef.current = { dx: 16, dy: 18, w: 180, h: 40 };
         // Bez planu nie wiadomo, ile auto postoi - zaczynamy od jednego okienka, potem rozciągnij.
         setDrag({ kind: 'move', carId, bookingId: null, minutes: 1, grabMs: 0, rowId: '', startIdx: -1, len: 1, moved: true, startX: e.clientX });
     };
@@ -559,7 +705,7 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
             start = row.cells[d.startIdx]?.start; end = row.cells[d.endIdx]?.end;
             title = snap.cars.find(c => c.id === d.carId)?.licensePlate ?? '';
             if (start && end) hits = overlapsInRange(row, start, end, d.carId);
-        } else if (d.startIdx >= 0) {
+        } else if (d.startIdx >= 0 && d.moved) {
             const t = moveTarget(d);
             if (t) { start = t.start; end = t.end; }
             title = `${snap.cars.find(c => c.id === d.carId)?.licensePlate ?? ''} na ${bayName(row.rowId)}`;
@@ -611,9 +757,9 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                 onClick={e => {
                     e.stopPropagation();
                     if (suppressClick.current) { suppressClick.current = false; return; }
-                    menu.toggle(e, bar, bar.id);
+                    onOpenBar(bar, row.rowId);
                 }}
-                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); menu.toggle(e as unknown as React.MouseEvent<HTMLElement>, bar, bar.id); } }}
+                onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenBar(bar, row.rowId); } }}
                 aria-label={`${bar.car.licensePlate}, ${sub}, ${rangeText(bar.start, bar.end, now)}`}
                 title={`${bar.car.licensePlate}, ${sub}\n${rangeText(bar.start, bar.end, now)}`}
             >
@@ -629,20 +775,32 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
         );
     };
 
-    const dayBackground = (row: WeekRow) => days.map((d, i) => {
-        const h = hoursOf(d)!;
-        const open = (h.closes - h.opens) / day;
-        return (
-            <span key={d}>
-                {d === todayKey && <TodayTint style={{ left: pct(i / days.length), width: pct(1 / days.length) }} />}
-                {open < 1 && <Closed style={{ left: pct((i + open) / days.length), width: pct((1 - open) / days.length) }} />}
-                {row.cells.filter(c => c.date === d).map((c, ci) => {
-                    const box = cellBox(c, days);
-                    return <CellBox key={ci} $past={c.end <= now} $firstOfDay={ci === 0} style={{ left: pct(box.x), width: pct(box.w) }} />;
-                })}
-            </span>
-        );
-    });
+    const ticks = days.flatMap(d => tickTimes(d, days.length));
+    const pastX = weekX(now, days);
+
+    const dayBackground = (row: WeekRow) => (
+        <>
+            {days.map((d, i) => {
+                const h = hoursOf(d)!;
+                const open = (h.closes - h.opens) / day;
+                const left = i / days.length;
+                return (
+                    <span key={d}>
+                        {(d === todayKey || i % 2 === 1) && <DayBand $today={d === todayKey} style={{ left: pct(left), width: pct(1 / days.length) }} />}
+                        {open < 1 && <Closed style={{ left: pct((i + open) / days.length), width: pct((1 - open) / days.length) }} />}
+                        {i > 0 && <DayLine style={{ left: pct(left) }} />}
+                    </span>
+                );
+            })}
+            {ticks.map(t => <HourLine key={t.getTime()} style={{ left: pct(weekX(t, days)) }} />)}
+            {pastX > 0 && <Past style={{ width: pct(pastX) }} />}
+            {row.cells.map((c, ci) => {
+                // Pierwsze okienko dnia zaczyna się na granicy dnia - tam kreska już jest.
+                if (ci === 0 || row.cells[ci - 1].date !== c.date) return null;
+                return <SlotLine key={ci} style={{ left: pct(cellBox(c, days).x) }} />;
+            })}
+        </>
+    );
 
     return (
         <>
@@ -659,35 +817,23 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                 </Tray>
             )}
 
-            <Scroller>
+            <Scroller ref={scrollerRef}>
                 <Grid $days={days.length} style={drag ? { userSelect: 'none', cursor: drag.kind === 'resize' ? 'ew-resize' : drag.kind === 'move' ? 'grabbing' : 'cell' } : undefined}>
                     <HeadRow>
                         <Corner />
-                        <Axis $ruler={days.length <= 3}>
-                            {days.map(d => {
+                        <Axis>
+                            {days.map((d, i) => {
                                 const today = d === todayKey;
                                 const free = rows.reduce((sum, r) => sum + freeCellsOn(r, d, now), 0);
                                 return (
-                                    <DayHead key={d} $today={today}>
+                                    <DayHead key={d} $today={today} $alt={i % 2 === 1}>
                                         <strong>{dayShort(d)} {dayMonth(d)}{today ? ', dziś' : ''}</strong>
                                         <span>{d < todayKey ? 'minęło' : free === 0 ? 'brak wolnych okienek' : `${free} ${pluralPl(free, 'wolne okienko', 'wolne okienka', 'wolnych okienek')}`}</span>
                                     </DayHead>
                                 );
                             })}
-                            {/* Linijka godzin tylko przy krótkim zakresie: w tygodniu byłyby to kreski bez cyfr. */}
-                            {days.length <= 3 && days.flatMap(d => {
-                                const h = hoursOf(d)!;
-                                return Array.from({ length: Math.floor((h.closes - h.opens) / 60) + 1 }, (_, k) => {
-                                    const t = new Date(`${d}T00:00:00`);
-                                    t.setMinutes(h.opens + k * 60);
-                                    // Pełne godziny co jedną w widoku dnia, co dwie przy trzech dniach.
-                                    // Bez skrajnych godzin: na krawędzi dnia cyfra wpadałaby na sąsiada.
-                                    if (k === 0 || t.getHours() * 60 >= h.closes || (days.length > 1 && k % 2 === 1)) return null;
-                                    return <Tick key={`${d}-${k}`} style={{ left: pct(weekX(t, days)) }}>{t.getHours()}</Tick>;
-                                });
-                            })}
-                            {/* Godzina „teraz" tylko przy linijce godzin; w tygodniu wystarczy kolumna dnia. */}
-                            {nowVisible && days.length <= 3 && <NowPill style={{ left: pct(nowX) }}>{clockText(now)}</NowPill>}
+                            {ticks.map(t => <Tick key={t.getTime()} style={{ left: pct(weekX(t, days)) }}>{t.getHours()}</Tick>)}
+                            {nowVisible && <NowPill style={{ left: pct(nowX) }}>{clockText(now)}</NowPill>}
                         </Axis>
                     </HeadRow>
 
@@ -702,6 +848,8 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                                 ref={el => { if (el) tracks.current.set(row.rowId, el); else tracks.current.delete(row.rowId); }}
                                 $lanes={row.lanes}
                                 $selectable={canEdit}
+                                $target={drag?.kind === 'move' && drag.moved && drag.rowId === row.rowId}
+                                data-target={drag?.kind === 'move' && drag.moved && drag.rowId === row.rowId}
                                 onPointerDown={e => onTrackDown(e, row)}
                                 onClick={e => onTrackClick(e, row)}
                             >
@@ -715,31 +863,28 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                 </Grid>
             </Scroller>
 
+            {drag?.kind === 'move' && drag.moved && (() => {
+                const car = snap.cars.find(c => c.id === drag.carId);
+                const { dx, dy, w, h } = grabRef.current;
+                return createPortal(
+                    <DragAvatar
+                        ref={avatarRef}
+                        aria-hidden="true"
+                        style={{ width: Math.min(Math.max(w, 120), 280), height: h, transform: `translate(${pointerRef.current.x - dx}px, ${pointerRef.current.y - dy}px)` }}
+                    >
+                        <Plate $size="sm">{car?.licensePlate}</Plate>
+                        <span>{car?.jobTitle}</span>
+                    </DragAvatar>,
+                    document.body,
+                );
+            })()}
+
             <Legend aria-label="Legenda">
                 <span><Swatch $tone="done" />Zrobione</span>
                 <span><Swatch $tone="active" />Trwa</span>
                 <span><Swatch $tone="plan" />Plan: przeciągnij, żeby przesunąć, chwyć krawędź, żeby zmienić długość</span>
             </Legend>
 
-            <ActionMenu anchor={menu.menu?.anchor ?? null} onClose={menu.close} label="Akcje paska">
-                {menu.menu && (
-                    <>
-                        <MenuItem disabled>
-                            <Plate $size="sm">{menu.menu.item.car.licensePlate}</Plate>
-                            <StatusPill $tone={menu.menu.item.kind === 'active' ? 'info' : 'neutral'}>
-                                {({ plan: 'Plan', active: 'Trwa', done: 'Zrobione' } as const)[menu.menu.item.kind]}
-                            </StatusPill>
-                        </MenuItem>
-                        <MenuItem disabled>{rangeText(menu.menu.item.start, menu.menu.item.end, now)}</MenuItem>
-                        {menu.menu.item.car.visitId && (
-                            <MenuItem onClick={() => { navigate(`/visits/${menu.menu!.item.car.visitId}`); menu.close(); }}>Otwórz wizytę</MenuItem>
-                        )}
-                        {menu.menu.item.kind === 'plan' && menu.menu.item.bookingId && canEdit && (
-                            <MenuItem danger onClick={() => { onDeleteBooking(menu.menu!.item.bookingId!); menu.close(); }}>Usuń z planu</MenuItem>
-                        )}
-                    </>
-                )}
-            </ActionMenu>
         </>
     );
 }

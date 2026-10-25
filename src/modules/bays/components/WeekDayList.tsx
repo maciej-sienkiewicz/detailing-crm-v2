@@ -11,7 +11,7 @@ import { CalendarPlus, Hourglass } from 'lucide-react';
 import { Button, ui } from '@/common/components/ui';
 import { formatClockTime } from '@/common/dateTime';
 import type { BaysSnapshot } from '../types';
-import { buildWeekRows, cellIsFree, freeCellsOn } from '../utils/weekLayout';
+import { buildWeekRows, cellIsFree, freeCellsOn, type WeekBar } from '../utils/weekLayout';
 import { cellText, dayMonth, dayShort, formatMinutes, toDateKey, type Cell } from '../utils/slots';
 import { Avatar, Plate } from './primitives';
 
@@ -92,8 +92,12 @@ const Items = styled.div`
     min-width: 0;
 `;
 
-const Item = styled.div<{ $kind: 'done' | 'active' | 'plan' }>`
+const Item = styled.button<{ $kind: 'done' | 'active' | 'plan' }>`
     display: flex;
+    width: 100%;
+    text-align: left;
+    font-family: inherit;
+    cursor: pointer;
     align-items: center;
     gap: 8px;
     min-width: 0;
@@ -106,6 +110,8 @@ const Item = styled.div<{ $kind: 'done' | 'active' | 'plan' }>`
 
     > span:last-child { min-width: 0; display: flex; flex-direction: column; gap: 1px; }
     > span:last-child > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+
+    &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: 1px; }
 `;
 
 const FreeText = styled.div`
@@ -122,9 +128,11 @@ interface Props {
     onDay: (d: string) => void;
     canEdit: boolean;
     onPlan: (bayId: string, cell: Cell) => void;
+    /** Stuknięcie w auto: podgląd usług (ten sam co na osi). */
+    onOpenBar: (bar: WeekBar, bayId: string) => void;
 }
 
-export function WeekDayList({ snap, now, days, day, onDay, canEdit, onPlan }: Props) {
+export function WeekDayList({ snap, now, days, day, onDay, canEdit, onPlan, onOpenBar }: Props) {
     const { rows } = buildWeekRows(snap, days, now);
     const todayKey = toDateKey(now);
     const current = days.includes(day) ? day : days[0];
@@ -166,7 +174,7 @@ export function WeekDayList({ snap, now, days, day, onDay, canEdit, onPlan }: Pr
                                         const person = snap.settings.trackPeople ? snap.people.find(p => p.id === b.personIds[0]) : undefined;
                                         const curing = b.curingUntil && new Date(b.curingUntil) > now;
                                         return (
-                                            <Item key={b.id} $kind={b.kind}>
+                                            <Item key={b.id} type="button" $kind={b.kind} onClick={() => onOpenBar(b, row.rowId)}>
                                                 {person ? <Avatar person={person} size={24} /> : curing ? <Hourglass size={14} aria-hidden="true" /> : null}
                                                 <span>
                                                     <Plate $size="sm">{b.car.licensePlate}</Plate>

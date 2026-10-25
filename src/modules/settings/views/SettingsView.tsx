@@ -152,7 +152,7 @@ const GROUPS: SectionGroup[] = [
             },
             {
                 id: 'bays', label: 'Stanowiska', summary: 'Hala i plan stanowisk', icon: <LayoutGrid />,
-                description: 'Czy dzielicie warsztat na stanowiska, jakie to stanowiska i na ile okienek dzielić ich dzień w planie.',
+                description: 'Czy dzielicie warsztat na stanowiska, jakie to stanowiska, w jakich godzinach pracuje hala i na ile okienek dzielić dzień w planie.',
                 keywords: 'stanowiska hala podnośnik kabina myjnia plan okienka podział dnia tablica',
             },
         ],

@@ -11,6 +11,8 @@
 //   stan   - NIGDZIE nie zapisywany, liczony z faktów (boardState.ts), więc nie może
 //            rozjechać się z historią.
 
+import type { StudioHours } from './utils/slots';
+
 export type BayKind = 'LIFT' | 'BOOTH' | 'WASH' | 'WORK_AREA';
 
 export interface Bay {
@@ -95,7 +97,8 @@ export interface BayStint {
     curingUntil: string | null;
 }
 
-export interface BaysSettings {
+/** Godziny hali (StudioHours) wyznaczają oś planu i licznik czasu pracy. */
+export interface BaysSettings extends StudioHours {
     /** Studio korzysta ze stanowisk (Ustawienia → Stanowiska). */
     enabled: boolean;
     /**

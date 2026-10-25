@@ -14,10 +14,10 @@ import { Button, Panel, SectionTitle, ui } from '@/common/components/ui';
 import { useToast } from '@/common/components/Toast';
 import { pluralPl } from '@/common/utils/plural';
 import { SettingSwitchRow } from '@/modules/settings/components/SettingSwitchRow';
-import { useBaysSettings } from '../featureFlag';
+import { useBaysSettings, useStudioHours } from '../featureFlag';
 import { useBaysMutation, useBaysSnapshot } from '../hooks/useBays';
 import { baysApi } from '../api/baysApi';
-import { formatMinutes, longestDay } from '../utils/slots';
+import { formatMinutes, longestDay, type StudioHours } from '../utils/slots';
 import { BaysSettingsDrawer } from './BaysSettingsDrawer';
 
 const Body = styled(Panel)`
@@ -74,8 +74,18 @@ const describe = (n: number, capacity: number, active: boolean) => {
     return parts.filter(Boolean).join(', ');
 };
 
+const clock = (m: number) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
+
+/** „6:00–20:00" dla dni roboczych i soboty, osobne wiersze - dwa niezależne fakty. */
+const hoursRows = (h: StudioHours) => [
+    { day: 'Poniedziałek–piątek', text: `${clock(h.dayOpens)}–${clock(h.dayCloses)}` },
+    { day: 'Sobota', text: h.saturdayOpens != null && h.saturdayCloses != null ? `${clock(h.saturdayOpens)}–${clock(h.saturdayCloses)}` : 'zamknięte' },
+    { day: 'Niedziela', text: 'zamknięte' },
+];
+
 export function BaysSettingsSection() {
     const { data: settings } = useBaysSettings();
+    useStudioHours();
     // Stan nieznany (wczytywanie) - przełącznika nie ma, zamiast udawanego „wyłączone".
     const enabled = settings?.enabled;
     const navigate = useNavigate();
@@ -119,6 +129,25 @@ export function BaysSettingsSection() {
                             <Row key={b.id} $off={!b.active}>
                                 <strong>{b.name}</strong>
                                 <span>{describe(b.slotsPerDay, b.capacity, b.active)}</span>
+                            </Row>
+                        ))}
+                    </List>
+                </Body>
+            )}
+
+            {enabled && snap && typeof snap.settings.dayOpens === 'number' && (
+                <Body aria-labelledby="bays-hours-title">
+                    <PanelHead>
+                        <SectionTitle as="h3" id="bays-hours-title">Godziny hali</SectionTitle>
+                        <Actions>
+                            <Button variant="tinted" size="sm" onClick={() => setEditing(true)}>Zmień</Button>
+                        </Actions>
+                    </PanelHead>
+                    <List>
+                        {hoursRows(snap.settings).map(r => (
+                            <Row key={r.day} $off={false}>
+                                <strong>{r.day}</strong>
+                                <span>{r.text}</span>
                             </Row>
                         ))}
                     </List>

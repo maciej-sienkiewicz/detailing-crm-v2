@@ -76,11 +76,14 @@ export function People({ people }: { people: BayPerson[] }) {
     );
 }
 
+/* Pismo aplikacji, nie ui.mono: tablica jest tu tytułem karty, a krój mono nie jest
+   ładowany - przeglądarka podstawiała Couriera i tablica wyglądała jak z innego programu. */
 export const Plate = styled.span<{ $size?: 'sm' | 'md' | 'lg' }>`
-    font-family: ${ui.mono};
+    font-family: inherit;
+    font-variant-numeric: tabular-nums;
     font-size: ${p => (p.$size === 'lg' ? '20px' : p.$size === 'sm' ? '12.5px' : '14.5px')};
     font-weight: 700;
-    letter-spacing: 0.03em;
+    letter-spacing: 0.02em;
     color: ${ui.ink};
     white-space: nowrap;
 `;

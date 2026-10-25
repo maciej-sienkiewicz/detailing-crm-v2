@@ -14,7 +14,7 @@ import { Button, ui } from '@/common/components/ui';
 import { formatClockTime } from '@/common/dateTime';
 import { useToast } from '@/common/components/Toast';
 import { useBaysMutation, useBaysNow, useBaysSnapshot } from '../hooks/useBays';
-import { useBaysEnabled } from '../featureFlag';
+import { useBaysEnabled, useStudioHours } from '../featureFlag';
 import { baysApi, isConflict } from '../api/baysApi';
 import { viewOf } from '../utils/boardState';
 import { dayMonth, dayShort, formatMinutes, rangeText, toDateKey } from '../utils/slots';
@@ -96,6 +96,7 @@ interface Props {
 
 export function VisitBayStrip(props: Props) {
     const enabled = useBaysEnabled();
+    useStudioHours();
     const { data: snap } = useBaysSnapshot(undefined, enabled);
     const now = useBaysNow();
     const { showSuccess, showInfo, showError } = useToast();

@@ -10,6 +10,10 @@
 // Gdy jest włączony, osoba przy stanowisku jest tylko PODPOWIEDZIĄ przy wjeździe -
 // ludzi przypisuje się do odcinka pracy, bo przy jednym aucie pracują dwie osoby,
 // a jeden mechanik chodzi między podnośnikami.
+//
+// Godziny hali wyznaczają szerokość dnia w planie i to, co licznik uznaje za pracę.
+// Wybór co pół godziny, bo tak przyciąga się plan - wpisane 6:10 i tak nie trafiłoby
+// w żadne okienko.
 
 import { useState } from 'react';
 import styled from 'styled-components';
@@ -20,11 +24,17 @@ import { Toggle } from '@/common/components/Toggle';
 import { pluralPl } from '@/common/utils/plural';
 import type { Bay, BayKind, BayPerson, BaysSettings } from '../types';
 import { KIND_LABEL } from '../utils/labels';
-import { SLOT_OPTIONS, formatMinutes, longestDay } from '../utils/slots';
+import { SLOT_OPTIONS, formatMinutes, longestDay, toOpeningHours, type StudioHours } from '../utils/slots';
 
-/** „Co 1 h 30 min". Krótkie prace (myjnia) dziel drobniej, długie grubiej. */
-const slotOptionLabel = (n: number) =>
-    n === 1 ? 'Cały dzień' : n === 2 ? 'Pół dnia' : `Co ${formatMinutes(Math.round(longestDay() / n))}`;
+/** „Co 1 h 30 min" - liczone z godzin w edycji, nie z zapisanych. Krótkie prace (myjnia) dziel drobniej. */
+const slotOptionLabel = (n: number, day: number) =>
+    n === 1 ? 'Cały dzień' : n === 2 ? 'Pół dnia' : `Co ${formatMinutes(Math.round(day / n))}`;
+
+const HALF_HOURS = Array.from({ length: 49 }, (_, i) => i * 30);
+const clock = (m: number) => `${Math.floor(m / 60)}:${String(m % 60).padStart(2, '0')}`;
+const OPENS = HALF_HOURS.slice(0, -1).map(m => ({ value: m, label: clock(m) }));
+const CLOSES = HALF_HOURS.slice(1).map(m => ({ value: m, label: clock(m) }));
+const SATURDAY_DEFAULT = { opens: 6 * 60, closes: 14 * 60 };
 
 const Section = styled.section`
     display: flex;
@@ -116,6 +126,46 @@ const BareSelect = styled.select`
     &:focus { outline: none; }
 `;
 
+const HoursRow = styled.div`
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) 132px 132px;
+    align-items: end;
+    gap: 10px;
+    padding: 12px 14px;
+
+    & + & { border-top: 1px solid ${ui.lineSoft}; }
+
+    @media (max-width: 560px) {
+        grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+        > :first-child { grid-column: 1 / -1; }
+    }
+`;
+
+const DayName = styled.div`
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    min-height: 38px;
+
+    > span { font-size: 14px; font-weight: 600; color: ${ui.ink}; }
+    label { font-size: 14px; font-weight: 600; color: ${ui.ink}; cursor: pointer; }
+`;
+
+const Closed = styled.span`
+    grid-column: span 2;
+    align-self: center;
+    font-size: 13px;
+    color: ${ui.textMuted};
+
+    @media (max-width: 560px) { display: none; }
+`;
+
+const HoursError = styled.p`
+    margin: 0;
+    font-size: 12.5px;
+    color: ${ui.dangerInk};
+`;
+
 const Footnote = styled.div`
     display: flex;
     align-items: center;
@@ -129,12 +179,23 @@ interface Props {
     settings: BaysSettings;
     people: BayPerson[];
     onClose: () => void;
-    onSave: (bays: Bay[], settings: Pick<BaysSettings, 'trackPeople'>) => Promise<void>;
+    onSave: (bays: Bay[], settings: Pick<BaysSettings, 'trackPeople' | keyof StudioHours>) => Promise<void>;
 }
+
+const validDay = (opens: number | null, closes: number | null) => opens == null || closes == null || closes > opens;
 
 export function BaysSettingsDrawer({ bays, settings, people, onClose, onSave }: Props) {
     const [draft, setDraft] = useState<Bay[]>(bays);
     const [trackPeople, setTrackPeople] = useState(settings.trackPeople);
+    const [hours, setHours] = useState<StudioHours>({
+        dayOpens: settings.dayOpens,
+        dayCloses: settings.dayCloses,
+        saturdayOpens: settings.saturdayOpens,
+        saturdayCloses: settings.saturdayCloses,
+    });
+    const day = longestDay(toOpeningHours(hours));
+    const hoursValid = validDay(hours.dayOpens, hours.dayCloses) && validDay(hours.saturdayOpens, hours.saturdayCloses);
+    const saturdayOpen = hours.saturdayOpens != null;
     const [saving, setSaving] = useState(false);
     const patch = (id: string, change: Partial<Bay>) => setDraft(d => d.map(b => (b.id === id ? { ...b, ...change } : b)));
 
@@ -154,13 +215,13 @@ export function BaysSettingsDrawer({ bays, settings, people, onClose, onSave }: 
             onClose={onClose}
             title="Stanowiska"
             titleId="bays-settings-title"
-            subtitle="Miejsca, w których stoi auto, i jak dzielić ich dzień w planie"
+            subtitle="Godziny hali, miejsca, w których stoi auto, i podział ich dnia w planie"
             width={620}
             footer={(
                 <>
                     <Button variant="outline" size="lg" onClick={onClose} style={{ marginLeft: 'auto' }}>Anuluj</Button>
-                    <Button variant="primary" size="lg" disabled={saving || draft.some(b => !b.name.trim())}
-                        onClick={async () => { setSaving(true); await onSave(draft, { trackPeople }); setSaving(false); }}>Zapisz</Button>
+                    <Button variant="primary" size="lg" disabled={saving || !hoursValid || draft.some(b => !b.name.trim())}
+                        onClick={async () => { setSaving(true); await onSave(draft, { trackPeople, ...hours }); setSaving(false); }}>Zapisz</Button>
                 </>
             )}
         >
@@ -173,6 +234,40 @@ export function BaysSettingsDrawer({ bays, settings, people, onClose, onSave }: 
                         </div>
                         <Toggle inputId="bays-track-people" size="sm" checked={trackPeople} onChange={setTrackPeople} ariaLabel="Zapisuj, kto pracuje przy aucie" />
                     </SettingRow>
+                </Section>
+
+                <Section aria-labelledby="bays-hours-title">
+                    <SectionTitle as="h3" id="bays-hours-title">Godziny hali</SectionTitle>
+                    <List>
+                        <HoursRow>
+                            <DayName><span>Poniedziałek–piątek</span></DayName>
+                            {select('bays-day-opens', 'Od', hours.dayOpens, OPENS, v => setHours(h => ({ ...h, dayOpens: Number(v) })))}
+                            {select('bays-day-closes', 'Do', hours.dayCloses, CLOSES, v => setHours(h => ({ ...h, dayCloses: Number(v) })))}
+                        </HoursRow>
+                        <HoursRow>
+                            <DayName>
+                                <Toggle
+                                    inputId="bays-saturday"
+                                    size="sm"
+                                    checked={saturdayOpen}
+                                    ariaLabel="Sobota czynna"
+                                    onChange={on => setHours(h => ({
+                                        ...h,
+                                        saturdayOpens: on ? SATURDAY_DEFAULT.opens : null,
+                                        saturdayCloses: on ? SATURDAY_DEFAULT.closes : null,
+                                    }))}
+                                />
+                                <label htmlFor="bays-saturday">Sobota</label>
+                            </DayName>
+                            {saturdayOpen ? (
+                                <>
+                                    {select('bays-sat-opens', 'Od', hours.saturdayOpens ?? 0, OPENS, v => setHours(h => ({ ...h, saturdayOpens: Number(v) })))}
+                                    {select('bays-sat-closes', 'Do', hours.saturdayCloses ?? 0, CLOSES, v => setHours(h => ({ ...h, saturdayCloses: Number(v) })))}
+                                </>
+                            ) : <Closed>Zamknięte, sobota znika z planu</Closed>}
+                        </HoursRow>
+                    </List>
+                    {!hoursValid && <HoursError role="alert">Godzina zamknięcia musi być późniejsza niż otwarcia.</HoursError>}
                 </Section>
 
                 <Section>
@@ -197,7 +292,7 @@ export function BaysSettingsDrawer({ bays, settings, people, onClose, onSave }: 
                                         Object.entries(KIND_LABEL).map(([value, label]) => ({ value, label })),
                                         v => patch(b.id, { kind: v as BayKind }))}
                                     {select(`bay-slots-${b.id}`, 'Podział dnia', b.slotsPerDay,
-                                        SLOT_OPTIONS.map(n => ({ value: n, label: slotOptionLabel(n) })),
+                                        SLOT_OPTIONS.map(n => ({ value: n, label: slotOptionLabel(n, day) })),
                                         v => patch(b.id, { slotsPerDay: Number(v) }))}
                                     {select(`bay-cap-${b.id}`, 'Ile aut naraz', b.capacity,
                                         [1, 2, 3, 4].map(n => ({ value: n, label: `${n} ${pluralPl(n, 'auto', 'auta', 'aut')}` })),

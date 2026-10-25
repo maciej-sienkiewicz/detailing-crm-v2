@@ -1,7 +1,13 @@
 import { describe, expect, it } from 'vitest';
 import {
-    cellIndexAt, cellsFrom, dayCells, durationLabel, mondayOf, snapRange, timeAtWeekX, toDateKey, weekDays, weekX, workMinutes,
+    cellIndexAt, cellsFrom, dayCells, durationLabel, longestDay, mondayOf, setStudioHours, snapRange, timeAtWeekX,
+    toDateKey, toOpeningHours, weekDays, weekX, workMinutes, DEFAULT_STUDIO_HOURS,
 } from './slots';
+
+// Scenariusze niżej liczą się w godzinach 8-17 (sobota 8-13), ustawionych jawnie - nie
+// w domyślnych godzinach serwera, żeby zmiana domyślnych nie przepisywała tych przykładów.
+const WORKSHOP_HOURS = { dayOpens: 480, dayCloses: 1020, saturdayOpens: 480, saturdayCloses: 780 };
+setStudioHours(WORKSHOP_HOURS);
 
 // 26.10.2026 to poniedziałek; sobota 31.10 jest czynna 8-13.
 const at = (iso: string) => new Date(iso);
@@ -67,5 +73,31 @@ describe('oś tygodnia', () => {
 
     it('długości mówią się słowami', () => {
         expect([90, 270, 540, 810, 1080].map(m => durationLabel(m))).toEqual(['1 h 30 min', '4 h 30 min', '1 dzień', '1,5 dnia', '2 dni']);
+    });
+});
+
+describe('godziny hali z ustawień studia', () => {
+    it('domyślnie oś biegnie 6-20, sobota 6-14, niedziela zamknięta', () => {
+        const hours = toOpeningHours(DEFAULT_STUDIO_HOURS);
+        expect(hours[1]).toEqual({ opens: 360, closes: 1200 });
+        expect(hours[6]).toEqual({ opens: 360, closes: 840 });
+        expect(hours[0]).toBeNull();
+        expect(longestDay(hours)).toBe(14 * 60);
+    });
+
+    it('zamknięta sobota znika z tygodnia', () => {
+        const hours = toOpeningHours({ ...DEFAULT_STUDIO_HOURS, saturdayOpens: null, saturdayCloses: null });
+        expect(weekDays(mondayOf(new Date('2026-10-28T12:00:00')), hours)).toHaveLength(5);
+    });
+
+    it('godziny studia stają się domyślnymi dla osi i licznika', () => {
+        try {
+            expect(setStudioHours(DEFAULT_STUDIO_HOURS)).toBe(true);
+            expect(setStudioHours(DEFAULT_STUDIO_HOURS)).toBe(false);
+            // pn 19:00 → wt 7:00: godzina przed zamknięciem o 20 i godzina po otwarciu o 6.
+            expect(workMinutes(at('2026-10-26T19:00:00'), at('2026-10-27T07:00:00'))).toBe(120);
+        } finally {
+            setStudioHours(WORKSHOP_HOURS);
+        }
     });
 });

@@ -3,6 +3,7 @@
 import { useEffect, useState } from 'react';
 import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { baysApi } from '../api/baysApi';
+import type { BaysSnapshot } from '../types';
 import { addDays, mondayOf } from '../utils/slots';
 
 /** Wspólny początek kluczy - każda zmiana odświeża i odczyt hali, i ustawienia. */
@@ -42,4 +43,20 @@ export const useBaysNow = (): Date => {
         return () => window.clearInterval(id);
     }, []);
     return now;
+};
+
+/**
+ * Zmiana widoczna od razu, zanim serwer odpowie. Bez tego pasek po upuszczeniu wracał
+ * na stare miejsce na czas zapisu i dopiero potem przeskakiwał - przeciąganie wyglądało
+ * na zepsute. Odpowiedź serwera i tak nadpisze odczyt (`useBaysMutation` go odświeża),
+ * a przy błędzie wróci stan z bazy.
+ */
+export const usePatchBoard = () => {
+    const queryClient = useQueryClient();
+    return async (patch: (snap: BaysSnapshot) => BaysSnapshot) => {
+        const key = [...BAYS_KEY, 'board'];
+        // Odświeżenie w locie przyniosłoby stary stan i cofnęło pasek.
+        await queryClient.cancelQueries({ queryKey: key });
+        queryClient.setQueriesData<BaysSnapshot>({ queryKey: key }, old => (old ? patch(old) : old));
+    };
 };

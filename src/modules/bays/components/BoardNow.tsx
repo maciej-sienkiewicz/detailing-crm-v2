@@ -1,7 +1,8 @@
 // src/modules/bays/components/BoardNow.tsx
 //
-// „Teraz": gdzie fizycznie stoi każde auto. Po lewej to, co stoi POZA stanowiskami
-// (plac, do wydania), po prawej hala.
+// „Teraz": gdzie fizycznie stoi każde auto. Po lewej plac (auto u nas, poza
+// stanowiskami), po prawej hala. Auto gotowe znika z tablicy - wydanie prowadzi
+// wizyta, a osobna kolumna „Do wydania" powtarzała tylko listę wizyt gotowych.
 //
 // Plac jest kolumną na równi ze stanowiskami i to jest najważniejsza decyzja tego
 // widoku: auto „u nas, ale nikt przy nim nie pracuje" (czeka na część, na decyzję
@@ -12,7 +13,7 @@
 // kolumny, karta w trzech liniach, JEDEN przycisk na karcie - krok, który przy tym
 // aucie zwykle jest następny. Rzadsze akcje są pod „Więcej". Bez paska liczb nad
 // tablicą (liczby stoją w nagłówkach kolumn) i bez podpisów, które tłumaczyły nazwy
-// kolumn: „Na placu" i „Do wydania" mówią to same.
+// kolumn: „Na placu" mówi to samo.
 //
 // Przeciąganie to skrót na komputerze, nigdy jedyna droga (telefon, klawiatura,
 // tablet w rękawicach).
@@ -33,9 +34,9 @@ import { CarCard, Meta } from './primitives';
 import { BayPickerDialog, FinishDialog, PauseDialog, type FinishChoice } from './dialogs';
 
 /*
- * Na szerokim ekranie: plac i wydanie z lewej, stanowiska w siatce, która się
- * zawija - pięć czy dziewięć stanowisk mieści się bez przewijania w bok. Węższy
- * ekran: plac, hala, do wydania jedno pod drugim, w kolejności drogi auta.
+ * Na szerokim ekranie: plac z lewej, stanowiska w siatce, która się zawija - pięć
+ * czy dziewięć stanowisk mieści się bez przewijania w bok. Węższy ekran: plac nad
+ * halą, w kolejności drogi auta.
  */
 const Layout = styled.div`
     container: bays-board / inline-size;
@@ -45,14 +46,13 @@ const Layout = styled.div`
 const Areas = styled.div`
     display: grid;
     grid-template-columns: minmax(0, 1fr);
-    grid-template-areas: 'yard' 'hall' 'ready';
+    grid-template-areas: 'yard' 'hall';
     gap: 12px;
     align-items: start;
 
     @container bays-board (min-width: 900px) {
         grid-template-columns: 264px minmax(0, 1fr);
-        grid-template-rows: auto 1fr;
-        grid-template-areas: 'yard hall' 'ready hall';
+        grid-template-areas: 'yard hall';
     }
 `;
 
@@ -65,9 +65,9 @@ const Hall = styled.div`
     min-width: 0;
 `;
 
-/* Stanowisko leży na szarym tle (miejsce w hali); plac i wydanie mają tylko
+/* Stanowisko leży na szarym tle (miejsce w hali); plac ma tylko
    przerywany obrys - to miejsca POZA halą. Jedyna różnica, którą niesie tło. */
-const Column = styled.section<{ $drop: boolean; $kind: 'yard' | 'bay' | 'ready' }>`
+const Column = styled.section<{ $drop: boolean; $kind: 'yard' | 'bay' }>`
     display: flex;
     flex-direction: column;
     gap: 8px;
@@ -107,7 +107,7 @@ const Count = styled.span`
     font-variant-numeric: tabular-nums;
 `;
 
-/* Plac i wydanie na pełnej szerokości (tablet, telefon w poziomie): karty w siatce
+/* Plac na pełnej szerokości (tablet, telefon w poziomie): karty w siatce
    zamiast jednej pod drugą na całą szerokość - w wąskiej kolumnie z lewej i tak jedna. */
 const Cards = styled.div`
     display: grid;
@@ -134,7 +134,7 @@ type Dialog =
     | { kind: 'finish'; view: CarView }
     | { kind: 'pause'; view: CarView };
 
-type DropTarget = { kind: 'yard' } | { kind: 'bay'; bayId: string } | { kind: 'ready' };
+type DropTarget = { kind: 'yard' } | { kind: 'bay'; bayId: string };
 
 const sameTarget = (a: DropTarget | null, b: DropTarget) =>
     !!a && a.kind === b.kind && (a.kind !== 'bay' || (b.kind === 'bay' && a.bayId === b.bayId));
@@ -219,9 +219,6 @@ export function BoardNow({ snap, now, canEdit }: Props) {
             else void enterBay(view, target.bayId, people, null);
         } else if (target.kind === 'yard' && from.kind === 'bay') {
             setDialog({ kind: 'pause', view });
-        } else if (target.kind === 'ready' && from.kind !== 'ready') {
-            if (from.kind === 'bay') setDialog({ kind: 'finish', view });
-            else goReady(view);
         }
     };
 
@@ -297,21 +294,6 @@ export function BoardNow({ snap, now, canEdit }: Props) {
         );
     };
 
-    const readyCard = (v: CarView) => (
-        <CarCard
-            key={v.car.id}
-            plate={v.car.licensePlate}
-            vehicle={v.car.vehicleName}
-            job={v.car.jobTitle}
-            aside={v.car.readyAt ? `od ${formatClockTime(v.car.readyAt)}` : null}
-            asideTitle="Gotowe do wydania od"
-            actions={canEdit && (
-                // Wydanie (protokół, rozliczenie) jest w wizycie; po nim auto samo znika z tablicy.
-                <Button variant="outline" size="sm" onClick={() => navigate(`/visits/${v.car.visitId ?? v.car.id}`)}>Wydaj</Button>
-            )}
-        />
-    );
-
     return (
         <>
             <Layout>
@@ -342,13 +324,6 @@ export function BoardNow({ snap, now, canEdit }: Props) {
                         })}
                     </Hall>
 
-                    <Column $kind="ready" $drop={sameTarget(dropOver, { kind: 'ready' })} {...dropProps({ kind: 'ready' })} aria-labelledby="col-ready">
-                        <ColumnHead title="Praca skończona, auto czeka na klienta">
-                            <ColumnTitle id="col-ready">Do wydania</ColumnTitle>
-                            <Count>{board.ready.length}</Count>
-                        </ColumnHead>
-                        {board.ready.length === 0 ? <Empty>Pusto</Empty> : <Cards>{board.ready.map(readyCard)}</Cards>}
-                    </Column>
                 </Areas>
             </Layout>
 

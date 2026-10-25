@@ -9,7 +9,7 @@
 
 import type { Bay, BayCar, BaysSnapshot } from '../types';
 import {
-    addDays, dayCells, fromDateKey, hoursOf, snapRange, toDateKey, weekX, workMinutes, type Cell, type OpeningHours, DEFAULT_HOURS,
+    addDays, dayCells, fromDateKey, hoursOf, snapRange, toDateKey, weekX, workMinutes, type Cell, type OpeningHours, studioHours,
 } from './slots';
 
 export type BarKind = 'done' | 'active' | 'plan';
@@ -90,7 +90,7 @@ export const buildWeekRows = (
     snap: BaysSnapshot,
     days: string[],
     now: Date,
-    hours: OpeningHours = DEFAULT_HOURS,
+    hours: OpeningHours = studioHours(),
 ): { rows: WeekRow[] } => {
     const carById = new Map(snap.cars.map(c => [c.id, c]));
     const first = days[0];
@@ -161,7 +161,7 @@ export const buildWeekRows = (
 };
 
 /** Pozycja okienka na osi. */
-export const cellBox = (c: Cell, days: string[], hours: OpeningHours = DEFAULT_HOURS) => {
+export const cellBox = (c: Cell, days: string[], hours: OpeningHours = studioHours()) => {
     const x = weekX(c.start, days, hours);
     return { x, w: weekX(c.end, days, hours) - x };
 };
@@ -185,7 +185,7 @@ export const bookingRangeFromDates = (
     start: Date,
     end: Date,
     slotsPerDay: number,
-    hours: OpeningHours = DEFAULT_HOURS,
+    hours: OpeningHours = studioHours(),
 ): { start: Date; end: Date } | null => {
     const cells: Cell[] = [];
     const last = toDateKey(end);

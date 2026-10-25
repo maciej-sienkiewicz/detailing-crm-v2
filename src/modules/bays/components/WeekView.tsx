@@ -10,14 +10,15 @@ import { Button, IconButton, Segmented, ui } from '@/common/components/ui';
 import { useBreakpoint } from '@/common/hooks';
 import { useToast } from '@/common/components/Toast';
 import type { BaysSnapshot } from '../types';
-import { addDays, dayMonth, fromDateKey, hoursOf, mondayOf, toDateKey, weekDays, rangeText, relativeDay, clockText, type Cell } from '../utils/slots';
+import { addDays, dayMonth, fromDateKey, hoursOf, mondayOf, toDateKey, weekDays, relativeDay, clockText, type Cell } from '../utils/slots';
 import { buildWeekRows, overlapsInRange, type WeekBar } from '../utils/weekLayout';
 import { baysApi } from '../api/baysApi';
-import { useBaysMutation, useBaysSnapshot } from '../hooks/useBays';
+import { useBaysMutation, useBaysSnapshot, usePatchBoard } from '../hooks/useBays';
 import { WeekPlanner, type MoveRequest, type RangeRequest } from './WeekPlanner';
 import { WeekDayList } from './WeekDayList';
 import { BayBookingFlow } from './BayBookingFlow';
 import { DurationDialog, OverlapDialog } from './planDialogs';
+import { BarPreviewDrawer } from './BarPreviewDrawer';
 
 const Nav = styled.div`
     display: flex;
@@ -67,7 +68,8 @@ const openDays = (from: string, n: number, dir: 1 | -1 = 1): string[] => {
 
 export function WeekView({ snap: initial, now, canEdit }: Props) {
     const isTabletUp = useBreakpoint('md');
-    const { showSuccess, showWarning } = useToast();
+    const { showError, showWarning } = useToast();
+    const patchBoard = usePatchBoard();
     const [span, setSpan] = useState<Span>(6);
     // Kotwica zakresu: poniedziałek w trybie tygodnia, pierwszy pokazany dzień w pozostałych.
     const [anchor, setAnchor] = useState(() => toDateKey(defaultMonday(now)));
@@ -84,6 +86,7 @@ export function WeekView({ snap: initial, now, canEdit }: Props) {
     const snap = weekSnap ?? initial;
     const [day, setDay] = useState(() => toDateKey(now));
     const [step, setStep] = useState<Step | null>(null);
+    const [preview, setPreview] = useState<{ bar: WeekBar; bayId: string } | null>(null);
     const move = useBaysMutation(baysApi.moveBooking);
     const create = useBaysMutation(baysApi.createBooking);
     const remove = useBaysMutation(baysApi.deleteBooking);
@@ -123,19 +126,36 @@ export function WeekView({ snap: initial, now, canEdit }: Props) {
     const applyMove = async (m: MoveRequest) => {
         setStep(null);
         const car = snap.cars.find(c => c.id === m.carId);
-        if (m.bookingId) await move.mutateAsync([m.bookingId, m.bayId, m.start, m.end]);
-        else if (car) await create.mutateAsync([m.bayId, { visitId: car.visitId, appointmentId: car.visitId ? null : car.appointmentId }, m.start, m.end]);
-        // Plan za obiecanym odbiorem: ostrzeżenie, ale termin odbioru zmienia tylko
-        // człowiek - od niego zależą SMS-y do klienta.
+        const start = m.start.toISOString();
+        const end = m.end.toISOString();
+        // Pasek staje na nowym miejscu od razu; zapis idzie w tle.
+        await patchBoard(s => ({
+            ...s,
+            bookings: m.bookingId
+                ? s.bookings.map(b => (b.id === m.bookingId ? { ...b, bayId: m.bayId, start, end } : b))
+                : [...s.bookings, { id: `pending-${m.carId}`, bayId: m.bayId, carId: m.carId, start, end }],
+        }));
+        try {
+            if (m.bookingId) await move.mutateAsync([m.bookingId, m.bayId, m.start, m.end]);
+            else if (car) await create.mutateAsync([m.bayId, { visitId: car.visitId, appointmentId: car.visitId ? null : car.appointmentId }, m.start, m.end]);
+        } catch {
+            showError('Nie udało się zapisać planu', 'Pasek wrócił na poprzednie miejsce.');
+            return;
+        }
+        // Przesunięcie widać na osi - komunikat tylko wtedy, gdy jest coś do przeczytania:
+        // plan za obiecanym odbiorem. Termin odbioru zmienia człowiek, nie oś.
         if (car?.promisedAt && m.end > new Date(car.promisedAt)) {
             const promised = new Date(car.promisedAt);
             showWarning(
                 `${car.licensePlate}: plan kończy się po terminie odbioru`,
                 `Klientowi obiecano ${relativeDay(toDateKey(promised), now)} ${clockText(promised)}. Zmień termin w wizycie albo skróć plan.`,
             );
-        } else {
-            showSuccess(`${car?.licensePlate ?? 'Auto'} w planie`, `${bayById(m.bayId)?.name}, ${rangeText(m.start, m.end, now)}.`);
         }
+    };
+
+    const removeBooking = async (bookingId: string) => {
+        await patchBoard(s => ({ ...s, bookings: s.bookings.filter(b => b.id !== bookingId) }));
+        remove.mutate([bookingId], { onError: () => showError('Nie udało się usunąć z planu', 'Spróbuj ponownie.') });
     };
 
     const onMove = (m: MoveRequest) => {
@@ -180,7 +200,7 @@ export function WeekView({ snap: initial, now, canEdit }: Props) {
                     onRange={onRange}
                     onTapCell={(bayId, cell) => setStep({ kind: 'duration', bayId, cell })}
                     onMove={onMove}
-                    onDeleteBooking={id => remove.mutate([id])}
+                    onOpenBar={(bar, bayId) => setPreview({ bar, bayId })}
                 />
             ) : (
                 <WeekDayList
@@ -191,9 +211,20 @@ export function WeekView({ snap: initial, now, canEdit }: Props) {
                     onDay={setDay}
                     canEdit={canEdit}
                     onPlan={(bayId, cell) => setStep({ kind: 'duration', bayId, cell })}
+                    onOpenBar={(bar, bayId) => setPreview({ bar, bayId })}
                 />
             )}
 
+            {preview && (
+                <BarPreviewDrawer
+                    bar={preview.bar}
+                    bayName={bayById(preview.bayId)?.name ?? ''}
+                    now={now}
+                    canEdit={canEdit}
+                    onClose={() => setPreview(null)}
+                    onDeleteBooking={id => void removeBooking(id)}
+                />
+            )}
             {step?.kind === 'duration' && (
                 <DurationDialog
                     bayName={bayById(step.bayId)?.name ?? ''}

@@ -2,7 +2,11 @@ import { describe, expect, it } from 'vitest';
 import type { BaysSnapshot } from '../types';
 import { buildWeekRows, bookingRangeFromDates, freeCellsOn, overlapsInRange } from './weekLayout';
 import { buildBoard } from './boardState';
-import { mondayOf, weekDays, weekX } from './slots';
+import { mondayOf, setStudioHours, weekDays, weekX } from './slots';
+
+// Przykłady liczą się w godzinach 8-17 (sobota 8-13), ustawionych jawnie.
+const WORKSHOP_HOURS = { dayOpens: 480, dayCloses: 1020, saturdayOpens: 480, saturdayCloses: 780 };
+setStudioHours(WORKSHOP_HOURS);
 
 // Poniedziałek 26.10.2026, 11:05.
 const NOW = new Date('2026-10-26T11:05:00');
@@ -10,7 +14,7 @@ const days = weekDays(mondayOf(NOW));
 const iso = (s: string) => new Date(s).toISOString();
 
 const snap = (over: Partial<BaysSnapshot> = {}): BaysSnapshot => ({
-    settings: { enabled: true, trackPeople: false },
+    settings: { enabled: true, trackPeople: false, ...WORKSHOP_HOURS },
     bays: [
         { id: 'b1', name: 'Podnośnik 1', kind: 'LIFT', capacity: 1, slotsPerDay: 2, defaultPersonId: null, active: true },
         { id: 'b2', name: 'Myjnia', kind: 'WASH', capacity: 2, slotsPerDay: 6, defaultPersonId: null, active: true },
@@ -79,7 +83,14 @@ describe('tablica „Teraz" - stan liczony z faktów', () => {
 
     it('rezerwacja, która jeszcze nie przyjechała, nie jest na tablicy', () => {
         const board = buildBoard(snap(), NOW);
-        const all = [...board.yard, ...board.ready, ...board.bays.flatMap(b => b.items)].map(v => v.car.id);
+        const all = [...board.yard, ...board.bays.flatMap(b => b.items)].map(v => v.car.id);
         expect(all).not.toContain('c2');
+    });
+
+    it('auto gotowe do wydania schodzi z tablicy - wydanie prowadzi wizyta', () => {
+        const base = snap();
+        const cars = base.cars.map(c => (c.id === 'c3' ? { ...c, stage: 'READY' as const, readyAt: iso('2026-10-26T10:30:00') } : c));
+        const board = buildBoard({ ...base, cars }, NOW);
+        expect(board.yard.map(v => v.car.id)).not.toContain('c3');
     });
 });

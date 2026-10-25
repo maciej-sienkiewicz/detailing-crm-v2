@@ -20,21 +20,52 @@ export interface DayHours {
 /** Indeks jak `Date.getDay()`: 0 - niedziela. null - zamknięte. */
 export type OpeningHours = Record<0 | 1 | 2 | 3 | 4 | 5 | 6, DayHours | null>;
 
-const WEEKDAY: DayHours = { opens: 8 * 60, closes: 17 * 60 };
+/** Minuty od północy, jak przysyła serwer (Ustawienia → Stanowiska → Godziny hali). */
+export interface StudioHours {
+    dayOpens: number;
+    dayCloses: number;
+    /** null - sobota zamknięta. */
+    saturdayOpens: number | null;
+    saturdayCloses: number | null;
+}
 
-/**
- * Godziny otwarcia. Na razie stałe (pn-pt 8-17, sb 8-13) - firma ich jeszcze nigdzie
- * nie zapisuje; gdy pojawią się w ustawieniach, wystarczy podać je tutaj.
- */
-export const DEFAULT_HOURS: OpeningHours = {
-    0: null,
-    1: WEEKDAY,
-    2: WEEKDAY,
-    3: WEEKDAY,
-    4: WEEKDAY,
-    5: WEEKDAY,
-    6: { opens: 8 * 60, closes: 13 * 60 },
+/** Domyślne godziny serwera (V222): pn-pt 6-20, sb 6-14, niedziela zamknięta. */
+export const DEFAULT_STUDIO_HOURS: StudioHours = {
+    dayOpens: 6 * 60, dayCloses: 20 * 60, saturdayOpens: 6 * 60, saturdayCloses: 14 * 60,
 };
+
+export const toOpeningHours = (h: StudioHours): OpeningHours => {
+    const weekday: DayHours = { opens: h.dayOpens, closes: h.dayCloses };
+    const saturday = h.saturdayOpens != null && h.saturdayCloses != null
+        ? { opens: h.saturdayOpens, closes: h.saturdayCloses }
+        : null;
+    return { 0: null, 1: weekday, 2: weekday, 3: weekday, 4: weekday, 5: weekday, 6: saturday };
+};
+
+export const DEFAULT_HOURS: OpeningHours = toOpeningHours(DEFAULT_STUDIO_HOURS);
+
+// Godziny hali są jedne na studio, a przechodzą przez kilkanaście funkcji osi i licznika
+// czasu pracy. Zamiast przewlekać je parametrem przez każdy komponent, widok stanowisk
+// ustawia je tu raz po wczytaniu ustawień (`useStudioHours`), a funkcje biorą je jako
+// domyślne. Parametr `hours` zostaje - testy i podgląd w ustawieniach podają własne.
+let studio: OpeningHours = DEFAULT_HOURS;
+
+export const studioHours = (): OpeningHours => studio;
+
+/** Zwraca true, gdy godziny się zmieniły (wtedy trzeba przeliczyć zapamiętane osie). */
+export const setStudioHours = (h: StudioHours): boolean => {
+    const next = toOpeningHours(h);
+    if (JSON.stringify(next) === JSON.stringify(studio)) return false;
+    studio = next;
+    return true;
+};
+
+/** Klucz do zależności `useMemo` - oś zależy od godzin, nie tylko od dni. */
+export const hoursKey = (hours: OpeningHours = studio): string =>
+    [1, 6].map(d => {
+        const h = hours[d as 1 | 6];
+        return h ? `${h.opens}-${h.closes}` : 'x';
+    }).join('/');
 
 /** Podziały dnia do wyboru w ustawieniach stanowiska. */
 export const SLOT_OPTIONS = [1, 2, 3, 4, 6, 9] as const;
@@ -60,11 +91,11 @@ const atMinutes = (dateKey: string, minutes: number): Date => {
     return d;
 };
 
-export const hoursOf = (dateKey: string, hours: OpeningHours = DEFAULT_HOURS): DayHours | null =>
+export const hoursOf = (dateKey: string, hours: OpeningHours = studioHours()): DayHours | null =>
     hours[fromDateKey(dateKey).getDay() as keyof OpeningHours];
 
 /** Najdłuższy dzień tygodnia - szerokość kolumny dnia. Krótsza sobota ma zakreskowany ogon. */
-export const longestDay = (hours: OpeningHours = DEFAULT_HOURS): number =>
+export const longestDay = (hours: OpeningHours = studioHours()): number =>
     Math.max(...Object.values(hours).map(h => (h ? h.closes - h.opens : 0)));
 
 /** Poniedziałek tygodnia, w którym leży dzień. */
@@ -76,7 +107,7 @@ export const mondayOf = (d: Date): Date => {
 };
 
 /** Otwarte dni tygodnia od poniedziałku (zwykle pn-sb). */
-export const weekDays = (monday: Date, hours: OpeningHours = DEFAULT_HOURS): string[] =>
+export const weekDays = (monday: Date, hours: OpeningHours = studioHours()): string[] =>
     Array.from({ length: 7 }, (_, i) => toDateKey(addDays(monday, i))).filter(date => hoursOf(date, hours) !== null);
 
 export interface Cell {
@@ -86,7 +117,7 @@ export interface Cell {
 }
 
 /** Okienka dnia dla stanowiska podzielonego na `n` części. Zamknięty dzień - brak okienek. */
-export const dayCells = (date: string, n: number, hours: OpeningHours = DEFAULT_HOURS): Cell[] => {
+export const dayCells = (date: string, n: number, hours: OpeningHours = studioHours()): Cell[] => {
     const h = hoursOf(date, hours);
     if (!h) return [];
     const len = (h.closes - h.opens) / n;
@@ -98,7 +129,7 @@ export const dayCells = (date: string, n: number, hours: OpeningHours = DEFAULT_
 };
 
 /** Okienka kolejnych otwartych dni od `from` - do wyboru długości planu na telefonie. */
-export const cellsFrom = (from: Cell, count: number, n: number, hours: OpeningHours = DEFAULT_HOURS): Cell[] => {
+export const cellsFrom = (from: Cell, count: number, n: number, hours: OpeningHours = studioHours()): Cell[] => {
     const out: Cell[] = [];
     let date = from.date;
     for (let guard = 0; out.length < count && guard < 30; guard++) {
@@ -127,7 +158,7 @@ export const snapRange = (cells: Cell[], start: Date, end: Date): { start: Date;
  * dzień), wewnątrz dnia czas biegnie liniowo od otwarcia. Noc i niedziela nie zajmują
  * miejsca: chwila poza godzinami przykleja się do najbliższej krawędzi dnia.
  */
-export const weekX = (t: Date, days: string[], hours: OpeningHours = DEFAULT_HOURS): number => {
+export const weekX = (t: Date, days: string[], hours: OpeningHours = studioHours()): number => {
     if (days.length === 0) return 0;
     const key = toDateKey(t);
     if (key < days[0]) return 0;
@@ -147,7 +178,7 @@ export const weekX = (t: Date, days: string[], hours: OpeningHours = DEFAULT_HOU
 };
 
 /** Odwrotność `weekX`: chwila pod kursorem, przycięta do godzin otwarcia dnia. */
-export const timeAtWeekX = (x: number, days: string[], hours: OpeningHours = DEFAULT_HOURS): Date => {
+export const timeAtWeekX = (x: number, days: string[], hours: OpeningHours = studioHours()): Date => {
     const pos = Math.min(days.length - 1e-6, Math.max(0, x * days.length));
     const i = Math.floor(pos);
     const h = hoursOf(days[i], hours)!;
@@ -159,7 +190,7 @@ export const timeAtWeekX = (x: number, days: string[], hours: OpeningHours = DEF
  * Minuty pracy między dwiema chwilami, liczone tylko w godzinach otwarcia. Noc,
  * niedziela i czas po zamknięciu nie są pracą - auto po prostu stoi.
  */
-export const workMinutes = (start: Date, end: Date, hours: OpeningHours = DEFAULT_HOURS): number => {
+export const workMinutes = (start: Date, end: Date, hours: OpeningHours = studioHours()): number => {
     if (end <= start) return 0;
     let total = 0;
     let cursor = new Date(start);
@@ -186,7 +217,7 @@ export const formatMinutes = (minutes: number): string => {
 };
 
 /** Długość planu słowami: pełne dni (i połówki) jako dni, reszta w godzinach. */
-export const durationLabel = (minutes: number, hours: OpeningHours = DEFAULT_HOURS): string => {
+export const durationLabel = (minutes: number, hours: OpeningHours = studioHours()): string => {
     const day = longestDay(hours);
     if (minutes >= day && minutes % (day / 2) === 0) {
         const d = minutes / day;

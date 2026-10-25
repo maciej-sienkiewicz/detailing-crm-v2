@@ -5,7 +5,7 @@
 // zapomnianym kliknięciu; wyliczony zawsze mówi to samo, co odcinki.
 
 import type { Bay, BayBooking, BayCar, BayPerson, BayStint, BaysSnapshot } from '../types';
-import { workMinutes, toDateKey, type OpeningHours, DEFAULT_HOURS } from './slots';
+import { workMinutes, toDateKey, type OpeningHours, studioHours } from './slots';
 
 export type CarPlace =
     | { kind: 'bay'; bayId: string; stint: BayStint }
@@ -42,7 +42,6 @@ export interface BayColumn {
 export interface Board {
     yard: CarView[];
     bays: BayColumn[];
-    ready: CarView[];
 }
 
 export const openStintOf = (carId: string, stints: BayStint[]): BayStint | null =>
@@ -59,7 +58,7 @@ export const viewOf = (
     car: BayCar,
     snap: BaysSnapshot,
     now: Date,
-    hours: OpeningHours = DEFAULT_HOURS,
+    hours: OpeningHours = studioHours(),
 ): CarView => {
     const stints = snap.stints
         .filter(s => s.carId === car.id)
@@ -84,8 +83,9 @@ export const viewOf = (
     };
 };
 
-export const buildBoard = (snap: BaysSnapshot, now: Date, hours: OpeningHours = DEFAULT_HOURS): Board => {
-    const views = snap.cars.filter(c => c.stage !== 'HANDED_OVER').map(car => viewOf(car, snap, now, hours));
+export const buildBoard = (snap: BaysSnapshot, now: Date, hours: OpeningHours = studioHours()): Board => {
+    // Gotowe i wydane nie stoją na tablicy: wydanie prowadzi wizyta.
+    const views = snap.cars.filter(c => c.stage !== 'HANDED_OVER' && c.stage !== 'READY').map(car => viewOf(car, snap, now, hours));
     const todayKey = toDateKey(now);
 
     return {
@@ -94,9 +94,6 @@ export const buildBoard = (snap: BaysSnapshot, now: Date, hours: OpeningHours = 
             // Czekające na część na końcu: z nimi i tak nic teraz nie zrobisz.
             .sort((a, b) => Number(!!a.car.waiting) - Number(!!b.car.waiting)
                 || (a.car.arrivedAt ?? '').localeCompare(b.car.arrivedAt ?? '')),
-        ready: views
-            .filter(v => v.place.kind === 'ready')
-            .sort((a, b) => (a.car.readyAt ?? '').localeCompare(b.car.readyAt ?? '')),
         bays: snap.bays.filter(b => b.active).map(bay => {
             const items = views.filter(v => v.place.kind === 'bay' && v.place.bayId === bay.id);
             const lastToday = snap.stints

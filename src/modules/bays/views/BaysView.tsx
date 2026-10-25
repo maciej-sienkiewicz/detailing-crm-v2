@@ -25,7 +25,7 @@ import { WeekView } from '../components/WeekView';
 import { BaysSettingsDrawer } from '../components/BaysSettingsDrawer';
 import { useBaysMutation, useBaysNow, useBaysSnapshot } from '../hooks/useBays';
 import { baysApi } from '../api/baysApi';
-import { useBaysEnabled } from '../featureFlag';
+import { useBaysEnabled, useStudioHours } from '../featureFlag';
 import { dayLong, dayMonth, dayShort, toDateKey } from '../utils/slots';
 
 const ViewContainer = styled.div`
@@ -57,6 +57,7 @@ export function BaysView() {
     const mode: ViewMode = params.get('view') === 'week' ? 'week' : 'now';
     const setMode = (m: ViewMode) => setParams(p => { const n = new URLSearchParams(p); if (m === 'week') n.set('view', 'week'); else n.delete('view'); return n; }, { replace: true });
     const enabled = useBaysEnabled();
+    const hoursKey = useStudioHours();
     const { data: snap } = useBaysSnapshot(undefined, enabled);
     const now = useBaysNow();
     const [settingsOpen, setSettingsOpen] = useState(false);
@@ -142,8 +143,8 @@ export function BaysView() {
                 )}
 
                 {enabled && snap && (mode === 'now'
-                    ? <BoardNow snap={snap} now={now} canEdit />
-                    : <WeekView snap={snap} now={now} canEdit={canPlan} />)}
+                    ? <BoardNow key={hoursKey} snap={snap} now={now} canEdit />
+                    : <WeekView key={hoursKey} snap={snap} now={now} canEdit={canPlan} />)}
             </PageBody>
 
             {settingsOpen && snap && (
