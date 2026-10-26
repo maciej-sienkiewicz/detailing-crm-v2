@@ -1,25 +1,26 @@
 // src/modules/bays/views/BaysView.tsx
 //
-// /bays - hala: „Teraz" (gdzie stoi każde auto) i „Tydzień" (plan po stanowiskach).
+// /bays - plan stanowisk (tydzień, 3 dni, dzień). Dawny widok „Teraz" (tablica hali
+// z kolumną oczekujących) usunięty na życzenie studia: wjazd i zjazd auta robi się
+// z paska „Na hali" w wizycie, a plan i podgląd usług - tutaj.
 // Osobna trasa zamiast nowego widoku w kalendarzu: FullCalendar w projekcie nie ma
 // widoku zasobów (to płatny Scheduler), więc siatkę stanowisk i tak trzeba napisać
 // samemu - a osobna trasa zostawia obecny kalendarz nietknięty.
 //
-// Nad tablicą jest JEDEN pas: nazwa widoku z datą i przełącznik Teraz / Tydzień
-// obok kroku następnego. Wszystko, co było między nagłówkiem a autami (pasek liczb,
-// komunikat, osobny rząd przycisków), spychało halę pod zgięcie ekranu tabletu.
+// Nad planem jest JEDEN pas: nazwa widoku z datą obok kroku następnego. Wszystko, co
+// było między nagłówkiem a planem (pasek liczb, komunikat, osobny rząd przycisków),
+// spychało go pod zgięcie ekranu tabletu.
 
 import { useState } from 'react';
 import styled from 'styled-components';
-import { useNavigate, useSearchParams } from 'react-router-dom';
+import { useNavigate } from 'react-router-dom';
 import { LayoutGrid, Settings2 } from 'lucide-react';
 import { PageContainer } from '@/common/components/PageContainer';
 import { PageHeader, PageHeaderPrimaryButton, MobilePageHeader, MobilePageHeaderButton, MobilePageHeaderIconButton } from '@/common/components/PageHeader';
-import { Button, IconButton, Notice, Segmented } from '@/common/components/ui';
+import { Button, IconButton, Notice } from '@/common/components/ui';
 import { useBreakpoint } from '@/common/hooks';
 import { formatClockTime } from '@/common/dateTime';
 import { usePermissions, usePersonalDataActions } from '@/core/permissions';
-import { BoardNow } from '../components/BoardNow';
 import { WeekView } from '../components/WeekView';
 import { BaysSettingsDrawer } from '../components/BaysSettingsDrawer';
 import { useBaysMutation, useBaysNow, useBaysSnapshot } from '../hooks/useBays';
@@ -45,24 +46,18 @@ const HeaderActions = styled.div`
     gap: 10px;
 `;
 
-type ViewMode = 'now' | 'week';
-
 export function BaysView() {
     const isDesktop = useBreakpoint('lg');
     const navigate = useNavigate();
     const { canCreateVisit } = usePersonalDataActions();
-    const [params, setParams] = useSearchParams();
-    const mode: ViewMode = params.get('view') === 'week' ? 'week' : 'now';
-    const setMode = (m: ViewMode) => setParams(p => { const n = new URLSearchParams(p); if (m === 'week') n.set('view', 'week'); else n.delete('view'); return n; }, { replace: true });
     const enabled = useBaysEnabled();
     const hoursKey = useStudioHours();
     const { data: snap } = useBaysSnapshot(undefined, enabled);
     const now = useBaysNow();
     const [settingsOpen, setSettingsOpen] = useState(false);
     const saveSetup = useBaysMutation(baysApi.saveSetup);
-    // Te same prawa co serwer: wjazd i zjazd to dokumentowanie pracy (każdy z dostępem
-    // do wizyt, czyli każdy, kto tu wszedł), plan to zajęcie terminu (zakładanie wizyt),
-    // a lista stanowisk to decyzja właściciela.
+    // Te same prawa co serwer: plan to zajęcie terminu (zakładanie wizyt), a lista
+    // stanowisk to decyzja właściciela.
     const { can, isOwner } = usePermissions();
     const canPlan = can('VISITS_CREATE');
 
@@ -74,16 +69,6 @@ export function BaysView() {
         </>
     );
 
-    const segmented = (
-        <Segmented<ViewMode>
-            label="Widok hali"
-            value={mode}
-            onChange={setMode}
-            block={!isDesktop}
-            options={[{ value: 'now', label: 'Teraz' }, { value: 'week', label: 'Tydzień' }]}
-        />
-    );
-
     return (
         <ViewContainer>
             <PageBody>
@@ -93,7 +78,6 @@ export function BaysView() {
                         subtitle={dateLine}
                         actions={(
                             <HeaderActions>
-                                {segmented}
                                 {isOwner && <IconButton label="Ustawienia stanowisk" onClick={() => setSettingsOpen(true)}><Settings2 /></IconButton>}
                                 {canCreateVisit && (
                                     <PageHeaderPrimaryButton onClick={() => navigate('/checkin/new')}>
@@ -101,7 +85,7 @@ export function BaysView() {
                                             <line x1="12" y1="5" x2="12" y2="19" />
                                             <line x1="5" y1="12" x2="19" y2="12" />
                                         </svg>
-                                        Przyjmij auto
+                                        Nowa wizyta
                                     </PageHeaderPrimaryButton>
                                 )}
                             </HeaderActions>
@@ -119,13 +103,12 @@ export function BaysView() {
                                     {canCreateVisit && (
                                         <MobilePageHeaderButton onClick={() => navigate('/checkin/new')}>
                                             <span aria-hidden="true">+</span>
-                                            Auto
+                                            Wizyta
                                         </MobilePageHeaderButton>
                                     )}
                                 </>
                             )}
                         />
-                        {segmented}
                     </>
                 )}
 
@@ -140,9 +123,7 @@ export function BaysView() {
                     </Notice>
                 )}
 
-                {enabled && snap && (mode === 'now'
-                    ? <BoardNow key={hoursKey} snap={snap} now={now} canEdit />
-                    : <WeekView key={hoursKey} snap={snap} now={now} canEdit={canPlan} />)}
+                {enabled && snap && <WeekView key={hoursKey} snap={snap} now={now} canEdit={canPlan} />}
             </PageBody>
 
             {settingsOpen && snap && (

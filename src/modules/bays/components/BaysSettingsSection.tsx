@@ -108,7 +108,7 @@ export function BaysSettingsSection() {
             <Body aria-label="Korzystanie ze stanowisk">
                 <SettingSwitchRow
                     label="Korzystaj ze stanowisk"
-                    hint="Tablica hali (gdzie stoi każde auto) i plan tygodnia po stanowiskach. Wyłącz, jeśli nie dzielicie warsztatu na stanowiska."
+                    hint="Plan tygodnia po stanowiskach i pasek „Na hali” w wizycie. Wyłącz, jeśli nie dzielicie warsztatu na stanowiska."
                     checked={enabled}
                     disabled={saveSetup.isPending}
                     onChange={next => void toggle(next)}

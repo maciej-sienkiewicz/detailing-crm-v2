@@ -1,9 +1,9 @@
 // @vitest-environment jsdom
 //
-// „Dodaj urlop" administratora (ON_BEHALF): pracownik (bez siebie, także bez konta),
-// rodzaj, termin z kalendarza zakresu, podpis pracownika na tym urządzeniu i decyzja
-// administratora z podpisem. W każdym kroku jedno wypełnienie. Zamknięcie przed
-// podpisem pracownika porzuca szkic; po podpisie - pyta i zostawia wniosek w kolejce.
+// „Dodaj urlop" administratora: jeden ekran (pracownik, rodzaj, termin w kalendarzu na
+// stałe, powód) i „Zapisz urlop", który zapisuje urlop OD RAZU ZATWIERDZONY - bez kroku
+// decyzji. Potem podpis pracownika: teraz, na tablecie, SMS-em albo bez podpisu. W każdym
+// ekranie jedno wypełnienie.
 import { forwardRef, useImperativeHandle } from 'react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
@@ -11,47 +11,47 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
 import { ToastProvider } from '@/common/components/Toast';
-import { profileApi } from '@/modules/profile/api/profileApi';
 import { employeeApi } from '../../api/employeeApi';
 import { leaveRequestsApi } from '../../api/leaveRequestsApi';
 import type { EmployeeListItem, LeaveRequestDetail } from '../../types';
 import { AddLeaveModal } from './AddLeaveModal';
-import { filledIn, pickRange } from './leaveTestHelpers';
+import { filledIn } from './leaveTestHelpers';
 
 vi.mock('@/core/context/AuthContext', () => ({
     useAuth: () => ({ user: { userId: 'u-admin', employeeId: 'emp-self', permissions: null } }),
 }));
+vi.mock('@/modules/subscription', () => ({ useCapability: () => ({ enabled: true, lockReason: null, isLoading: false }) }));
+vi.mock('@/modules/checkin/hooks/useSignatureRequestsSocket', () => ({ useSignatureRequestsSocket: () => undefined }));
 vi.mock('../../api/employeeApi', () => ({
     employeeApi: { listEmployees: vi.fn(), getLeaveCalendar: vi.fn() },
 }));
 vi.mock('../../api/leaveRequestsApi', async importOriginal => ({
     ...(await importOriginal<typeof import('../../api/leaveRequestsApi')>()),
     leaveRequestsApi: {
-        create: vi.fn(),
+        record: vi.fn(),
         preview: vi.fn(),
         document: vi.fn(),
         employeeSigningSession: vi.fn(),
         employeeSignature: vi.fn(),
-        discard: vi.fn(),
+        signingOptions: vi.fn(),
+        requestSignature: vi.fn(),
+        latestSignature: vi.fn(),
+        cancelSignature: vi.fn(),
         get: vi.fn(),
-        decisionSession: vi.fn(),
-        approve: vi.fn(),
-        reject: vi.fn(),
     },
 }));
-vi.mock('@/modules/profile/api/profileApi', () => ({ profileApi: { getSignature: vi.fn() } }));
 vi.mock('@/modules/public-signing/components/PdfPagesViewer', () => ({
     PdfPagesViewer: () => <div data-testid="pdf-viewer" />,
 }));
 vi.mock('@/common/components/SignaturePad', () => ({
-    SignaturePad: forwardRef<unknown, { onInkChange?: (ink: boolean) => void; placeholder?: string }>(function FakePad({ onInkChange, placeholder }, ref) {
+    SignaturePad: forwardRef<unknown, { onInkChange?: (ink: boolean) => void }>(function FakePad({ onInkChange }, ref) {
         useImperativeHandle(ref, () => ({
             clear: () => onInkChange?.(false),
             isEmpty: () => false,
             toDataUrl: () => 'data:image/png;base64,PODPIS',
-            toPngBase64: () => (placeholder === 'Podpis pracownika' ? 'PODPIS-PRACOWNIKA' : 'PODPIS-ADMINA'),
+            toPngBase64: () => 'PODPIS-PRACOWNIKA',
         }));
-        return <button type="button" onClick={() => onInkChange?.(true)}>atrapa: {placeholder}</button>;
+        return <button type="button" onClick={() => onInkChange?.(true)}>atrapa podpisu</button>;
     }),
 }));
 
@@ -61,8 +61,8 @@ const person = (id: string, fullName: string, hasAccount = true): EmployeeListIt
     id, fullName, firstName: fullName.split(' ')[0], lastName: fullName.split(' ')[1], email: null, phone: null, hasAccount, role: null,
 });
 
-const request = (overrides: Partial<LeaveRequestDetail> = {}): LeaveRequestDetail => ({
-    id: 'draft-1',
+const approved = (overrides: Partial<LeaveRequestDetail> = {}): LeaveRequestDetail => ({
+    id: 'leave-1',
     number: 'WU/2026/0031',
     employeeId: 'emp-piotr',
     employeeName: 'Piotr Lis',
@@ -71,36 +71,33 @@ const request = (overrides: Partial<LeaveRequestDetail> = {}): LeaveRequestDetai
     startDate: '2026-10-07',
     endDate: '2026-10-09',
     workingDays: 3,
-    status: 'DRAFT',
+    status: 'APPROVED',
     reason: null,
     origin: 'ON_BEHALF',
     createdByName: 'Jan Kowalski',
     createdAt: '2026-10-01T10:00:00+02:00',
     employeeSignedAt: null,
-    decidedAt: null,
-    decidedByName: null,
+    decidedAt: '2026-10-01T10:00:00+02:00',
+    decidedByName: 'Jan Kowalski',
     decisionNote: null,
     cancelReason: null,
     employeeSignatureMethod: null,
     decisionSignatureMethod: null,
     overlappingAbsences: [],
-    canDecide: true,
+    canDecide: false,
     decisionBlockedReason: null,
-    canCancel: false,
+    canCancel: true,
     ...overrides,
 });
 
-const employeeSession = { documentSha256: 'e'.repeat(64), challenge: 'emp-1' };
-const decisionSession = { documentSha256: 'f'.repeat(64), challenge: 'dec-1' };
-
-const renderModal = () => {
+const renderModal = (props: Partial<Parameters<typeof AddLeaveModal>[0]> = {}) => {
     const queryClient = new QueryClient({ defaultOptions: { queries: { retry: false }, mutations: { retry: false } } });
     const onClose = vi.fn();
     render(
         <QueryClientProvider client={queryClient}>
             <ThemeProvider theme={theme}>
                 <ToastProvider>
-                    <AddLeaveModal onClose={onClose} />
+                    <AddLeaveModal onClose={onClose} {...props} />
                 </ToastProvider>
             </ThemeProvider>
         </QueryClientProvider>,
@@ -108,27 +105,19 @@ const renderModal = () => {
     return { onClose };
 };
 
-const dialog = () => screen.getByRole('dialog', { name: 'Dodaj urlop' });
-const next = () => within(dialog()).getByRole('button', { name: /^Dalej/ });
+const form = () => screen.getByRole('dialog', { name: 'Dodaj urlop' });
+const signing = () => screen.getByRole('dialog', { name: 'Podpis pracownika' });
 
-/** Pracownik → Rodzaj → Termin → „Dalej" tworzy szkic → podpis pracownika. */
-const goToEmployeeSignature = async () => {
-    fireEvent.click(await within(dialog()).findByRole('radio', { name: /Piotr Lis/ }));
-    fireEvent.click(next());
-    fireEvent.click(within(dialog()).getByRole('radio', { name: /Wypoczynkowy/ }));
-    fireEvent.click(next());
-    await pickRange(dialog(), 7, 9);
-    await within(dialog()).findByText('3 dni robocze');
-    fireEvent.click(next());
-    await within(dialog()).findByText('Przekaż urządzenie pracownikowi');
-    await within(dialog()).findByTestId('pdf-viewer');
-};
-
-const signAsEmployee = async () => {
-    fireEvent.click(within(dialog()).getByRole('checkbox', { name: /Ja, Piotr Lis, znam treść wniosku/ }));
-    fireEvent.click(within(dialog()).getByRole('button', { name: 'atrapa: Podpis pracownika' }));
-    fireEvent.click(within(dialog()).getByRole('button', { name: /Podpisuję wniosek/ }));
-    await within(dialog()).findByRole('heading', { name: 'Twoja decyzja' });
+/** Piotr, wypoczynkowy (domyślny), 7-9 października w kalendarzu, „Zapisz urlop". */
+const recordLeave = async () => {
+    const select = await within(form()).findByLabelText('Pracownik');
+    await within(select as HTMLElement).findByRole('option', { name: 'Piotr Lis' });
+    fireEvent.change(select, { target: { value: 'emp-piotr' } });
+    fireEvent.click(within(form()).getByRole('button', { name: '7 października' }));
+    fireEvent.click(within(form()).getByRole('button', { name: '9 października' }));
+    await within(form()).findByText(/3 dni robocze/);
+    fireEvent.click(within(form()).getByRole('button', { name: /Zapisz urlop/ }));
+    await screen.findByRole('dialog', { name: 'Podpis pracownika' });
 };
 
 beforeEach(() => {
@@ -138,17 +127,18 @@ beforeEach(() => {
         items: [person('emp-self', 'Jan Kowalski'), person('emp-piotr', 'Piotr Lis', false), person('emp-anna', 'Anna Nowak')],
         page: { number: 1, size: 100, totalItems: 3, totalPages: 1 },
     });
-    vi.mocked(employeeApi.getLeaveCalendar).mockResolvedValue([
-        { date: '2026-10-08', count: 1, employees: [{ id: 'emp-anna', fullName: 'Anna Nowak' }] },
-    ]);
-    vi.mocked(profileApi.getSignature).mockResolvedValue({ hasSignature: false, url: null });
+    vi.mocked(employeeApi.getLeaveCalendar).mockResolvedValue([]);
     api.preview.mockResolvedValue({ workingDays: 3, holidays: [] });
-    api.create.mockResolvedValue({ request: request(), session: employeeSession });
-    api.document.mockResolvedValue({ bytes: new ArrayBuffer(8), sha256: employeeSession.documentSha256 });
-    api.employeeSignature.mockResolvedValue(request({ status: 'PENDING', employeeSignedAt: '2026-10-01T10:05:00+02:00', employeeSignatureMethod: 'IN_PERSON' }));
-    api.discard.mockResolvedValue();
-    api.decisionSession.mockResolvedValue(decisionSession);
-    api.approve.mockResolvedValue(request({ status: 'APPROVED' }));
+    api.record.mockResolvedValue(approved());
+    api.signingOptions.mockResolvedValue({ tablets: [{ tabletId: 't-1', deviceName: 'Recepcja' }], employeePhone: '+48600100200' });
+    api.latestSignature.mockResolvedValue(null);
+    api.employeeSigningSession.mockResolvedValue({ documentSha256: 'f'.repeat(64), challenge: 'emp-1' });
+    api.document.mockResolvedValue({ bytes: new ArrayBuffer(8), sha256: 'f'.repeat(64) });
+    api.employeeSignature.mockResolvedValue(approved({ employeeSignedAt: '2026-10-01T10:05:00+02:00', employeeSignatureMethod: 'IN_PERSON' }));
+    api.requestSignature.mockResolvedValue({
+        id: 'sig-1', attendanceSheetId: null, tabletId: null, channel: 'SMS_LINK', status: 'PENDING_DISPLAY',
+        expiresAt: '2026-10-04T10:00:00+02:00', failureReason: null,
+    } as never);
 });
 
 afterEach(() => {
@@ -160,119 +150,79 @@ afterEach(() => {
 describe('AddLeaveModal', () => {
     it('lista pracowników bez siebie; osoba bez konta też jest do wyboru', async () => {
         renderModal();
-        expect(await within(dialog()).findByRole('radio', { name: /Piotr Lis.*bez konta/ })).toBeTruthy();
-        expect(within(dialog()).getByRole('radio', { name: /Anna Nowak/ })).toBeTruthy();
-        expect(within(dialog()).queryByRole('radio', { name: /Jan Kowalski/ })).toBeNull();
+        const select = await within(form()).findByLabelText('Pracownik');
+        await within(select as HTMLElement).findByRole('option', { name: 'Piotr Lis' });
+        expect(within(select as HTMLElement).queryByRole('option', { name: 'Jan Kowalski' })).toBeNull();
+        expect(within(select as HTMLElement).getByRole('option', { name: 'Anna Nowak' })).toBeTruthy();
     });
 
-    it('szczęśliwa ścieżka: szkic ON_BEHALF, podpis pracownika, zatwierdzenie z podpisem administratora', async () => {
-        const { onClose } = renderModal();
-        await goToEmployeeSignature();
+    it('„Zapisz urlop" zapisuje urlop od razu zatwierdzony - bez kroku decyzji', async () => {
+        renderModal();
+        await recordLeave();
 
-        expect(api.create).toHaveBeenCalledWith({
+        expect(api.record).toHaveBeenCalledWith({
             employeeId: 'emp-piotr', leaveType: 'ANNUAL', onDemand: false, startDate: '2026-10-07', endDate: '2026-10-09',
         });
-        expect(api.preview).toHaveBeenCalledWith('emp-piotr', '2026-10-07', '2026-10-09');
-        expect(api.document).toHaveBeenCalledWith('draft-1');
+        expect(screen.queryByText(/Twoja decyzja/)).toBeNull();
+    });
 
-        await signAsEmployee();
-        expect(api.employeeSignature).toHaveBeenCalledWith('draft-1', {
-            signatureImageBase64: 'PODPIS-PRACOWNIKA',
-            documentSha256: employeeSession.documentSha256,
-            challenge: 'emp-1',
-            declarationAccepted: true,
+    it('podpis teraz: pracownik podpisuje na tym urządzeniu pod wersją zatwierdzoną', async () => {
+        renderModal();
+        await recordLeave();
+
+        await waitFor(() => expect(api.employeeSigningSession).toHaveBeenCalledWith('leave-1'));
+        fireEvent.click(within(signing()).getByRole('checkbox', { name: /Znam treść wniosku/ }));
+        fireEvent.click(within(signing()).getByRole('button', { name: 'atrapa podpisu' }));
+        fireEvent.click(within(signing()).getByRole('button', { name: /^Podpisz/ }));
+
+        await within(signing()).findByText('Pracownik podpisał wniosek');
+        expect(api.employeeSignature).toHaveBeenCalledWith('leave-1', {
+            signatureImageBase64: 'PODPIS-PRACOWNIKA', documentSha256: 'f'.repeat(64), challenge: 'emp-1', declarationAccepted: true,
         });
-
-        // Zatwierdzenie jest domyślne - administrator dodaje urlop, a nie rozważa go od zera.
-        expect((within(dialog()).getByRole('radio', { name: /^Zatwierdź/ }) as HTMLInputElement).checked).toBe(true);
-        await waitFor(() => expect(api.decisionSession).toHaveBeenCalledWith('draft-1'));
-        fireEvent.click(await within(dialog()).findByRole('button', { name: 'atrapa: Twój podpis' }));
-        const sign = within(dialog()).getByRole('button', { name: /Podpisz zatwierdzenie/ }) as HTMLButtonElement;
-        await waitFor(() => expect(sign.disabled).toBe(false));
-        fireEvent.click(sign);
-
-        await waitFor(() => expect(api.approve).toHaveBeenCalledWith('draft-1', {
-            signatureImageBase64: 'PODPIS-ADMINA',
-            useSavedSignature: false,
-            documentSha256: decisionSession.documentSha256,
-            challenge: 'dec-1',
-        }));
-        expect(await screen.findByText('Urlop dodany')).toBeTruthy();
-        expect(onClose).toHaveBeenCalled();
-        expect(api.discard).not.toHaveBeenCalled();
     });
 
-    it('w każdym kroku dokładnie jedno wypełnienie', async () => {
+    it('SMS z linkiem idzie domyślnie na numer z karty pracownika, który można poprawić', async () => {
         renderModal();
-        await within(dialog()).findByRole('radio', { name: /Piotr Lis/ });
-        expect(filledIn(dialog())).toHaveLength(1);
-        fireEvent.click(within(dialog()).getByRole('radio', { name: /Piotr Lis/ }));
-        fireEvent.click(next());
-        expect(filledIn(dialog())).toHaveLength(1);
-        fireEvent.click(within(dialog()).getByRole('radio', { name: /Wypoczynkowy/ }));
-        fireEvent.click(next());
-        await pickRange(dialog(), 7, 9);
-        await within(dialog()).findByText('3 dni robocze');
-        // Kolega nieobecny w tym terminie: bursztynowa informacja, bez wypełnienia.
-        expect(within(dialog()).getByText('W tych dniach nieobecni są też inni')).toBeTruthy();
-        expect(filledIn(dialog())).toHaveLength(1);
-        fireEvent.click(next());
-        await within(dialog()).findByTestId('pdf-viewer');
-        expect(filledIn(dialog())).toHaveLength(1);
-        await signAsEmployee();
-        expect(filledIn(dialog())).toHaveLength(1);
-        expect(filledIn(dialog())[0].textContent).toMatch(/Podpisz zatwierdzenie/);
+        await recordLeave();
+
+        fireEvent.click(within(signing()).getByRole('radio', { name: /SMS z linkiem/ }));
+        const phone = await within(signing()).findByLabelText('Numer telefonu');
+        await waitFor(() => expect((phone as HTMLInputElement).value).toBe('+48600100200'));
+        fireEvent.change(phone, { target: { value: '+48 500 600 700' } });
+        fireEvent.click(within(signing()).getByRole('button', { name: /Wyślij SMS/ }));
+
+        await within(signing()).findByText('Czeka na podpis pracownika');
+        expect(api.requestSignature).toHaveBeenCalledWith('leave-1', { channel: 'SMS', phone: '+48 500 600 700' });
     });
 
-    it('zamknięcie przed podpisem pracownika porzuca szkic', async () => {
-        renderModal();
-        await goToEmployeeSignature();
-        fireEvent.click(within(dialog()).getByRole('button', { name: 'Zamknij' }));
-        await waitFor(() => expect(api.discard).toHaveBeenCalledWith('draft-1'));
-    });
-
-    it('zamknięcie po podpisie pracownika pyta i zostawia wniosek w kolejce', async () => {
+    it('bez podpisu: urlop zostaje zapisany, okno się zamyka bez żadnej prośby', async () => {
         const { onClose } = renderModal();
-        await goToEmployeeSignature();
-        await signAsEmployee();
+        await recordLeave();
 
-        fireEvent.click(within(dialog()).getByRole('button', { name: 'Zamknij' }));
-        expect(await screen.findByText('Zamknąć bez decyzji?')).toBeTruthy();
-        expect(screen.getByText(/Zostanie w kolejce „Oczekujące”/)).toBeTruthy();
-        expect(onClose).not.toHaveBeenCalled();
+        fireEvent.click(within(signing()).getByRole('radio', { name: /Bez podpisu/ }));
+        fireEvent.click(within(signing()).getByRole('button', { name: /Gotowe/ }));
 
-        fireEvent.click(screen.getByRole('button', { name: 'Zamknij, rozpatrzę później' }));
         expect(onClose).toHaveBeenCalled();
-        cleanup();
-        // Podpisany wniosek to nie szkic - nikt go nie porzuca.
-        expect(api.discard).not.toHaveBeenCalled();
+        expect(api.requestSignature).not.toHaveBeenCalled();
+        expect(api.employeeSignature).not.toHaveBeenCalled();
     });
 
-    it('odmowa w ostatnim kroku wymaga uzasadnienia', async () => {
-        api.reject.mockResolvedValue(request({ status: 'REJECTED' }));
-        renderModal();
-        await goToEmployeeSignature();
-        await signAsEmployee();
+    it('dni zaznaczone w siatce „Nieobecności" są już w oknie', async () => {
+        renderModal({ employeeId: 'emp-piotr', startDate: '2026-10-12', endDate: '2026-10-14' });
+        await within(form()).findByText(/3 dni robocze/);
+        expect(within(form()).queryByLabelText('Pracownik')).toBeNull();
 
-        fireEvent.click(within(dialog()).getByRole('radio', { name: /^Odrzuć/ }));
-        fireEvent.click(await within(dialog()).findByRole('button', { name: 'atrapa: Twój podpis' }));
-        const sign = within(dialog()).getByRole('button', { name: /Podpisz odmowę/ }) as HTMLButtonElement;
-        expect(sign.disabled).toBe(true);
-        fireEvent.change(within(dialog()).getByLabelText('Uzasadnienie odmowy'), { target: { value: 'Brak obsady' } });
-        await waitFor(() => expect(sign.disabled).toBe(false));
-        fireEvent.click(sign);
-        await waitFor(() => expect(api.reject).toHaveBeenCalledWith('draft-1', expect.objectContaining({ note: 'Brak obsady' })));
+        fireEvent.click(within(form()).getByRole('button', { name: /Zapisz urlop/ }));
+        await waitFor(() => expect(api.record).toHaveBeenCalledWith(expect.objectContaining({
+            employeeId: 'emp-piotr', startDate: '2026-10-12', endDate: '2026-10-14',
+        })));
     });
 
-    it('wniosek dla siebie: zdanie z serwera stoi w oknie', async () => {
-        api.create.mockRejectedValueOnce({ response: { status: 403, data: { message: 'Własny wniosek złóż w zakładce Urlop' } } });
+    it('w każdym ekranie dokładnie jedno wypełnienie', async () => {
         renderModal();
-        fireEvent.click(await within(dialog()).findByRole('radio', { name: /Anna Nowak/ }));
-        fireEvent.click(next());
-        fireEvent.click(within(dialog()).getByRole('radio', { name: /Wypoczynkowy/ }));
-        fireEvent.click(next());
-        await pickRange(dialog(), 7, 9);
-        fireEvent.click(next());
-        expect(await within(dialog()).findByText('Własny wniosek złóż w zakładce Urlop')).toBeTruthy();
+        await within(form()).findByLabelText('Pracownik');
+        expect(filledIn(form())).toHaveLength(1);
+        await recordLeave();
+        expect(filledIn(signing())).toHaveLength(1);
     });
 });

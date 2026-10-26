@@ -284,7 +284,10 @@ export function BayPickerDialog({ view, snap, suggestedBayId, initialBayId, titl
 
 export type FinishChoice = 'ready' | 'yard' | 'move';
 
-/** „Skończone": dokąd auto jedzie dalej. Wydanie zmienia status wizyty - mówimy to wprost. */
+/**
+ * „Zakończ": dokąd auto jedzie dalej. „Gotowe do wydania" NIE zmienia statusu wizyty: klika to
+ * hala, a kiedy powiadomić klienta, decyduje kierownik w wizycie - mówimy to wprost.
+ */
 export function FinishDialog({ view, onClose, onConfirm, busy }: {
     view: CarView;
     onClose: () => void;
@@ -308,7 +311,7 @@ export function FinishDialog({ view, onClose, onConfirm, busy }: {
         >
             <ChoiceList role="radiogroup" aria-label="Co dalej z autem">
                 <ChoiceCard type="radio" name="finish" checked={choice === 'ready'} onChange={() => setChoice('ready')}
-                    icon={<UserRoundCheck />} title="Gotowe do wydania" detail="Wizyta przejdzie w Gotowe do odbioru" />
+                    icon={<UserRoundCheck />} title="Gotowe do wydania" detail="Praca przy aucie skończona. O wydaniu i powiadomieniu klienta decyduje kierownik." />
                 <ChoiceCard type="radio" name="finish" checked={choice === 'move'} onChange={() => setChoice('move')}
                     icon={<ArrowRightLeft />} title="Na inne stanowisko" detail="Na przykład na myjnię" />
                 <ChoiceCard type="radio" name="finish" checked={choice === 'yard'} onChange={() => setChoice('yard')}

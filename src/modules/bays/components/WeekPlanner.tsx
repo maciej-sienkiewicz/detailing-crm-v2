@@ -271,12 +271,13 @@ const Closed = styled(Abs)`
     background: repeating-linear-gradient(135deg, ${ui.surfaceAlt} 0 6px, ${ui.surface} 6px 12px);
 `;
 
-/* Linia „teraz" ma tylko wskazać miejsce, nie konkurować z planem: włos, półprzezroczysty,
-   pod paskami - widać ją w przerwach między autami. */
+/* Linia „teraz" leży NAD paskami (pod podglądem przeciągania) - pod nimi znikała akurat
+   na pasku „trwa", przy którym pytanie „ile już minęło" pada najczęściej. Pasek pod nią
+   dalej łapie kliknięcia: linia ich nie przyjmuje (Abs). */
 const NowLine = styled(Abs)`
     width: 0;
-    border-left: 1px dashed ${ui.brandLine};
-    z-index: 1;
+    border-left: 1.5px solid ${ui.brand};
+    z-index: 4;
 `;
 
 const BAR_TONES = {
@@ -456,6 +457,16 @@ const TrayChip = styled.button`
     svg { width: 14px; height: 14px; color: ${ui.textMuted}; }
     &:hover { border-color: ${ui.brandLine}; }
     &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: 2px; }
+`;
+
+/* Rezerwacja (auto jeszcze nie przyjęte) - dopisek, żeby nie mylić z autem na placu. */
+const TrayTag = styled.span`
+    padding: 0 6px;
+    border-radius: 5px;
+    background: ${ui.surfaceAlt};
+    font-size: 11px;
+    font-weight: 600;
+    color: ${ui.textSecondary};
 `;
 
 const Legend = styled.div`
@@ -780,7 +791,10 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
         setDrag({ kind: 'move', carId, bookingId: null, minutes: 1, grabMs: 0, rowId: '', startIdx: -1, len: 1, moved: true, startX: e.clientX, barId: null });
     };
 
-    const unplanned = snap.cars.filter(c => c.stage === 'IN_SHOP'
+    // Auta bez planu: przyjęte (w warsztacie) i rezerwacje z kalendarza z zakresu osi -
+    // rezerwację da się położyć na stanowisku, zanim auto przyjedzie. Bez aut z pracą
+    // skończoną („Gotowe do wydania"): one już nie czekają na stanowisko.
+    const unplanned = snap.cars.filter(c => (c.stage === 'IN_SHOP' || c.stage === 'BOOKED') && !c.workDone
         && !snap.bookings.some(b => b.carId === c.id)
         && !snap.stints.some(s => s.carId === c.id && s.endedAt === null));
 
@@ -933,6 +947,7 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                             <MoveHorizontal aria-hidden="true" />
                             <Plate $size="sm">{c.licensePlate}</Plate>
                             {c.jobTitle}
+                            {c.stage === 'BOOKED' && <TrayTag>rezerwacja</TrayTag>}
                         </TrayChip>
                     ))}
                 </Tray>

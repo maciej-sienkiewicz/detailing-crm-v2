@@ -373,8 +373,11 @@ export interface CreateBonusPayload {
 /** Rodzaj wniosku: zwolnienie lekarskie (SICK) nie jest wnioskiem, wpisuje je menedżer. */
 export type LeaveRequestType = Exclude<LeaveType, 'SICK'>;
 export type LeaveRequestStatus = 'DRAFT' | 'PENDING' | 'APPROVED' | 'REJECTED' | 'WITHDRAWN' | 'CANCELLED' | 'EXPIRED';
-/** IN_PERSON: pracownik podpisał osobiście na urządzeniu studia (wniosek ON_BEHALF). */
-export type LeaveSignatureMethod = 'DEVICE_DRAWN' | 'SAVED_SIGNATURE' | 'IN_PERSON';
+/**
+ * IN_PERSON: pracownik podpisał osobiście na urządzeniu studia (wniosek ON_BEHALF).
+ * TABLET / SMS_LINK: podpis pod urlopem już zatwierdzonym, zebrany później.
+ */
+export type LeaveSignatureMethod = 'DEVICE_DRAWN' | 'SAVED_SIGNATURE' | 'IN_PERSON' | 'TABLET' | 'SMS_LINK';
 /** ON_BEHALF: urlop wprowadził administrator, pracownik podpisał na miejscu. */
 export type LeaveRequestOrigin = 'SELF_SERVICE' | 'ON_BEHALF';
 

@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BaysSnapshot } from '../types';
 import { buildWeekRows, bookingRangeFromDates, carStages, freeCellsOn, overlapsInRange } from './weekLayout';
-import { buildBoard } from './boardState';
 import { mondayOf, setStudioHours, weekDays, weekX } from './slots';
 
 // Przykłady liczą się w godzinach 8-17 (sobota 8-13), ustawionych jawnie.
@@ -70,28 +69,6 @@ describe('tydzień po stanowiskach', () => {
         expect([lift.start.getHours(), lift.start.getMinutes(), lift.end.getHours(), lift.end.getMinutes()]).toEqual([12, 30, 12, 30]);
         const wash = bookingRangeFromDates(new Date('2026-10-29T10:00:00'), new Date('2026-10-29T11:30:00'), 6)!;
         expect([wash.start.getHours(), wash.start.getMinutes(), wash.end.getHours(), wash.end.getMinutes()]).toEqual([9, 30, 12, 30]);
-    });
-});
-
-describe('tablica „Teraz" - stan liczony z faktów', () => {
-    it('auto z otwartym odcinkiem stoi na stanowisku, czekające na część - na placu', () => {
-        const board = buildBoard(snap(), NOW);
-        expect(board.bays.find(b => b.bay.id === 'b1')!.items.map(v => v.car.id)).toEqual(['c1']);
-        expect(board.bays.find(b => b.bay.id === 'b2')!.freeSpots).toBe(2);
-        expect(board.yard.map(v => v.car.id)).toEqual(['c3']);
-    });
-
-    it('rezerwacja, która jeszcze nie przyjechała, nie jest na tablicy', () => {
-        const board = buildBoard(snap(), NOW);
-        const all = [...board.yard, ...board.bays.flatMap(b => b.items)].map(v => v.car.id);
-        expect(all).not.toContain('c2');
-    });
-
-    it('auto gotowe do wydania schodzi z tablicy - wydanie prowadzi wizyta', () => {
-        const base = snap();
-        const cars = base.cars.map(c => (c.id === 'c3' ? { ...c, stage: 'READY' as const, readyAt: iso('2026-10-26T10:30:00') } : c));
-        const board = buildBoard({ ...base, cars }, NOW);
-        expect(board.yard.map(v => v.car.id)).not.toContain('c3');
     });
 });
 

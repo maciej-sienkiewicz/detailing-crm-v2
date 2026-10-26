@@ -5,11 +5,9 @@
 //
 // Kolejny etap auta (podnośnik, potem myjnia): „Dodaj etap" w podglądzie przełącza oś
 // w tryb wskazywania - następne zaznaczenie czasu tworzy plan dla TEGO auta, bez
-// formularza rezerwacji (auto i wizyta już są). Z tablicy „Teraz" ten sam tryb otwiera
-// parametr `place` w adresie.
+// formularza rezerwacji (auto i wizyta już są).
 
 import { useEffect, useMemo, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button, IconButton, Notice, Segmented, ui } from '@/common/components/ui';
@@ -94,15 +92,9 @@ export function WeekView({ snap: initial, now, canEdit }: Props) {
     const [day, setDay] = useState(() => toDateKey(now));
     const [step, setStep] = useState<Step | null>(null);
     const [preview, setPreview] = useState<{ bar: WeekBar; bayId: string } | null>(null);
-    const [params, setParams] = useSearchParams();
     /** Auto, dla którego następne zaznaczenie na osi tworzy kolejny etap. */
-    const [placing, setPlacing] = useState<string | null>(() => params.get('place'));
+    const [placing, setPlacing] = useState<string | null>(null);
     const placingCar = placing ? snap.cars.find(c => c.id === placing) : undefined;
-    useEffect(() => {
-        if (!params.get('place')) return;
-        setParams(p => { const n = new URLSearchParams(p); n.delete('place'); return n; }, { replace: true });
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, []);
     useEffect(() => {
         if (!placing) return;
         const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setPlacing(null); };

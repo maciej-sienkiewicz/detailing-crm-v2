@@ -4,8 +4,8 @@
 // Zapisany stan „Podnośnik 1: zajęty" rozjechałby się z historią przy pierwszym
 // zapomnianym kliknięciu; wyliczony zawsze mówi to samo, co odcinki.
 
-import type { Bay, BayBooking, BayCar, BayPerson, BayStint, BaysSnapshot } from '../types';
-import { workMinutes, toDateKey, type OpeningHours, studioHours } from './slots';
+import type { BayBooking, BayCar, BayPerson, BayStint, BaysSnapshot } from '../types';
+import { workMinutes, type OpeningHours, studioHours } from './slots';
 
 export type CarPlace =
     | { kind: 'bay'; bayId: string; stint: BayStint }
@@ -27,21 +27,6 @@ export interface CarView {
     nextBooking: BayBooking | null;
     /** Schnie (czas technologiczny jeszcze trwa). */
     curing: boolean;
-}
-
-export interface BayColumn {
-    bay: Bay;
-    items: CarView[];
-    /** Ile aut jeszcze się zmieści. */
-    freeSpots: number;
-    /** Od kiedy stoi puste - koniec ostatniego odcinka dziś. */
-    freeSince: string | null;
-    defaultPerson: BayPerson | null;
-}
-
-export interface Board {
-    yard: CarView[];
-    bays: BayColumn[];
 }
 
 export const openStintOf = (carId: string, stints: BayStint[]): BayStint | null =>
@@ -80,32 +65,5 @@ export const viewOf = (
         stints,
         nextBooking,
         curing: !!open?.curingUntil && new Date(open.curingUntil) > now,
-    };
-};
-
-export const buildBoard = (snap: BaysSnapshot, now: Date, hours: OpeningHours = studioHours()): Board => {
-    // Gotowe i wydane nie stoją na tablicy: wydanie prowadzi wizyta.
-    const views = snap.cars.filter(c => c.stage !== 'HANDED_OVER' && c.stage !== 'READY').map(car => viewOf(car, snap, now, hours));
-    const todayKey = toDateKey(now);
-
-    return {
-        yard: views
-            .filter(v => v.place.kind === 'yard')
-            // Czekające na część na końcu: z nimi i tak nic teraz nie zrobisz.
-            .sort((a, b) => Number(!!a.car.waiting) - Number(!!b.car.waiting)
-                || (a.car.arrivedAt ?? '').localeCompare(b.car.arrivedAt ?? '')),
-        bays: snap.bays.filter(b => b.active).map(bay => {
-            const items = views.filter(v => v.place.kind === 'bay' && v.place.bayId === bay.id);
-            const lastToday = snap.stints
-                .filter(s => s.bayId === bay.id && s.endedAt && s.endedAt.startsWith(todayKey))
-                .sort((a, b) => (b.endedAt ?? '').localeCompare(a.endedAt ?? ''))[0];
-            return {
-                bay,
-                items,
-                freeSpots: Math.max(0, bay.capacity - items.length),
-                freeSince: items.length === 0 ? lastToday?.endedAt ?? null : null,
-                defaultPerson: snap.people.find(p => p.id === bay.defaultPersonId) ?? null,
-            };
-        }),
     };
 };

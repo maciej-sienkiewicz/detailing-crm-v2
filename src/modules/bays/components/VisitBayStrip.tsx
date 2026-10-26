@@ -99,7 +99,7 @@ export function VisitBayStrip(props: Props) {
     useStudioHours();
     const { data: snap } = useBaysSnapshot(undefined, enabled);
     const now = useBaysNow();
-    const { showInfo, showError } = useToast();
+    const { showError } = useToast();
     const [open, setOpen] = useState(false);
     const [dialog, setDialog] = useState<'pick' | 'finish' | 'pause' | null>(null);
     const start = useBaysMutation(baysApi.startStint);
@@ -120,6 +120,8 @@ export function VisitBayStrip(props: Props) {
         state = <strong>Do wydania</strong>;
     } else if (car.stage === 'HANDED_OVER') {
         state = <strong>Wydane</strong>;
+    } else if (car.workDone) {
+        state = <><strong>Praca skończona</strong><span>czeka na wydanie</span></>;
     } else {
         state = <><strong>Oczekuje na przypisanie</strong>{car.waiting && <span>{car.waiting.note || (car.waiting.reason === 'WAITING_PART' ? 'czeka na część' : 'czeka na klienta')}</span>}</>;
     }
@@ -181,10 +183,9 @@ export function VisitBayStrip(props: Props) {
             {dialog === 'finish' && (
                 <FinishDialog view={v} onClose={() => setDialog(null)} onConfirm={async choice => {
                     if (choice === 'move') { setDialog('pick'); return; }
-                    await end.mutateAsync([props.visitId, 'DONE']);
+                    // Status wizyty zmienia kierownik przyciskiem w nagłówku - tu tylko zamykamy pracę.
+                    await end.mutateAsync([props.visitId, choice === 'ready' ? 'FINISHED' : 'DONE']);
                     setDialog(null);
-                    // Gotowość ma własny kreator w nagłówku wizyty - tu go nie omijamy.
-                    if (choice === 'ready') showInfo('Odcinek zamknięty', 'Oznacz wizytę jako gotową przyciskiem u góry.');
                 }} />
             )}
             {dialog === 'pause' && (

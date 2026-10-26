@@ -87,8 +87,8 @@ const assignLanes = (bars: WeekBar[]): number => {
 };
 
 /**
- * Paski jednego stanowiska bez położenia na osi - wspólne dla tygodnia, osi dnia
- * („Teraz") i listy etapów auta w podglądzie.
+ * Paski jednego stanowiska bez położenia na osi - wspólne dla osi planu i listy etapów
+ * auta w podglądzie.
  *
  * Jedno auto może mieć kilka planów (podnośnik rano, myjnia po południu, drugi dzień na
  * tym samym podnośniku). Dlatego pasek „trwa" bierze plan, do którego należy ten wjazd

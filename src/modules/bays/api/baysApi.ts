@@ -69,11 +69,6 @@ export const baysApi = {
         await apiClient.post(`${BASE}/stints/end`, { visitId, reason, note: note || null });
     },
 
-    /** „Część dotarła", „Klient zdecydował". */
-    clearWaiting: async (visitId: string): Promise<void> => {
-        await apiClient.post(`${BASE}/visits/${visitId}/waiting/clear`);
-    },
-
     createBooking: async (bayId: string, target: BookingTarget, start: Date, end: Date): Promise<void> => {
         await apiClient.post(`${BASE}/bookings`, { bayId, ...target, start: start.toISOString(), end: end.toISOString() });
     },

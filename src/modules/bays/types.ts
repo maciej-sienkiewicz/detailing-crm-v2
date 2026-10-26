@@ -45,7 +45,8 @@ export interface BayPerson {
  * Dlaczego auto zjechało. `DONE` kończy odcinek; pozostałe zostawiają wizytę w toku,
  * a auto trafia na plac (część, decyzja klienta) albo zostaje (przerwa).
  */
-export type StintEndReason = 'DONE' | 'WAITING_PART' | 'WAITING_CUSTOMER' | 'MOVED';
+/** `FINISHED` - cała praca przy aucie skończona („Gotowe do wydania"), `DONE` - tylko na tym stanowisku. */
+export type StintEndReason = 'DONE' | 'FINISHED' | 'WAITING_PART' | 'WAITING_CUSTOMER' | 'MOVED';
 
 /** HANDED_OVER - wydane: znika z tablicy, ale jego odcinki zostają w historii tygodnia. */
 export type CarStage = 'BOOKED' | 'IN_SHOP' | 'READY' | 'HANDED_OVER';
@@ -69,7 +70,13 @@ export interface BayCar {
     /** Gotowe do wydania od - tylko przy `READY`. */
     readyAt: string | null;
     /** Auto stoi na placu i na coś czeka; null - po prostu czeka na stanowisko. */
-    waiting: { reason: Exclude<StintEndReason, 'DONE' | 'MOVED'>; note: string } | null;
+    waiting: { reason: Exclude<StintEndReason, 'DONE' | 'FINISHED' | 'MOVED'>; note: string } | null;
+    /**
+     * Hala zamknęła pracę „Gotowe do wydania", a wizyta czeka, aż kierownik oznaczy ją
+     * jako gotową i powiadomi klienta. Auto nie czeka na stanowisko. Brak pola - serwer
+     * sprzed tej zmiany.
+     */
+    workDone?: boolean;
 }
 
 /** Plan: przedział czasu przyciągnięty do okienek stanowiska (ISO). */

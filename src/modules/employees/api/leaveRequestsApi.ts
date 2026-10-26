@@ -31,6 +31,17 @@ import type {
     SubmitLeaveRequestPayload,
 } from '../types';
 import { problemDetail, problemField, problemStatus } from '@/core/problem';
+import type { BackgroundRequestConfig } from '@/core/backgroundRequest';
+import type { AttendanceSignatureRequest, RemoteSigningChannel } from './attendanceApi';
+
+/** Prośba o podpis na tablecie / z linku SMS - ten sam kształt co przy liście obecności. */
+export type RemoteSignatureRequest = AttendanceSignatureRequest;
+
+export interface LeaveSigningOptions {
+    tablets: { tabletId: string; deviceName: string }[];
+    /** Numer z karty pracownika; null, gdy go nie ma. */
+    employeePhone: string | null;
+}
 
 const MY = '/v1/me/leave-requests';
 const QUEUE = '/v1/leave-requests';
@@ -172,6 +183,41 @@ export const leaveRequestsApi = {
     employeeSignature: async (id: string, payload: EmployeeSignaturePayload): Promise<LeaveRequestDetail> => {
         const res = await apiClient.post<LeaveRequestDetail>(`${QUEUE}/${id}/employee-signature`, payload, { skipErrorToast: true });
         return res.data;
+    },
+
+    /**
+     * „Dodaj urlop": urlop wprowadzony i od razu zatwierdzony (201). Bez kroku decyzji -
+     * podpis pracownika jest opcjonalny i dochodzi osobno ([requestSignature] albo
+     * [employeeSigningSession] + [employeeSignature] na tym urządzeniu).
+     */
+    record: async (payload: CreateOnBehalfLeaveRequestPayload): Promise<LeaveRequestDetail> => {
+        const res = await apiClient.post<LeaveRequestDetail>(`${QUEUE}/record`, payload, { skipErrorToast: true });
+        return res.data;
+    },
+
+    /** Tablety studia i numer z karty pracownika - do prośby o podpis zatwierdzonego urlopu. */
+    signingOptions: async (id: string): Promise<LeaveSigningOptions> => {
+        const res = await apiClient.get<LeaveSigningOptions>(`${QUEUE}/${id}/signing-options`, { skipErrorToast: true });
+        return res.data;
+    },
+
+    /** Prośba o podpis pracownika na tablecie albo SMS-em (numer domyślnie z karty pracownika). */
+    requestSignature: async (
+        id: string,
+        body: { channel: RemoteSigningChannel; tabletId?: string | null; phone?: string | null },
+    ): Promise<RemoteSignatureRequest> => {
+        const res = await apiClient.post<RemoteSignatureRequest>(`${QUEUE}/${id}/signature-requests`, body, { skipErrorToast: true });
+        return res.data;
+    },
+
+    /** Najnowsza prośba o podpis pracownika (także zakończona); null, gdy nie było żadnej. */
+    latestSignature: async (id: string, config?: BackgroundRequestConfig): Promise<RemoteSignatureRequest | null> => {
+        const res = await apiClient.get<RemoteSignatureRequest>(`${QUEUE}/${id}/signature-requests/latest`, config);
+        return res.status === 204 ? null : res.data;
+    },
+
+    cancelSignature: async (id: string): Promise<void> => {
+        await apiClient.post(`${QUEUE}/${id}/signature-requests/cancel`, undefined, { skipErrorToast: true });
     },
 
     /**

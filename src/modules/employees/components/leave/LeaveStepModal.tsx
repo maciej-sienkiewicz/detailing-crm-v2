@@ -41,6 +41,8 @@ interface Props {
     current?: number;
     stepsLabel?: string;
     footer?: ReactNode;
+    /** Szerokość okna; „Dodaj urlop" potrzebuje miejsca na dwa miesiące kalendarza. */
+    size?: 'md' | 'lg' | 'xl';
     onClose: () => void;
     /**
      * Escape zamyka okno - chyba że nad nim jest otwarty kalendarz: wtedy Escape
@@ -53,7 +55,7 @@ interface Props {
 }
 
 export function LeaveStepModal({
-    titleId, title, subtitle, status, steps, current = 0, stepsLabel = 'Kroki', footer, onClose,
+    titleId, title, subtitle, status, steps, current = 0, stepsLabel = 'Kroki', footer, size = 'md', onClose,
     closeOnEscape = true, overlays, children,
 }: Props) {
     const active = steps?.[current];
@@ -70,7 +72,7 @@ export function LeaveStepModal({
             <ModalShell
                 isOpen
                 onClose={onClose}
-                size="md"
+                size={size}
                 stableHeight
                 dismissible={false}
                 closeOnEscape={closeOnEscape}

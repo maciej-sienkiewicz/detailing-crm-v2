@@ -3,7 +3,7 @@
 // Grafik nieobecności: pewna nieobecność to pełna komórka, wniosek oczekujący - kreskowana
 // (i tylko u tego, kto rozpatruje). L4 wpisuje ten, kto zarządza zespołem.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { cleanup, fireEvent, render, screen } from '@testing-library/react';
+import { cleanup, fireEvent, render, screen, within } from '@testing-library/react';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
@@ -25,7 +25,7 @@ vi.mock('../../api/employeeApi', () => ({
 }));
 vi.mock('../../api/leaveRequestsApi', async importOriginal => ({
     ...(await importOriginal<typeof import('../../api/leaveRequestsApi')>()),
-    leaveRequestsApi: { list: vi.fn() },
+    leaveRequestsApi: { list: vi.fn(), preview: vi.fn() },
 }));
 
 const month = todayIso().slice(0, 7);
@@ -104,5 +104,23 @@ describe('AbsencesSection', () => {
         fireEvent.change(screen.getByLabelText('Pracownik'), { target: { value: 'p' } });
         fireEvent.click(screen.getByRole('button', { name: 'Wpisz zwolnienie' }));
         await vi.waitFor(() => expect(employeeApi.addLeave).toHaveBeenCalledWith('p', expect.objectContaining({ leaveType: 'SICK' })));
+    });
+
+    it('przeciągnięcie po dniach w wierszu osoby otwiera „Dodaj urlop" z tą osobą i tymi dniami', async () => {
+        auth.user = { permissions: ['EMPLOYEES_LEAVES_APPROVE'] };
+        vi.mocked(leaveRequestsApi.preview).mockResolvedValue({ workingDays: 3, holidays: [] });
+        renderTab();
+
+        const row = (await screen.findByRole('rowheader', { name: 'Anna Nowak' })).closest('[role="row"]') as HTMLElement;
+        const cells = within(row).getAllByRole('cell');
+        fireEvent.pointerDown(cells[9], { button: 0 });
+        fireEvent.pointerEnter(cells[11]);
+        fireEvent.pointerUp(window);
+
+        const dialog = await screen.findByRole('dialog', { name: 'Dodaj urlop' });
+        // Osoba jest już wybrana - okno nie pyta o nią drugi raz.
+        expect(within(dialog).queryByLabelText('Pracownik')).toBeNull();
+        expect(await within(dialog).findByText(/3 dni robocze/)).toBeTruthy();
+        expect(vi.mocked(leaveRequestsApi.preview)).toHaveBeenCalledWith('a', day(10), day(12));
     });
 });

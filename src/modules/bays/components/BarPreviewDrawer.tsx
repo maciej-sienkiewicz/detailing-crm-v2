@@ -1,6 +1,6 @@
 // src/modules/bays/components/BarPreviewDrawer.tsx
 //
-// Podgląd auta z planu stanowisk (tydzień i „Teraz"). Odpowiada na pytania, z którymi
+// Podgląd auta z planu stanowisk. Odpowiada na pytania, z którymi
 // ktoś klika w pasek: gdzie i do kiedy to auto stoi, czy zdążymy na obiecany odbiór,
 // czyje to auto i jak się z nim skontaktować, co je czeka dalej (inne stanowiska) i co
 // jest do zrobienia. Dawniej był tu sam czas i lista usług - wszystko inne wymagało
@@ -320,7 +320,7 @@ interface Props {
     canEdit: boolean;
     onClose: () => void;
     onDeleteBooking: (bookingId: string) => void;
-    /** Auto stoi na stanowisku: zdjęcie z osi zamyka odcinek pracy. Brak - akcji nie ma (tablica „Teraz" ma własne). */
+    /** Auto stoi na stanowisku: zdjęcie z osi zamyka odcinek pracy. Brak - akcji nie ma. */
     onUnassign?: () => void;
     /** Kolejny etap auta na innym stanowisku albo w innym czasie. */
     onAddStage?: () => void;

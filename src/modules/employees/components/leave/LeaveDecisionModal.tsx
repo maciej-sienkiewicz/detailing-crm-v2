@@ -16,7 +16,8 @@
 import { useRef, useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import styled from 'styled-components';
-import { ArrowRight, Check, Download, Eye, X } from 'lucide-react';
+import { ArrowRight, Check, Download, Eye, PenLine, X } from 'lucide-react';
+import { LeaveSignatureModal } from './AddLeaveModal';
 import { Button, FieldList, FieldRow, Notice, StatusPill, ui } from '@/common/components/ui';
 import { useToast } from '@/common/components/Toast';
 import type { SignaturePadHandle } from '@/common/components/SignaturePad';
@@ -50,6 +51,8 @@ const SIGNATURE_METHOD: Record<LeaveSignatureMethod, string> = {
     DEVICE_DRAWN: 'odręcznie na swoim urządzeniu',
     SAVED_SIGNATURE: 'zapisanym podpisem',
     IN_PERSON: 'osobiście na urządzeniu studia',
+    TABLET: 'na tablecie studia',
+    SMS_LINK: 'na telefonie, z linku SMS',
 };
 
 const NO_PERMISSION = 'Nie możesz już zatwierdzać wniosków.';
@@ -76,6 +79,8 @@ export function LeaveDecisionModal({ requestId, onClose }: Props) {
     const [blocked, setBlocked] = useState<string | null>(null);
     const [cancelOpen, setCancelOpen] = useState(false);
     const [downloading, setDownloading] = useState(false);
+    /** Urlop wpisany przez administratora bez podpisu pracownika - zbieranie podpisu później. */
+    const [collecting, setCollecting] = useState(false);
 
     const pending = request?.status === 'PENDING';
     const canDecide = !!request && pending && request.canDecide && !blocked;
@@ -180,6 +185,10 @@ export function LeaveDecisionModal({ requestId, onClose }: Props) {
 
     const notFound = detail.isError && leaveApiError(detail.error).status === 404;
 
+    if (collecting && request) {
+        return <LeaveSignatureModal request={request} onSigned={() => { void detail.refetch(); }} onClose={() => setCollecting(false)} />;
+    }
+
     return (
         <LeaveStepModal
             titleId="leave-decision-title"
@@ -220,7 +229,11 @@ export function LeaveDecisionModal({ requestId, onClose }: Props) {
             {request && (!canDecide || step === REQUEST) && (
                 <>
                     {blockedReason && <Notice tone="info">{blockedReason}</Notice>}
-                    <LeaveFacts request={request} />
+                    <LeaveFacts
+                        request={request}
+                        onCollectSignature={request.origin === 'ON_BEHALF' && request.status === 'APPROVED' && !request.employeeSignedAt
+                            ? () => setCollecting(true) : undefined}
+                    />
                 </>
             )}
 
@@ -262,7 +275,7 @@ function Recap({ request }: { request: LeaveRequestDetail }) {
     );
 }
 
-function LeaveFacts({ request }: { request: LeaveRequestDetail }) {
+function LeaveFacts({ request, onCollectSignature }: { request: LeaveRequestDetail; onCollectSignature?: () => void }) {
     const [previewOpen, setPreviewOpen] = useState(false);
     const fileQuery = useQuery({
         queryKey: [...LEAVE_REQUESTS_KEY, 'file', request.id, request.status],
@@ -309,7 +322,16 @@ function LeaveFacts({ request }: { request: LeaveRequestDetail }) {
                     <FieldRow label="Podpisano">
                         {request.employeeSignedAt
                             ? `${formatDateTime(request.employeeSignedAt)}${signedHow ? `, ${signedHow}` : ''}`
-                            : 'brak podpisu'}
+                            : (
+                                <>
+                                    brak podpisu
+                                    {onCollectSignature && (
+                                        <Button variant="tinted" size="sm" style={{ marginLeft: 10 }} onClick={onCollectSignature}>
+                                            <PenLine aria-hidden="true" />Zbierz podpis
+                                        </Button>
+                                    )}
+                                </>
+                            )}
                     </FieldRow>
                     {request.origin === 'ON_BEHALF' && request.createdByName && (
                         <FieldRow label="Wpisane przez">{request.createdByName}</FieldRow>

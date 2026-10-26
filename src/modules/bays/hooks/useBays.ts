@@ -10,8 +10,8 @@ import { addDays, mondayOf } from '../utils/slots';
 export const BAYS_KEY = ['bays'] as const;
 
 /**
- * Odczyt hali w zakresie osi. Bez zakresu - tydzień bieżący: tyle potrzebuje tablica
- * „Teraz" (auta w warsztacie i ich najbliższy plan serwer dołącza zawsze).
+ * Odczyt hali w zakresie osi. Bez zakresu - tydzień bieżący: tyle potrzebuje pasek
+ * „Na hali" w wizycie (auta w warsztacie i ich najbliższy plan serwer dołącza zawsze).
  */
 export const useBaysSnapshot = (range?: { from: Date; to: Date }, enabled = true) => {
     const from = range?.from ?? mondayOf(new Date());
@@ -35,7 +35,7 @@ export function useBaysMutation<A extends unknown[], R>(fn: (...args: A) => Prom
     });
 }
 
-/** „Teraz" odświeżane co pół minuty - liczniki „od 7:55, 3 h 10 min" idą same. */
+/** Bieżąca chwila odświeżana co pół minuty - linia „teraz" i liczniki idą same. */
 export const useBaysNow = (): Date => {
     const [now, setNow] = useState(() => new Date());
     useEffect(() => {

@@ -8,8 +8,12 @@
 // Pełna komórka = nieobecność pewna (urlop zatwierdzony, L4). Kreskowana = wniosek
 // oczekujący, czyli nieobecność jeszcze niepewna - widzi ją tylko ten, kto rozpatruje.
 // Siatka (MonthGrid) jest wspólna z wpisami godzin na zakładce „Czas pracy".
+//
+// Kto może dodawać urlopy, zaznacza je tu wprost: kliknięcie dnia w wierszu osoby albo
+// przeciągnięcie po kilku dniach otwiera „Dodaj urlop" z osobą i terminem - bez szukania
+// tej osoby i tych dni drugi raz w oknie.
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import styled, { css } from 'styled-components';
 import { ChevronLeft, ChevronRight, Plus } from 'lucide-react';
 import { Button, IconButton, SectionTitle, ui } from '@/common/components/ui';
@@ -24,6 +28,7 @@ import {
 } from '../MonthGrid';
 import { gridColumns, isOffDay, monthDays } from '../monthGridDays';
 import { AddSickLeaveModal } from './AddSickLeaveModal';
+import { AddLeaveModal } from './AddLeaveModal';
 
 const MONTHS = [
     'Styczeń', 'Luty', 'Marzec', 'Kwiecień', 'Maj', 'Czerwiec',
@@ -52,6 +57,9 @@ export function AbsencesSection() {
 
     const [month, setMonth] = useState(() => todayIso().slice(0, 7));
     const [sickOpen, setSickOpen] = useState(false);
+    /** Zaznaczanie dni urlopu w wierszu osoby: dzień chwycenia i dzień pod kursorem. */
+    const [pick, setPick] = useState<{ employeeId: string; anchor: string; current: string } | null>(null);
+    const [addLeave, setAddLeave] = useState<{ employeeId: string; start: string; end: string } | null>(null);
     const days = useMemo(() => monthDays(month), [month]);
     const from = days[0];
     const to = days[days.length - 1];
@@ -84,6 +92,23 @@ export function AbsencesSection() {
     }, [employees, leaveDayMap, pending.data, days, from, to]);
 
     const anyAbsence = rows.some(r => r.days.size > 0);
+    // Zaznaczać można osoby z listy zespołu (ma je okno urlopu), nie tylko te z danymi.
+    const pickable = useMemo(() => new Set(employees.map(e => e.id)), [employees]);
+    const range = pick ? (pick.anchor <= pick.current ? [pick.anchor, pick.current] : [pick.current, pick.anchor]) : null;
+
+    // Puszczenie przycisku gdziekolwiek kończy zaznaczanie i otwiera okno urlopu.
+    useEffect(() => {
+        if (!pick) return;
+        const up = () => {
+            const [start, end] = pick.anchor <= pick.current ? [pick.anchor, pick.current] : [pick.current, pick.anchor];
+            setAddLeave({ employeeId: pick.employeeId, start, end });
+            setPick(null);
+        };
+        const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setPick(null); };
+        window.addEventListener('pointerup', up);
+        window.addEventListener('keydown', esc);
+        return () => { window.removeEventListener('pointerup', up); window.removeEventListener('keydown', esc); };
+    }, [pick]);
     const [y, m] = month.split('-').map(Number);
 
     return (
@@ -109,6 +134,7 @@ export function AbsencesSection() {
                     <ChevronRight />
                 </IconButton>
                 <MonthLegend>
+                    {canApprove && <span>Kliknij albo przeciągnij po dniach, żeby dodać urlop</span>}
                     <span><Swatch $state="absent" aria-hidden="true" />nieobecność</span>
                     {canApprove && <span><Swatch $state="pending" aria-hidden="true" />wniosek oczekuje</span>}
                 </MonthLegend>
@@ -123,13 +149,25 @@ export function AbsencesSection() {
                             <NameCell role="rowheader">{r.name}</NameCell>
                             {days.map(d => {
                                 const state = r.days.get(d) ?? null;
+                                const canPick = canApprove && pickable.has(r.id);
+                                const picked = !!range && pick?.employeeId === r.id && d >= range[0] && d <= range[1];
                                 return (
                                     <DayCell
                                         key={d}
                                         role="cell"
                                         $off={isOffDay(d, holidays)}
                                         $state={state}
+                                        $picked={picked}
+                                        $pickable={canPick}
                                         aria-label={state ? `${r.name}, ${d}: ${state === 'pending' ? 'wniosek oczekuje' : 'nieobecność'}` : undefined}
+                                        onPointerDown={canPick ? e => {
+                                            if (e.button !== 0) return;
+                                            e.preventDefault();
+                                            setPick({ employeeId: r.id, anchor: d, current: d });
+                                        } : undefined}
+                                        onPointerEnter={canPick ? () => {
+                                            if (pick && pick.employeeId === r.id && pick.current !== d) setPick({ ...pick, current: d });
+                                        } : undefined}
                                     />
                                 );
                             })}
@@ -140,6 +178,14 @@ export function AbsencesSection() {
             </GridScroll>
 
             {sickOpen && <AddSickLeaveModal employees={employees} onClose={() => setSickOpen(false)} />}
+            {addLeave && (
+                <AddLeaveModal
+                    employeeId={addLeave.employeeId}
+                    startDate={addLeave.start}
+                    endDate={addLeave.end}
+                    onClose={() => setAddLeave(null)}
+                />
+            )}
         </Wrap>
     );
 }
@@ -191,6 +237,16 @@ const Swatch = styled.span<{ $state: CellState }>`
     ${p => cellFill(p.$state)}
 `;
 
-const DayCell = styled(BaseDayCell)<{ $state: CellState }>`
+const DayCell = styled(BaseDayCell)<{ $state: CellState; $picked: boolean; $pickable: boolean }>`
     ${p => cellFill(p.$state)}
+    ${p => p.$pickable && css`
+        cursor: cell;
+        touch-action: pan-x;
+        &:hover { box-shadow: inset 0 0 0 2px ${ui.brandLine}; }
+    `}
+    /* Zaznaczane dni: odcień marki bez wypełnienia, nad stanem komórki. */
+    ${p => p.$picked && css`
+        background: ${ui.brandTint};
+        box-shadow: inset 0 0 0 2px ${ui.brand};
+    `}
 `;
