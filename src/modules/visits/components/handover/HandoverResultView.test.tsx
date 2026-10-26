@@ -77,4 +77,11 @@ describe('handoverLead', () => {
     it('bez podziału: jedno zdanie o płatności', () => {
         expect(handoverLead({ ...base, totalGross: 272_300 }, 272_300, 'Karta', fmt)).toEqual(['Płatność karta 2723,00 zł zapisana.']);
     });
+
+    it('zlecenie zbiorcze: bez słowa o zapisanej płatności, za to dokąd trafiło auto', () => {
+        expect(handoverLead(
+            { ...base, totalGross: 190_000, batchEntryId: 'e-1', batchContractorName: 'Flota-Trans' },
+            190_000, undefined, fmt
+        )).toEqual(['Auto za 1900,00 zł trafiło na listę kontrahenta Flota-Trans w zleceniach zbiorczych.']);
+    });
 });

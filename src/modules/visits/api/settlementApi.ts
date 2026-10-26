@@ -102,6 +102,19 @@ export interface SettlementView {
      * zmiana ceny usługi koryguje dokument tej usługi, każdy dokument ma swoją formę płatności.
      */
     perDocument?: boolean;
+    /**
+     * Zlecenie zbiorcze: wizyta jest na liście kontrahenta i nie ma dokumentów. Poprawka
+     * zmienia wtedy tylko ceny - w wizycie i na aucie z listy; null = rozliczenie przy wydaniu.
+     */
+    batch?: SettlementBatch | null;
+}
+
+export interface SettlementBatch {
+    entryId: string;
+    contractorId: string;
+    contractorName: string | null;
+    /** Auto jest już w zestawieniu - poprawka zrobi z niego korektę do następnego. */
+    settled: boolean;
 }
 
 export interface SettlementServiceLine {

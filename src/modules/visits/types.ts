@@ -202,8 +202,22 @@ export interface Visit {
     acceptedByName?: string;
     /** Czym wizyta została rozliczona; brak = wizyta jeszcze nierozliczona. */
     settlement?: VisitSettlement | null;
+    /**
+     * Zlecenie zbiorcze: kontrahent, na którego listę wizytę wydano (`entryId` jest),
+     * albo przed wydaniem podpowiedź - kontrahent, na którego ostatnio wydano auto klienta.
+     */
+    batch?: VisitBatch | null;
     createdAt: string;
     updatedAt: string;
+}
+
+export interface VisitBatch {
+    /** Wpis na liście kontrahenta; null = tylko podpowiedź przed wydaniem. */
+    entryId: string | null;
+    contractorId: string;
+    contractorName: string | null;
+    /** Auto jest już w zestawieniu kontrahenta. */
+    settled: boolean;
 }
 
 /**

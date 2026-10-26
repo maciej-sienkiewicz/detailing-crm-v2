@@ -11,7 +11,7 @@ import {
 } from '../utils/servicePriceEdits';
 import type { EditedPrice } from '../utils/servicePriceEdits';
 import { formatCurrency, shouldAutoFocusInput } from '@/common/utils';
-import type { ServiceLineItem, VisitSettlement, VisitSettlementDocument, VisitStatus } from '../types';
+import type { ServiceLineItem, VisitBatch, VisitSettlement, VisitSettlementDocument, VisitStatus } from '../types';
 import { usePrintServicesList } from '../hooks/usePrintServicesList';
 import { usePersonalDataActions } from '@/core/permissions';
 import { useServiceChecklist } from '../hooks/useServiceChecklist';
@@ -1447,6 +1447,11 @@ interface ServicesTableProps {
     /** Czym wizytę rozliczono; brak = nierozliczona. */
     settlement?: VisitSettlement | null;
     /**
+     * Zlecenie zbiorcze: wizyta wydana na listę kontrahenta nie ma dokumentu, ale nie jest
+     * „nierozliczona” - zapłaci za nią faktura za okres. Liczy się tylko z `entryId`.
+     */
+    batch?: VisitBatch | null;
+    /**
      * Poprawka rozliczenia po wydaniu pojazdu. Mieszka w menu wykazu usług, nie w nagłówku
      * wizyty: poprawia się ceny i dokument tych usług, więc akcja stoi przy nich. Rodzic
      * podaje ją tylko dla wizyty zakończonej i użytkownika z uprawnieniem.
@@ -1512,7 +1517,7 @@ function discountPillLabel(adjustment: PriceAdjustment, label: string): string {
 
 const HEADER_MENU = '__header__';
 
-export const ServicesTable = ({ services, visitStatus, visitId, highlightPending, settlement, onCorrectSettlement }: ServicesTableProps) => {
+export const ServicesTable = ({ services, visitStatus, visitId, highlightPending, settlement, batch, onCorrectSettlement }: ServicesTableProps) => {
     const { calculateServicePrice } = useServicePricing();
     const { print: printServicesList, isPrinting } = usePrintServicesList();
     // Lista kontrolna „zrobione" (ustawienie studia, domyślnie wyłączone) - tylko znak
@@ -2121,7 +2126,14 @@ export const ServicesTable = ({ services, visitStatus, visitId, highlightPending
     // przy wydaniu pojazdu.
     // Faktura + drugi dokument: oba w plakietce, bo jedna nazwa mówiła tylko o fakturze.
     const settlementDocs = settlement?.documents ?? [];
-    const settlementPill = pricesHidden || services.length === 0 ? null : settlement ? (
+    const batchEntry = batch?.entryId ? batch : null;
+    const settlementPill = pricesHidden || services.length === 0 ? null : batchEntry ? (
+        // Odcień „domknięte” dopiero po zestawieniu: wcześniej auto czeka na fakturę za okres.
+        <StatusPill $tone={batchEntry.settled ? 'ok' : 'info'}>
+            {batchEntry.settled && <Check />}
+            {batchEntry.contractorName ? `Zlecenie zbiorcze: ${batchEntry.contractorName}` : 'Zlecenie zbiorcze'}
+        </StatusPill>
+    ) : settlement ? (
         <StatusPill $tone="ok"><Check />{settlementDocs.length > 1
             ? `Rozliczona: ${settlementDocs.map(d => documentShortLabel(d).toLowerCase()).join(' + ')}`
             : SETTLEMENT_LABEL[settlement.documentType ?? 'OTHER']}</StatusPill>

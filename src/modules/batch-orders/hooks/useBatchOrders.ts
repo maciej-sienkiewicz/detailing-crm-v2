@@ -25,10 +25,12 @@ function invalidateContractorMoney(qc: QueryClient, contractorId: string) {
     qc.invalidateQueries({ queryKey: CONTRACTORS_KEY });
 }
 
-export function useContractors() {
+/** `enabled: false` - ekran poza modułem (wydanie wizyty) u roli bez zleceń zbiorczych. */
+export function useContractors({ enabled = true }: { enabled?: boolean } = {}) {
     return useQuery({
         queryKey: CONTRACTORS_KEY,
         queryFn: batchOrderApi.listContractors,
+        enabled,
     });
 }
 

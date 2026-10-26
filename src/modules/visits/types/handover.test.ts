@@ -18,6 +18,7 @@ import {
     priceFromService,
     restoreDraft,
     servicesFingerprint,
+    validateBatchHandover,
     newInvoiceLine,
     overwrittenLines,
     pricesWithTypedAmounts,
@@ -48,6 +49,8 @@ const ozon = priceFromService({ id: 'o', serviceName: 'Ozonowanie', vatRate: 8, 
 const state = (overrides: Partial<HandoverState> = {}): HandoverState => {
     const prices = overrides.prices ?? [ceramika, korekta, pranie];
     return {
+        settlementMode: 'IMMEDIATE',
+        batchContractorId: null,
         paymentMethod: 'CARD',
         documentType: 'INVOICE',
         buyer: { nip: '', name: 'Jan Kowalski', addressLine1: '', addressLine2: '', email: '' },
@@ -118,6 +121,43 @@ describe('restoreDraft', () => {
 
     it('uszkodzony draft nie blokuje wydania', () => {
         expect(restoreDraft(state(), '{nie json', 'x')).toEqual(state());
+    });
+
+    it('zlecenie zbiorcze i kontrahent wracają z draftu także po zmianie usług', () => {
+        const saved = state({ settlementMode: 'BATCH', batchContractorId: 'k-1' });
+        const restored = restoreDraft(state(), draft({ servicesFingerprint: 'stary', state: saved }), 'nowy');
+        expect(restored.settlementMode).toBe('BATCH');
+        expect(restored.batchContractorId).toBe('k-1');
+    });
+
+    it('draft sprzed zlecenia zbiorczego zostawia podpowiedź z serwera', () => {
+        const { settlementMode: _mode, batchContractorId: _id, ...old } = state();
+        const fresh = state({ settlementMode: 'BATCH', batchContractorId: 'podpowiedz' });
+        const restored = restoreDraft(fresh, draft({ servicesFingerprint: 'x', state: old as HandoverState }), 'x');
+        expect(restored.settlementMode).toBe('BATCH');
+        expect(restored.batchContractorId).toBe('podpowiedz');
+    });
+});
+
+describe('validateBatchHandover - zlecenie zbiorcze', () => {
+    it('bez kontrahenta nie da się wydać auta', () => {
+        const problems = validateBatchHandover(state({ settlementMode: 'BATCH', batchContractorId: null }));
+        expect(problems).toEqual([{ section: 'contractor', message: 'Wybierz kontrahenta, do którego trafi auto.' }]);
+    });
+
+    it('z kontrahentem i kwotą nie ma braków - nabywca i pozycje faktury nie grają roli', () => {
+        const problems = validateBatchHandover(state({
+            settlementMode: 'BATCH',
+            batchContractorId: 'k-1',
+            buyer: { nip: '123', name: '', addressLine1: '', addressLine2: '', email: '' },
+        }));
+        expect(problems).toEqual([]);
+    });
+
+    it('wizyta za zero nie trafia do zlecenia zbiorczego', () => {
+        const gratis = priceFromService({ id: 'g', serviceName: 'Gratis', vatRate: 23, basePriceGross: 0, finalPriceNet: 0, finalPriceGross: 0 });
+        const problems = validateBatchHandover(state({ settlementMode: 'BATCH', batchContractorId: 'k-1', prices: [gratis] }));
+        expect(problems.map(p => p.section)).toEqual(['prices']);
     });
 });
 

@@ -15,6 +15,7 @@
 import { Fragment, useEffect, useState } from 'react';
 import { createPortal } from 'react-dom';
 import styled from 'styled-components';
+import { Link } from 'react-router-dom';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { useToast } from '@/common/components/Toast';
 import { applyFloatingPlacement } from '@/common/utils/floatingPlacement';
@@ -632,6 +633,25 @@ const PhotoCountBtn = styled.button`
     &:hover { color: ${p => p.theme.colors.text}; border-color: ${p => p.theme.colors.textMuted}; }
 `;
 
+/** Auto z wydania wizyty: numer wizyty jako odnośnik - tam poprawia się jego ceny. */
+const VisitLink = styled(Link)`
+    display: inline-flex;
+    align-items: center;
+    margin-left: 6px;
+    padding: 2px 7px;
+    border: 1px solid ${p => p.theme.colors.border};
+    border-radius: ${p => p.theme.radii.full};
+    color: ${p => p.theme.colors.textMuted};
+    font-size: 11px;
+    font-weight: 600;
+    line-height: 1.4;
+    text-decoration: none;
+    vertical-align: middle;
+    white-space: nowrap;
+
+    &:hover { color: ${p => p.theme.colors.text}; border-color: ${p => p.theme.colors.textMuted}; }
+`;
+
 const PhotoRow = styled.tr`
     @media (max-width: 767px) { display: block; }
 
@@ -1245,6 +1265,15 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                                             )}
                                                         </VehicleIdent>
                                                     )}
+                                                    {entry.visitId && (
+                                                        <VisitLink
+                                                            to={`/visits/${entry.visitId}`}
+                                                            onClick={e => e.stopPropagation()}
+                                                            title="Auto z wydania wizyty - ceny poprawisz na wizycie"
+                                                        >
+                                                            Wizyta {entry.visitNumber ?? ''}
+                                                        </VisitLink>
+                                                    )}
                                                     {entry.photoCount > 0 && (
                                                         <PhotoCountBtn
                                                             type="button"
@@ -1397,8 +1426,9 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                 </svg>
                                 Edytuj auto
                             </MenuItem>
-                            <MenuDivider />
-                            <MenuItem
+                            {/* Auto z wizyty znika z listy tylko razem z rozliczeniem wizyty - bez „Usuń”. */}
+                            {!openEntry.visitId && <MenuDivider />}
+                            {!openEntry.visitId && <MenuItem
                                 $danger
                                 onClick={() => {
                                     setConfirmDelete(openEntry);
@@ -1412,7 +1442,7 @@ export function ContractorEntriesSection({ contractor, onEdit, onDelete }: Props
                                     <path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2" />
                                 </svg>
                                 Usuń auto
-                            </MenuItem>
+                            </MenuItem>}
                         </>
                     )}
                 </DropdownMenu>,

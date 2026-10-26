@@ -78,7 +78,16 @@ export interface InvoiceLine {
  * Pełny stan ekranu wydania. Zapisywany do localStorage, żeby zamknięcie okna
  * nie kasowało pracy: stary kreator czyścił wszystko w handleClose().
  */
+/**
+ * Jak klient płaci: od razu (paragon, faktura) albo zleceniem zbiorczym - auto trafia
+ * na listę kontrahenta, a faktura za cały okres powstaje przy rozliczeniu.
+ */
+export type SettlementMode = 'IMMEDIATE' | 'BATCH';
+
 export interface HandoverState {
+    settlementMode: SettlementMode;
+    /** Kontrahent zlecenia zbiorczego; null = jeszcze nie wybrano. */
+    batchContractorId: string | null;
     paymentMethod: PaymentMethod;
     documentType: InvoiceType;
     buyer: HandoverBuyer;
@@ -161,9 +170,18 @@ export const restoreDraft = (
             documentType: draft.state.documentType ?? fresh.documentType,
             sendToKsef: draft.state.sendToKsef ?? fresh.sendToKsef,
             thankYouSms: draft.state.thankYouSms ?? fresh.thankYouSms,
+            settlementMode: draft.state.settlementMode ?? fresh.settlementMode,
+            batchContractorId: draft.state.batchContractorId ?? fresh.batchContractorId,
         };
     }
-    return { ...fresh, ...draft.state, remainderInput: draft.state.remainderInput ?? '' };
+    return {
+        ...fresh,
+        ...draft.state,
+        remainderInput: draft.state.remainderInput ?? '',
+        // Draft sprzed zlecenia zbiorczego nie zna tych pól - wtedy obowiązuje podpowiedź.
+        settlementMode: draft.state.settlementMode ?? fresh.settlementMode,
+        batchContractorId: draft.state.batchContractorId ?? fresh.batchContractorId,
+    };
 };
 
 // ─── Arytmetyka kwot (grosze) ─────────────────────────────────────────────────
@@ -720,7 +738,7 @@ export const linesMatchServices = (lines: InvoiceLine[], prices: HandoverPrice[]
 
 export interface HandoverProblem {
     /** Sekcja, przy której należy pokazać komunikat, nie w banerze na górze. */
-    section: 'seller' | 'buyer' | 'prices' | 'items' | 'balance';
+    section: 'seller' | 'buyer' | 'prices' | 'items' | 'balance' | 'contractor';
     message: string;
 }
 
@@ -744,6 +762,24 @@ export const priceProblems = (prices: HandoverPrice[]): HandoverProblem[] =>
  * Wszystkie realne przeszkody w wydaniu. Pusta lista = przycisk aktywny. Walidacja
  * odpowiada backendowej (CompleteVisitInvoiceOrchestrator).
  */
+/**
+ * Zlecenie zbiorcze: dokumentu nie ma, więc sprawdzamy tylko ceny i kontrahenta.
+ * Bez kwoty do zapłaty auto nie ma czego dopisać do rozliczenia (backend też odmówi).
+ */
+export const validateBatchHandover = (state: HandoverState): HandoverProblem[] => {
+    const problems: HandoverProblem[] = [...priceProblems(state.prices)];
+    if (!state.batchContractorId) {
+        problems.push({ section: 'contractor', message: 'Wybierz kontrahenta, do którego trafi auto.' });
+    }
+    if (problems.length === 0 && totalsOf(state.prices).gross <= 0) {
+        problems.push({
+            section: 'prices',
+            message: 'Wizyta bez kwoty do zapłaty nie trafia do zlecenia zbiorczego. Wybierz „Teraz”.',
+        });
+    }
+    return problems;
+};
+
 export const validateHandover = ({
     state,
     sellerComplete,

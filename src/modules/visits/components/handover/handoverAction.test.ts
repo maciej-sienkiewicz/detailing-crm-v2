@@ -24,6 +24,17 @@ describe('handoverAction - przycisk nazwany skutkiem i kwotą', () => {
         });
     });
 
+    it('zlecenie zbiorcze: auto trafia do kontrahenta, bez dokumentu i płatności', () => {
+        expect(handoverAction(input({ batchContractor: { name: 'Flota-Trans' } }))).toEqual({
+            title: 'Wydaj auto i dopisz do zlecenia zbiorczego',
+            detail: '1700,00 zł na liście kontrahenta Flota-Trans',
+        });
+    });
+
+    it('zlecenie zbiorcze bez kontrahenta mówi, czego brakuje', () => {
+        expect(handoverAction(input({ batchContractor: { name: null } })).detail).toBe('1700,00 zł, wybierz kontrahenta');
+    });
+
     it('faktura bez wysyłki nie obiecuje KSeF', () => {
         expect(handoverAction(input({ sendToKsef: false })).title).toBe('Wydaj auto i wystaw fakturę');
     });

@@ -280,7 +280,18 @@ function CorrectionForm({ view, visitId, intent, onClose }: { view: SettlementVi
     const invoiceDocId = activeDocuments.find(d => d.type === 'INVOICE')?.id;
     const effectiveMethod: PaymentMethod = perDocument && invoiceDocId ? docMethods[invoiceDocId] ?? paymentMethod : paymentMethod;
     const needsExemption = documentType === 'INVOICE' && !external && lines.some(l => l.vatRate === -1);
-    const request = useMemo<SettlementCorrectionRequest>(() => ({
+    // Zlecenie zbiorcze: dokumentu nie ma i nie powstanie - zmieniają się tylko ceny (wizyta
+    // i auto na liście kontrahenta). Serwer pomija rodzaj dokumentu i formę płatności.
+    const batch = view.batch ?? null;
+    const request = useMemo<SettlementCorrectionRequest>(() => batch ? {
+        services: changedServiceLines(lines),
+        documentType: 'OTHER',
+        paymentMethod: 'OTHER',
+        dueDate: null,
+        buyer: null,
+        exemptionLegalBasis: null,
+        reason: reason || null,
+    } : ({
         services: changedServiceLines(lines),
         documentType,
         paymentMethod: effectiveMethod,
@@ -289,7 +300,7 @@ function CorrectionForm({ view, visitId, intent, onClose }: { view: SettlementVi
         exemptionLegalBasis: needsExemption ? exemption || null : null,
         reason: reason || null,
         documentPaymentMethods: perDocument ? docMethods : undefined,
-    }), [lines, documentType, effectiveMethod, dueDate, buyer, needsExemption, exemption, reason, perDocument, docMethods]);
+    }), [batch, lines, documentType, effectiveMethod, dueDate, buyer, needsExemption, exemption, reason, perDocument, docMethods]);
 
     // Podgląd po chwili ciszy: każde naciśnięcie klawisza w cenie nie musi pytać serwera.
     const [debounced, setDebounced] = useState(request);
@@ -300,7 +311,7 @@ function CorrectionForm({ view, visitId, intent, onClose }: { view: SettlementVi
     // Nic jeszcze nie zmieniono: zamiast pytać serwer i straszyć „nie da się”,
     // okno mówi, co można tu zrobić.
     // Wizyta bez dokumentu: sam wybór rodzaju dokumentu jest zmianą (dopisuje brakujący).
-    const pristine = view.documentType !== null &&
+    const pristine = batch ? debounced.services.length === 0 : view.documentType !== null &&
         debounced.services.length === 0 &&
         debounced.documentType === (view.documentType ?? 'RECEIPT') &&
         debounced.paymentMethod === (view.paymentMethod ?? 'CASH') &&
@@ -332,6 +343,11 @@ function CorrectionForm({ view, visitId, intent, onClose }: { view: SettlementVi
                 showSuccess('Faktura wystawiona', toReceipt
                     ? 'Paragon zostaje w historii wizyty, sprzedaż liczy się raz.'
                     : 'Faktura jest w Finansach i w podglądzie wizyty.');
+            } else if (batch) {
+                queryClient.invalidateQueries({ queryKey: ['batch-orders'] });
+                showSuccess('Ceny poprawione', batch.settled
+                    ? 'Auto wróci do najbliższego zestawienia kontrahenta jako korekta.'
+                    : 'Auto na liście kontrahenta ma już nowe kwoty.');
             } else {
                 showSuccess('Rozliczenie poprawione', 'Stare dokumenty zostają w historii wizyty obok korekt.');
             }
@@ -381,9 +397,11 @@ function CorrectionForm({ view, visitId, intent, onClose }: { view: SettlementVi
 
     // Druga linia przycisku: skutek, który się klika (jak „Wydaj auto…”), a gdy kliknąć
     // się nie da - dlaczego.
+    const batchWho = batch?.contractorName ? `kontrahenta ${batch.contractorName}` : 'kontrahenta';
     const actionDetail = pristine ? 'Nic się jeszcze nie zmieniło'
         : !upToDate ? 'Sprawdzanie poprawki…'
             : blockReason || preview.isError ? 'Tej poprawki nie da się teraz wykonać'
+                : batch ? `${pln(newGross)} na liście ${batchWho}`
                 : [
                     documentLine,
                     perDocument ? null : methodLabel(effectiveMethod).toLowerCase(),
@@ -403,7 +421,13 @@ function CorrectionForm({ view, visitId, intent, onClose }: { view: SettlementVi
                     <DecisionStack>
                         <DecisionField aria-labelledby="settlement-now">
                             <DecisionTitle id="settlement-now">Obecne rozliczenie</DecisionTitle>
-                            {documentRows.length === 0 ? (
+                            {batch ? (
+                                <Muted>
+                                    {batch.settled
+                                        ? `Zlecenie zbiorcze: auto jest już w zestawieniu ${batchWho}. Po poprawce wróci do najbliższego zestawienia jako korekta.`
+                                        : `Zlecenie zbiorcze: auto czeka na liście ${batchWho} na fakturę za okres.`}
+                                </Muted>
+                            ) : documentRows.length === 0 ? (
                                 <Muted>Wizyta nie ma dokumentu rozliczenia.</Muted>
                             ) : (
                                 <DocList>
@@ -424,7 +448,7 @@ function CorrectionForm({ view, visitId, intent, onClose }: { view: SettlementVi
                             )}
                         </DecisionField>
 
-                        <DecisionField id="settlement-document">
+                        {!batch && <DecisionField id="settlement-document">
                             <DecisionTitle>Dokument dla klienta</DecisionTitle>
                             <PillRow role="group" aria-label="Dokument dla klienta">
                                 {DOCUMENT_CHOICES.map(choice => (
@@ -452,9 +476,9 @@ function CorrectionForm({ view, visitId, intent, onClose }: { view: SettlementVi
                                     korektę też wystawia ona. Przekaż jej tę zmianę.
                                 </Notice>
                             )}
-                        </DecisionField>
+                        </DecisionField>}
 
-                        {needsExemption && (
+                        {!batch && needsExemption && (
                             <DecisionField>
                                 <DecisionTitle as="label" htmlFor="settlement-exemption">Podstawa zwolnienia z VAT</DecisionTitle>
                                 <InputShell $compact>
@@ -484,7 +508,7 @@ function CorrectionForm({ view, visitId, intent, onClose }: { view: SettlementVi
                             />
                         </DecisionField>
 
-                        <DecisionField id="settlement-payment">
+                        {!batch && <DecisionField id="settlement-payment">
                             <DecisionTitle>{perDocument ? 'Forma zapłaty dokumentów' : 'Forma zapłaty'}</DecisionTitle>
                             {perDocument ? (
                                 <>
@@ -511,9 +535,9 @@ function CorrectionForm({ view, visitId, intent, onClose }: { view: SettlementVi
                             ) : (
                                 <PaymentMethodPicker value={paymentMethod} onChange={setPaymentMethod} />
                             )}
-                        </DecisionField>
+                        </DecisionField>}
 
-                        {effectiveMethod === 'TRANSFER' && (
+                        {!batch && effectiveMethod === 'TRANSFER' && (
                             <DecisionField>
                                 <DecisionTitle as="label" htmlFor="settlement-due">Termin płatności</DecisionTitle>
                                 <InputShell $compact>
@@ -560,6 +584,40 @@ function CorrectionForm({ view, visitId, intent, onClose }: { view: SettlementVi
                         zawsze na wierzchu: kwota dla klienta, zmiana kasy, korekta w KSeF. Poprawka
                         po podziale potrafiła po cichu zabrać z kasy całą gotówkową resztę - tę liczbę
                         trzeba zobaczyć przed zatwierdzeniem. */}
+                    {batch ? (
+                    <SummaryAside aria-label="Podsumowanie poprawki">
+                        <SummaryAmount>
+                            <span>Do rozliczenia</span>
+                            <strong>{pln(newGross)}</strong>
+                            <span>{newGross !== originalGross ? `było ${pln(originalGross)}` : `netto ${pln(newNet)}, VAT ${pln(newGross - newNet)}`}</span>
+                        </SummaryAmount>
+                        <Review aria-live="polite">
+                            <ReviewTitle>Sprawdź przed zapisem</ReviewTitle>
+                            <ReviewRow>
+                                <span>Kontrahent</span>
+                                <span><strong>{batch.contractorName ?? 'Zlecenie zbiorcze'}</strong></span>
+                            </ReviewRow>
+                            <ReviewRow>
+                                <span>Dokument</span>
+                                <span><strong>Bez dokumentu</strong><small>faktura za okres przy rozliczeniu kontrahenta</small></span>
+                            </ReviewRow>
+                            <ReviewRow>
+                                <span>Zestawienie</span>
+                                <span><strong>{batch.settled ? 'Auto wróci jako korekta' : 'Auto czeka na zestawienie'}</strong></span>
+                            </ReviewRow>
+                        </Review>
+                        {problems.length > 0 && (
+                            <SummaryProblems role="alert" aria-live="polite">
+                                {problems.map(problem => (
+                                    <ProblemItem key={problem.title}>
+                                        <strong>{problem.title}</strong>
+                                        <p>{problem.detail}</p>
+                                    </ProblemItem>
+                                ))}
+                            </SummaryProblems>
+                        )}
+                    </SummaryAside>
+                    ) : (
                     <SummaryAside aria-label="Podsumowanie poprawki">
                         <SummaryAmount>
                             <span>Do zapłaty</span>
@@ -627,6 +685,7 @@ function CorrectionForm({ view, visitId, intent, onClose }: { view: SettlementVi
                             </SummaryProblems>
                         )}
                     </SummaryAside>
+                    )}
                 </SettlementGrid>
 
                 <BuyerModal

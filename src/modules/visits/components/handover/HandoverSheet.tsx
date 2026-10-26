@@ -21,6 +21,8 @@ import {
     ActionIcon, ActionText, FooterActions, PrimaryAction, SettlementFooter, SettlementGrid,
 } from './HandoverKit';
 import { SettlementSection } from './SettlementSection';
+import { BatchSettlementSection, SettlementModeField } from './BatchSettlementSection';
+import { useContractors } from '@/modules/batch-orders/hooks/useBatchOrders';
 import { SettlementSummary } from './SettlementSummary';
 import { PricesSection } from './PricesSection';
 import { handoverAction } from './handoverAction';
@@ -177,18 +179,23 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
             : null;
 
     const fmt = (grosz: number) => formatCurrency(grosz / 100, handover.currency);
+    // Nazwa wybranego kontrahenta do przycisku i podsumowania. Lista jest wspólna (react-query)
+    // z wyborem w BatchSettlementSection, więc nie idzie drugie zapytanie.
+    const { data: contractors } = useContractors({ enabled: handover.canUseBatch && isOpen });
+    const batchContractorName = contractors?.find(c => c.id === handover.state.batchContractorId)?.name ?? null;
     // Podgląd faktury przy przycisku wydania - ostatnie spojrzenie przed wystawieniem.
     const [isPreviewOpen, setPreviewOpen] = useState(false);
-    const showInvoicePreview = handover.canIssueDocuments && !handover.isFreeVisit
+    const showInvoicePreview = handover.canIssueDocuments && !handover.isFreeVisit && !handover.isBatch
         && handover.state.documentType === 'INVOICE' && !handover.invoicedExternally;
     const action = handoverAction({
         isFreeVisit: handover.isFreeVisit,
+        batchContractor: handover.isBatch ? { name: batchContractorName } : null,
         canIssueDocuments: handover.canIssueDocuments,
         documentType: handover.state.documentType,
         hasOtherDocument: handover.state.splitRemainder && handover.remainder > 0,
         invoicedExternally: handover.invoicedExternally,
         sendToKsef: handover.sendToKsef,
-        gross: fmt(handover.payable),
+        gross: fmt(handover.isBatch ? handover.batchTotals.gross : handover.payable),
         invoiceGross: fmt(handover.invoiceGross),
         remainder: fmt(handover.remainder),
         buyerName: handover.state.buyer.name,
@@ -196,7 +203,8 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
     });
     // Dwie kolumny tylko tam, gdzie jest co rozliczać; podpis, wizyta bezpłatna i ekran
     // wyniku zostają w węższym oknie.
-    const isWide = !handover.result && !isSignatureStep && handover.canIssueDocuments && !handover.isFreeVisit;
+    const isWide = !handover.result && !isSignatureStep && !handover.isFreeVisit
+        && (handover.canIssueDocuments || handover.isBatch);
 
     return (
         <ModalShell isOpen={isOpen} onClose={handleClose} size={isWide ? undefined : 'lg'} maxWidth={isWide ? '1080px' : undefined}>
@@ -218,7 +226,7 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                         grossAmount={handover.totals.gross}
                         currency={handover.currency}
                         thankYouAt={thankYouAt}
-                        paymentLabel={handover.totals.gross > 0 ? paymentMethods.find(m => m.value === handover.state.paymentMethod)?.label : undefined}
+                        paymentLabel={handover.totals.gross > 0 && !handover.result.batchEntryId ? paymentMethods.find(m => m.value === handover.state.paymentMethod)?.label : undefined}
                         onClose={onClose}
                     />
                 ) : (
@@ -262,7 +270,43 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
 
                         <StepPane $active={!isSignatureStep}>
                             <Body>
-                                {handover.canIssueDocuments && !handover.isFreeVisit ? (
+                                {handover.canUseBatch && !handover.isFreeVisit && (
+                                    <SettlementModeField
+                                        value={handover.state.settlementMode}
+                                        onChange={settlementMode => handover.patch({ settlementMode })}
+                                    />
+                                )}
+                                {handover.isBatch ? (
+                                    <SettlementGrid>
+                                        <BatchSettlementSection
+                                            visit={visit}
+                                            state={handover.state}
+                                            patch={handover.patch}
+                                            problemsIn={handover.problemsIn}
+                                            priceControls={{
+                                                changePrice: handover.changePrice,
+                                                resetPrices: handover.resetPrices,
+                                                discount: handover.pricesDiscount,
+                                                totalGross: handover.pricesGross,
+                                            }}
+                                            fmt={fmt}
+                                        />
+                                        <SettlementSummary
+                                            state={handover.state}
+                                            totals={handover.batchTotals}
+                                            currency={handover.currency}
+                                            invoiceItems={[]}
+                                            invoiceGross={0}
+                                            remainder={0}
+                                            invoicedExternally={false}
+                                            sendToKsef={false}
+                                            ksefBlocked={null}
+                                            transferDueDate={null}
+                                            problems={handover.problems}
+                                            batch={{ contractorName: batchContractorName }}
+                                        />
+                                    </SettlementGrid>
+                                ) : handover.canIssueDocuments && !handover.isFreeVisit ? (
                                     <SettlementGrid>
                                         <SettlementSection
                                             state={handover.state}

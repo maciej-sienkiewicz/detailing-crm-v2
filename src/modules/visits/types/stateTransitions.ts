@@ -99,9 +99,21 @@ export interface ThankYouSmsPayload {
     scheduledAt?: string;
 }
 
+/**
+ * Sposób rozliczenia przy wydaniu. Pominięty = od razu (paragon albo faktura z `payment`).
+ * BATCH = zlecenie zbiorcze: auto trafia na listę kontrahenta, a przy wydaniu nie powstaje
+ * dokument ani ruch w kasie - klient płaci fakturą za cały okres.
+ */
+export interface SettlementModePayload {
+    mode: 'IMMEDIATE' | 'BATCH';
+    contractorId?: string;
+}
+
 export interface TransitionToCompletedPayload {
     signatureObtained: boolean;
-    payment: PaymentDetails;
+    /** Wymagane przy rozliczeniu od razu; przy zleceniu zbiorczym pominięte. */
+    payment?: PaymentDetails;
+    settlement?: SettlementModePayload;
     invoice?: CompleteInvoicePayload;
     thankYouSms?: ThankYouSmsPayload;
     /** Zmienione ceny usług (podwyżka, rabat, stawka VAT); pusta lista = bez zmian. */
@@ -154,4 +166,7 @@ export interface CompleteVisitResponse {
     remainderGross?: number | null;
     remainderPaymentMethod?: PaymentMethod | null;
     remainderWithoutReceipt?: boolean;
+    /** Wpis zlecenia zbiorczego, gdy wizytę wydano na kontrahenta. */
+    batchEntryId?: string | null;
+    batchContractorName?: string | null;
 }

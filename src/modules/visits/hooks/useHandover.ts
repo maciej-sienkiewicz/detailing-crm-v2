@@ -33,6 +33,7 @@ import {
     totalsOf,
     unmergeLine,
     updatePrice,
+    validateBatchHandover,
     validateHandover,
     type HandoverDraft,
     type HandoverPrice,
@@ -42,6 +43,7 @@ import {
     type VatRateCode,
 } from '../types/handover';
 import { problemDetail } from '@/core/problem';
+import { usePermissions } from '@/core/permissions';
 
 // v5: kwota pozycji wpisywana od netto albo brutto (amount + amountMode, 21.10.2026).
 const DRAFT_PREFIX = 'handover:v5:';
@@ -118,11 +120,19 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     const pendingServices = useMemo(() => visit.services.filter(s => s.status === 'PENDING'), [visit.services]);
     const currency = visit.totalCost?.currency ?? 'PLN';
 
+    // Zlecenie zbiorcze to moduł z własnym uprawnieniem: bez niego nie ma listy kontrahentów,
+    // na którą można dopisać auto. Podpowiedź z serwera (kontrahent, na którego ostatnio
+    // wydano auto klienta) ustawia je od razu - klient floty jest rozliczany tak co miesiąc.
+    const canUseBatch = usePermissions().can('BATCH_ORDERS');
+    const suggestedContractorId = canUseBatch && !visit.batch?.entryId ? visit.batch?.contractorId ?? null : null;
+
     // ── Stan początkowy ──────────────────────────────────────────────────────
     const buildInitialState = useCallback((): HandoverState => {
         const prices = countedServices.map(priceFromService);
         const lines = addressLines(visit);
         return {
+            settlementMode: suggestedContractorId ? 'BATCH' : 'IMMEDIATE',
+            batchContractorId: suggestedContractorId,
             paymentMethod: 'CARD',
             documentType: 'INVOICE',
             buyer: {
@@ -148,7 +158,7 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
             // ustawienie dociera z sieci, więc tu tylko „pracownik jeszcze nie wybrał".
             thankYouSms: null,
         };
-    }, [visit, countedServices]);
+    }, [visit, countedServices, suggestedContractorId]);
 
     // Odcisk usług, z których powstały ceny i pozycje - decyduje, czy zapisany draft
     // opisuje jeszcze tę samą wizytę (patrz restoreDraft).
@@ -202,6 +212,12 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     // edytora cen - do zapłaty jest wtedy 0 zł i dokument nie powstanie (patrz zapis).
     const isFreeVisit = originalGross === 0;
     const nothingToPay = totals.gross === 0;
+    /**
+     * Zlecenie zbiorcze: bez dokumentu i bez płatności, ceny wyłącznie z „Cen usług”.
+     * Wizyta bez opłat nie ma czego dopisać - wtedy obowiązuje zwykłe wydanie.
+     */
+    const isBatch = canUseBatch && !isFreeVisit && state.settlementMode === 'BATCH';
+    const batchTotals = useMemo(() => totalsOf(state.prices), [state.prices]);
 
     const thankYouSms = useThankYouSmsAvailability({
         enabled: isOpen,
@@ -384,9 +400,10 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
                     : `${pendingServices.length} usługi czekają na zgodę klienta. Zatwierdź je albo odrzuć w usługach wizyty.`,
             }]
             : [];
+        if (isBatch) return [...pending, ...validateBatchHandover(state)];
         if (!canIssueDocuments) return pending;
         return [...pending, ...validateHandover({ state, sellerComplete, invoicedExternally })];
-    }, [pendingServices, state, sellerComplete, canIssueDocuments, invoicedExternally]);
+    }, [pendingServices, state, sellerComplete, canIssueDocuments, invoicedExternally, isBatch]);
 
     const problemsIn = useCallback(
         (section: HandoverProblem['section']) => problems.filter(p => p.section === section),
@@ -396,6 +413,19 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     // ── Zapis ────────────────────────────────────────────────────────────────
     const { mutate: submit, isPending: isSubmitting } = useMutation({
         mutationFn: () => {
+            if (isBatch) {
+                return stateTransitionApi.complete(visit.id, {
+                    signatureObtained: state.protocolSigned,
+                    settlement: { mode: 'BATCH', contractorId: state.batchContractorId ?? undefined },
+                    // Ceny z „Cen usług” - przy zleceniu zbiorczym nie ma faktury, która by je zmieniała.
+                    priceChanges: toPriceChanges(state.prices),
+                    addedServices: toAddedServices(state.prices, state.lines),
+                    thankYouSms: buildThankYouSmsPayload({
+                        available: thankYouSms.available,
+                        send: thankYouSmsChecked,
+                    }),
+                });
+            }
             const documentType = nothingToPay
                 ? 'other'
                 : canIssueDocuments
@@ -427,6 +457,8 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
             queryClient.invalidateQueries({ queryKey: visitKeys.scope(visit.id) });
             queryClient.invalidateQueries({ queryKey: ['ksef', 'revenue'] });
             queryClient.invalidateQueries({ queryKey: ['income-documents'] });
+            // Auto doszło do listy kontrahenta - karta i suma „do rozliczenia” się zmieniły.
+            if (response?.batchEntryId) queryClient.invalidateQueries({ queryKey: ['batch-orders'] });
             if (response?.alreadyInTargetState) {
                 showInfo(
                     'Ta wizyta była już wydana',
@@ -444,6 +476,11 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
     return {
         // dane
         company,
+        /** Rola widzi zlecenia zbiorcze - tylko wtedy jest wybór „Zlecenie zbiorcze”. */
+        canUseBatch,
+        isBatch,
+        /** Ceny z „Cen usług” - kwota auta na liście kontrahenta. */
+        batchTotals,
         isCompanyLoading,
         sellerComplete,
         totals,
@@ -490,7 +527,7 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         canSubmit:
             problems.length === 0 &&
             !isSubmitting &&
-            !(canIssueDocuments && !isFreeVisit && state.documentType === 'INVOICE' && ksef.isLoading),
+            !(!isBatch && canIssueDocuments && !isFreeVisit && state.documentType === 'INVOICE' && ksef.isLoading),
         invoicedExternally,
         canIssueDocuments,
         // zapis

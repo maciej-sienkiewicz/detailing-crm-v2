@@ -27,6 +27,8 @@ const prices = [
 ];
 
 const state = (overrides: Partial<HandoverState> = {}): HandoverState => ({
+    settlementMode: 'IMMEDIATE',
+    batchContractorId: null,
     paymentMethod: 'CARD',
     documentType: 'INVOICE',
     buyer: { nip: '5213017228', name: 'Flota Serwis Sp. z o.o.', addressLine1: 'ul. Przemysłowa 7', addressLine2: '30-001 Kraków', email: '' },

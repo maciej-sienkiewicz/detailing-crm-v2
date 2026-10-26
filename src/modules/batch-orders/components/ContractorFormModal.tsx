@@ -47,18 +47,24 @@ function nipProblem(value: string): string | null {
 
 interface Props {
     initial?: BatchContractor | null;
+    /**
+     * Dane podpowiedziane NOWEMU kontrahentowi - przy wydaniu wizyty z karty klienta,
+     * żeby nie przepisywać nazwy i NIP-u ręcznie. Przy edycji ([initial]) pomijane.
+     */
+    prefill?: ContractorRequest;
     onSave: (data: ContractorRequest) => Promise<void>;
     onClose: () => void;
 }
 
-export function ContractorFormModal({ initial, onSave, onClose }: Props) {
-    const [name, setName] = useState(initial?.name ?? '');
-    const [taxId, setTaxId] = useState(initial?.taxId ?? '');
-    const [address, setAddress] = useState(initial?.address ?? '');
-    const [contactPerson, setContactPerson] = useState(initial?.contactPersonName ?? '');
-    const [email, setEmail] = useState(initial?.email ?? '');
-    const [phone, setPhone] = useState(initial?.phone ?? '');
-    const [notes, setNotes] = useState(initial?.notes ?? '');
+export function ContractorFormModal({ initial, prefill, onSave, onClose }: Props) {
+    const start = initial ?? prefill;
+    const [name, setName] = useState(start?.name ?? '');
+    const [taxId, setTaxId] = useState(start?.taxId ?? '');
+    const [address, setAddress] = useState(start?.address ?? '');
+    const [contactPerson, setContactPerson] = useState(start?.contactPersonName ?? '');
+    const [email, setEmail] = useState(start?.email ?? '');
+    const [phone, setPhone] = useState(start?.phone ?? '');
+    const [notes, setNotes] = useState(start?.notes ?? '');
     const [saving, setSaving] = useState(false);
     const [nameError, setNameError] = useState('');
     const [emailError, setEmailError] = useState('');

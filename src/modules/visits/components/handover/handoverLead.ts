@@ -17,7 +17,10 @@ export const handoverLead = (
     const total = result.totalGross ?? grossAmount;
     if (total <= 0) return ['Wizyta bez opłat.'];
     const lines: string[] = [];
-    if (result.remainderGross && result.remainderGross > 0 && result.invoiceGross != null) {
+    if (result.batchEntryId) {
+        const who = result.batchContractorName ? `kontrahenta ${result.batchContractorName}` : 'kontrahenta';
+        lines.push(`Auto za ${fmt(total)} trafiło na listę ${who} w zleceniach zbiorczych.`);
+    } else if (result.remainderGross && result.remainderGross > 0 && result.invoiceGross != null) {
         const invoiceMethod = methodWord(result.paymentMethod) ?? paymentLabel?.toLowerCase();
         lines.push(`Faktura ${fmt(result.invoiceGross)} brutto${invoiceMethod ? `, ${invoiceMethod}` : ''}.`);
         lines.push(`Inny dokument ${fmt(result.remainderGross)} bez VAT, ${methodWord(result.remainderPaymentMethod) ?? 'gotówka'}.`);

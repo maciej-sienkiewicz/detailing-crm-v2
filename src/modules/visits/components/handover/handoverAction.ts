@@ -9,6 +9,8 @@
  */
 export interface HandoverActionInput {
     isFreeVisit: boolean;
+    /** Zlecenie zbiorcze: nazwa kontrahenta, na którego listę trafi auto (null = nie wybrano). */
+    batchContractor?: { name: string | null } | null;
     canIssueDocuments: boolean;
     documentType: 'INVOICE' | 'RECEIPT' | 'other';
     /** „Faktura + Inny dokument” z resztą większą od zera. */
@@ -29,6 +31,12 @@ export interface HandoverAction {
 
 export const handoverAction = (a: HandoverActionInput): HandoverAction => {
     if (a.isFreeVisit) return { title: 'Wydaj auto', detail: 'Wizyta bez opłat, bez dokumentu sprzedaży' };
+    if (a.batchContractor) {
+        return {
+            title: 'Wydaj auto i dopisz do zlecenia zbiorczego',
+            detail: a.batchContractor.name ? `${a.gross} na liście kontrahenta ${a.batchContractor.name}` : `${a.gross}, wybierz kontrahenta`,
+        };
+    }
     if (!a.canIssueDocuments) return { title: 'Wydaj auto', detail: `Do zapłaty ${a.gross}` };
 
     if (a.documentType === 'INVOICE') {

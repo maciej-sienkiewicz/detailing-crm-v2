@@ -52,6 +52,13 @@ export interface BatchOrderEntry {
     isCorrection: boolean;
     /** Zestawienie, w którym auto zostało ujęte; null dla auta nierozliczonego. */
     closeHistoryId: string | null;
+    /**
+     * Wizyta, z której wydania auto trafiło na listę (zlecenie zbiorcze przy wydaniu); null =
+     * auto dodane ręcznie. Dane auta i kwoty takiego wpisu idą za wizytą - zmienia je poprawka
+     * rozliczenia wizyty, a w module zostają tylko uwagi i zdjęcia.
+     */
+    visitId?: string | null;
+    visitNumber?: string | null;
     photoCount: number;
     createdAt: string;
     updatedAt: string;

@@ -280,6 +280,16 @@ export const HandoverResultView = ({
                     </DocCard>
                 )}
 
+                {result.batchEntryId && (
+                    <DocCard $tone="neutral" aria-label="Zlecenie zbiorcze">
+                        <DocTitle>Faktura za cały okres przy rozliczeniu</DocTitle>
+                        <DocText>
+                            Teraz nie powstał paragon ani faktura. Auto czeka na liście kontrahenta
+                            w Zleceniach zbiorczych, a ceny poprawisz na wizycie: Usługi → Popraw rozliczenie.
+                        </DocText>
+                    </DocCard>
+                )}
+
                 {result.invoicedExternally && (
                     <DocCard $tone="neutral" aria-label="Faktura">
                         <DocTitle>Fakturę wystawi księgowość</DocTitle>

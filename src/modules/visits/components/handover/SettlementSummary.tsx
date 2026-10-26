@@ -31,6 +31,7 @@ const ANCHOR: Record<HandoverProblem['section'], string> = {
     prices: 'handover-prices',
     items: 'handover-positions',
     balance: 'handover-positions',
+    contractor: 'handover-contractor',
 };
 
 const jumpTo = (id: string) => {
@@ -61,6 +62,11 @@ interface SettlementSummaryProps {
     problems: HandoverProblem[];
     /** Zmiana nabywcy z okna „Zmień” przy nabywcy; bez niej wiersz jest tylko do odczytu. */
     onBuyerChange?: (buyer: HandoverBuyer) => void;
+    /**
+     * Zlecenie zbiorcze: podsumowanie mówi, do kogo trafi auto i że teraz nie ma dokumentu
+     * ani płatności. `contractorName` null = kontrahent jeszcze nie wybrany.
+     */
+    batch?: { contractorName: string | null };
 }
 
 export const SettlementSummary = ({
@@ -77,9 +83,57 @@ export const SettlementSummary = ({
     transferDueDate,
     problems,
     onBuyerChange,
+    batch,
 }: SettlementSummaryProps) => {
     const [isBuyerOpen, setBuyerOpen] = useState(false);
     const fmt = (grosz: number) => formatCurrency(grosz / 100, currency);
+
+    if (batch) {
+        return (
+            <Aside aria-label="Podsumowanie rozliczenia">
+                <Amount>
+                    <span>Do rozliczenia</span>
+                    <strong>{fmt(totals.gross)}</strong>
+                    <span>netto {fmt(totals.net)}, VAT {fmt(totals.vat)}</span>
+                </Amount>
+                <Review>
+                    <ReviewTitle>Podsumowanie</ReviewTitle>
+                    <ReviewRow>
+                        <span>Kontrahent</span>
+                        <span><strong>{batch.contractorName ?? 'Nie wybrano'}</strong></span>
+                    </ReviewRow>
+                    <ReviewRow>
+                        <span>Dokument</span>
+                        <span>
+                            <strong>Teraz bez dokumentu</strong>
+                            <small>faktura za okres przy rozliczeniu kontrahenta</small>
+                        </span>
+                    </ReviewRow>
+                    <ReviewRow>
+                        <span>Płatność</span>
+                        <span>Na koniec okresu<small>bez wpisu do kasy</small></span>
+                    </ReviewRow>
+                    <ReviewRow>
+                        <span>Protokół</span>
+                        <span>{state.protocolSigned ? 'Podpisany' : 'Bez podpisu klienta'}</span>
+                    </ReviewRow>
+                </Review>
+                {problems.length > 0 && (
+                    <Problems role="alert" aria-label="Do poprawienia">
+                        <strong>Zanim wydasz auto:</strong>
+                        <ol>
+                            {problems.map((problem, i) => (
+                                <li key={i}>
+                                    <button type="button" onClick={() => jumpTo(ANCHOR[problem.section])}>{problem.message}</button>
+                                </li>
+                            ))}
+                        </ol>
+                    </Problems>
+                )}
+            </Aside>
+        );
+    }
+
     const isInvoice = state.documentType === 'INVOICE';
     const crmInvoice = isInvoice && !invoicedExternally;
     const hasOther = crmInvoice && state.splitRemainder && remainder > 0;

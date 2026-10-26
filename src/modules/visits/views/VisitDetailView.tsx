@@ -736,6 +736,7 @@ export const VisitDetailView = () => {
                                 visitId={visitId!}
                                 highlightPending={highlightPendingServices}
                                 settlement={visit.settlement}
+                                batch={visit.batch}
                                 onCorrectSettlement={
                                     visit.status === 'COMPLETED' && can('FINANCE_CORRECT_SETTLEMENT')
                                         ? () => setSettlementIntent('correct')

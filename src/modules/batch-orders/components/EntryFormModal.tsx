@@ -51,6 +51,7 @@ import { todayIso } from '../utils/period';
 import { VinCameraButton } from '../../vehicles/components/vin/VinCameraButton';
 import { vinApiAt } from '../../vehicles/components/vin/vinApi';
 import { problemDetail } from '@/core/problem';
+import { useNavigate } from 'react-router-dom';
 
 // Odczyt VIN pod uprawnieniem zleceń zbiorczych - kto rozlicza kontrahentów, nie musi
 // mieć prawa edycji pojazdów.
@@ -477,6 +478,19 @@ interface Props {
     onClose: () => void;
 }
 
+/**
+ * Osobny komponent, żeby `useNavigate` żył tylko przy aucie z wizyty: okno bywa renderowane
+ * poza routerem (testy, podgląd), a zwykłe auto nigdy tego przycisku nie pokazuje.
+ */
+function OpenVisitButton({ visitId }: { visitId: string }) {
+    const navigate = useNavigate();
+    return (
+        <SharedButton $variant="primary" type="button" onClick={() => navigate(`/visits/${visitId}`)}>
+            Otwórz wizytę
+        </SharedButton>
+    );
+}
+
 export function EntryFormModal({ contractorId, contractorName, initial, onSaved, onClose }: Props) {
     const { showSuccess } = useToast();
     const createEntry = useCreateEntry(contractorId);
@@ -485,6 +499,10 @@ export function EntryFormModal({ contractorId, contractorName, initial, onSaved,
     const settled = !!initial?.isClosed;
     const [correcting, setCorrecting] = useState(false);
     const readOnly = settled && !correcting;
+    // Auto z wydania wizyty: dane auta i kwoty idą za wizytą (poprawka rozliczenia wizyty),
+    // tu zostają uwagi i zdjęcia. Serwer i tak odmówi zmiany kwot takiego wpisu.
+    const fromVisit = !!initial?.visitId;
+    const contentLocked = readOnly || fromVisit;
     const [serviceDate, setServiceDate] = useState(initial?.serviceDate ?? todayIso());
     const [vehicleMake, setVehicleMake] = useState(initial?.vehicleMake ?? '');
     const [vehicleModel, setVehicleModel] = useState(initial?.vehicleModel ?? '');
@@ -852,7 +870,13 @@ export function EntryFormModal({ contractorId, contractorName, initial, onSaved,
         : correcting ? 'Poprawka rozliczonego auta'
             : settled ? 'Rozliczone auto'
                 : 'Edytuj auto';
-    const stateNote: { tone: 'info' | 'warn'; text: string } | null = correcting
+    const stateNote: { tone: 'info' | 'warn'; text: string } | null = fromVisit
+        ? {
+            tone: 'info',
+            text: `To auto pochodzi z wizyty ${initial?.visitNumber ?? ''}`.trimEnd() +
+                '. Dane auta i ceny zmienisz na wizycie: Usługi → Popraw rozliczenie. Tutaj dopiszesz uwagi i zdjęcia.',
+        }
+        : correcting
         ? { tone: 'warn', text: 'Po zapisie auto wróci w następnym zestawieniu jako korekta, pełną kwotą. Bez zmian zostaje rozliczone.' }
         : settled
             ? { tone: 'info', text: 'Auto jest już w zestawieniu dla kontrahenta. Żeby coś zmienić, wybierz „Popraw auto”.' }
@@ -876,7 +900,7 @@ export function EntryFormModal({ contractorId, contractorName, initial, onSaved,
                 {error && <div ref={errorRef}><FormAlertBanner>{error}</FormAlertBanner></div>}
                 {stateNote && <StateNote $tone={stateNote.tone}>{stateNote.text}</StateNote>}
 
-                <FormFieldset disabled={readOnly}>
+                <FormFieldset disabled={contentLocked}>
                 <FormField>
                     <FieldLabel htmlFor="entry-date">Data wykonania *</FieldLabel>
                     <InputShell>
@@ -1096,7 +1120,7 @@ export function EntryFormModal({ contractorId, contractorName, initial, onSaved,
                                             document.body
                                         )}
                                     </AutocompleteWrapper>
-                                    {services.length > 1 && !readOnly && (
+                                    {services.length > 1 && !contentLocked && (
                                         <IconRemoveBtn
                                             type="button"
                                             onClick={() => removeService(idx)}
@@ -1161,7 +1185,7 @@ export function EntryFormModal({ contractorId, contractorName, initial, onSaved,
                                 <span>Razem brutto <b>{formatMoney(totals.grossCents)}</b></span>
                             </TotalsRow>
                         )}
-                        {!readOnly && (
+                        {!contentLocked && (
                         <AddRow>
                             <SharedButton
                                 $variant="secondary"
@@ -1177,6 +1201,10 @@ export function EntryFormModal({ contractorId, contractorName, initial, onSaved,
                     </div>
                 </div>
 
+                </FormFieldset>
+
+                {/* Uwagi poza blokadą treści: auto z wizyty ma zablokowane kwoty, ale nie notatkę. */}
+                <FormFieldset disabled={readOnly}>
                 <FormField>
                     <FieldLabel htmlFor="entry-notes">Uwagi</FieldLabel>
                     <InputShellTextArea>
@@ -1201,7 +1229,13 @@ export function EntryFormModal({ contractorId, contractorName, initial, onSaved,
             </ModalContent>
 
             <ModalFooter>
-                {readOnly ? (
+                {readOnly && fromVisit ? (
+                    // Rozliczone auto z wizyty poprawia się na wizycie - tam powstaje korekta.
+                    <>
+                        <SharedButton $variant="secondary" type="button" onClick={onClose}>Zamknij</SharedButton>
+                        <OpenVisitButton visitId={initial?.visitId ?? ''} />
+                    </>
+                ) : readOnly ? (
                     <>
                         <SharedButton $variant="secondary" type="button" onClick={onClose}>Zamknij</SharedButton>
                         <SharedButton $variant="primary" type="button" onClick={startCorrection}>Popraw auto</SharedButton>
