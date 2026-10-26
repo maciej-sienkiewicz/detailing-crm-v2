@@ -15,8 +15,9 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 import { Button, IconButton, Notice, Segmented, ui } from '@/common/components/ui';
 import { useBreakpoint } from '@/common/hooks';
 import { useToast } from '@/common/components/Toast';
+import { formatScheduleDateTime } from '@/common/dateTime';
 import type { BaysSnapshot } from '../types';
-import { addDays, dayMonth, fromDateKey, hoursOf, mondayOf, toDateKey, weekDays, relativeDay, clockText, type Cell } from '../utils/slots';
+import { addDays, dayMonth, fromDateKey, hoursOf, mondayOf, toDateKey, weekDays, relativeDay, type Cell } from '../utils/slots';
 import { buildWeekRows, overlapsInRange, type WeekBar } from '../utils/weekLayout';
 import { baysApi } from '../api/baysApi';
 import { useBaysMutation, useBaysSnapshot, usePatchBoard } from '../hooks/useBays';
@@ -174,10 +175,9 @@ export function WeekView({ snap: initial, now, canEdit }: Props) {
         // plan za obiecanym odbiorem. Termin odbioru zmienia człowiek, nie oś.
         if (car?.promisedAt && m.end > new Date(car.promisedAt)) {
             const promised = new Date(car.promisedAt);
-            showWarning(
-                `${car.licensePlate}: plan kończy się po terminie odbioru`,
-                `Klientowi obiecano ${relativeDay(toDateKey(promised), now)} ${clockText(promised)}. Zmień termin w wizycie albo skróć plan.`,
-            );
+            // Termin z kalendarza (koniec wizyty) - pełna data, bez „jutro", żeby nie trzeba było
+            // przeliczać, o który dzień chodzi.
+            showWarning(`Zgodnie z kalendarzem pojazd powinien zostać wydany klientowi: ${formatScheduleDateTime(promised)}.`);
         }
     };
 
