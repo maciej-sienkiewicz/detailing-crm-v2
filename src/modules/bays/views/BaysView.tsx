@@ -14,7 +14,8 @@
 import { useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { LayoutGrid, Settings2 } from 'lucide-react';
+import { LayoutGrid } from 'lucide-react';
+import { GearIcon } from '@/modules/calendar/components/CalendarDisplaySettings';
 import { PageContainer } from '@/common/components/PageContainer';
 import { PageHeader, PageHeaderPrimaryButton, MobilePageHeader, MobilePageHeaderButton, MobilePageHeaderIconButton } from '@/common/components/PageHeader';
 import { Button, IconButton, Notice } from '@/common/components/ui';
@@ -78,7 +79,7 @@ export function BaysView() {
                         subtitle={dateLine}
                         actions={(
                             <HeaderActions>
-                                {isOwner && <IconButton label="Ustawienia stanowisk" onClick={() => setSettingsOpen(true)}><Settings2 /></IconButton>}
+                                {isOwner && <IconButton label="Ustawienia stanowisk" onClick={() => setSettingsOpen(true)}><GearIcon size={20} /></IconButton>}
                                 {canCreateVisit && (
                                     <PageHeaderPrimaryButton onClick={() => navigate('/checkin/new')}>
                                         <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" aria-hidden="true">
@@ -99,7 +100,7 @@ export function BaysView() {
                             subtitle={dateLine}
                             actions={(
                                 <>
-                                    {isOwner && <MobilePageHeaderIconButton aria-label="Ustawienia stanowisk" onClick={() => setSettingsOpen(true)}><Settings2 /></MobilePageHeaderIconButton>}
+                                    {isOwner && <MobilePageHeaderIconButton aria-label="Ustawienia stanowisk" onClick={() => setSettingsOpen(true)}><GearIcon /></MobilePageHeaderIconButton>}
                                     {canCreateVisit && (
                                         <MobilePageHeaderButton onClick={() => navigate('/checkin/new')}>
                                             <span aria-hidden="true">+</span>
