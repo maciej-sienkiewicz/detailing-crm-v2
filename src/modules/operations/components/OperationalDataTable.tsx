@@ -913,9 +913,9 @@ export const OperationalDataTable = ({
         setOpenMenuId(null);
         setChangeDateModal({ isOpen: true, op });
     };
-    const confirmChangeDate = (start: string, end: string) => {
+    const confirmChangeDate = (start: string, end: string, notifyCustomer?: boolean) => {
         if (!changeDateModal.op) return;
-        updateDate({ reservationId: changeDateModal.op.id, startDateTime: start, endDateTime: end }, {
+        updateDate({ reservationId: changeDateModal.op.id, startDateTime: start, endDateTime: end, notifyCustomer }, {
             onSuccess: () => setChangeDateModal({ isOpen: false, op: null }),
         });
     };

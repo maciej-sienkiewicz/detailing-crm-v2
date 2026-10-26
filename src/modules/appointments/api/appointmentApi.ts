@@ -18,8 +18,17 @@ export const appointmentApi = {
      * Zapis jednej rezerwacji - BEZ parametru `scope`. Serwer traktuje jego brak jako
      * „tylko ta" i odłącza rezerwację od serii; inne rezerwacje serii zostają bez zmian.
      */
-    updateAppointment: async (appointmentId: string, data: AppointmentCreateRequest): Promise<AppointmentUpdateResponse> => {
-        const response = await apiClient.put(`/v1/appointments/${appointmentId}`, data);
+    updateAppointment: async (
+        appointmentId: string,
+        data: AppointmentCreateRequest,
+        /** Pole „Wyślij klientowi SMS o zmianie terminu"; undefined - serwer zostaje przy swoim. */
+        notifyCustomer?: boolean,
+    ): Promise<AppointmentUpdateResponse> => {
+        const response = await apiClient.put(
+            `/v1/appointments/${appointmentId}`,
+            data,
+            notifyCustomer === undefined ? undefined : { params: { notifyCustomer } },
+        );
         return response.data;
     },
 

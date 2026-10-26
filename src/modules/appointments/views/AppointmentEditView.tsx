@@ -23,6 +23,8 @@ import { validateAppointmentEdit } from '../utils/validateAppointmentEdit';
 import { toEditServiceLine } from '../utils/toEditServiceLine';
 import { SmsReminderEditSection } from '../components/SmsReminderEditSection';
 import { RecurrenceEditScopeModal } from '../components/RecurrenceEditScopeModal';
+import { RescheduleSmsChoice } from '../components/RescheduleSmsChoice';
+import { useRescheduleSms } from '../hooks/useRescheduleSms';
 import type { AppointmentSmsInfo, RecurrenceInfo, SeriesEditScope } from '../types';
 import {
     changedSeriesFields,
@@ -245,6 +247,8 @@ const AppointmentEditForm = () => {
 
     const [formData, setFormData] = useState<CheckInFormData | null>(null);
     const initialFormDataRef = useRef<CheckInFormData | null>(null);
+    /** Początek z chwili otwarcia - w stanie, nie w refie, bo czyta go render (pole SMS). */
+    const [initialStart, setInitialStart] = useState<string | null>(null);
 
 
     useEffect(() => {
@@ -289,6 +293,7 @@ const AppointmentEditForm = () => {
                 doorToDoor: initialData.doorToDoor,
             };
             initialFormDataRef.current = snapshot;
+            setInitialStart(snapshot.visitStartAt ?? null);
             setFormData(snapshot);
         }
     }, [initialData, formData, appointment]);
@@ -326,7 +331,7 @@ const AppointmentEditForm = () => {
     };
 
     const updateMutation = useMutation({
-        mutationFn: (payload: AppointmentCreateRequest) => appointmentApi.updateAppointment(appointmentId!, payload),
+        mutationFn: (payload: AppointmentCreateRequest) => appointmentApi.updateAppointment(appointmentId!, payload, rescheduleSms.notifyCustomer),
         onError: showSaveError,
         onSuccess: () => {
             navigate('/calendar');
@@ -358,6 +363,10 @@ const AppointmentEditForm = () => {
         formData.visitStartAt !== initialFormDataRef.current.visitStartAt
         || formData.visitEndAt !== initialFormDataRef.current.visitEndAt
     );
+
+    // SMS o zmianie terminu idzie tylko przy przesuniętym początku - tak liczy też serwer.
+    const startChanged = !!formData && initialStart !== null && formData.visitStartAt !== initialStart;
+    const rescheduleSms = useRescheduleSms(startChanged);
 
     const handleChange = (updates: Partial<CheckInFormData>) => {
         setFormData(prev => (prev ? { ...prev, ...updates } as CheckInFormData : prev));
@@ -479,6 +488,17 @@ const AppointmentEditForm = () => {
                     initialVehicleData={initialData?.vehicleData === undefined ? undefined : (initialData?.vehicleData ?? null)}
                     initialIsNewVehicle={initialData?.isNewVehicle}
                 />
+
+                {rescheduleSms.visible && (
+                    <>
+                        <SmsSeparator />
+                        <RescheduleSmsChoice
+                            send={rescheduleSms.send}
+                            onChange={rescheduleSms.setSend}
+                            newStart={formData?.visitStartAt ?? null}
+                        />
+                    </>
+                )}
 
                 {appointment?.smsInfo && (
                     <>

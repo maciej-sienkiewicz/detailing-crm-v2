@@ -286,13 +286,16 @@ export const operationApi = {
     updateReservationDate: async (
         reservationId: string,
         startDateTime: string,
-        endDateTime: string
+        endDateTime: string,
+        /** Pole „Wyślij klientowi SMS o zmianie terminu"; undefined - serwer zostaje przy swoim. */
+        notifyCustomer?: boolean,
     ): Promise<void> => {
         // Własne wejście na termin: PATCH /appointments/{id} umie tylko anulować i na termin
         // odpowiadał 400, więc „Zmień datę" na liście nie działało nigdy.
         await apiClient.patch(`/v1/appointments/${reservationId}/schedule`, {
             startDateTime,
             endDateTime,
+            notifyCustomer,
         });
     },
 

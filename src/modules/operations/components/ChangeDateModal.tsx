@@ -15,6 +15,8 @@ import {
 import { SharedButton } from '@/common/styles';
 import { DateRangePicker } from '@/common/components/DateTimePicker';
 import type { Operation } from '../types';
+import { RescheduleSmsChoice } from '@/modules/appointments/components/RescheduleSmsChoice';
+import { useRescheduleSms } from '@/modules/appointments/hooks/useRescheduleSms';
 
 const FormGroup = styled.div`
     margin-bottom: 20px;
@@ -42,7 +44,7 @@ interface ChangeDateModalProps {
     isOpen: boolean;
     onClose: () => void;
     reservation: Operation | null;
-    onConfirm: (startDateTime: string, endDateTime: string) => void;
+    onConfirm: (startDateTime: string, endDateTime: string, notifyCustomer?: boolean) => void;
     isUpdating: boolean;
 }
 
@@ -56,6 +58,8 @@ export const ChangeDateModal = ({
     const [startDateTime, setStartDateTime] = useState('');
     const [endDateTime, setEndDateTime] = useState('');
     const [error, setError] = useState('');
+    const [initialStart, setInitialStart] = useState('');
+    const sms = useRescheduleSms(!!startDateTime && startDateTime !== initialStart);
 
     useEffect(() => {
         if (reservation && isOpen) {
@@ -70,6 +74,7 @@ export const ChangeDateModal = ({
             };
 
             setStartDateTime(formatToLocal(reservation.startDateTime));
+            setInitialStart(formatToLocal(reservation.startDateTime));
             setEndDateTime(formatToLocal(reservation.endDateTime));
             setError('');
         }
@@ -91,7 +96,7 @@ export const ChangeDateModal = ({
             return;
         }
 
-        onConfirm(start.toISOString(), end.toISOString());
+        onConfirm(start.toISOString(), end.toISOString(), sms.notifyCustomer);
     };
 
     if (!isOpen || !reservation) return null;
@@ -134,6 +139,12 @@ export const ChangeDateModal = ({
                         placeholder="Wybierz datę i godzinę"
                     />
                 </FormGroup>
+
+                {sms.visible && (
+                    <FormGroup>
+                        <RescheduleSmsChoice send={sms.send} onChange={sms.setSend} newStart={startDateTime} id="change-date-sms" />
+                    </FormGroup>
+                )}
 
                 {error && <ErrorMessage>{error}</ErrorMessage>}
             </ModalContent>

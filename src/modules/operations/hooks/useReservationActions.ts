@@ -14,11 +14,13 @@ export const useUpdateReservationDate = () => {
             reservationId,
             startDateTime,
             endDateTime,
+            notifyCustomer,
         }: {
             reservationId: string;
             startDateTime: string;
             endDateTime: string;
-        }) => operationApi.updateReservationDate(reservationId, startDateTime, endDateTime),
+            notifyCustomer?: boolean;
+        }) => operationApi.updateReservationDate(reservationId, startDateTime, endDateTime, notifyCustomer),
         onSuccess: () => {
             // Odśwież listę operacji
             queryClient.invalidateQueries({ queryKey: ['operations'] });
