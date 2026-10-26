@@ -29,6 +29,7 @@ import type { BaysSnapshot } from '../types';
 import { carStages, type WeekBar } from '../utils/weekLayout';
 import { clockText, durationLabel, formatMinutes, rangeText, relativeDay, toDateKey } from '../utils/slots';
 import { Plate } from './primitives';
+import { carLabel } from '../utils/labels';
 
 const KIND_PILL = {
     plan: { tone: 'neutral', label: 'Plan' },
@@ -370,7 +371,7 @@ export function BarPreviewDrawer({ bar, snap, now, canEdit, onClose, onDeleteBoo
         <SideDrawer
             onClose={onClose}
             titleId="bar-preview-title"
-            title={<Plate $size="lg">{car.licensePlate}</Plate>}
+            title={<Plate $size="lg">{carLabel(car)}</Plate>}
             status={<StatusPill $tone={pill.tone}>{pill.label}</StatusPill>}
             subtitle={car.vehicleName}
             width={540}

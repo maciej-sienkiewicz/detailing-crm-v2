@@ -120,7 +120,7 @@ export function OverlapDialog({ snap, bayId, start, end, now, hits, confirmLabel
             <Body>
                 <Hits>
                     {hits.map(h => (
-                        <li key={h.id}><Plate $size="sm">{h.car.licensePlate}</Plate>{h.car.jobTitle}</li>
+                        <li key={h.id}>{h.car.licensePlate && <Plate $size="sm">{h.car.licensePlate}</Plate>}{h.car.jobTitle}</li>
                     ))}
                 </Hits>
                 <Notice tone="warn">

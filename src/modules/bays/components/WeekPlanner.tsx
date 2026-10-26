@@ -8,7 +8,8 @@
 //     z etykietą na żywo, zanim puścisz przycisk;
 //   - przeciągnięcie paska PLANU → inne stanowisko albo inny czas (długość zostaje);
 //   - chwycenie krawędzi paska planu → rozciągnięcie albo skrócenie;
-//   - przeciągnięcie auta z paska „Bez planu" → plan bez formularza (auto już jest);
+//   - przeciągnięcie auta z paska „Oczekuje na przypisanie" (albo z listy „I X więcej…")
+//     → plan bez formularza (auto już jest);
 //   - przeciągnięcie paska planu na strefę u dołu ekranu → zdjęcie z planu;
 //   - Alt (⌥) + przeciągnięcie dowolnego paska auta → KOPIA jako kolejny etap tego auta
 //     (podnośnik rano, myjnia po południu). Oryginał zostaje na miejscu.
@@ -44,6 +45,10 @@ import {
     timeAtWeekX, toDateKey, weekX, workMinutes, type Cell,
 } from '../utils/slots';
 import { Avatar, Plate } from './primitives';
+import { carLabel } from '../utils/labels';
+
+/** Ile aut pasek oczekujących pokazuje, zanim resztę schowa pod „I X więcej…" - jeden wiersz na komputerze. */
+const TRAY_VISIBLE = 4;
 
 export interface RangeRequest {
     bayId: string;
@@ -429,15 +434,22 @@ const UnplanZone = styled.div<{ $over: boolean }>`
     svg { width: 18px; height: 18px; }
 `;
 
+/*
+ * Jeden wiersz nad planem: chipsy zwężają się (wielokropek), a nagłówek i „I X więcej…”
+ * zostają w całości. Zawijany pasek przy długich nazwach prac zajmował dwa-trzy wiersze.
+ */
 const Tray = styled.div`
     display: flex;
-    flex-wrap: wrap;
+    flex-wrap: nowrap;
     align-items: center;
     gap: 8px;
+    min-width: 0;
     font-size: 13px;
     color: ${ui.textSecondary};
 
-    > strong { font-weight: 700; color: ${ui.ink}; margin-right: 4px; }
+    > strong { flex-shrink: 0; font-weight: 700; color: ${ui.ink}; margin-right: 4px; white-space: nowrap; }
+    > button, > div { flex-shrink: 0; }
+    > button[data-tray-chip] { flex: 0 1 auto; min-width: 110px; }
 `;
 
 const TrayChip = styled.button`
@@ -453,10 +465,72 @@ const TrayChip = styled.button`
     font-size: 12.5px;
     color: ${ui.inkSoft};
     cursor: grab;
+    /* Nazwa pracy bywa całą listą usług - chips ucina ją, pełna jest w podpowiedzi. */
+    max-width: 230px;
+    min-width: 0;
 
-    svg { width: 14px; height: 14px; color: ${ui.textMuted}; }
+    svg { width: 14px; height: 14px; color: ${ui.textMuted}; flex-shrink: 0; }
     &:hover { border-color: ${ui.brandLine}; }
     &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: 2px; }
+`;
+
+/*
+ * „I X więcej…": pasek pokazuje kilka aut, resztę lista pod przyciskiem. Przy kilkunastu
+ * rezerwacjach tygodnia pasek zajmował cztery wiersze nad planem, a plan to jest to, na co
+ * się tu patrzy. Przycisk ma wygląd chipsa bez kreskowanej obwódki - nie da się go przeciągnąć.
+ */
+const TrayMore = styled.button`
+    display: inline-flex;
+    align-items: center;
+    height: 34px;
+    padding: 0 12px;
+    border-radius: ${ui.radiusControl};
+    border: 1px solid ${ui.line};
+    background: ${ui.surfaceAlt};
+    font-family: inherit;
+    font-size: 12.5px;
+    font-weight: 600;
+    color: ${ui.brandInk};
+    cursor: pointer;
+
+    &:hover { border-color: ${ui.brandLine}; }
+    &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: 2px; }
+`;
+
+const TrayMoreWrap = styled.div`
+    position: relative;
+`;
+
+/* Nazwa pracy w jednej linii z wielokropkiem - chips ma stałą wysokość. */
+const TrayJob = styled.span`
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+`;
+
+/* Lista pozostałych aut. Wiersz chwyta się tak samo jak chips - lista znika, gdy auto ruszy. */
+const TrayPanel = styled.div`
+    position: absolute;
+    top: calc(100% + 6px);
+    /* Przycisk stoi na końcu paska - lista otwiera się w lewo, żeby nie wyjść za ekran. */
+    right: 0;
+    z-index: 30;
+    width: min(420px, calc(100vw - 32px));
+    max-height: 360px;
+    overflow-y: auto;
+    overscroll-behavior: contain;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    padding: 10px;
+    border: 1px solid ${ui.line};
+    border-radius: 14px;
+    background: ${ui.surface};
+    box-shadow: 0 12px 32px rgba(15, 23, 42, 0.14);
+
+    > p { margin: 2px 4px 4px; font-size: 12.5px; color: ${ui.textSecondary}; }
+    > button { width: 100%; max-width: none; flex-shrink: 0; justify-content: flex-start; }
 `;
 
 /* Rezerwacja (auto jeszcze nie przyjęte) - dopisek, żeby nie mylić z autem na placu. */
@@ -527,6 +601,23 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
     const [hover, setHover] = useState<{ rowId: string; idx: number } | null>(null);
     /** Auto pod kursorem - jego pozostałe etapy dostają obwódkę. */
     const [hoverCar, setHoverCar] = useState<string | null>(null);
+    const [trayOpen, setTrayOpen] = useState(false);
+    const trayMoreRef = useRef<HTMLDivElement>(null);
+
+    // Lista „I X więcej…" zamyka się kliknięciem obok i Esc, jak każde menu.
+    useEffect(() => {
+        if (!trayOpen) return;
+        const outside = (e: PointerEvent) => {
+            if (!trayMoreRef.current?.contains(e.target as Node)) setTrayOpen(false);
+        };
+        const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setTrayOpen(false); };
+        window.addEventListener('pointerdown', outside);
+        window.addEventListener('keydown', esc);
+        return () => {
+            window.removeEventListener('pointerdown', outside);
+            window.removeEventListener('keydown', esc);
+        };
+    }, [trayOpen]);
     const dragRef = useRef<Drag | null>(null);
     dragRef.current = drag;
     const tracks = useRef(new Map<string, HTMLDivElement>());
@@ -780,12 +871,14 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
         });
     };
 
-    const onTrayDown = (e: React.PointerEvent, carId: string) => {
-        if (!canEdit || e.pointerType === 'touch' || e.button !== 0) return;
+    /** Zwraca, czy przeciąganie ruszyło - dotyk i prawy przycisk go nie zaczynają. */
+    const onTrayDown = (e: React.PointerEvent, carId: string): boolean => {
+        if (!canEdit || e.pointerType === 'touch' || e.button !== 0) return false;
         e.preventDefault();
         grabRef.current = { dx: 16, dy: 18, w: 180, h: 40 };
         // Bez planu nie wiadomo, ile auto postoi - zaczynamy od jednego okienka, potem rozciągnij.
         setDrag({ kind: 'move', carId, bookingId: null, minutes: 1, grabMs: 0, rowId: '', startIdx: -1, len: 1, moved: true, startX: e.clientX, barId: null });
+        return true;
     };
 
     // Auta bez planu: przyjęte (w warsztacie) i rezerwacje z kalendarza z zakresu osi -
@@ -794,6 +887,23 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
     const unplanned = snap.cars.filter(c => (c.stage === 'IN_SHOP' || c.stage === 'BOOKED') && !c.workDone
         && !snap.bookings.some(b => b.carId === c.id)
         && !snap.stints.some(s => s.carId === c.id && s.endedAt === null));
+
+    // Chips auta czekającego na stanowisko - ten sam w pasku i na liście „I X więcej…".
+    // Auto bez tablicy nie dostaje zastępczego napisu: wystarczy, co jest przy nim do zrobienia.
+    const trayChip = (c: BaysSnapshot['cars'][number]) => (
+        <TrayChip
+            key={c.id}
+            type="button"
+            data-tray-chip
+            onPointerDown={e => { if (onTrayDown(e, c.id)) setTrayOpen(false); }}
+            title={`${c.jobTitle}\nPrzeciągnij na stanowisko`}
+        >
+            <MoveHorizontal aria-hidden="true" />
+            {c.licensePlate && <Plate $size="sm">{c.licensePlate}</Plate>}
+            <TrayJob>{c.jobTitle}</TrayJob>
+            {c.stage === 'BOOKED' && <TrayTag>rezerwacja</TrayTag>}
+        </TrayChip>
+    );
 
     const ghostFor = (row: WeekRow) => {
         const d = drag;
@@ -809,12 +919,12 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
             if (start && end) hits = overlapsInRange(row, start, end);
         } else if (d.kind === 'resize') {
             start = d.keepStart ?? row.cells[d.startIdx]?.start; end = row.cells[d.endIdx]?.end;
-            title = snap.cars.find(c => c.id === d.carId)?.licensePlate ?? '';
+            title = carLabel(snap.cars.find(c => c.id === d.carId));
             if (start && end) hits = overlapsInRange(row, start, end, d.carId);
         } else if (d.startIdx >= 0 && d.moved && !d.out) {
             const t = moveTarget(d);
             if (t) { start = t.start; end = t.end; }
-            title = `${d.copy ? 'Kolejny etap: ' : ''}${snap.cars.find(c => c.id === d.carId)?.licensePlate ?? ''} na ${bayName(row.rowId)}`;
+            title = `${d.copy ? 'Kolejny etap: ' : ''}${carLabel(snap.cars.find(c => c.id === d.carId))} na ${bayName(row.rowId)}`;
             if (start && end) hits = overlapsInRange(row, start, end, d.carId);
         }
         if (!start || !end) return null;
@@ -823,7 +933,7 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
         return (
             <Ghost $warn={hits.length > 0} style={{ left: pct(x), width: pct(w) }} aria-live="polite">
                 <div>{title}</div>
-                <span>{rangeText(start, end, now)}{hits.length ? `, nachodzi na ${hits.map(h => h.car.licensePlate).join(', ')}` : ''}</span>
+                <span>{rangeText(start, end, now)}{hits.length ? `, nachodzi na ${hits.map(h => carLabel(h.car)).join(', ')}` : ''}</span>
             </Ghost>
         );
     };
@@ -871,8 +981,8 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                     onOpenBar(bar, row.rowId);
                 }}
                 onKeyDown={e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onOpenBar(bar, row.rowId); } }}
-                aria-label={`${bar.car.licensePlate}, ${sub}, ${rangeText(bar.start, bar.end, now)}`}
-                title={`${bar.car.licensePlate}, ${sub}\n${rangeText(bar.start, bar.end, now)}`}
+                aria-label={`${carLabel(bar.car)}, ${sub}, ${rangeText(bar.start, bar.end, now)}`}
+                title={`${carLabel(bar.car)}, ${sub}\n${rangeText(bar.start, bar.end, now)}`}
             >
                 {editable && <Handle $side="start" onPointerDown={e => onHandleDown(e, bar, row, 'start')} aria-hidden="true" />}
                 {people.length > 0 && <Avatar person={people[0]} size={24} />}
@@ -883,7 +993,7 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                     </StageChip>
                 )}
                 <BarText $compact={bar.laneCount > 1}>
-                    <Plate $size="sm" style={{ color: 'inherit' }}>{bar.car.licensePlate}</Plate>
+                    {bar.car.licensePlate && <Plate $size="sm" style={{ color: 'inherit' }}>{bar.car.licensePlate}</Plate>}
                     <span>{sub}</span>
                 </BarText>
                 {endEditable && <Handle $side="end" onPointerDown={e => onHandleDown(e, bar, row, 'end')} aria-hidden="true" />}
@@ -937,16 +1047,22 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
     return (
         <>
             {canEdit && unplanned.length > 0 && (
-                <Tray aria-label="Auta bez planu">
-                    <strong>Bez planu</strong>
-                    {unplanned.map(c => (
-                        <TrayChip key={c.id} type="button" onPointerDown={e => onTrayDown(e, c.id)} title="Przeciągnij na stanowisko">
-                            <MoveHorizontal aria-hidden="true" />
-                            <Plate $size="sm">{c.licensePlate}</Plate>
-                            {c.jobTitle}
-                            {c.stage === 'BOOKED' && <TrayTag>rezerwacja</TrayTag>}
-                        </TrayChip>
-                    ))}
+                <Tray aria-label="Auta oczekujące na przypisanie do stanowiska">
+                    <strong>Oczekuje na przypisanie</strong>
+                    {unplanned.slice(0, TRAY_VISIBLE).map(trayChip)}
+                    {unplanned.length > TRAY_VISIBLE && (
+                        <TrayMoreWrap ref={trayMoreRef}>
+                            <TrayMore type="button" aria-expanded={trayOpen} onClick={() => setTrayOpen(o => !o)}>
+                                I {unplanned.length - TRAY_VISIBLE} więcej…
+                            </TrayMore>
+                            {trayOpen && (
+                                <TrayPanel role="dialog" aria-label="Pozostałe auta oczekujące na przypisanie">
+                                    <p>Przeciągnij auto na stanowisko.</p>
+                                    {unplanned.slice(TRAY_VISIBLE).map(trayChip)}
+                                </TrayPanel>
+                            )}
+                        </TrayMoreWrap>
+                    )}
                 </Tray>
             )}
 
@@ -1016,7 +1132,7 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                         aria-hidden="true"
                         style={{ width: Math.min(Math.max(w, 120), 280), height: h, transform: `translate(${pointerRef.current.x - dx}px, ${pointerRef.current.y - dy}px)` }}
                     >
-                        <Plate $size="sm">{car?.licensePlate}</Plate>
+                        {car?.licensePlate && <Plate $size="sm">{car.licensePlate}</Plate>}
                         <span>{car?.jobTitle}</span>
                     </DragAvatar>,
                     document.body,

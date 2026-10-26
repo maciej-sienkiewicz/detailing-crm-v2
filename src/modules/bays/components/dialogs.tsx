@@ -16,6 +16,7 @@ import { formatClockTime } from '@/common/dateTime';
 import type { Bay, BayPerson, BayStint, BaysSnapshot } from '../types';
 import type { CarView } from '../utils/boardState';
 import { Avatar, Plate } from './primitives';
+import { carLabel } from '../utils/labels';
 
 const Body = styled(ModalContent)`
     gap: 16px;
@@ -89,7 +90,7 @@ const SubjectLine = styled.span`
 interface ShellProps {
     titleId: string;
     title: string;
-    plate: string;
+    plate: string | null;
     job: string;
     onClose: () => void;
     children: React.ReactNode;
@@ -102,7 +103,7 @@ function Shell({ titleId, title, plate, job, onClose, children, footer }: ShellP
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle id={titleId}>{title}</ModalTitle>
-                    <ModalSubtitle><SubjectLine><Plate $size="sm">{plate}</Plate><span>{job}</span></SubjectLine></ModalSubtitle>
+                    <ModalSubtitle><SubjectLine>{plate && <Plate $size="sm">{plate}</Plate>}<span>{job}</span></SubjectLine></ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
@@ -138,7 +139,7 @@ export function PeoplePicker({ people, value, onChange }: { people: BayPerson[];
 const occupantSentence = (snap: BaysSnapshot, bay: Bay, occupants: BayStint[]): string => {
     const parts = occupants.map(o => {
         const car = snap.cars.find(c => c.id === o.carId);
-        return `${car?.licensePlate ?? 'auto'} od ${formatClockTime(o.startedAt)}`;
+        return `${carLabel(car)} od ${formatClockTime(o.startedAt)}`;
     });
     return `Na stanowisku ${bay.name} stoi ${parts.join(' i ')}.`;
 };
@@ -243,7 +244,7 @@ export function BayPickerDialog({ view, snap, suggestedBayId, initialBayId, titl
                 {bays.map(b => {
                     const occ = occupantsOf(b.id);
                     const isFull = occ.length >= b.capacity;
-                    const plates = occ.map(o => snap.cars.find(c => c.id === o.carId)?.licensePlate).filter(Boolean).join(', ');
+                    const plates = occ.map(o => carLabel(snap.cars.find(c => c.id === o.carId))).join(', ');
                     const state = isFull ? plates : occ.length ? `wolne miejsce, stoi ${plates}` : b.id === suggestedBayId ? 'wolne, w planie' : 'wolne';
                     return (
                         <Tile key={b.id} type="button" role="radio" aria-checked={b.id === bayId} $on={b.id === bayId} $busy={isFull} onClick={() => pick(b.id)}>

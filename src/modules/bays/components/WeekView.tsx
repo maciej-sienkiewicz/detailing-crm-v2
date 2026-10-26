@@ -24,6 +24,7 @@ import { WeekDayList } from './WeekDayList';
 import { BayBookingFlow } from './BayBookingFlow';
 import { DurationDialog, OverlapDialog } from './planDialogs';
 import { BarPreviewDrawer } from './BarPreviewDrawer';
+import { carLabel } from '../utils/labels';
 
 const Nav = styled.div`
     display: flex;
@@ -128,7 +129,7 @@ export function WeekView({ snap: initial, now, canEdit }: Props) {
 
     const onRange = (r: RangeRequest) => {
         if (placingCar) {
-            // Etap dla wskazanego auta: zapis jak przy przeciągnięciu z paska „Bez planu".
+            // Etap dla wskazanego auta: zapis jak przy przeciągnięciu z paska „Oczekuje na przypisanie".
             setPlacing(null);
             onMove({ bookingId: null, carId: placingCar.id, bayId: r.bayId, start: r.start, end: r.end, overlaps: r.overlaps });
             return;
@@ -231,7 +232,7 @@ export function WeekView({ snap: initial, now, canEdit }: Props) {
             {placingCar && (
                 <Notice
                     tone="info"
-                    title={`Kolejny etap dla ${placingCar.licensePlate}`}
+                    title={`Kolejny etap dla ${carLabel(placingCar)}`}
                     action={<Button variant="outline" size="sm" onClick={() => setPlacing(null)}>Anuluj</Button>}
                 >
                     {isTabletUp ? 'Zaznacz na osi stanowisko i czas.' : 'Wybierz dzień i stuknij „Zaplanuj” przy wolnym okienku.'}

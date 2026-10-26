@@ -176,7 +176,7 @@ export function WeekDayList({ snap, now, days, day, onDay, canEdit, onPlan, onOp
                                             <Item key={b.id} type="button" $kind={b.kind} onClick={() => onOpenBar(b, row.rowId)}>
                                                 {person ? <Avatar person={person} size={24} /> : curing ? <Hourglass size={14} aria-hidden="true" /> : null}
                                                 <span>
-                                                    <Plate $size="sm">{b.car.licensePlate}</Plate>
+                                                    {b.car.licensePlate && <Plate $size="sm">{b.car.licensePlate}</Plate>}
                                                     <span>
                                                         {b.kind === 'plan' ? `Plan: ${b.car.jobTitle}`
                                                             : curing ? `Schnie do ${formatClockTime(b.curingUntil)}`

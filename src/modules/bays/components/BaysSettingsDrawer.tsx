@@ -24,6 +24,9 @@ import { Toggle } from '@/common/components/Toggle';
 import { pluralPl } from '@/common/utils/plural';
 import type { Bay, BayKind, BayPerson, BaysSettings } from '../types';
 import { KIND_LABEL } from '../utils/labels';
+
+/** Nowe stanowisko dzieli dzień na 4 okienka - tyle samo co domyślne stanowisko z serwera (decyzja biznesu z 26.10.2026). */
+const DEFAULT_SLOTS_PER_DAY = 4;
 import { formatMinutes, longestDay, toOpeningHours, type StudioHours } from '../utils/slots';
 
 /**
@@ -352,7 +355,7 @@ export function BaysSettingsDrawer({ bays, settings, people, onClose, onSave }: 
                     <Footnote>
                         <Button
                             variant="tinted"
-                            onClick={() => setDraft(d => [...d, { id: `new-${Date.now()}`, name: `Stanowisko ${d.length + 1}`, kind: 'WORK_AREA', capacity: 1, slotsPerDay: 2, defaultPersonId: null, active: true }])}
+                            onClick={() => setDraft(d => [...d, { id: `new-${Date.now()}`, name: `Stanowisko ${d.length + 1}`, kind: 'WORK_AREA', capacity: 1, slotsPerDay: DEFAULT_SLOTS_PER_DAY, defaultPersonId: null, active: true }])}
                         >
                             <Plus aria-hidden="true" />Dodaj stanowisko
                         </Button>

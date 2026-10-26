@@ -59,7 +59,8 @@ export interface BayCar {
     id: string;
     visitId: string | null;
     appointmentId: string | null;
-    licensePlate: string;
+    /** Null, gdy auto nie ma tablicy - wtedy nie piszemy zastępczego „bez tablicy”, tylko pomijamy tablicę. */
+    licensePlate: string | null;
     vehicleName: string;
     jobTitle: string;
     stage: CarStage;
