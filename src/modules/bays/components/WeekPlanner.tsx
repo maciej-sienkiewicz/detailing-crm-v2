@@ -8,7 +8,7 @@
 //     z etykietą na żywo, zanim puścisz przycisk;
 //   - przeciągnięcie paska PLANU → inne stanowisko albo inny czas (długość zostaje);
 //   - chwycenie krawędzi paska planu → rozciągnięcie albo skrócenie;
-//   - przeciągnięcie auta z paska „Oczekuje na przypisanie" (albo z listy „I X więcej…")
+//   - przeciągnięcie auta z paska „Oczekuje na przypisanie" (albo z listy „X więcej")
 //     → plan bez formularza (auto już jest);
 //   - przeciągnięcie paska planu na strefę u dołu ekranu → zdjęcie z planu;
 //   - Alt (⌥) + przeciągnięcie dowolnego paska auta → KOPIA jako kolejny etap tego auta
@@ -47,7 +47,7 @@ import {
 import { Avatar, Plate } from './primitives';
 import { carLabel } from '../utils/labels';
 
-/** Ile aut pasek oczekujących pokazuje, zanim resztę schowa pod „I X więcej…" - jeden wiersz na komputerze. */
+/** Ile aut pasek oczekujących pokazuje, zanim resztę schowa pod „X więcej" - jeden wiersz na komputerze. */
 const TRAY_VISIBLE = 4;
 
 export interface RangeRequest {
@@ -79,6 +79,8 @@ interface Props {
     onUnplan: (bookingId: string) => void;
     /** Kliknięcie paska: podgląd usług auta (BarPreviewDrawer w WeekView). */
     onOpenBar: (bar: WeekBar, bayId: string) => void;
+    /** Kliknięcie auta z paska „Oczekuje na przypisanie" - podgląd auta bez paska. */
+    onOpenCar: (car: BaysSnapshot['cars'][number]) => void;
 }
 
 /** Wiersz ma stałą wysokość jednego paska; nałożone paski dzielą ją między siebie. */
@@ -435,7 +437,7 @@ const UnplanZone = styled.div<{ $over: boolean }>`
 `;
 
 /*
- * Jeden wiersz nad planem: chipsy zwężają się (wielokropek), a nagłówek i „I X więcej…”
+ * Jeden wiersz nad planem: chipsy zwężają się (wielokropek), a nagłówek i „X więcej”
  * zostają w całości. Zawijany pasek przy długich nazwach prac zajmował dwa-trzy wiersze.
  */
 const Tray = styled.div`
@@ -475,7 +477,7 @@ const TrayChip = styled.button`
 `;
 
 /*
- * „I X więcej…": pasek pokazuje kilka aut, resztę lista pod przyciskiem. Przy kilkunastu
+ * „X więcej": pasek pokazuje kilka aut, resztę lista pod przyciskiem. Przy kilkunastu
  * rezerwacjach tygodnia pasek zajmował cztery wiersze nad planem, a plan to jest to, na co
  * się tu patrzy. Przycisk ma wygląd chipsa bez kreskowanej obwódki - nie da się go przeciągnąć.
  */
@@ -584,7 +586,7 @@ type Drag =
     | { kind: 'move'; carId: string; bookingId: string | null; minutes: number; grabMs: number; rowId: string; startIdx: number; len: number; moved: boolean; startX: number; out?: boolean; barId: string | null; copy?: boolean }
     | { kind: 'resize'; carId: string; bookingId: string | null; rowId: string; edge: 'start' | 'end'; startIdx: number; endIdx: number; minEnd: number; keepStart: Date | null; origEnd: number; origStart: number };
 
-export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMove, onUnplan, onOpenBar }: Props) {
+export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMove, onUnplan, onOpenBar, onOpenCar }: Props) {
     const { rows } = useMemo(() => buildWeekRows(snap, days, now), [snap, days, now]);
     /** Etapy aut, które mają ich więcej niż jeden: id paska → „numer z liczby". */
     const stageOf = useMemo(() => {
@@ -604,7 +606,7 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
     const [trayOpen, setTrayOpen] = useState(false);
     const trayMoreRef = useRef<HTMLDivElement>(null);
 
-    // Lista „I X więcej…" zamyka się kliknięciem obok i Esc, jak każde menu.
+    // Lista „X więcej" zamyka się kliknięciem obok i Esc, jak każde menu.
     useEffect(() => {
         if (!trayOpen) return;
         const outside = (e: PointerEvent) => {
@@ -775,6 +777,12 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                 onMove({ bookingId: d.bookingId, carId: d.carId, bayId: d.rowId, start, end, overlaps: overlapsInRange(row, start, end, d.carId) });
                 return;
             }
+            if (!d.moved && !d.barId) {
+                // Chips z paska oczekujących puszczony bez ruchu - kliknięcie, podgląd auta.
+                const car = snap.cars.find(c => c.id === d.carId);
+                if (car) onOpenCar(car);
+                return;
+            }
             if (!d.moved) {
                 // Wciśnięcie i puszczenie bez ruchu to kliknięcie w pasek - otwiera podgląd.
                 const hit = rows.flatMap(r => r.bars.map(bar => ({ bar, rowId: r.rowId }))).find(x => x.bar.id === d.barId);
@@ -877,7 +885,9 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
         e.preventDefault();
         grabRef.current = { dx: 16, dy: 18, w: 180, h: 40 };
         // Bez planu nie wiadomo, ile auto postoi - zaczynamy od jednego okienka, potem rozciągnij.
-        setDrag({ kind: 'move', carId, bookingId: null, minutes: 1, grabMs: 0, rowId: '', startIdx: -1, len: 1, moved: true, startX: e.clientX, barId: null });
+        // `moved: false` - dopiero ruch o kilka pikseli robi z wciśnięcia przeciąganie;
+        // puszczenie w miejscu to kliknięcie i otwiera podgląd auta (jak przy pasku planu).
+        setDrag({ kind: 'move', carId, bookingId: null, minutes: 1, grabMs: 0, rowId: '', startIdx: -1, len: 1, moved: false, startX: e.clientX, barId: null });
         return true;
     };
 
@@ -888,7 +898,7 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
         && !snap.bookings.some(b => b.carId === c.id)
         && !snap.stints.some(s => s.carId === c.id && s.endedAt === null));
 
-    // Chips auta czekającego na stanowisko - ten sam w pasku i na liście „I X więcej…".
+    // Chips auta czekającego na stanowisko - ten sam w pasku i na liście „X więcej".
     // Auto bez tablicy nie dostaje zastępczego napisu: wystarczy, co jest przy nim do zrobienia.
     const trayChip = (c: BaysSnapshot['cars'][number]) => (
         <TrayChip
@@ -1053,7 +1063,7 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                     {unplanned.length > TRAY_VISIBLE && (
                         <TrayMoreWrap ref={trayMoreRef}>
                             <TrayMore type="button" aria-expanded={trayOpen} onClick={() => setTrayOpen(o => !o)}>
-                                I {unplanned.length - TRAY_VISIBLE} więcej…
+                                {unplanned.length - TRAY_VISIBLE} więcej
                             </TrayMore>
                             {trayOpen && (
                                 <TrayPanel role="dialog" aria-label="Pozostałe auta oczekujące na przypisanie">

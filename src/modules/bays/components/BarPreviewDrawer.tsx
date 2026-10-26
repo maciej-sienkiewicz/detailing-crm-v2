@@ -25,7 +25,7 @@ import { ServiceCheckToggle } from '@/modules/visits/components/ServiceCheckTogg
 import { appointmentDetailQuery } from '@/modules/appointments/api/appointmentDetailQuery';
 import { useVisitViewConfig } from '@/modules/settings/hooks/useCompany';
 import type { ServiceLineItem } from '@/modules/visits/types';
-import type { BaysSnapshot } from '../types';
+import type { BayCar, BaysSnapshot } from '../types';
 import { carStages, type WeekBar } from '../utils/weekLayout';
 import { clockText, durationLabel, formatMinutes, rangeText, relativeDay, toDateKey } from '../utils/slots';
 import { Plate } from './primitives';
@@ -35,6 +35,12 @@ const KIND_PILL = {
     plan: { tone: 'neutral', label: 'Plan' },
     active: { tone: 'info', label: 'Trwa' },
     done: { tone: 'neutral', label: 'Zrobione' },
+} as const;
+
+/* Auto bez paska: odcień „przeczytaj” zostaje dla spóźnień, tu tylko stan. */
+const WAITING_PILL = {
+    waiting: { tone: 'neutral', label: 'Czeka' },
+    booked: { tone: 'neutral', label: 'Rezerwacja' },
 } as const;
 
 const when = (d: Date, now: Date) => `${relativeDay(toDateKey(d), now)} ${clockText(d)}`;
@@ -315,7 +321,10 @@ interface AppointmentDetail {
 }
 
 interface Props {
-    bar: WeekBar;
+    /** Pasek na osi; null - auto czeka na przypisanie (chips z paska oczekujących). */
+    bar: WeekBar | null;
+    /** Auto podglądu - przy pasku to `bar.car`. */
+    car: BayCar;
     snap: BaysSnapshot;
     now: Date;
     canEdit: boolean;
@@ -327,15 +336,16 @@ interface Props {
     onAddStage?: () => void;
 }
 
-export function BarPreviewDrawer({ bar, snap, now, canEdit, onClose, onDeleteBooking, onUnassign, onAddStage }: Props) {
+export function BarPreviewDrawer({ bar, car, snap, now, canEdit, onClose, onDeleteBooking, onUnassign, onAddStage }: Props) {
     const navigate = useNavigate();
-    const { car } = bar;
-    const pill = KIND_PILL[bar.kind];
+    // Auto bez paska czeka na przypisanie: ten sam podgląd (klient, usługi, notatki), bez osi.
+    const pill = bar ? KIND_PILL[bar.kind] : WAITING_PILL[car.stage === 'BOOKED' ? 'booked' : 'waiting'];
     const bayName = (id: string) => snap.bays.find(b => b.id === id)?.name ?? '';
-    const thisBay = snap.bays.find(b => snap.bookings.some(x => x.id === bar.bookingId && x.bayId === b.id))
-        ?? snap.bays.find(b => snap.stints.some(s => s.id === bar.id && s.bayId === b.id));
-    const canDelete = canEdit && bar.kind === 'plan' && !!bar.bookingId;
-    const canUnassign = canEdit && bar.kind === 'active' && !!car.visitId && !!onUnassign;
+    const thisBay = !bar ? undefined
+        : snap.bays.find(b => snap.bookings.some(x => x.id === bar.bookingId && x.bayId === b.id))
+            ?? snap.bays.find(b => snap.stints.some(s => s.id === bar.id && s.bayId === b.id));
+    const canDelete = canEdit && bar?.kind === 'plan' && !!bar.bookingId;
+    const canUnassign = canEdit && bar?.kind === 'active' && !!car.visitId && !!onUnassign;
 
     const { visitDetail, isLoading: visitLoading, isError: visitError, notStarted } = useVisitDetail(car.visitId ?? '');
     const visit = visitDetail?.visit;
@@ -351,8 +361,8 @@ export function BarPreviewDrawer({ bar, snap, now, canEdit, onClose, onDeleteBoo
     const promised = car.promisedAt ? new Date(car.promisedAt) : null;
     const late = !!promised && stages.some(s => s.kind !== 'done' && s.end > promised);
 
-    const span = Math.max(1, bar.end.getTime() - bar.start.getTime());
-    const elapsed = Math.min(1, Math.max(0, (now.getTime() - bar.start.getTime()) / span));
+    const span = bar ? Math.max(1, bar.end.getTime() - bar.start.getTime()) : 1;
+    const elapsed = bar ? Math.min(1, Math.max(0, (now.getTime() - bar.start.getTime()) / span)) : 0;
 
     const customer = visit
         ? { name: [visit.customer.firstName, visit.customer.lastName].filter(Boolean).join(' '), phone: visit.customer.phone, company: visit.customer.companyName }
@@ -378,7 +388,7 @@ export function BarPreviewDrawer({ bar, snap, now, canEdit, onClose, onDeleteBoo
             footer={(
                 <>
                     {canDelete && (
-                        <Button variant="tintedDanger" size="lg" onClick={() => { onDeleteBooking(bar.bookingId!); onClose(); }}>Usuń z planu</Button>
+                        <Button variant="tintedDanger" size="lg" onClick={() => { onDeleteBooking(bar!.bookingId!); onClose(); }}>Usuń z planu</Button>
                     )}
                     {canUnassign && (
                         <Button variant="tintedDanger" size="lg" onClick={() => { onUnassign!(); onClose(); }}>Zdejmij ze stanowiska</Button>
@@ -392,13 +402,15 @@ export function BarPreviewDrawer({ bar, snap, now, canEdit, onClose, onDeleteBoo
             )}
         >
             <DrawerBody>
-                <Hero aria-label="Na stanowisku">
+                <Hero aria-label={bar ? 'Na stanowisku' : 'Oczekuje na przypisanie'}>
                     <HeroTop>
-                        <h3>{thisBay?.name ?? 'Stanowisko'}</h3>
+                        <h3>{bar ? thisBay?.name ?? 'Stanowisko' : 'Oczekuje na przypisanie'}</h3>
                         <span>{car.jobTitle}</span>
                     </HeroTop>
-                    <HeroRange>{rangeText(bar.start, bar.end, now)}</HeroRange>
-                    {bar.kind === 'active' && (
+                    {bar ? <HeroRange>{rangeText(bar.start, bar.end, now)}</HeroRange> : (
+                        <TrackLegend><span>{canEdit ? 'Przeciągnij auto z paska na stanowisko, żeby je zaplanować.' : 'Auto nie ma jeszcze planu na stanowisku.'}</span></TrackLegend>
+                    )}
+                    {bar?.kind === 'active' && (
                         <>
                             <Track role="progressbar" aria-label="Ile planu minęło" aria-valuenow={Math.round(elapsed * 100)} aria-valuemin={0} aria-valuemax={100}>
                                 <Fill $over={bar.overPlan} style={{ width: `${elapsed * 100}%` }} />
@@ -409,7 +421,7 @@ export function BarPreviewDrawer({ bar, snap, now, canEdit, onClose, onDeleteBoo
                             </TrackLegend>
                         </>
                     )}
-                    {bar.kind === 'plan' && <TrackLegend><span>{durationLabel(bar.minutes)} pracy</span></TrackLegend>}
+                    {bar?.kind === 'plan' && <TrackLegend><span>{durationLabel(bar.minutes)} pracy</span></TrackLegend>}
                     {promised && (
                         <PromiseLine $late={late}>
                             <CalendarClock aria-hidden="true" />
@@ -451,7 +463,7 @@ export function BarPreviewDrawer({ bar, snap, now, canEdit, onClose, onDeleteBoo
                             const prev = stages[i - 1];
                             const pause = prev ? (st.start.getTime() - prev.end.getTime()) / 60_000 : 0;
                             const row = (
-                                <StageRow key={st.barId} $current={st.barId === bar.id} aria-current={st.barId === bar.id ? 'true' : undefined}>
+                                <StageRow key={st.barId} $current={st.barId === bar?.id} aria-current={st.barId === bar?.id ? 'true' : undefined}>
                                     <StageNo $done={st.kind === 'done'}>{i + 1}</StageNo>
                                     <StageText>
                                         <strong>{bayName(st.bayId)}</strong>
@@ -465,6 +477,7 @@ export function BarPreviewDrawer({ bar, snap, now, canEdit, onClose, onDeleteBoo
                                 : [row];
                         })}
                     </List>
+                    {stages.length === 0 && <Muted>Auto nie ma jeszcze etapów na stanowiskach.</Muted>}
                     {stages.length === 1 && onAddStage && (
                         <Muted>Auto pojedzie potem na inne stanowisko? Dodaj etap i zaznacz jego czas na osi.</Muted>
                     )}

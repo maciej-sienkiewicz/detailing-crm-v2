@@ -14,7 +14,7 @@ import { Button, IconButton, Notice, Segmented, ui } from '@/common/components/u
 import { useBreakpoint } from '@/common/hooks';
 import { useToast } from '@/common/components/Toast';
 import { formatScheduleDateTime } from '@/common/dateTime';
-import type { BaysSnapshot } from '../types';
+import type { BayCar, BaysSnapshot } from '../types';
 import { addDays, dayMonth, fromDateKey, hoursOf, mondayOf, toDateKey, weekDays, relativeDay, type Cell } from '../utils/slots';
 import { buildWeekRows, overlapsInRange, type WeekBar } from '../utils/weekLayout';
 import { baysApi } from '../api/baysApi';
@@ -92,7 +92,8 @@ export function WeekView({ snap: initial, now, canEdit }: Props) {
     const snap = weekSnap ?? initial;
     const [day, setDay] = useState(() => toDateKey(now));
     const [step, setStep] = useState<Step | null>(null);
-    const [preview, setPreview] = useState<{ bar: WeekBar; bayId: string } | null>(null);
+    // Pasek z osi albo auto z paska oczekujących (bar: null) - jeden podgląd dla obu.
+    const [preview, setPreview] = useState<{ bar: WeekBar | null; car: BayCar } | null>(null);
     /** Auto, dla którego następne zaznaczenie na osi tworzy kolejny etap. */
     const [placing, setPlacing] = useState<string | null>(null);
     const placingCar = placing ? snap.cars.find(c => c.id === placing) : undefined;
@@ -249,7 +250,8 @@ export function WeekView({ snap: initial, now, canEdit }: Props) {
                     onTapCell={(bayId, cell) => setStep({ kind: 'duration', bayId, cell })}
                     onMove={onMove}
                     onUnplan={id => void removeBooking(id)}
-                    onOpenBar={(bar, bayId) => setPreview({ bar, bayId })}
+                    onOpenBar={bar => setPreview({ bar, car: bar.car })}
+                    onOpenCar={car => setPreview({ bar: null, car })}
                 />
             ) : (
                 <WeekDayList
@@ -260,20 +262,21 @@ export function WeekView({ snap: initial, now, canEdit }: Props) {
                     onDay={setDay}
                     canEdit={canEdit}
                     onPlan={(bayId, cell) => setStep({ kind: 'duration', bayId, cell })}
-                    onOpenBar={(bar, bayId) => setPreview({ bar, bayId })}
+                    onOpenBar={bar => setPreview({ bar, car: bar.car })}
                 />
             )}
 
             {preview && (
                 <BarPreviewDrawer
                     bar={preview.bar}
+                    car={preview.car}
                     snap={snap}
                     now={now}
                     canEdit={canEdit}
                     onClose={() => setPreview(null)}
-                    onAddStage={canEdit ? () => { setPlacing(preview.bar.carId); setPreview(null); } : undefined}
+                    onAddStage={canEdit && preview.bar ? () => { setPlacing(preview.car.id); setPreview(null); } : undefined}
                     onDeleteBooking={id => void removeBooking(id)}
-                    onUnassign={() => void unassign(preview.bar)}
+                    onUnassign={preview.bar ? () => void unassign(preview.bar!) : undefined}
                 />
             )}
             {step?.kind === 'duration' && (
