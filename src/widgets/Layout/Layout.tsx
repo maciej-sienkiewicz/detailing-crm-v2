@@ -14,6 +14,7 @@ import { GlobalShortcuts } from '@/common/shortcuts';
 import { QuickNoteProvider } from '@/modules/dashboard/components/QuickNoteProvider';
 import { PushOnboardingPrompt } from '@/modules/push/components/PushOnboardingPrompt';
 import { NativePushBridge } from '@/modules/push/native/NativePushBridge';
+import { TutorialTip } from '@/modules/tutorial-tips';
 import { viewKeyOf } from './viewKey';
 import { FRAME_COLOR, FRAME_GAP, FRAME_RADIUS } from './frame';
 
@@ -152,6 +153,8 @@ export const Layout = ({ children }: LayoutProps) => {
                     {/* Zachęta do powiadomień - tylko na telefonie i tylko gdy jest co zrobić. */}
                     <PushOnboardingPrompt />
                     <NativePushBridge />
+                    {/* Chmurka z instruktażem do modułu - na widokach, do których jest lekcja. */}
+                    <TutorialTip />
                 </MobileChromeProvider>
                 <CalendarNavigationOverlay />
             </CalendarNavigationProvider>
