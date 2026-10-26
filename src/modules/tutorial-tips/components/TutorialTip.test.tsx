@@ -53,7 +53,7 @@ describe('TutorialTip', () => {
         expect(tip.textContent).toContain('Instruktaż · Kalendarz');
         expect(tip.textContent).toContain('Jak posługiwać się kalendarzem?');
         expect(tip.textContent).toContain('1:05');
-        expect(tip.textContent).toContain('Animacja, 5 rozdziałów');
+        expect(tip.textContent).toContain('3 lekcje o tym module');
         expect(screen.queryByRole('link')).toBeNull();
     });
 
@@ -64,11 +64,26 @@ describe('TutorialTip', () => {
 
         fireEvent.click(screen.getByRole('button', { name: 'Obejrzyj' }));
 
-        const dialog = screen.getByRole('dialog', { name: 'Jak posługiwać się kalendarzem?' });
-        const frame = dialog.querySelector('iframe');
-        expect(frame?.getAttribute('src')).toBe('/animacje/jak-poslugiwac-sie-kalendarzem/index.html');
+        const dialog = screen.getByRole('dialog', { name: 'Instruktaż: Kalendarz' });
+        expect(dialog.querySelector('iframe')?.getAttribute('src')).toBe('/animacje/jak-poslugiwac-sie-kalendarzem/index.html');
         expect(screen.queryByRole('region', { name: 'Instruktaż do tego modułu' })).toBeNull();
         expect(apiClient.post).not.toHaveBeenCalled();
+
+        // Inna lekcja modułu z listy w oknie.
+        fireEvent.click(screen.getByRole('button', { name: /Jak odwołać rezerwację\?/ }));
+        expect(dialog.querySelector('iframe')?.getAttribute('src')).toBe('/animacje/jak-odwolac-rezerwacje/index.html');
+    });
+
+    it('moduł z jedną lekcją: okno bez listy, z tytułem lekcji', async () => {
+        vi.useFakeTimers();
+        renderAt('/instagram');
+        await waitForTip();
+
+        expect(screen.getByRole('region', { name: 'Instruktaż do tego modułu' }).textContent).toContain('Animacja, 7 rozdziałów');
+        fireEvent.click(screen.getByRole('button', { name: 'Obejrzyj' }));
+
+        const dialog = screen.getByRole('dialog', { name: 'Jak obserwować konkurencję na Instagramie?' });
+        expect(dialog.querySelector('[aria-label="Lekcje"]')).toBeNull();
     });
 
     it('krzyżyk chowa chmurkę bez zapisu na koncie', async () => {
