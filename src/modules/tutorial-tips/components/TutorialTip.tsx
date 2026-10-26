@@ -1,12 +1,12 @@
 // src/modules/tutorial-tips/components/TutorialTip.tsx
 //
-// Chmurka na dole widoku z instruktażem do tego modułu: plakat lekcji z długością,
-// jej tytuł i liczba rozdziałów, „Obejrzyj" i ciche „Nie pokazuj więcej".
+// Chmurka na dole widoku z instruktażem do tego modułu: plakat pierwszej lekcji z
+// długością, jej tytuł i liczba lekcji (albo rozdziałów), „Obejrzyj" i ciche „Nie pokazuj więcej".
 //
 //   - wysuwa się od dołu chwilę po wejściu na widok - najpierw użytkownik widzi to,
 //     po co przyszedł;
 //   - tylko na widokach, do których jest lekcja (tutorialLessons.ts);
-//   - kliknięcie w plakat albo „Obejrzyj" otwiera animację w oknie, w programie;
+//   - kliknięcie w plakat albo „Obejrzyj" otwiera lekcje w oknie, w programie;
 //   - „Nie pokazuj więcej" zamyka ją na tym widoku na zawsze, na koncie użytkownika
 //     (na każdym urządzeniu). Krzyżyk i obejrzenie chowają ją tylko do następnego
 //     wejścia na widok;
@@ -22,7 +22,7 @@ import styled, { keyframes } from 'styled-components';
 import { Play, X } from 'lucide-react';
 import { Button, ui } from '@/common/components/ui';
 import {
-    chaptersLabel, formatDuration, lessonFor, lessonPosterSrc, type TutorialLesson,
+    chaptersLabel, formatDuration, lessonPosterSrc, lessonsLabel, tutorialFor, type TutorialModule,
 } from '../tutorialLessons';
 import { useDismissedTutorialViews, useDismissTutorialTip } from '../hooks/useTutorialTips';
 import { TutorialLessonModal } from './TutorialLessonModal';
@@ -32,18 +32,18 @@ const SHOW_DELAY_MS = 1_500;
 
 export function TutorialTip() {
     const { pathname, search } = useLocation();
-    const lesson = lessonFor(pathname, search);
+    const tutorial = tutorialFor(pathname, search);
     const { data: dismissed } = useDismissedTutorialViews();
 
     // Lista zamkniętych jeszcze nie przyszła: lepiej nie pokazać, niż mignąć zamkniętą.
-    if (!lesson || !dismissed || dismissed.includes(lesson.view)) return null;
+    if (!tutorial || !dismissed || dismissed.includes(tutorial.view)) return null;
     // Klucz widoku: wejście na inny widok to nowa chmurka z nowym opóźnieniem.
-    return <Tip key={lesson.view} lesson={lesson} />;
+    return <Tip key={tutorial.view} tutorial={tutorial} />;
 }
 
 type TipState = 'waiting' | 'card' | 'watching' | 'closed';
 
-function Tip({ lesson }: { lesson: TutorialLesson }) {
+function Tip({ tutorial }: { tutorial: TutorialModule }) {
     const dismiss = useDismissTutorialTip();
     const [state, setState] = useState<TipState>('waiting');
 
@@ -53,7 +53,11 @@ function Tip({ lesson }: { lesson: TutorialLesson }) {
     }, []);
 
     const watch = () => setState('watching');
-    const meta = `Animacja, ${chaptersLabel(lesson.chapters)}`;
+    // Chmurka pokazuje lekcję, od której warto zacząć; resztę wymienia okno.
+    const [lesson] = tutorial.lessons;
+    const meta = tutorial.lessons.length > 1
+        ? `${lessonsLabel(tutorial.lessons.length)} o tym module`
+        : `Animacja, ${chaptersLabel(lesson.chapters)}`;
 
     return (
         <>
@@ -66,13 +70,13 @@ function Tip({ lesson }: { lesson: TutorialLesson }) {
                             <Duration>{formatDuration(lesson.seconds)}</Duration>
                         </Thumb>
                         <Copy>
-                            <Eyebrow>Instruktaż · {lesson.module}</Eyebrow>
+                            <Eyebrow>Instruktaż · {tutorial.module}</Eyebrow>
                             <Title>{lesson.title}</Title>
                             <Meta>{meta}</Meta>
                         </Copy>
                     </Row>
                     <Foot>
-                        <Never type="button" onClick={() => dismiss.mutate(lesson.view)}>
+                        <Never type="button" onClick={() => dismiss.mutate(tutorial.view)}>
                             Nie pokazuj więcej
                         </Never>
                         <Button variant="tinted" size="sm" onClick={watch}>
@@ -81,7 +85,7 @@ function Tip({ lesson }: { lesson: TutorialLesson }) {
                     </Foot>
                 </Card>
             )}
-            <TutorialLessonModal lesson={lesson} isOpen={state === 'watching'} onClose={() => setState('closed')} />
+            <TutorialLessonModal tutorial={tutorial} isOpen={state === 'watching'} onClose={() => setState('closed')} />
         </>
     );
 }
