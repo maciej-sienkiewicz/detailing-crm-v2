@@ -2,15 +2,11 @@
 //
 // Tydzień: nawigacja, wybór układu (oś albo lista dnia) i jedna kolejka okien
 // po geście - „Do kiedy?" → „Ten czas jest zajęty" → formularz rezerwacji.
-//
-// Kolejny etap auta (podnośnik, potem myjnia): „Dodaj etap" w podglądzie przełącza oś
-// w tryb wskazywania - następne zaznaczenie czasu tworzy plan dla TEGO auta, bez
-// formularza rezerwacji (auto i wizyta już są).
 
-import { useEffect, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import styled from 'styled-components';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button, IconButton, Notice, Segmented, ui } from '@/common/components/ui';
+import { Button, IconButton, Segmented, ui } from '@/common/components/ui';
 import { useBreakpoint } from '@/common/hooks';
 import { useToast } from '@/common/components/Toast';
 import { formatScheduleDateTime } from '@/common/dateTime';
@@ -24,7 +20,6 @@ import { WeekDayList } from './WeekDayList';
 import { BayBookingFlow } from './BayBookingFlow';
 import { DurationDialog, OverlapDialog } from './planDialogs';
 import { BarPreviewDrawer } from './BarPreviewDrawer';
-import { carLabel } from '../utils/labels';
 
 const Nav = styled.div`
     display: flex;
@@ -94,15 +89,6 @@ export function WeekView({ snap: initial, now, canEdit }: Props) {
     const [step, setStep] = useState<Step | null>(null);
     // Pasek z osi albo auto z paska oczekujących (bar: null) - jeden podgląd dla obu.
     const [preview, setPreview] = useState<{ bar: WeekBar | null; car: BayCar } | null>(null);
-    /** Auto, dla którego następne zaznaczenie na osi tworzy kolejny etap. */
-    const [placing, setPlacing] = useState<string | null>(null);
-    const placingCar = placing ? snap.cars.find(c => c.id === placing) : undefined;
-    useEffect(() => {
-        if (!placing) return;
-        const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setPlacing(null); };
-        window.addEventListener('keydown', esc);
-        return () => window.removeEventListener('keydown', esc);
-    }, [placing]);
     const move = useBaysMutation(baysApi.moveBooking);
     const create = useBaysMutation(baysApi.createBooking);
     const remove = useBaysMutation(baysApi.deleteBooking);
@@ -129,12 +115,6 @@ export function WeekView({ snap: initial, now, canEdit }: Props) {
     const isCurrent = days.includes(toDateKey(now)) || (span === 6 && toDateKey(mondayOf(fromDateKey(anchor))) === toDateKey(defaultMonday(now)));
 
     const onRange = (r: RangeRequest) => {
-        if (placingCar) {
-            // Etap dla wskazanego auta: zapis jak przy przeciągnięciu z paska „Oczekuje na przypisanie".
-            setPlacing(null);
-            onMove({ bookingId: null, carId: placingCar.id, bayId: r.bayId, start: r.start, end: r.end, overlaps: r.overlaps });
-            return;
-        }
         if (r.overlaps.length) setStep({ kind: 'overlap-new', bayId: r.bayId, start: r.start, end: r.end, hits: r.overlaps });
         else setStep({ kind: 'book', bayId: r.bayId, start: r.start, end: r.end });
     };
@@ -230,16 +210,6 @@ export function WeekView({ snap: initial, now, canEdit }: Props) {
                 )}
             </Nav>
 
-            {placingCar && (
-                <Notice
-                    tone="info"
-                    title={`Kolejny etap dla ${carLabel(placingCar)}`}
-                    action={<Button variant="outline" size="sm" onClick={() => setPlacing(null)}>Anuluj</Button>}
-                >
-                    {isTabletUp ? 'Zaznacz na osi stanowisko i czas.' : 'Wybierz dzień i stuknij „Zaplanuj” przy wolnym okienku.'}
-                </Notice>
-            )}
-
             {isTabletUp ? (
                 <WeekPlanner
                     snap={snap}
@@ -274,7 +244,6 @@ export function WeekView({ snap: initial, now, canEdit }: Props) {
                     now={now}
                     canEdit={canEdit}
                     onClose={() => setPreview(null)}
-                    onAddStage={canEdit && preview.bar ? () => { setPlacing(preview.car.id); setPreview(null); } : undefined}
                     onDeleteBooking={id => void removeBooking(id)}
                     onUnassign={preview.bar ? () => void unassign(preview.bar!) : undefined}
                 />

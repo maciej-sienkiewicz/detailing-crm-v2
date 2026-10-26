@@ -2,9 +2,8 @@
 //
 // Podgląd auta z planu stanowisk. Odpowiada na pytania, z którymi
 // ktoś klika w pasek: gdzie i do kiedy to auto stoi, czy zdążymy na obiecany odbiór,
-// czyje to auto i jak się z nim skontaktować, co je czeka dalej (inne stanowiska) i co
-// jest do zrobienia. Dawniej był tu sam czas i lista usług - wszystko inne wymagało
-// otwarcia wizyty i powrotu na oś.
+// czyje to auto i jak się z nim skontaktować i co jest do zrobienia. Dawniej był tu sam
+// czas i lista usług - wszystko inne wymagało otwarcia wizyty i powrotu na oś.
 //
 // Układ według CLAUDE.md §2: JEDNA wyniesiona karta (stanowisko i czas - temat okna),
 // reszta płasko z nagłówkami; JEDEN wypełniony przycisk („Otwórz wizytę").
@@ -16,7 +15,7 @@
 import styled, { css } from 'styled-components';
 import { useQuery } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
-import { CalendarClock, CalendarPlus, Phone, StickyNote, User } from 'lucide-react';
+import { CalendarClock, Phone, StickyNote, User } from 'lucide-react';
 import { Button, Card, DrawerBody, Notice, SideDrawer, StatusPill, touch, ui } from '@/common/components/ui';
 import { formatPhoneNumber } from '@/common/utils/formatters';
 import { useVisitDetail } from '@/modules/visits/hooks';
@@ -195,51 +194,6 @@ const List = styled.ol`
     border-radius: ${ui.radiusRow};
 `;
 
-/* Etap auta: numer, stanowisko, czas. Etap, w który kliknięto, ma tło marki. */
-const StageRow = styled.li<{ $current: boolean }>`
-    display: grid;
-    grid-template-columns: 24px minmax(0, 1fr) auto;
-    align-items: center;
-    gap: 10px;
-    padding: 10px 12px;
-    background: ${p => (p.$current ? ui.brandTint : 'transparent')};
-
-    & + & { border-top: 1px solid ${ui.lineSoft}; }
-    &:first-child { border-radius: ${ui.radiusRow} ${ui.radiusRow} 0 0; }
-    &:last-child { border-radius: 0 0 ${ui.radiusRow} ${ui.radiusRow}; }
-`;
-
-const StageNo = styled.span<{ $done: boolean }>`
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    width: 22px;
-    height: 22px;
-    border-radius: 50%;
-    border: 1.5px solid ${p => (p.$done ? ui.line : ui.brandLine)};
-    font-size: 11.5px;
-    font-weight: 700;
-    color: ${p => (p.$done ? ui.textMuted : ui.brandDeep)};
-`;
-
-const StageText = styled.div`
-    min-width: 0;
-    display: flex;
-    flex-direction: column;
-    gap: 1px;
-
-    strong { font-size: 14px; font-weight: 600; color: ${ui.ink}; }
-    span { font-size: 12.5px; color: ${ui.textMuted}; font-variant-numeric: tabular-nums; }
-`;
-
-/* Przerwa między etapami - auto czeka na placu; widać, ile. */
-const Gap = styled.li`
-    padding: 4px 12px 4px 46px;
-    border-top: 1px solid ${ui.lineSoft};
-    font-size: 12px;
-    color: ${ui.textMuted};
-`;
-
 const Item = styled.li<{ $done: boolean; $checkable: boolean }>`
     display: flex;
     align-items: flex-start;
@@ -332,15 +286,12 @@ interface Props {
     onDeleteBooking: (bookingId: string) => void;
     /** Auto stoi na stanowisku: zdjęcie z osi zamyka odcinek pracy. Brak - akcji nie ma. */
     onUnassign?: () => void;
-    /** Kolejny etap auta na innym stanowisku albo w innym czasie. */
-    onAddStage?: () => void;
 }
 
-export function BarPreviewDrawer({ bar, car, snap, now, canEdit, onClose, onDeleteBooking, onUnassign, onAddStage }: Props) {
+export function BarPreviewDrawer({ bar, car, snap, now, canEdit, onClose, onDeleteBooking, onUnassign }: Props) {
     const navigate = useNavigate();
     // Auto bez paska czeka na przypisanie: ten sam podgląd (klient, usługi, notatki), bez osi.
     const pill = bar ? KIND_PILL[bar.kind] : WAITING_PILL[car.stage === 'BOOKED' ? 'booked' : 'waiting'];
-    const bayName = (id: string) => snap.bays.find(b => b.id === id)?.name ?? '';
     const thisBay = !bar ? undefined
         : snap.bays.find(b => snap.bookings.some(x => x.id === bar.bookingId && x.bayId === b.id))
             ?? snap.bays.find(b => snap.stints.some(s => s.id === bar.id && s.bayId === b.id));
@@ -448,40 +399,6 @@ export function BarPreviewDrawer({ bar, car, snap, now, canEdit, onClose, onDele
                         </Person>
                     </Section>
                 )}
-
-                <Section aria-labelledby="bar-stages-title">
-                    <Head>
-                        <h3 id="bar-stages-title">Trasa auta</h3>
-                        {onAddStage && (
-                            <Button variant="tinted" size="sm" onClick={onAddStage}>
-                                <CalendarPlus aria-hidden="true" />Dodaj etap
-                            </Button>
-                        )}
-                    </Head>
-                    <List>
-                        {stages.flatMap((st, i) => {
-                            const prev = stages[i - 1];
-                            const pause = prev ? (st.start.getTime() - prev.end.getTime()) / 60_000 : 0;
-                            const row = (
-                                <StageRow key={st.barId} $current={st.barId === bar?.id} aria-current={st.barId === bar?.id ? 'true' : undefined}>
-                                    <StageNo $done={st.kind === 'done'}>{i + 1}</StageNo>
-                                    <StageText>
-                                        <strong>{bayName(st.bayId)}</strong>
-                                        <span>{rangeText(st.start, st.end, now)}</span>
-                                    </StageText>
-                                    <StatusPill $tone={KIND_PILL[st.kind].tone}>{KIND_PILL[st.kind].label}</StatusPill>
-                                </StageRow>
-                            );
-                            return pause >= 30
-                                ? [<Gap key={`gap-${st.barId}`}>przerwa {formatMinutes(Math.round(pause))}, auto czeka na przypisanie</Gap>, row]
-                                : [row];
-                        })}
-                    </List>
-                    {stages.length === 0 && <Muted>Auto nie ma jeszcze etapów na stanowiskach.</Muted>}
-                    {stages.length === 1 && onAddStage && (
-                        <Muted>Auto pojedzie potem na inne stanowisko? Dodaj etap i zaznacz jego czas na osi.</Muted>
-                    )}
-                </Section>
 
                 <Section aria-labelledby="bar-services-title">
                     <Head>
