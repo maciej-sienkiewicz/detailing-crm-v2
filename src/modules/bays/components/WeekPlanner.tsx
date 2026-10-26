@@ -29,11 +29,10 @@ import { createPortal } from 'react-dom';
 import styled, { css } from 'styled-components';
 import { CalendarX2, Hourglass, MoveHorizontal } from 'lucide-react';
 import { ui } from '@/common/components/ui';
-import { useToast } from '@/common/components/Toast';
 import { formatClockTime } from '@/common/dateTime';
 import { pluralPl } from '@/common/utils/plural';
 import type { BaysSnapshot } from '../types';
-import { buildWeekRows, cellBox, cellIsFree, freeCellsOn, overlapsInRange, type WeekBar, type WeekRow } from '../utils/weekLayout';
+import { buildWeekRows, carStages, cellBox, cellIsFree, freeCellsOn, overlapsInRange, type WeekBar, type WeekRow } from '../utils/weekLayout';
 import {
     cellIndexAt, clockText, dayMonth, dayShort, durationLabel, formatMinutes, hoursOf, longestDay, rangeText,
     timeAtWeekX, toDateKey, weekX, type Cell,
@@ -242,15 +241,24 @@ const HoverCell = styled(Abs)`
     border-radius: 8px;
     /* Samo tło, bez obrysu: przerywany obrys to plan, a to jeszcze nie jest plan. */
     background: ${ui.brandTint};
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-    white-space: nowrap;
-    font-size: 11.5px;
+`;
+
+/* Godziny okienka w dymku nad nim - w samym okienku (myjnia co godzinę, 14 na dzień)
+   nie mieściły się i ucinały do „13:0…". Poza siatką, więc nie zasłania pasków. */
+const HoverTip = styled.div`
+    position: fixed;
+    z-index: 1800;
+    transform: translate(-50%, calc(-100% - 6px));
+    padding: 4px 8px;
+    border-radius: 6px;
+    background: ${ui.ink};
+    color: #ffffff;
+    font-size: 12px;
     font-weight: 600;
     font-variant-numeric: tabular-nums;
-    color: ${ui.brandDeep};
+    white-space: nowrap;
+    pointer-events: none;
+    box-shadow: 0 4px 12px rgba(15, 23, 42, 0.18);
 `;
 
 const Closed = styled(Abs)`
@@ -271,7 +279,7 @@ const BAR_TONES = {
     plan: css`background: ${ui.surface}; border: 1.5px dashed ${ui.brandLine}; color: ${ui.inkSoft};`,
 };
 
-const Bar = styled.div<{ $tone: keyof typeof BAR_TONES; $conflict: boolean; $over: boolean; $ghosted: boolean; $grab: boolean; $live: boolean }>`
+const Bar = styled.div<{ $tone: keyof typeof BAR_TONES; $conflict: boolean; $over: boolean; $ghosted: boolean; $grab: boolean; $live: boolean; $linked: boolean }>`
     position: absolute;
     z-index: 2;
     display: flex;
@@ -287,6 +295,8 @@ const Bar = styled.div<{ $tone: keyof typeof BAR_TONES; $conflict: boolean; $ove
     ${p => BAR_TONES[p.$tone]}
     ${p => p.$conflict && css`border-color: #f59e0b; box-shadow: inset 0 0 0 1px #f59e0b;`}
     ${p => p.$over && css`box-shadow: inset -4px 0 0 #f59e0b;`}
+    /* Inny etap tego samego auta co pasek pod kursorem - trasa auta przez halę. */
+    ${p => p.$linked && css`outline: 2px solid ${ui.brand}; outline-offset: 1px;`}
     opacity: ${p => (p.$ghosted ? 0.3 : 1)};
     touch-action: pan-x pan-y;
     container-type: inline-size;
@@ -298,6 +308,18 @@ const Bar = styled.div<{ $tone: keyof typeof BAR_TONES; $conflict: boolean; $ove
         padding: 0 6px;
         > span:first-child:not(:last-child) { display: none; }
     }
+`;
+
+/* Numer etapu auta („2/3") - tylko gdy auto ma w planie więcej niż jeden etap. */
+const StageChip = styled.span`
+    flex-shrink: 0;
+    padding: 0 5px;
+    border-radius: 5px;
+    background: rgba(15, 23, 42, 0.07);
+    font-size: 11px;
+    font-weight: 700;
+    font-variant-numeric: tabular-nums;
+    line-height: 16px;
 `;
 
 /* Uchwyt krawędzi: szeroki na 10 px, żeby trafić myszą, widoczny po najechaniu. */
@@ -456,11 +478,21 @@ const slotHint = (n: number, day: number) => (n === 1 ? 'cały dzień' : n === 2
 
 export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMove, onUnplan, onOpenBar }: Props) {
     const { rows } = useMemo(() => buildWeekRows(snap, days, now), [snap, days, now]);
+    /** Etapy aut, które mają ich więcej niż jeden: id paska → „numer z liczby". */
+    const stageOf = useMemo(() => {
+        const out = new Map<string, { n: number; of: number }>();
+        const carIds = new Set(rows.flatMap(r => r.bars.map(b => b.carId)));
+        for (const carId of carIds) {
+            const stages = carStages(snap, carId, now);
+            if (stages.length < 2) continue;
+            stages.forEach((st, i) => out.set(st.barId, { n: i + 1, of: stages.length }));
+        }
+        return out;
+    }, [rows, snap, now]);
     const [drag, setDrag] = useState<Drag | null>(null);
     const [hover, setHover] = useState<{ rowId: string; idx: number } | null>(null);
-    const { showInfo } = useToast();
-    /** Chwycony pasek „trwa": fakt się nie przesuwa - przy próbie mówimy, co zrobić zamiast tego. */
-    const activeGrab = useRef<number | null>(null);
+    /** Auto pod kursorem - jego pozostałe etapy dostają obwódkę. */
+    const [hoverCar, setHoverCar] = useState<string | null>(null);
     const dragRef = useRef<Drag | null>(null);
     dragRef.current = drag;
     const tracks = useRef(new Map<string, HTMLDivElement>());
@@ -611,6 +643,8 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                 suppressClick.current = true;
                 const start = d.keepStart ?? row.cells[d.startIdx].start;
                 const end = row.cells[d.endIdx].end;
+                // Skrócenie przed początek planu nie ma sensu - zamiast błędu serwera pasek wraca.
+                if (end <= start) return;
                 onMove({ bookingId: d.bookingId, carId: d.carId, bayId: d.rowId, start, end, overlaps: overlapsInRange(row, start, end, d.carId) });
                 return;
             }
@@ -661,7 +695,6 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
         // Nowy gest: blokada kliknięcia z poprzedniego przeciągania już nie obowiązuje
         // (upuszczenie poza paskiem, np. na strefę „zdejmij z planu", nie zjada jej kliknięciem).
         suppressClick.current = false;
-        if (bar.kind === 'active' && canEdit && e.pointerType === 'mouse') activeGrab.current = e.clientX;
         if (bar.kind !== 'plan' || !canEdit || e.pointerType === 'touch' || e.button !== 0) return;
         // Bez tego przeglądarka zaczyna zaznaczać tekst albo własne przeciąganie elementu.
         e.preventDefault();
@@ -689,9 +722,12 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
             startIdx: cellIndexAt(row.cells, bar.start), endIdx: cellIndexAt(row.cells, new Date(bar.end.getTime() - 60_000)),
             // Trwająca praca nie skończy się w przeszłości: najkrócej do okienka z „teraz".
             minEnd: bar.kind === 'active' ? cellIndexAt(row.cells, now) : 0,
-            // Przedłużenie trwającej pracy zmienia tylko koniec - początek planu (albo wjazd) zostaje.
+            // Zmiana trwającej pracy przesuwa tylko koniec. Początek: wcześniejszy z planu i wjazdu -
+            // auto bywa wstawione przed planem (plan od środy, wjazd w niedzielę), a skrócenie
+            // do wtorku dawało wtedy koniec przed początkiem planu i błąd „Koniec planu musi
+            // być późniejszy niż początek".
             keepStart: bar.kind === 'active'
-                ? new Date(snap.bookings.find(b => b.id === bar.bookingId)?.start ?? bar.start)
+                ? new Date(Math.min(bar.start.getTime(), new Date(snap.bookings.find(b => b.id === bar.bookingId)?.start ?? bar.start).getTime()))
                 : null,
         });
     };
@@ -773,14 +809,11 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                 $ghosted={ghosted}
                 $grab={editable}
                 $live={!drag}
+                $linked={!drag && hoverCar === bar.carId && stageOf.has(bar.id)}
+                onPointerEnter={() => setHoverCar(bar.carId)}
+                onPointerLeave={() => setHoverCar(c => (c === bar.carId ? null : c))}
                 style={barBox(bar, row)}
                 onPointerDown={e => onBarDown(e, bar, row)}
-                onPointerMove={e => {
-                    if (activeGrab.current === null || Math.abs(e.clientX - activeGrab.current) < 8) return;
-                    activeGrab.current = null;
-                    showInfo(`${bar.car.licensePlate} stoi na stanowisku`, 'Na inne stanowisko przeniesiesz je w widoku Teraz. Koniec planu zmienisz, chwytając prawą krawędź paska.');
-                }}
-                onPointerUp={() => { activeGrab.current = null; }}
                 onClick={e => {
                     e.stopPropagation();
                     if (suppressClick.current) { suppressClick.current = false; return; }
@@ -793,6 +826,11 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                 {editable && <Handle $side="start" onPointerDown={e => onHandleDown(e, bar, row, 'start')} aria-hidden="true" />}
                 {people.length > 0 && <Avatar person={people[0]} size={24} />}
                 {curing && <Hourglass aria-hidden="true" size={14} />}
+                {stageOf.has(bar.id) && (
+                    <StageChip title={`Etap ${stageOf.get(bar.id)!.n} z ${stageOf.get(bar.id)!.of}`}>
+                        {stageOf.get(bar.id)!.n}/{stageOf.get(bar.id)!.of}
+                    </StageChip>
+                )}
                 <BarText $compact={bar.laneCount > 1}>
                     <Plate $size="sm" style={{ color: 'inherit' }}>{bar.car.licensePlate}</Plate>
                     <span>{sub}</span>
@@ -808,8 +846,18 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
         const c = row.cells[hover.idx];
         if (!c || c.end <= now || !cellIsFree(row, c)) return null;
         const b = cellBox(c, days);
-        // Godziny okienka w nim samym - zastępują linijkę godzin nad osią.
-        return <HoverCell style={{ left: pct(b.x), width: pct(b.w) }}>{clockText(c.start)}–{clockText(c.end)}</HoverCell>;
+        const r = tracks.current.get(row.rowId)?.getBoundingClientRect();
+        return (
+            <>
+                <HoverCell style={{ left: pct(b.x), width: pct(b.w) }} />
+                {r && createPortal(
+                    <HoverTip role="tooltip" style={{ left: r.left + (b.x + b.w / 2) * r.width, top: r.top }}>
+                        {dayShort(c.date)} {clockText(c.start)}–{clockText(c.end)}
+                    </HoverTip>,
+                    document.body,
+                )}
+            </>
+        );
     };
 
     const dayBackground = (row: WeekRow) => (

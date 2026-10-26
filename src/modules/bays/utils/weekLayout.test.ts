@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import type { BaysSnapshot } from '../types';
-import { buildWeekRows, bookingRangeFromDates, freeCellsOn, overlapsInRange } from './weekLayout';
+import { buildWeekRows, bookingRangeFromDates, carStages, freeCellsOn, overlapsInRange } from './weekLayout';
 import { buildBoard } from './boardState';
 import { mondayOf, setStudioHours, weekDays, weekX } from './slots';
 
@@ -92,5 +92,31 @@ describe('tablica „Teraz" - stan liczony z faktów', () => {
         const cars = base.cars.map(c => (c.id === 'c3' ? { ...c, stage: 'READY' as const, readyAt: iso('2026-10-26T10:30:00') } : c));
         const board = buildBoard({ ...base, cars }, NOW);
         expect(board.yard.map(v => v.car.id)).not.toContain('c3');
+    });
+});
+
+describe('kilka etapów jednego auta', () => {
+    // c1 stoi na podnośniku (plan k1 do wtorku 12:30), potem myjnia we wtorek po południu,
+    // a w czwartek wraca na ten sam podnośnik.
+    const stages = () => snap({
+        bookings: [
+            { id: 'k1', bayId: 'b1', carId: 'c1', start: iso('2026-10-26T08:00:00'), end: iso('2026-10-27T12:30:00') },
+            { id: 'k3', bayId: 'b2', carId: 'c1', start: iso('2026-10-27T13:00:00'), end: iso('2026-10-27T15:00:00') },
+            { id: 'k4', bayId: 'b1', carId: 'c1', start: iso('2026-10-29T08:00:00'), end: iso('2026-10-29T12:30:00') },
+        ],
+    });
+
+    it('drugi plan auta na tym samym stanowisku zostaje osobnym paskiem', () => {
+        const lift = buildWeekRows(stages(), days, NOW).rows.find(r => r.rowId === 'b1')!;
+        const mine = lift.bars.filter(b => b.carId === 'c1');
+        expect(mine.map(b => b.kind)).toEqual(['active', 'plan']);
+        // Pasek „trwa" niesie plan, do którego należy wjazd - nie późniejszy.
+        expect(mine[0].bookingId).toBe('k1');
+        expect(mine[1].bookingId).toBe('k4');
+    });
+
+    it('trasa auta idzie po kolei przez stanowiska', () => {
+        const route = carStages(stages(), 'c1', NOW);
+        expect(route.map(s => [s.bayId, s.kind])).toEqual([['b1', 'active'], ['b2', 'plan'], ['b1', 'plan']]);
     });
 });

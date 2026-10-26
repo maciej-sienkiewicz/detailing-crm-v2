@@ -17,7 +17,6 @@ import { PageContainer } from '@/common/components/PageContainer';
 import { PageHeader, PageHeaderPrimaryButton, MobilePageHeader, MobilePageHeaderButton, MobilePageHeaderIconButton } from '@/common/components/PageHeader';
 import { Button, IconButton, Notice, Segmented } from '@/common/components/ui';
 import { useBreakpoint } from '@/common/hooks';
-import { useToast } from '@/common/components/Toast';
 import { formatClockTime } from '@/common/dateTime';
 import { usePermissions, usePersonalDataActions } from '@/core/permissions';
 import { BoardNow } from '../components/BoardNow';
@@ -51,7 +50,6 @@ type ViewMode = 'now' | 'week';
 export function BaysView() {
     const isDesktop = useBreakpoint('lg');
     const navigate = useNavigate();
-    const { showSuccess } = useToast();
     const { canCreateVisit } = usePersonalDataActions();
     const [params, setParams] = useSearchParams();
     const mode: ViewMode = params.get('view') === 'week' ? 'week' : 'now';
@@ -153,7 +151,7 @@ export function BaysView() {
                     settings={snap.settings}
                     people={snap.people}
                     onClose={() => setSettingsOpen(false)}
-                    onSave={async (bays, next) => { await saveSetup.mutateAsync([next, bays]); setSettingsOpen(false); showSuccess('Stanowiska zapisane'); }}
+                    onSave={async (bays, next) => { await saveSetup.mutateAsync([next, bays]); setSettingsOpen(false); }}
                 />
             )}
         </ViewContainer>

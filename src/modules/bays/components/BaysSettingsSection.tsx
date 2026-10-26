@@ -160,7 +160,7 @@ export function BaysSettingsSection() {
                     settings={snap.settings}
                     people={snap.people}
                     onClose={() => setEditing(false)}
-                    onSave={async (bays, next) => { await saveSetup.mutateAsync([next, bays]); setEditing(false); showSuccess('Stanowiska zapisane'); }}
+                    onSave={async (bays, next) => { await saveSetup.mutateAsync([next, bays]); setEditing(false); }}
                 />
             )}
         </Stack>

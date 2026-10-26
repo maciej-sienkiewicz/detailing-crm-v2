@@ -2,11 +2,17 @@
 //
 // Tydzień: nawigacja, wybór układu (oś albo lista dnia) i jedna kolejka okien
 // po geście - „Do kiedy?" → „Ten czas jest zajęty" → formularz rezerwacji.
+//
+// Kolejny etap auta (podnośnik, potem myjnia): „Dodaj etap" w podglądzie przełącza oś
+// w tryb wskazywania - następne zaznaczenie czasu tworzy plan dla TEGO auta, bez
+// formularza rezerwacji (auto i wizyta już są). Z tablicy „Teraz" ten sam tryb otwiera
+// parametr `place` w adresie.
 
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import styled from 'styled-components';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
-import { Button, IconButton, Segmented, ui } from '@/common/components/ui';
+import { Button, IconButton, Notice, Segmented, ui } from '@/common/components/ui';
 import { useBreakpoint } from '@/common/hooks';
 import { useToast } from '@/common/components/Toast';
 import type { BaysSnapshot } from '../types';
@@ -68,7 +74,7 @@ const openDays = (from: string, n: number, dir: 1 | -1 = 1): string[] => {
 
 export function WeekView({ snap: initial, now, canEdit }: Props) {
     const isTabletUp = useBreakpoint('md');
-    const { showError, showSuccess, showWarning } = useToast();
+    const { showError, showWarning } = useToast();
     const patchBoard = usePatchBoard();
     const [span, setSpan] = useState<Span>(6);
     // Kotwica zakresu: poniedziałek w trybie tygodnia, pierwszy pokazany dzień w pozostałych.
@@ -87,6 +93,21 @@ export function WeekView({ snap: initial, now, canEdit }: Props) {
     const [day, setDay] = useState(() => toDateKey(now));
     const [step, setStep] = useState<Step | null>(null);
     const [preview, setPreview] = useState<{ bar: WeekBar; bayId: string } | null>(null);
+    const [params, setParams] = useSearchParams();
+    /** Auto, dla którego następne zaznaczenie na osi tworzy kolejny etap. */
+    const [placing, setPlacing] = useState<string | null>(() => params.get('place'));
+    const placingCar = placing ? snap.cars.find(c => c.id === placing) : undefined;
+    useEffect(() => {
+        if (!params.get('place')) return;
+        setParams(p => { const n = new URLSearchParams(p); n.delete('place'); return n; }, { replace: true });
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, []);
+    useEffect(() => {
+        if (!placing) return;
+        const esc = (e: KeyboardEvent) => { if (e.key === 'Escape') setPlacing(null); };
+        window.addEventListener('keydown', esc);
+        return () => window.removeEventListener('keydown', esc);
+    }, [placing]);
     const move = useBaysMutation(baysApi.moveBooking);
     const create = useBaysMutation(baysApi.createBooking);
     const remove = useBaysMutation(baysApi.deleteBooking);
@@ -113,6 +134,12 @@ export function WeekView({ snap: initial, now, canEdit }: Props) {
     const isCurrent = days.includes(toDateKey(now)) || (span === 6 && toDateKey(mondayOf(fromDateKey(anchor))) === toDateKey(defaultMonday(now)));
 
     const onRange = (r: RangeRequest) => {
+        if (placingCar) {
+            // Etap dla wskazanego auta: zapis jak przy przeciągnięciu z paska „Bez planu".
+            setPlacing(null);
+            onMove({ bookingId: null, carId: placingCar.id, bayId: r.bayId, start: r.start, end: r.end, overlaps: r.overlaps });
+            return;
+        }
         if (r.overlaps.length) setStep({ kind: 'overlap-new', bayId: r.bayId, start: r.start, end: r.end, hits: r.overlaps });
         else setStep({ kind: 'book', bayId: r.bayId, start: r.start, end: r.end });
     };
@@ -154,13 +181,10 @@ export function WeekView({ snap: initial, now, canEdit }: Props) {
         }
     };
 
-    const removeBooking = async (bookingId: string, announce = false) => {
-        const plate = snap.cars.find(c => c.id === snap.bookings.find(b => b.id === bookingId)?.carId)?.licensePlate;
+    const removeBooking = async (bookingId: string) => {
         await patchBoard(s => ({ ...s, bookings: s.bookings.filter(b => b.id !== bookingId) }));
         remove.mutate([bookingId], {
             onError: () => showError('Nie udało się usunąć z planu', 'Spróbuj ponownie.'),
-            // Upuszczenie poza osią to gest, który łatwo zrobić przypadkiem - mówimy, co się stało.
-            onSuccess: () => { if (announce) showSuccess(`${plate ?? 'Auto'}: zdjęte z planu`, 'Zaplanujesz je ponownie z paska „Bez planu" albo zaznaczając czas na osi.'); },
         });
     };
 
@@ -174,7 +198,6 @@ export function WeekView({ snap: initial, now, canEdit }: Props) {
         try {
             await end.mutateAsync([bar.car.visitId, 'DONE']);
             if (bar.bookingId) await remove.mutateAsync([bar.bookingId]);
-            showSuccess(`${bar.car.licensePlate}: zdjęte ze stanowiska`, 'Auto czeka na przypisanie.');
         } catch {
             showError('Nie udało się zdjąć auta ze stanowiska', 'Spróbuj ponownie.');
         }
@@ -213,6 +236,16 @@ export function WeekView({ snap: initial, now, canEdit }: Props) {
                 )}
             </Nav>
 
+            {placingCar && (
+                <Notice
+                    tone="info"
+                    title={`Kolejny etap dla ${placingCar.licensePlate}`}
+                    action={<Button variant="outline" size="sm" onClick={() => setPlacing(null)}>Anuluj</Button>}
+                >
+                    {isTabletUp ? 'Zaznacz na osi stanowisko i czas.' : 'Wybierz dzień i stuknij „Zaplanuj” przy wolnym okienku.'}
+                </Notice>
+            )}
+
             {isTabletUp ? (
                 <WeekPlanner
                     snap={snap}
@@ -222,7 +255,7 @@ export function WeekView({ snap: initial, now, canEdit }: Props) {
                     onRange={onRange}
                     onTapCell={(bayId, cell) => setStep({ kind: 'duration', bayId, cell })}
                     onMove={onMove}
-                    onUnplan={id => void removeBooking(id, true)}
+                    onUnplan={id => void removeBooking(id)}
                     onOpenBar={(bar, bayId) => setPreview({ bar, bayId })}
                 />
             ) : (
@@ -241,10 +274,11 @@ export function WeekView({ snap: initial, now, canEdit }: Props) {
             {preview && (
                 <BarPreviewDrawer
                     bar={preview.bar}
-                    bayName={bayById(preview.bayId)?.name ?? ''}
+                    snap={snap}
                     now={now}
                     canEdit={canEdit}
                     onClose={() => setPreview(null)}
+                    onAddStage={canEdit ? () => { setPlacing(preview.bar.carId); setPreview(null); } : undefined}
                     onDeleteBooking={id => void removeBooking(id)}
                     onUnassign={() => void unassign(preview.bar)}
                 />
@@ -290,7 +324,6 @@ export function WeekView({ snap: initial, now, canEdit }: Props) {
             {step?.kind === 'book' && (
                 <BayBookingFlow
                     bayId={step.bayId}
-                    bayName={bayById(step.bayId)?.name ?? ''}
                     slotsPerDay={bayById(step.bayId)?.slotsPerDay ?? 2}
                     start={step.start}
                     end={step.end}

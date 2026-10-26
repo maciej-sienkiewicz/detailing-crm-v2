@@ -20,14 +20,12 @@ import { QuickEventModal, type QuickEventFormData } from '@/modules/calendar/com
 import { useQuickEventCreation } from '@/modules/calendar/hooks/useQuickEventCreation';
 import { useToast } from '@/common/components/Toast';
 import { problemDetail } from '@/core/problem';
-import { rangeText } from '../utils/slots';
 import { bookingRangeFromDates } from '../utils/weekLayout';
 import { baysApi } from '../api/baysApi';
 import { useBaysMutation } from '../hooks/useBays';
 
 interface Props {
     bayId: string;
-    bayName: string;
     /** Podział dnia stanowiska - plan przyciąga się do jego okienek. */
     slotsPerDay: number;
     start: Date;
@@ -44,9 +42,9 @@ const idOf = (response: unknown): string | null => {
     return null;
 };
 
-export function BayBookingFlow({ bayId, bayName, slotsPerDay, start, end, onClose }: Props) {
+export function BayBookingFlow({ bayId, slotsPerDay, start, end, onClose }: Props) {
     const { createBookingAsync } = useQuickEventCreation();
-    const { showSuccess, showError, showWarning } = useToast();
+    const { showError, showWarning } = useToast();
     const createBooking = useBaysMutation(baysApi.createBooking);
 
     const handleSave = async (data: QuickEventFormData) => {
@@ -64,7 +62,6 @@ export function BayBookingFlow({ bayId, bayName, slotsPerDay, start, end, onClos
         try {
             if (!appointmentId || !range) throw new Error('Brak rezerwacji albo zakresu');
             await createBooking.mutateAsync([bayId, { visitId: null, appointmentId }, range.start, range.end]);
-            showSuccess('Rezerwacja utworzona', `${bayName}, ${rangeText(range.start, range.end, new Date())}.`);
         } catch {
             // Rezerwacja już jest w kalendarzu - tracimy tylko plan stanowiska, i mówimy to wprost.
             showWarning('Rezerwacja zapisana, stanowisko nie', 'Przeciągnij ją na stanowisko w widoku tygodnia.');

@@ -86,13 +86,74 @@ const assignLanes = (bars: WeekBar[]): number => {
     return max;
 };
 
+/**
+ * Paski jednego stanowiska bez położenia na osi - wspólne dla tygodnia, osi dnia
+ * („Teraz") i listy etapów auta w podglądzie.
+ *
+ * Jedno auto może mieć kilka planów (podnośnik rano, myjnia po południu, drugi dzień na
+ * tym samym podnośniku). Dlatego pasek „trwa" bierze plan, do którego należy ten wjazd
+ * (pierwszy kończący się po wjeździe), a pozostałe plany tego auta zostają osobnymi
+ * paskami. Dawniej brał pierwszy z brzegu i chował wszystkie inne plany auta na stanowisku.
+ */
+const barsOfBay = (snap: BaysSnapshot, bay: Bay, now: Date, hours: OpeningHours): Omit<WeekBar, 'x' | 'w'>[] => {
+    const carById = new Map(snap.cars.map(c => [c.id, c]));
+    const bars: Omit<WeekBar, 'x' | 'w'>[] = [];
+    const stints = snap.stints.filter(s => s.bayId === bay.id);
+    const bookings = snap.bookings.filter(b => b.bayId === bay.id).sort((a, b) => a.start.localeCompare(b.start));
+    const attached = new Set<string>();
+
+    for (const s of stints) {
+        const car = carById.get(s.carId);
+        if (!car) continue;
+        const start = new Date(s.startedAt);
+        const factEnd = s.endedAt ? new Date(s.endedAt) : now;
+        const booking = bookings.find(b => b.carId === s.carId && new Date(b.end) > start
+            && (s.endedAt ? new Date(b.start) < factEnd : true));
+        if (booking && !s.endedAt) attached.add(booking.id);
+        // Trwający odcinek sięga do końca planu: jeden pasek „trwa, plan do jutra"
+        // czyta się lepiej niż wąski fakt i osobny ogon planu obok.
+        const end = !s.endedAt && booking && new Date(booking.end) > factEnd ? new Date(booking.end) : factEnd;
+        bars.push({
+            id: s.id, carId: s.carId, car,
+            kind: s.endedAt ? 'done' : 'active',
+            start, end, lane: 0, laneCount: 1,
+            minutes: workMinutes(start, factEnd, hours),
+            personIds: s.personIds,
+            overPlan: !!booking && factEnd > new Date(booking.end),
+            conflict: false,
+            bookingId: booking?.id ?? null,
+            curingUntil: s.curingUntil,
+        });
+    }
+
+    for (const b of bookings) {
+        const car = carById.get(b.carId);
+        if (!car || car.stage === 'READY' || car.stage === 'HANDED_OVER') continue;
+        // Auto stoi teraz w ramach tego planu - niesie go pasek „trwa".
+        if (attached.has(b.id)) continue;
+        // Plan, który fakty już „zjadły", zostaje tylko po ostatnim zjeździe w jego czasie.
+        const lastFact = stints
+            .filter(s => s.carId === b.carId && s.endedAt && new Date(s.startedAt) < new Date(b.end))
+            .map(s => new Date(s.endedAt!)).sort((x, y) => y.getTime() - x.getTime())[0];
+        const start = lastFact && lastFact > new Date(b.start) ? lastFact : new Date(b.start);
+        const end = new Date(b.end);
+        if (start >= end) continue;
+        bars.push({
+            id: `plan-${b.id}`, carId: b.carId, car, kind: 'plan',
+            start, end, lane: 0, laneCount: 1,
+            minutes: workMinutes(start, end, hours), personIds: [], overPlan: false, conflict: false,
+            bookingId: b.id, curingUntil: null,
+        });
+    }
+    return bars;
+};
+
 export const buildWeekRows = (
     snap: BaysSnapshot,
     days: string[],
     now: Date,
     hours: OpeningHours = studioHours(),
 ): { rows: WeekRow[] } => {
-    const carById = new Map(snap.cars.map(c => [c.id, c]));
     const first = days[0];
     const last = days[days.length - 1];
     const weekStart = first ? new Date(`${first}T00:00:00`) : now;
@@ -104,50 +165,9 @@ export const buildWeekRows = (
     };
 
     const rows = snap.bays.filter(b => b.active).map(bay => {
-        const bars: WeekBar[] = [];
-        const stints = snap.stints.filter(s => s.bayId === bay.id);
-        const bookings = snap.bookings.filter(b => b.bayId === bay.id);
-
-        for (const s of stints) {
-            const car = carById.get(s.carId);
-            if (!car) continue;
-            const booking = bookings.find(b => b.carId === s.carId);
-            const start = new Date(s.startedAt);
-            const factEnd = s.endedAt ? new Date(s.endedAt) : now;
-            // Trwający odcinek sięga do końca planu: jeden pasek „trwa, plan do jutra"
-            // czyta się lepiej niż wąski fakt i osobny ogon planu obok.
-            const end = !s.endedAt && booking && new Date(booking.end) > factEnd ? new Date(booking.end) : factEnd;
-            if (end < weekStart || start > weekEnd) continue;
-            bars.push({
-                id: s.id, carId: s.carId, car,
-                kind: s.endedAt ? 'done' : 'active',
-                start, end, ...place(start, end), lane: 0, laneCount: 1,
-                minutes: workMinutes(start, factEnd, hours),
-                personIds: s.personIds,
-                overPlan: !!booking && factEnd > new Date(booking.end),
-                conflict: false,
-                bookingId: booking?.id ?? null,
-                curingUntil: s.curingUntil,
-            });
-        }
-
-        for (const b of bookings) {
-            const car = carById.get(b.carId);
-            if (!car || car.stage === 'READY' || car.stage === 'HANDED_OVER') continue;
-            // Auto stoi teraz na tym stanowisku - jego plan już niesie pasek „trwa".
-            if (stints.some(s => s.carId === b.carId && s.endedAt === null)) continue;
-            // Plan, który fakty już „zjadły", zostaje tylko po ostatnim zjeździe.
-            const lastFact = stints.filter(s => s.carId === b.carId && s.endedAt).map(s => new Date(s.endedAt!)).sort((x, y) => y.getTime() - x.getTime())[0];
-            const start = lastFact && lastFact > new Date(b.start) ? lastFact : new Date(b.start);
-            const end = new Date(b.end);
-            if (start >= end || end < weekStart || start > weekEnd) continue;
-            bars.push({
-                id: `plan-${b.id}`, carId: b.carId, car, kind: 'plan',
-                start, end, ...place(start, end), lane: 0, laneCount: 1,
-                minutes: workMinutes(start, end, hours), personIds: [], overPlan: false, conflict: false,
-                bookingId: b.id, curingUntil: null,
-            });
-        }
+        const bars: WeekBar[] = barsOfBay(snap, bay, now, hours)
+            .filter(b => !(b.end < weekStart || b.start > weekEnd))
+            .map(b => ({ ...b, ...place(b.start, b.end) }));
 
         for (const bar of bars) {
             if (bar.kind !== 'done' && loadIn(bars, bar.start, bar.end) > bay.capacity) bar.conflict = true;
@@ -159,6 +179,30 @@ export const buildWeekRows = (
 
     return { rows };
 };
+
+export interface CarStage {
+    bayId: string;
+    kind: BarKind;
+    start: Date;
+    end: Date;
+    bookingId: string | null;
+    /** Id paska - ten sam co na osi, żeby podgląd mógł wskazać „to ten". */
+    barId: string;
+}
+
+/**
+ * Etapy auta po kolei przez wszystkie stanowiska: zrobione, trwa i plany. Podgląd
+ * pokazuje z tego trasę auta („podnośnik 8-10, przerwa, myjnia 11-12"), a oś numer
+ * etapu na pasku.
+ */
+export const carStages = (snap: BaysSnapshot, carId: string, now: Date, hours: OpeningHours = studioHours()): CarStage[] =>
+    snap.bays.filter(b => b.active)
+        .flatMap(bay => barsOfBay(snap, bay, now, hours)
+            .filter(b => b.carId === carId)
+            // Wjazd i zjazd w tej samej minucie to pomyłka przy kliknięciu, nie etap trasy.
+            .filter(b => b.kind !== 'done' || b.end.getTime() - b.start.getTime() >= 60_000)
+            .map(b => ({ bayId: bay.id, kind: b.kind, start: b.start, end: b.end, bookingId: b.bookingId, barId: b.id })))
+        .sort((a, b) => a.start.getTime() - b.start.getTime());
 
 /** Pozycja okienka na osi. */
 export const cellBox = (c: Cell, days: string[], hours: OpeningHours = studioHours()) => {

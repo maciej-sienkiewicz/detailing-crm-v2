@@ -23,7 +23,7 @@ import { formatClockTime } from '@/common/dateTime';
 import { useToast } from '@/common/components/Toast';
 import type { BayPerson, BaysSnapshot } from '../types';
 import { buildBoard, viewOf, type CarView } from '../utils/boardState';
-import { formatMinutes, rangeText } from '../utils/slots';
+import { rangeText } from '../utils/slots';
 import { baysApi, isConflict } from '../api/baysApi';
 import { useBaysMutation, usePatchBoard } from '../hooks/useBays';
 import { usePermissions } from '@/core/permissions';
@@ -121,7 +121,7 @@ interface Props {
 
 export function BoardNow({ snap, now, canEdit }: Props) {
     const board = buildBoard(snap, now);
-    const { showSuccess, showError, showInfo } = useToast();
+    const { showError, showInfo } = useToast();
     const { can } = usePermissions();
     const patchBoard = usePatchBoard();
     const removeBooking = useBaysMutation(baysApi.deleteBooking);
@@ -163,7 +163,6 @@ export function BoardNow({ snap, now, canEdit }: Props) {
         try {
             await start.mutateAsync([visitOf(view), bayId, track ? personIds : [], evict]);
             setDialog(null);
-            showSuccess(`${view.car.licensePlate}: ${bayName(bayId)}`, `Czas liczy się od ${formatClockTime(now)}.`);
         } catch (e) {
             // Ktoś zajął stanowisko w międzyczasie: to samo okno co przy zajętym od początku.
             if (isConflict(e)) setDialog({ kind: 'pick', view, initialBayId: bayId });
@@ -175,8 +174,7 @@ export function BoardNow({ snap, now, canEdit }: Props) {
         if (choice === 'move') { setDialog({ kind: 'pick', view }); return; }
         await end.mutateAsync([visitOf(view), 'DONE']);
         setDialog(null);
-        if (choice === 'ready') { goReady(view); return; }
-        showSuccess(`${view.car.licensePlate} czeka na przypisanie`, `Odcinek pracy zamknięty, ${formatMinutes(view.currentMinutes)}.`);
+        if (choice === 'ready') goReady(view);
     };
 
     /* Upuszczenie karty: ten sam skutek co przycisk, a gdy trzeba o coś zapytać
@@ -315,11 +313,12 @@ export function BoardNow({ snap, now, canEdit }: Props) {
             {preview && (
                 <BarPreviewDrawer
                     bar={preview.bar}
-                    bayName={bayName(preview.bayId)}
+                    snap={snap}
                     now={now}
                     canEdit={can('VISITS_CREATE')}
                     onClose={() => setPreview(null)}
                     onDeleteBooking={id => void deleteBooking(id)}
+                    onAddStage={can('VISITS_CREATE') ? () => navigate(`/bays?view=week&place=${preview.bar.carId}`) : undefined}
                 />
             )}
             {dialog?.kind === 'pick' && (
@@ -345,7 +344,6 @@ export function BoardNow({ snap, now, canEdit }: Props) {
                     onConfirm={async (reason, note) => {
                         await end.mutateAsync([visitOf(dialog.view), reason, note]);
                         setDialog(null);
-                        showSuccess(`${dialog.view.car.licensePlate} czeka na przypisanie`, 'Stanowisko jest wolne.');
                     }}
                 />
             )}

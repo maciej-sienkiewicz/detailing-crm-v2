@@ -99,7 +99,7 @@ export function VisitBayStrip(props: Props) {
     useStudioHours();
     const { data: snap } = useBaysSnapshot(undefined, enabled);
     const now = useBaysNow();
-    const { showSuccess, showInfo, showError } = useToast();
+    const { showInfo, showError } = useToast();
     const [open, setOpen] = useState(false);
     const [dialog, setDialog] = useState<'pick' | 'finish' | 'pause' | null>(null);
     const start = useBaysMutation(baysApi.startStint);
@@ -171,7 +171,6 @@ export function VisitBayStrip(props: Props) {
                         try {
                             await start.mutateAsync([props.visitId, bayId, snap.settings.trackPeople ? people : [], evict]);
                             setDialog(null);
-                            showSuccess(`Auto na stanowisku ${bayName(bayId)}`);
                         } catch (e) {
                             // Zajęte w międzyczasie: okno zostaje, odczyt hali już się odświeża.
                             showError(isConflict(e) ? 'Stanowisko jest już zajęte' : 'Nie udało się zapisać wjazdu', isConflict(e) ? 'Wybierz, co z autem, które tam stoi, albo inne stanowisko.' : 'Spróbuj ponownie.');

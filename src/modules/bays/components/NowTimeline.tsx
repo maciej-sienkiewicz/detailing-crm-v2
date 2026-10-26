@@ -10,9 +10,9 @@
 // (przerywany obrys). Pozycje liczy ten sam `buildWeekRows` co tydzień, tylko dla
 // jednego dnia - jeden algorytm nałożeń i pasów dla obu widoków.
 //
-// Gdy dziś hala jest zamknięta (niedziela), oś bierze godziny dnia roboczego. Oś
-// rozciąga się też o to, co dziś faktycznie się działo poza godzinami (wjazd o 20:15,
-// praca do nocy) - inaczej taki blok wypadał pod osią albo zlewał się w kreskę na jej końcu.
+// Oś to dokładnie godziny hali z ustawień (gdy dziś zamknięte - godziny dnia roboczego).
+// Zdarzenie spoza godzin (wjazd o 20:15) nie rozciąga osi, tylko staje przy jej krawędzi
+// z prawdziwą godziną w treści - oś ma wyglądać tak samo każdego dnia.
 
 import { useLayoutEffect, useRef, type ReactNode } from 'react';
 import styled, { css } from 'styled-components';
@@ -21,7 +21,7 @@ import { ui } from '@/common/components/ui';
 import { formatClockTime } from '@/common/dateTime';
 import type { BaysSnapshot } from '../types';
 import { buildWeekRows, type WeekBar } from '../utils/weekLayout';
-import { clockText, fromDateKey, hoursOf, studioHours, toDateKey, weekX, type DayHours, type OpeningHours } from '../utils/slots';
+import { clockText, fromDateKey, hoursOf, studioHours, toDateKey, weekX, type OpeningHours } from '../utils/slots';
 import { Plate } from './primitives';
 
 /** Wysokość godziny. 14 godzin hali to ~840 px - widok przewija się w ramce do „teraz". */
@@ -187,23 +187,8 @@ const ActiveWrap = styled.div<{ $minH: number }>`
     }
 `;
 
-const minuteOf = (t: Date) => t.getHours() * 60 + t.getMinutes();
-
-/** Godziny osi poszerzone do pełnych godzin wokół dzisiejszych wjazdów, zjazdów i planów. */
-const widenToEvents = (h: DayHours, snap: BaysSnapshot, todayKey: string, now: Date): DayHours => {
-    const dayStart = new Date(`${todayKey}T00:00:00`);
-    const dayEnd = new Date(`${todayKey}T23:59:59`);
-    const spans = [
-        ...snap.stints.map(s => [new Date(s.startedAt), s.endedAt ? new Date(s.endedAt) : now] as const),
-        ...snap.bookings.map(b => [new Date(b.start), new Date(b.end)] as const),
-    ].filter(([a, b]) => a <= dayEnd && b >= dayStart);
-    let { opens, closes } = h;
-    for (const [a, b] of spans) {
-        opens = Math.min(opens, a < dayStart ? opens : Math.floor(minuteOf(a) / 60) * 60);
-        closes = Math.max(closes, b > dayEnd ? closes : Math.min(1440, Math.ceil((minuteOf(b) + 1) / 60) * 60));
-    }
-    return { opens, closes };
-};
+/** Najniższa karta trwającej pracy (tablica, praca, auto, przyciski) - przy krawędzi osi. */
+const ACTIVE_MIN_H = 132;
 
 interface Props {
     snap: BaysSnapshot;
@@ -220,7 +205,7 @@ export function NowTimeline({ snap, now, renderActive, onOpenBar, dropProps, dro
     const frameRef = useRef<HTMLDivElement>(null);
     const todayKey = toDateKey(now);
     const base = studioHours();
-    const axis = widenToEvents(hoursOf(todayKey) ?? base[1] ?? { opens: 360, closes: 1200 }, snap, todayKey, now);
+    const axis = hoursOf(todayKey) ?? base[1] ?? { opens: 360, closes: 1200 };
     // Godziny osi wpisane w dzisiejszy dzień tygodnia - reszta liczy się jak w planie tygodnia.
     const hours: OpeningHours = { ...base, [fromDateKey(todayKey).getDay()]: axis };
     const days = [todayKey];
@@ -240,10 +225,13 @@ export function NowTimeline({ snap, now, renderActive, onOpenBar, dropProps, dro
     }, []);
 
     const box = (bar: WeekBar) => {
-        const top = yOf(bar.start);
+        const raw = yOf(bar.start);
+        const height = Math.max(bar.kind === 'active' ? 0 : 30, yOf(bar.end) - raw);
+        const shown = bar.kind === 'active' ? Math.max(height, ACTIVE_MIN_H) : height;
         return {
-            top,
-            height: Math.max(30, yOf(bar.end) - top),
+            // Przy krawędzi osi blok staje w całości wewnątrz kolumny.
+            top: Math.max(0, Math.min(raw, total - shown)),
+            height,
             left: `${(bar.lane / bar.laneCount) * 100}%`,
             width: `${100 / bar.laneCount}%`,
         };
