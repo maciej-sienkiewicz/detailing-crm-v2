@@ -9,7 +9,13 @@
 //   - przeciągnięcie paska PLANU → inne stanowisko albo inny czas (długość zostaje);
 //   - chwycenie krawędzi paska planu → rozciągnięcie albo skrócenie;
 //   - przeciągnięcie auta z paska „Bez planu" → plan bez formularza (auto już jest);
-//   - przeciągnięcie paska planu na strefę u dołu ekranu → zdjęcie z planu.
+//   - przeciągnięcie paska planu na strefę u dołu ekranu → zdjęcie z planu;
+//   - Alt (⌥) + przeciągnięcie dowolnego paska auta → KOPIA jako kolejny etap tego auta
+//     (podnośnik rano, myjnia po południu). Oryginał zostaje na miejscu.
+//
+// Pasek planu łapie wciśnięcie przycisku jako początek przeciągania, a na czas gestu paski
+// nie przyjmują myszy - puszczenie bez ruchu trafiało więc w wiersz pod spodem i kliknięcie
+// nie otwierało podglądu. Gest bez ruchu jest dlatego obsługiwany jako kliknięcie tutaj.
 //
 // Faktu (zrobione, trwa) nie da się przeciągnąć - fakt zmienia się zdarzeniem na hali.
 // Nałożenie planu jest dozwolone, ale nigdy ciche: przed zapisem okno pyta.
@@ -35,7 +41,7 @@ import type { BaysSnapshot } from '../types';
 import { buildWeekRows, carStages, cellBox, cellIsFree, freeCellsOn, overlapsInRange, type WeekBar, type WeekRow } from '../utils/weekLayout';
 import {
     cellIndexAt, clockText, dayMonth, dayShort, durationLabel, formatMinutes, hoursOf, longestDay, rangeText,
-    timeAtWeekX, toDateKey, weekX, type Cell,
+    timeAtWeekX, toDateKey, weekX, workMinutes, type Cell,
 } from '../utils/slots';
 import { Avatar, Plate } from './primitives';
 
@@ -304,9 +310,11 @@ const Bar = styled.div<{ $tone: keyof typeof BAR_TONES; $conflict: boolean; $ove
     &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: 1px; }
 
     /* Wąski pasek: zostaje sama tablica, opis jest w dymku i w podglądzie. */
+    /* Wąski pasek: zostaje sama tablica (ucięta wielokropkiem), numer etapu i opis są
+       w dymku i w podglądzie. Nigdy pusty kafelek - po coś w niego się klika. */
     @container (max-width: 90px) {
         padding: 0 6px;
-        > span:first-child:not(:last-child) { display: none; }
+        > [data-stage] { display: none; }
     }
 `;
 
@@ -363,9 +371,9 @@ const BarText = styled.span<{ $compact?: boolean }>`
         white-space: nowrap;
     }
 
-    @container (max-width: 90px) { > span:last-child { display: none; } }
-    /* Pasek węższy niż tablica: sam kolor, bez uciętych liter - opis w dymku i w podglądzie. */
-    @container (max-width: 52px) { display: none; }
+    > :first-child { min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+
+    @container (max-width: 90px) { > span:last-child:not(:first-child) { display: none; } }
 `;
 
 const Ghost = styled.div<{ $warn: boolean }>`
@@ -458,6 +466,24 @@ const Legend = styled.div`
     color: ${ui.textSecondary};
 `;
 
+/* Klawisz w legendzie - wygląda jak klawisz, żeby nie czytać go jako słowa. */
+const Kbd = styled.kbd`
+    display: inline-block;
+    min-width: 22px;
+    margin-right: 4px;
+    padding: 0 6px;
+    border: 1px solid ${ui.line};
+    border-bottom-width: 2px;
+    border-radius: 5px;
+    background: ${ui.surface};
+    font-family: inherit;
+    font-size: 11.5px;
+    font-weight: 600;
+    line-height: 18px;
+    text-align: center;
+    color: ${ui.inkSoft};
+`;
+
 const Swatch = styled.span<{ $tone: keyof typeof BAR_TONES }>`
     display: inline-block;
     width: 22px;
@@ -470,8 +496,8 @@ const Swatch = styled.span<{ $tone: keyof typeof BAR_TONES }>`
 
 type Drag =
     | { kind: 'select'; rowId: string; anchor: number; current: number }
-    | { kind: 'move'; carId: string; bookingId: string | null; minutes: number; grabMs: number; rowId: string; startIdx: number; len: number; moved: boolean; startX: number; out?: boolean }
-    | { kind: 'resize'; carId: string; bookingId: string | null; rowId: string; edge: 'start' | 'end'; startIdx: number; endIdx: number; minEnd: number; keepStart: Date | null };
+    | { kind: 'move'; carId: string; bookingId: string | null; minutes: number; grabMs: number; rowId: string; startIdx: number; len: number; moved: boolean; startX: number; out?: boolean; barId: string | null; copy?: boolean }
+    | { kind: 'resize'; carId: string; bookingId: string | null; rowId: string; edge: 'start' | 'end'; startIdx: number; endIdx: number; minEnd: number; keepStart: Date | null; origEnd: number; origStart: number };
 
 /** Opis podziału dnia pod nazwą stanowiska: ile trwa jedno okienko. */
 const slotHint = (n: number, day: number) => (n === 1 ? 'cały dzień' : n === 2 ? 'pół dnia' : `co ${formatMinutes(Math.round(day / n))}`);
@@ -641,6 +667,8 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                 const row = rowById(d.rowId);
                 if (!row) return;
                 suppressClick.current = true;
+                // Chwycona krawędź puszczona w tym samym okienku - nic się nie zmieniło.
+                if (d.startIdx === d.origStart && d.endIdx === d.origEnd) return;
                 const start = d.keepStart ?? row.cells[d.startIdx].start;
                 const end = row.cells[d.endIdx].end;
                 // Skrócenie przed początek planu nie ma sensu - zamiast błędu serwera pasek wraca.
@@ -648,7 +676,12 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                 onMove({ bookingId: d.bookingId, carId: d.carId, bayId: d.rowId, start, end, overlaps: overlapsInRange(row, start, end, d.carId) });
                 return;
             }
-            if (!d.moved) return;
+            if (!d.moved) {
+                // Wciśnięcie i puszczenie bez ruchu to kliknięcie w pasek - otwiera podgląd.
+                const hit = rows.flatMap(r => r.bars.map(bar => ({ bar, rowId: r.rowId }))).find(x => x.bar.id === d.barId);
+                if (hit) { suppressClick.current = true; onOpenBar(hit.bar, hit.rowId); }
+                return;
+            }
             suppressClick.current = true;
             if (d.out && d.bookingId) { onUnplan(d.bookingId); return; }
             const target = moveTarget(d);
@@ -695,7 +728,8 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
         // Nowy gest: blokada kliknięcia z poprzedniego przeciągania już nie obowiązuje
         // (upuszczenie poza paskiem, np. na strefę „zdejmij z planu", nie zjada jej kliknięciem).
         suppressClick.current = false;
-        if (bar.kind !== 'plan' || !canEdit || e.pointerType === 'touch' || e.button !== 0) return;
+        const copy = e.altKey && bar.kind !== 'done' && !!(bar.car.visitId || bar.car.appointmentId);
+        if ((bar.kind !== 'plan' && !copy) || !canEdit || e.pointerType === 'touch' || e.button !== 0) return;
         // Bez tego przeglądarka zaczyna zaznaczać tekst albo własne przeciąganie elementu.
         e.preventDefault();
         const el = tracks.current.get(row.rowId);
@@ -708,8 +742,13 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
         const startIdx = cellIndexAt(row.cells, bar.start);
         const endIdx = cellIndexAt(row.cells, new Date(bar.end.getTime() - 60_000));
         setDrag({
-            kind: 'move', carId: bar.carId, bookingId: bar.bookingId, minutes: bar.minutes,
+            kind: 'move', carId: bar.carId,
+            // Kopia nie ma planu - zapis utworzy nowy dla tego auta.
+            bookingId: copy ? null : bar.bookingId,
+            // Długość kopii to długość paska (u „trwa" - do końca planu), nie przepracowany czas.
+            minutes: copy ? workMinutes(bar.start, bar.end) : bar.minutes,
             grabMs: Math.max(0, t.getTime() - bar.start.getTime()), rowId: row.rowId, startIdx, len: endIdx - startIdx + 1, moved: false, startX: e.clientX,
+            barId: bar.id, copy,
         });
     };
 
@@ -720,6 +759,7 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
         setDrag({
             kind: 'resize', carId: bar.carId, bookingId: bar.bookingId, rowId: row.rowId, edge,
             startIdx: cellIndexAt(row.cells, bar.start), endIdx: cellIndexAt(row.cells, new Date(bar.end.getTime() - 60_000)),
+            origStart: cellIndexAt(row.cells, bar.start), origEnd: cellIndexAt(row.cells, new Date(bar.end.getTime() - 60_000)),
             // Trwająca praca nie skończy się w przeszłości: najkrócej do okienka z „teraz".
             minEnd: bar.kind === 'active' ? cellIndexAt(row.cells, now) : 0,
             // Zmiana trwającej pracy przesuwa tylko koniec. Początek: wcześniejszy z planu i wjazdu -
@@ -737,7 +777,7 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
         e.preventDefault();
         grabRef.current = { dx: 16, dy: 18, w: 180, h: 40 };
         // Bez planu nie wiadomo, ile auto postoi - zaczynamy od jednego okienka, potem rozciągnij.
-        setDrag({ kind: 'move', carId, bookingId: null, minutes: 1, grabMs: 0, rowId: '', startIdx: -1, len: 1, moved: true, startX: e.clientX });
+        setDrag({ kind: 'move', carId, bookingId: null, minutes: 1, grabMs: 0, rowId: '', startIdx: -1, len: 1, moved: true, startX: e.clientX, barId: null });
     };
 
     const unplanned = snap.cars.filter(c => c.stage === 'IN_SHOP'
@@ -763,7 +803,7 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
         } else if (d.startIdx >= 0 && d.moved && !d.out) {
             const t = moveTarget(d);
             if (t) { start = t.start; end = t.end; }
-            title = `${snap.cars.find(c => c.id === d.carId)?.licensePlate ?? ''} na ${bayName(row.rowId)}`;
+            title = `${d.copy ? 'Kolejny etap: ' : ''}${snap.cars.find(c => c.id === d.carId)?.licensePlate ?? ''} na ${bayName(row.rowId)}`;
             if (start && end) hits = overlapsInRange(row, start, end, d.carId);
         }
         if (!start || !end) return null;
@@ -794,7 +834,7 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
             ? `${bar.car.jobTitle}, ${durationLabel(bar.minutes)}`
             : curing ? `Schnie do ${formatClockTime(bar.curingUntil)}`
                 : bar.car.jobTitle;
-        const ghosted = !!drag && drag.kind !== 'select' && (drag.kind === 'resize' || drag.moved) && drag.carId === bar.carId && bar.kind !== 'done';
+        const ghosted = !!drag && drag.kind !== 'select' && (drag.kind === 'resize' || (drag.moved && !drag.copy)) && drag.carId === bar.carId && bar.kind !== 'done';
         const editable = bar.kind === 'plan' && canEdit && !!bar.bookingId;
         // Trwająca praca: początek to fakt (wjazd), koniec to plan - ten wolno przeciągnąć.
         const endEditable = editable || (bar.kind === 'active' && canEdit && !!bar.car.visitId);
@@ -827,7 +867,7 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                 {people.length > 0 && <Avatar person={people[0]} size={24} />}
                 {curing && <Hourglass aria-hidden="true" size={14} />}
                 {stageOf.has(bar.id) && (
-                    <StageChip title={`Etap ${stageOf.get(bar.id)!.n} z ${stageOf.get(bar.id)!.of}`}>
+                    <StageChip data-stage title={`Etap ${stageOf.get(bar.id)!.n} z ${stageOf.get(bar.id)!.of}`}>
                         {stageOf.get(bar.id)!.n}/{stageOf.get(bar.id)!.of}
                     </StageChip>
                 )}
@@ -899,7 +939,7 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
             )}
 
             <Scroller ref={scrollerRef}>
-                <Grid $days={days.length} style={drag ? { userSelect: 'none', cursor: drag.kind === 'resize' ? 'ew-resize' : drag.kind === 'move' ? 'grabbing' : 'cell' } : undefined}>
+                <Grid $days={days.length} style={drag ? { userSelect: 'none', cursor: drag.kind === 'resize' ? 'ew-resize' : drag.kind === 'move' ? (drag.copy ? 'copy' : 'grabbing') : 'cell' } : undefined}>
                     <HeadRow>
                         <Corner />
                         <Axis>
@@ -976,6 +1016,7 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                 <span><Swatch $tone="done" />Zrobione</span>
                 <span><Swatch $tone="active" />Trwa</span>
                 <span><Swatch $tone="plan" />Plan: przeciągnij, żeby przesunąć, chwyć krawędź, żeby zmienić długość</span>
+                {canEdit && <span><Kbd>Alt</Kbd> + przeciągnij pasek: kolejny etap tego auta</span>}
             </Legend>
 
         </>

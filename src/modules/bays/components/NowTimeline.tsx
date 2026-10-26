@@ -14,7 +14,7 @@
 // Zdarzenie spoza godzin (wjazd o 20:15) nie rozciąga osi, tylko staje przy jej krawędzi
 // z prawdziwą godziną w treści - oś ma wyglądać tak samo każdego dnia.
 
-import { useLayoutEffect, useRef, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState, type ReactNode } from 'react';
 import styled, { css } from 'styled-components';
 import { Hourglass } from 'lucide-react';
 import { ui } from '@/common/components/ui';
@@ -24,14 +24,20 @@ import { buildWeekRows, type WeekBar } from '../utils/weekLayout';
 import { clockText, fromDateKey, hoursOf, studioHours, toDateKey, weekX, type OpeningHours } from '../utils/slots';
 import { Plate } from './primitives';
 
-/** Wysokość godziny. 14 godzin hali to ~840 px - widok przewija się w ramce do „teraz". */
-const HOUR_PX = 60;
+/*
+ * Oś wypełnia okno do samego dołu: wysokość godziny = wolne miejsce / godziny hali.
+ * Najmniej 44 px na godzinę - niżej karta trwającej pracy nie mieściłaby się w godzinie
+ * i oś przewija się w ramce (telefon, niski laptop, długi dzień hali).
+ */
+const MIN_HOUR_PX = 44;
+const HEAD_H = 46;
+const BOTTOM_GAP = 24;
+const MIN_FRAME_H = 420;
 const GUTTER = 52;
 
 const Frame = styled.div`
     position: relative;
     overflow: auto;
-    max-height: max(520px, calc(100vh - 210px));
     overscroll-behavior: contain;
     border: 1px solid ${ui.line};
     border-radius: ${ui.radiusPanel};
@@ -53,7 +59,10 @@ const HeadCell = styled.div`
     justify-content: space-between;
     gap: 8px;
     min-width: 0;
-    padding: 12px 12px 10px;
+    height: ${HEAD_H}px;
+    box-sizing: border-box;
+    padding: 0 12px;
+    align-items: center;
     background: ${ui.surface};
     border-bottom: 1px solid ${ui.line};
     border-left: 1px solid ${ui.line};
@@ -63,6 +72,8 @@ const HeadCell = styled.div`
 `;
 
 const Corner = styled.div`
+    height: ${HEAD_H}px;
+    box-sizing: border-box;
     position: sticky;
     top: 0;
     left: 0;
@@ -101,10 +112,10 @@ const NowLabel = styled.span`
 `;
 
 /* Linie pełnych godzin jako tło kolumny - przesunięte, gdy hala otwiera się o pół do. */
-const Col = styled.div<{ $offset: number; $drop: boolean }>`
+const Col = styled.div<{ $offset: number; $drop: boolean; $hour: number }>`
     position: relative;
     border-left: 1px solid ${ui.line};
-    background-image: repeating-linear-gradient(to bottom, ${ui.lineSoft} 0 1px, transparent 1px ${HOUR_PX}px);
+    background-image: repeating-linear-gradient(to bottom, ${ui.lineSoft} 0 1px, transparent 1px ${p => p.$hour}px);
     background-position: 0 ${p => p.$offset}px;
     transition: background-color 120ms ease;
 
@@ -210,7 +221,22 @@ export function NowTimeline({ snap, now, renderActive, onOpenBar, dropProps, dro
     const hours: OpeningHours = { ...base, [fromDateKey(todayKey).getDay()]: axis };
     const days = [todayKey];
     const { rows } = buildWeekRows(snap, days, now, hours);
-    const total = ((axis.closes - axis.opens) / 60) * HOUR_PX;
+    // Wysokość ramki: od jej górnej krawędzi do dołu okna, liczona przy wejściu i przy zmianie okna.
+    const [frameH, setFrameH] = useState(640);
+    useEffect(() => {
+        const fit = () => {
+            const el = frameRef.current;
+            if (!el) return;
+            const top = el.getBoundingClientRect().top + window.scrollY;
+            setFrameH(Math.max(MIN_FRAME_H, Math.floor(window.innerHeight - top - BOTTOM_GAP)));
+        };
+        fit();
+        window.addEventListener('resize', fit);
+        return () => window.removeEventListener('resize', fit);
+    }, []);
+    const axisHours = (axis.closes - axis.opens) / 60;
+    const HOUR_PX = Math.max(MIN_HOUR_PX, (frameH - HEAD_H - 2) / axisHours);
+    const total = axisHours * HOUR_PX;
     const yOf = (t: Date) => weekX(t, days, hours) * total;
     const nowMin = now.getHours() * 60 + now.getMinutes();
     const nowInside = nowMin >= axis.opens && nowMin <= axis.closes;
@@ -238,7 +264,7 @@ export function NowTimeline({ snap, now, renderActive, onOpenBar, dropProps, dro
     };
 
     return (
-        <Frame ref={frameRef}>
+        <Frame ref={frameRef} style={{ height: frameH }}>
             <Grid $cols={rows.length}>
                 <Corner />
                 {rows.map(row => {
@@ -269,6 +295,7 @@ export function NowTimeline({ snap, now, renderActive, onOpenBar, dropProps, dro
                         style={{ height: total }}
                         $offset={-(((axis.opens % 60) / 60) * HOUR_PX)}
                         $drop={dropOverBayId === row.rowId}
+                        $hour={HOUR_PX}
                         {...dropProps(row.rowId)}
                     >
                         {nowY > 0 && <Past style={{ height: nowY }} />}
