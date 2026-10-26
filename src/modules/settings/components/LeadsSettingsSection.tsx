@@ -21,6 +21,7 @@ import { useMutation, useQuery, useQueryClient } from '@tanstack/react-query';
 import { useToast } from '@/common/components/Toast';
 import { Button, Card, Notice, Panel, SectionTitle, ui } from '@/common/components/ui';
 import { leadsSettingsApi } from '../api/leadsSettingsApi';
+import { AUTO_LEAD_CONFIG_QUERY_KEY } from '../api/autoLeadConfigQuery';
 import { LEAD_ALERT_CONFIG_KEY, leadAlertConfigQuery } from '../api/leadAlertConfigQuery';
 import type { AutoLeadConfig, LeadAlertConfig } from '../types';
 import { UnsavedChangesBanner } from './shared/SettingsLayout';
@@ -31,7 +32,6 @@ import { EscalationPanel } from './leads/EscalationPanel';
 import { MailboxPanel } from './leads/MailboxPanel';
 import { useCapabilityGate } from '@/modules/subscription/hooks/useCapabilityGate';
 
-const AUTO_LEAD_CONFIG_QUERY_KEY = ['settings', 'auto-lead-config'] as const;
 
 // ─── Styled ───────────────────────────────────────────────────────────────────
 

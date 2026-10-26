@@ -28,6 +28,7 @@ vi.mock('@/common/hooks', () => ({ useBreakpoint: () => true }));
 vi.mock('@/common/pii', () => ({ usePiiAccess: () => access.pii }));
 vi.mock('@/modules/worktime', () => ({ ReportWorkdayButton: () => null }));
 vi.mock('@/modules/comms/hooks/useComms', () => ({ useMailAccounts: () => ({ data: undefined }) }));
+vi.mock('@/modules/settings/api/autoLeadConfigQuery', () => ({ useAutoLeadConfig: () => ({ data: undefined }) }));
 vi.mock('@/modules/competition-monitoring/components/GeneratePostModal', () => ({ GeneratePostModal: () => null }));
 vi.mock('../hooks', () => ({ useDashboard }));
 vi.mock('../components/OperationalScorecard', () => ({ OperationalScorecard: () => <p>statystyki</p> }));

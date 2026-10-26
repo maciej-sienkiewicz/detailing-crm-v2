@@ -12,11 +12,12 @@ import { MailSetupModal } from './MailSetupModal';
 
 afterEach(() => cleanup());
 
-const setup = () => {
+const setup = (step: 'connect' | 'auto-leads' = 'connect') => {
     const onClose = vi.fn();
     const router = createMemoryRouter([
-        { path: '/dashboard', element: <MailSetupModal isOpen onClose={onClose} /> },
+        { path: '/dashboard', element: <MailSetupModal isOpen onClose={onClose} step={step} /> },
         { path: '/communication/mailboxes', element: <p>podłączanie poczty</p> },
+        { path: '/settings', element: <p>ustawienia</p> },
     ], { initialEntries: ['/dashboard'] });
     render(<ThemeProvider theme={theme}><RouterProvider router={router} /></ThemeProvider>);
     return { router, onClose };
@@ -41,5 +42,14 @@ describe('MailSetupModal', () => {
         fireEvent.click(screen.getByRole('button', { name: /Podłącz pocztę/ }));
         expect(onClose).toHaveBeenCalled();
         expect(router.state.location.pathname).toBe('/communication/mailboxes');
+    });
+
+    it('poczta już jest: „Włącz tworzenie zapytań” prowadzi do ustawień zapytań', () => {
+        const { router, onClose } = setup('auto-leads');
+        expect(screen.queryByRole('button', { name: /Podłącz pocztę/ })).not.toBeInTheDocument();
+        fireEvent.click(screen.getByRole('button', { name: /Włącz tworzenie zapytań/ }));
+        expect(onClose).toHaveBeenCalled();
+        expect(router.state.location.pathname).toBe('/settings');
+        expect(router.state.location.search).toBe('?tab=leads');
     });
 });

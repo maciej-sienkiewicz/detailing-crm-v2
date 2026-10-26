@@ -22,6 +22,7 @@ import { ReservationsKpiCard } from '../components/ReservationsKpiCard';
 import { LeadsWaitingKpi } from '../components/LeadsWaitingKpi';
 import { MailSetupKpi } from '../components/mailSetup/MailSetupKpi';
 import { useMailAccounts } from '@/modules/comms/hooks/useComms';
+import { useAutoLeadConfig } from '@/modules/settings/api/autoLeadConfigQuery';
 import { DashboardHintsBar } from '../components/DashboardHintsBar';
 import { GeneratePostModal } from '@/modules/competition-monitoring/components/GeneratePostModal';
 import { useDashboard } from '../hooks';
@@ -337,6 +338,11 @@ export const DashboardView = () => {
     // wskaźnik zachęca do podłączenia zamiast pokazywać licznik zapytań.
     const canLeads = can('LEADS_MANAGE');
     const { data: mailAccounts } = useMailAccounts({ enabled: canLeads && hasPiiAccess });
+    // Skrzynka jest, ale czy maile stają się zapytaniami? Wyłączone - kafel zachęca do
+    // włączenia zamiast pokazywać zero, które nic nie znaczy.
+    const { data: autoLeadConfig } = useAutoLeadConfig({
+      enabled: canLeads && hasPiiAccess && !!mailAccounts?.some(account => account.status !== 'DISABLED'),
+    });
 
   const hello = (
     <HeroText>
@@ -366,8 +372,8 @@ export const DashboardView = () => {
   // który zaraz zamieniłby się w zachętę do podłączenia poczty.
   const mailConnected = mailAccounts?.some(account => account.status !== 'DISABLED');
   const leadsKpi = !canLeads ? null
-    : mailAccounts === undefined ? <div key="leads" />
-    : mailConnected ? <LeadsWaitingKpi key="leads" />
+    : mailAccounts === undefined || (mailConnected && autoLeadConfig === undefined) ? <div key="leads" />
+    : mailConnected ? <LeadsWaitingKpi key="leads" autoLeadsOff={!autoLeadConfig?.enabled} />
     : <MailSetupKpi key="leads" />;
   const kpis = [
     can(['FINANCE_VIEW_REPORTS', 'STATISTICS_VIEW']) && (statsModule.enabled || financeModule.enabled) && <RevenueKpiCard key="revenue" />,

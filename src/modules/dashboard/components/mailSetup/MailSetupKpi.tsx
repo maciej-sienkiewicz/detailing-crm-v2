@@ -1,11 +1,12 @@
 // src/modules/dashboard/components/mailSetup/MailSetupKpi.tsx
 //
-// Trzeci wskaźnik karty powitania, gdy studio nie podłączyło poczty: zamiast licznika
-// zapytań krótka zachęta. „Sprawdź, jak to działa” otwiera okno z animacjami ze strony
-// „Poznaj program”, a w nim jest „Podłącz pocztę”.
+// Trzeci wskaźnik karty powitania, gdy zapytania z poczty jeszcze nie działają: zamiast
+// licznika krótka zachęta. „Sprawdź, jak to działa” otwiera okno z animacjami ze strony
+// „Poznaj program”, a w nim następny krok - „Podłącz pocztę” albo, gdy skrzynka już jest,
+// „Włącz tworzenie zapytań”.
 import { useState } from 'react';
 import styled from 'styled-components';
-import { MailSetupModal } from './MailSetupModal';
+import { MailSetupModal, type MailSetupStep } from './MailSetupModal';
 
 const Wrap = styled.div`
     display: flex;
@@ -37,14 +38,14 @@ const LinkBtn = styled.button`
     &:focus-visible { outline: 2px solid #8ebbd5; outline-offset: 2px; border-radius: 4px; }
 `;
 
-export const MailSetupKpi = () => {
+export const MailSetupKpi = ({ step = 'connect' }: { step?: MailSetupStep }) => {
     const [open, setOpen] = useState(false);
 
     return (
         <Wrap>
             <Headline>Zarządzaj zapytaniami</Headline>
             <LinkBtn type="button" onClick={() => setOpen(true)}>Sprawdź, jak to działa →</LinkBtn>
-            <MailSetupModal isOpen={open} onClose={() => setOpen(false)} />
+            <MailSetupModal isOpen={open} onClose={() => setOpen(false)} step={step} />
         </Wrap>
     );
 };

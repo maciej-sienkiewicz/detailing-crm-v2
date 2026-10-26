@@ -3,11 +3,11 @@
 // Okno „Zarządzaj zapytaniami” z Tablicy, gdy studio nie podłączyło skrzynki: po lewej
 // to, co studio zyskuje, po prawej duża animacja ze strony „Poznaj program” (dział #zapytania),
 // która gra sama i w pętli - bez sterowania odtwarzacza, rozdziałów i plakatów -
-// i jedna akcja: „Podłącz pocztę”.
+// i jedna akcja: „Podłącz pocztę” albo, gdy skrzynka już jest, „Włącz tworzenie zapytań”.
 import { useEffect, useRef, useState } from 'react';
 import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
-import { Mail } from 'lucide-react';
+import { Inbox, Mail } from 'lucide-react';
 import {
     ModalShell, ModalHeader, ModalTitleGroup, ModalTitle, ModalSubtitle, ModalContent, ModalFooter, CloseBtn,
 } from '@/common/components/ModalKit';
@@ -124,12 +124,19 @@ const TourFrame = ({ slug, title }: { slug: string; title: string }) => {
     );
 };
 
+/**
+ * Następny krok studia: `connect` - nie ma skrzynki; `auto-leads` - skrzynka jest, ale
+ * wiadomości nie zamieniają się w zapytania (Ustawienia → Zapytania i poczta).
+ */
+export type MailSetupStep = 'connect' | 'auto-leads';
+
 interface MailSetupModalProps {
     isOpen: boolean;
     onClose: () => void;
+    step?: MailSetupStep;
 }
 
-export const MailSetupModal = ({ isOpen, onClose }: MailSetupModalProps) => {
+export const MailSetupModal = ({ isOpen, onClose, step = 'connect' }: MailSetupModalProps) => {
     const navigate = useNavigate();
     const [slug, setSlug] = useState(INQUIRIES_TOUR[0].slug);
     const current = INQUIRIES_TOUR.find(a => a.slug === slug) ?? INQUIRIES_TOUR[0];
@@ -139,7 +146,11 @@ export const MailSetupModal = ({ isOpen, onClose }: MailSetupModalProps) => {
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle id="mail-setup-title">Zarządzaj zapytaniami</ModalTitle>
-                    <ModalSubtitle>Maile od klientów w jednym miejscu z formularzami i Facebookiem.</ModalSubtitle>
+                    <ModalSubtitle>
+                        {step === 'auto-leads'
+                            ? 'Poczta jest podłączona. Włącz tworzenie zapytań, a maile od klientów same trafią do zapytań.'
+                            : 'Maile od klientów w jednym miejscu z formularzami i Facebookiem.'}
+                    </ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>
@@ -166,9 +177,15 @@ export const MailSetupModal = ({ isOpen, onClose }: MailSetupModalProps) => {
                 </Layout>
             </ModalContent>
             <ModalFooter>
-                <Button variant="primary" size="lg" onClick={() => { onClose(); navigate('/communication/mailboxes'); }}>
-                    <Mail />Podłącz pocztę
-                </Button>
+                {step === 'auto-leads' ? (
+                    <Button variant="primary" size="lg" onClick={() => { onClose(); navigate('/settings?tab=leads'); }}>
+                        <Inbox />Włącz tworzenie zapytań
+                    </Button>
+                ) : (
+                    <Button variant="primary" size="lg" onClick={() => { onClose(); navigate('/communication/mailboxes'); }}>
+                        <Mail />Podłącz pocztę
+                    </Button>
+                )}
             </ModalFooter>
         </ModalShell>
     );

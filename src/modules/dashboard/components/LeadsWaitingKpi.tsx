@@ -12,6 +12,7 @@ import styled from 'styled-components';
 import { useNavigate } from 'react-router-dom';
 import { formatCurrency } from '@/common/utils/formatters';
 import { useLeadOverview, useNewLeadsCount } from '@/modules/comms/hooks/useLeads';
+import { MailSetupKpi } from './mailSetup/MailSetupKpi';
 
 const Wrap = styled.div`
   display: flex;
@@ -70,12 +71,23 @@ const ReplyLink = styled.button`
   &:focus-visible { outline: 2px solid #fca5a5; outline-offset: 2px; border-radius: 4px; }
 `;
 
-export const LeadsWaitingKpi = () => {
+interface LeadsWaitingKpiProps {
+    /**
+     * Skrzynka podłączona, ale „Twórz zapytania z poczty” wyłączone. Przy zerze kafel
+     * zamiast „Wszystko obsłużone” zachęca do włączenia - to zero znaczyło tylko, że maile
+     * w ogóle nie stają się zapytaniami. Gdy coś czeka (formularz, Facebook), zostaje licznik.
+     */
+    autoLeadsOff?: boolean;
+}
+
+export const LeadsWaitingKpi = ({ autoLeadsOff = false }: LeadsWaitingKpiProps) => {
     const navigate = useNavigate();
     const waiting = useNewLeadsCount();
     const { data: overview } = useLeadOverview();
     const wonThisWeek = overview?.confirmedValueThisWeek ?? 0;
     const alert = waiting > 0;
+
+    if (autoLeadsOff && !alert) return <MailSetupKpi step="auto-leads" />;
 
     return (
         <Wrap>
@@ -85,10 +97,11 @@ export const LeadsWaitingKpi = () => {
                 {alert ? (
                     <ReplyLink type="button" onClick={() => navigate('/inbox')}>Odpisz →</ReplyLink>
                 ) : (
-                    <span>
-                        Wszystko obsłużone
-                        {wonThisWeek > 0 && ` · w tym tygodniu z zapytań ${formatCurrency(wonThisWeek / 100, 'PLN')}`}
-                    </span>
+                    <>
+                        <span>Wszystko obsłużone</span>
+                        {/* Osobny element, nie „·” jako klej (CLAUDE.md §4). */}
+                        {wonThisWeek > 0 && <span>W tym tygodniu z zapytań {formatCurrency(wonThisWeek / 100, 'PLN')}</span>}
+                    </>
                 )}
             </Note>
         </Wrap>
