@@ -42,16 +42,44 @@ describe('TutorialTip', () => {
         vi.clearAllMocks();
     });
 
-    it('wysuwa się po chwili i prowadzi do lekcji o tym module', async () => {
+    it('wysuwa się po chwili z lekcją o tym module', async () => {
         vi.useFakeTimers();
         renderAt('/calendar');
-        expect(screen.queryByText('Czy chcesz poznać, jak działa ten moduł?')).toBeNull();
+        expect(screen.queryByRole('region', { name: 'Instruktaż do tego modułu' })).toBeNull();
 
         await waitForTip();
 
-        const link = screen.getByRole('link', { name: /Czy chcesz poznać, jak działa ten moduł\?/ });
-        expect(link.getAttribute('href')).toBe('https://demo.detailboost.pl/poznaj-program#jak-poslugiwac-sie-kalendarzem');
-        expect(link.getAttribute('target')).toBe('_blank');
+        const tip = screen.getByRole('region', { name: 'Instruktaż do tego modułu' });
+        expect(tip.textContent).toContain('Instruktaż · Kalendarz');
+        expect(tip.textContent).toContain('Jak posługiwać się kalendarzem?');
+        expect(tip.textContent).toContain('1:05');
+        expect(tip.textContent).toContain('Animacja, 5 rozdziałów');
+        expect(screen.queryByRole('link')).toBeNull();
+    });
+
+    it('„Obejrzyj” otwiera animację w oknie w programie, nie na stronie', async () => {
+        vi.useFakeTimers();
+        renderAt('/calendar');
+        await waitForTip();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Obejrzyj' }));
+
+        const dialog = screen.getByRole('dialog', { name: 'Jak posługiwać się kalendarzem?' });
+        const frame = dialog.querySelector('iframe');
+        expect(frame?.getAttribute('src')).toBe('/animacje/jak-poslugiwac-sie-kalendarzem/index.html');
+        expect(screen.queryByRole('region', { name: 'Instruktaż do tego modułu' })).toBeNull();
+        expect(apiClient.post).not.toHaveBeenCalled();
+    });
+
+    it('krzyżyk chowa chmurkę bez zapisu na koncie', async () => {
+        vi.useFakeTimers();
+        renderAt('/bays');
+        await waitForTip();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Zamknij' }));
+
+        expect(screen.queryByRole('region', { name: 'Instruktaż do tego modułu' })).toBeNull();
+        expect(apiClient.post).not.toHaveBeenCalled();
     });
 
     it('„Nie pokazuj więcej” zapisuje zamknięcie widoku na koncie i chowa chmurkę', async () => {
