@@ -40,7 +40,7 @@ import { pluralPl } from '@/common/utils/plural';
 import type { BaysSnapshot } from '../types';
 import { buildWeekRows, carStages, cellBox, cellIsFree, freeCellsOn, overlapsInRange, type WeekBar, type WeekRow } from '../utils/weekLayout';
 import {
-    cellIndexAt, clockText, dayMonth, dayShort, durationLabel, formatMinutes, hoursOf, longestDay, rangeText,
+    cellIndexAt, clockText, dayMonth, dayShort, durationLabel, hoursOf, longestDay, rangeText,
     timeAtWeekX, toDateKey, weekX, workMinutes, type Cell,
 } from '../utils/slots';
 import { Avatar, Plate } from './primitives';
@@ -510,9 +510,6 @@ type Drag =
     | { kind: 'move'; carId: string; bookingId: string | null; minutes: number; grabMs: number; rowId: string; startIdx: number; len: number; moved: boolean; startX: number; out?: boolean; barId: string | null; copy?: boolean }
     | { kind: 'resize'; carId: string; bookingId: string | null; rowId: string; edge: 'start' | 'end'; startIdx: number; endIdx: number; minEnd: number; keepStart: Date | null; origEnd: number; origStart: number };
 
-/** Opis podziału dnia pod nazwą stanowiska: ile trwa jedno okienko. */
-const slotHint = (n: number, day: number) => (n === 1 ? 'cały dzień' : n === 2 ? 'pół dnia' : `co ${formatMinutes(Math.round(day / n))}`);
-
 export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMove, onUnplan, onOpenBar }: Props) {
     const { rows } = useMemo(() => buildWeekRows(snap, days, now), [snap, days, now]);
     /** Etapy aut, które mają ich więcej niż jeden: id paska → „numer z liczby". */
@@ -975,7 +972,6 @@ export function WeekPlanner({ snap, now, days, canEdit, onRange, onTapCell, onMo
                         <Row key={row.rowId}>
                             <RowLabel>
                                 <strong>{row.bay.name}</strong>
-                                <span>{slotHint(row.bay.slotsPerDay, day)}{row.bay.capacity > 1 ? `, ${row.bay.capacity} naraz` : ''}</span>
                             </RowLabel>
                             <Track
                                 data-bay-row={row.rowId}

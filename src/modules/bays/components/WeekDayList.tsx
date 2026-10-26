@@ -156,7 +156,6 @@ export function WeekDayList({ snap, now, days, day, onDay, canEdit, onPlan, onOp
                 <BayBlock key={row.rowId} aria-label={row.bay.name}>
                     <BayHead>
                         <h3>{row.bay.name}</h3>
-                        {row.bay.capacity > 1 && <span>{row.bay.capacity} auta naraz</span>}
                     </BayHead>
                     {row.cells.filter(c => c.date === current).map(c => {
                         const here = row.bars.filter(b => b.start < c.end && b.end > c.start);
