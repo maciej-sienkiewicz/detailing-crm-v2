@@ -421,6 +421,15 @@ export interface BulkDeleteResult {
     skipped: { leadId: string; reason: string }[];
 }
 
+/** Szkic przypomnienia napisany rano przez serwer (GET /leads/{id}/reminder-draft). */
+export interface PreparedReminderDraft {
+    bodyText: string;
+    useSentStyle: boolean;
+    /** Szkic pisany pod stopkę doklejaną przy wysyłce - bez niej kończyłby się bez podpisu. */
+    signatureAppended: boolean;
+    preparedAt: string;
+}
+
 export interface BulkStatusResult {
     /** Ile spraw wskazał użytkownik, po odsianiu duplikatów. */
     requested: number;

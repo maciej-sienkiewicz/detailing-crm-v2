@@ -18,6 +18,7 @@ import type {
     LeadTimelineEntry,
     LeadCallback,
     LeadOverview,
+    PreparedReminderDraft,
     MarkThreadAsLeadRequest,
     SuggestionRefreshResult,
 } from '../types';
@@ -158,6 +159,15 @@ export const leadsApi = {
     },
 
     /** „Przypomnij" z tablicy spraw: zatwierdzona treść, wysłana w rozmowie klienta z jego skrzynki studia. */
+    /**
+     * Szkic przypomnienia przygotowany rano przez serwer; null, gdy go nie ma albo rozmowa
+     * poszła dalej od chwili jego napisania (204).
+     */
+    getReminderDraft: async (leadId: string): Promise<PreparedReminderDraft | null> => {
+        const response = await apiClient.get(`/v1/leads/${leadId}/reminder-draft`, { skipErrorToast: true });
+        return response.status === 204 ? null : (response.data as PreparedReminderDraft);
+    },
+
     sendReminder: async (leadId: string, request: { bodyHtml: string; appendSignature: boolean }): Promise<Lead> => {
         const { data } = await apiClient.post(`/v1/leads/${leadId}/reminders`, request, { skipErrorToast: true });
         return data;

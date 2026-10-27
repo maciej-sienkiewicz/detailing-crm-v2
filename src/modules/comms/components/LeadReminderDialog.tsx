@@ -4,8 +4,9 @@
 // Trzy kroki w jednym oknie:
 //   1. komu - sprawy z kolumny, zaznaczone wszystkie, które da się przypomnieć mailem
 //      (z jednej sprawy ten krok odpada),
-//   2. co - asystent AI pisze osobne przypomnienie dla każdej sprawy na podstawie jej
-//      rozmowy; każde można poprawić albo odznaczyć,
+//   2. co - osobne przypomnienie dla każdej sprawy na podstawie jej rozmowy; każde można
+//      poprawić albo odznaczyć. Szkic napisany rano przez serwer (LeadReminderDraftJob)
+//      wskakuje od razu; gdy go nie ma albo rozmowa poszła dalej, asystent pisze teraz,
 //   3. wysyłka - po kolei, każda w rozmowie klienta, z Twojej skrzynki i z Twoją stopką.
 //
 // Nic nie wychodzi bez kliknięcia „Wyślij": szkic AI czyta i zatwierdza człowiek. Szkic ze
@@ -18,6 +19,7 @@ import { ModalContent, ModalFooter, ModalHeader, ModalShell, ModalSubtitle, Moda
 import { Button } from '@/common/components/ui';
 import { pluralPl } from '@/common/utils/plural';
 import { commsApi } from '../api/commsApi';
+import { leadsApi } from '../api/leadsApi';
 import { useMailSignature } from '../hooks/useComms';
 import { useSendLeadReminder, useStagnationThresholds } from '../hooks/useLeads';
 import { useReplyDraftPreferences } from '../hooks/useReplyDraft';
@@ -46,7 +48,7 @@ const PLACEHOLDER = /\[[^\]\n]{1,80}\]/g;
 
 type Row =
     | { phase: 'drafting' }
-    | { phase: 'ready'; text: string }
+    | { phase: 'ready'; text: string; prepared?: boolean }
     | { phase: 'draftError'; message: string }
     | { phase: 'sending'; text: string }
     | { phase: 'sent' }
@@ -211,12 +213,21 @@ export function LeadReminderDialog({ leads, onClose, zIndex }: LeadReminderDialo
         if (alive.current) setRows((prev) => ({ ...prev, [id]: row }));
     };
 
-    const draftOne = async (lead: Lead) => {
+    const draftOne = async (lead: Lead, fresh = false) => {
         if (!aiDrafts) {
             setRow(lead.id, { phase: 'ready', text: '' });
             return;
         }
         setRow(lead.id, { phase: 'drafting' });
+        if (!fresh) {
+            // Szkic poranny, o ile pisany pod tę samą stopkę: bez stopki szkic kończy się
+            // podpisem, ze stopką - nie, więc przy innym wyborze byłby podpisany dwa razy albo wcale.
+            const prepared = await leadsApi.getReminderDraft(lead.id).catch(() => null);
+            if (prepared && prepared.signatureAppended === appendSignature && prepared.bodyText.trim()) {
+                setRow(lead.id, { phase: 'ready', text: prepared.bodyText, prepared: true });
+                return;
+            }
+        }
         try {
             const draft = await commsApi.draftReply(lead.threadId!, {
                 useSentStyle: preferences?.useSentStyle ?? false,
@@ -401,6 +412,14 @@ export function LeadReminderDialog({ leads, onClose, zIndex }: LeadReminderDialo
                                         aria-label={`Treść przypomnienia: ${caseTitle(lead)}`}
                                         onChange={(event) => setRow(lead.id, { ...row, text: event.target.value } as Row)}
                                     />
+                                )}
+                                {row?.phase === 'ready' && row.prepared && step !== 'done' && (
+                                    <Note>
+                                        Szkic przygotowany rano.
+                                        <button type="button" disabled={sending} onClick={() => void draftOne(lead, true)}>
+                                            <RefreshCw size={12} /> Napisz od nowa
+                                        </button>
+                                    </Note>
                                 )}
                                 {missing.length > 0 && row?.phase === 'ready' && (
                                     <Note $tone="warn">

@@ -3,8 +3,8 @@
 //
 // Cztery kolumny: Czeka na nas, Czeka na klienta, Do przypomnienia, Ucichło.
 // Która sprawa gdzie stoi i co znaczy przeciągnięcie - utils/leadBoard.ts. Tu jest
-// wyłącznie widok: kolumny, karty, miejsce robione karcie w ręce i „Przypomnij"
-// w kolumnie, która o to prosi.
+// wyłącznie widok: kolumny, karty, miejsce robione karcie w ręce, „Przypomnij"
+// w kolumnie, która o to prosi, i „Zamknij bez odzewu" w „Ucichło".
 //
 // Podgląd w trakcie przeciągania liczy CAŁĄ tablicę z kartą przesuniętą „na próbę" -
 // tą samą funkcją, którą potem zapisujemy przesunięcie. Miejsce dla karty otwiera się
@@ -12,12 +12,13 @@
 import { useCallback, useEffect, useMemo, useRef, useState, type KeyboardEvent, type MouseEvent } from 'react';
 import { createPortal } from 'react-dom';
 import styled, { css, keyframes } from 'styled-components';
-import { ArrowRight, BellRing } from 'lucide-react';
+import { Archive, ArrowRight, BellRing } from 'lucide-react';
 import { matchesSearch } from '@/common/utils/textSearch';
 import { pluralPl } from '@/common/utils/plural';
 import { useToast } from '@/common/components/Toast';
+import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { ActionMenu, MenuItem, useActionMenu } from '@/common/components/ui';
-import { useMoveLeadOnBoard, useStagnationThresholds } from '../../hooks/useLeads';
+import { useBulkChangeLeadStatus, useMoveLeadOnBoard, useStagnationThresholds } from '../../hooks/useLeads';
 import { LeadReminderDialog } from '../../components/LeadReminderDialog';
 import type { Lead } from '../../types';
 import {
@@ -147,6 +148,9 @@ const Empty = styled.p`
  * na tablicy nic nie jest wypełnione, a wypełnienie dostaje dopiero „Wyślij" w oknie
  * przypomnień - tam, gdzie zapada decyzja (CLAUDE.md §2).
  */
+/** Sufit zbiorczej zmiany statusu po stronie serwera (`POST /leads/bulk-status`). */
+const MAX_BULK_CLOSE = 100;
+
 const RemindButton = styled.button<{ $tint: string; $ink: string; $line: string }>`
     display: inline-flex;
     align-items: center;
@@ -287,6 +291,10 @@ export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, o
 
     /** Sprawy w oknie „Przypomnij się"; null - okno zamknięte. */
     const [reminding, setReminding] = useState<Lead[] | null>(null);
+    // „Zamknij bez odzewu": propozycja, nie automat - zamkniętej sprawy nic nie otwiera,
+    // gdy klient odpisze (V208), więc decyzję podejmuje człowiek, jednym kliknięciem.
+    const [closing, setClosing] = useState<Lead[] | null>(null);
+    const bulkStatus = useBulkChangeLeadStatus();
     const [announcement, setAnnouncement] = useState('');
 
     const base = useMemo(() => {
@@ -467,6 +475,19 @@ export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, o
                                     Przypomnij ({column.cards.filter((card) => canRemindByMail(card.lead)).length})
                                 </RemindButton>
                             )}
+                            {column.key === 'LAPSED' && column.cards.length > 0 && (
+                                <RemindButton
+                                    type="button"
+                                    $tint="#ffffff"
+                                    $ink={column.tone.ink}
+                                    $line={`${column.tone.dot}66`}
+                                    disabled={Boolean(session) || bulkStatus.isPending}
+                                    onClick={() => setClosing(column.cards.slice(0, MAX_BULK_CLOSE).map((card) => card.lead))}
+                                >
+                                    <Archive aria-hidden="true" />
+                                    Zamknij bez odzewu ({Math.min(column.cards.length, MAX_BULK_CLOSE)})
+                                </RemindButton>
+                            )}
                             <LaneBody data-board-scroll={column.key}>
                                 {loading && total === 0 ? (
                                     <>
@@ -544,6 +565,22 @@ export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, o
             </ActionMenu>
 
             {reminding && <LeadReminderDialog leads={reminding} onClose={() => setReminding(null)} />}
+            <ConfirmationModal
+                isOpen={closing !== null}
+                title={closing?.length === 1
+                    ? 'Zamknąć lead bez odzewu?'
+                    : `Zamknąć ${closing?.length ?? 0} ${pluralPl(closing?.length ?? 0, 'lead', 'leady', 'leadów')} bez odzewu?`}
+                message={`Trafią do zamkniętych z powodem „Klient przestał odpowiadać". Jeśli klient później odpisze, lead nie otworzy się sam - zmienisz mu status ręcznie.`}
+                confirmText="Zamknij"
+                onConfirm={() => {
+                    const ids = (closing ?? []).map((lead) => lead.id);
+                    bulkStatus.mutate(
+                        { ids, status: 'LOST', lostReasonCode: 'NO_RESPONSE' },
+                        { onSettled: () => setClosing(null) }
+                    );
+                }}
+                onCancel={() => setClosing(null)}
+            />
         </>
     );
 }

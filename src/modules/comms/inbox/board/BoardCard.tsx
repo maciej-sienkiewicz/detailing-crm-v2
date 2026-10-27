@@ -11,7 +11,7 @@
 // wypełnia - na tablicy nie ma kroku następnego, jest nim otwarcie sprawy (CLAUDE.md §2).
 import { forwardRef, type HTMLAttributes } from 'react';
 import styled, { css } from 'styled-components';
-import { BellRing, Clock, FileText, Hand, Hourglass, Instagram, Mail, PenLine, Phone } from 'lucide-react';
+import { BellRing, Clock, FileText, Hand, Instagram, Mail, PenLine, Phone } from 'lucide-react';
 import type { LeadSource } from '../../types';
 import type { BoardCard as BoardCardModel } from '../../utils/leadBoard';
 import { caseSentence, caseTitle, formatAmount, quoteTotal, rowAge } from '../caseModel';
@@ -178,14 +178,6 @@ function sentence(card: BoardCardModel): { text: string; hot: boolean } {
     return caseSentence(card.lead, card.urgency);
 }
 
-/** Kiedy karta zejdzie z tablicy - „znika za 3 dni" nie mówiło, dokąd i czy sprawa przepada. */
-function vanishes(ms: number): string {
-    const days = Math.ceil(ms / 86_400_000);
-    if (days <= 0) return 'zejdzie z tablicy dziś';
-    if (days === 1) return 'zejdzie z tablicy jutro';
-    return `zejdzie z tablicy za ${days} dni`;
-}
-
 interface BoardCardProps extends HTMLAttributes<HTMLDivElement> {
     card: BoardCardModel;
 }
@@ -223,12 +215,6 @@ export const BoardCardView = forwardRef<HTMLDivElement, BoardCardProps>(function
                     <span className={late ? 'late' : undefined} title={card.silence ? `Klient milczy od ${rowAge(ageMs)}` : urgency.title}>
                         <Clock aria-hidden="true" />
                         {rowAge(ageMs)}
-                    </span>
-                )}
-                {card.vanishesInMs !== null && (
-                    <span title="Karta zejdzie z tablicy, a lead zostaje otwarty na liście w „Ucichło”. Gdy klient odpisze, wróci do „Czeka na nas”.">
-                        <Hourglass aria-hidden="true" />
-                        {vanishes(card.vanishesInMs)}
                     </span>
                 )}
                 {card.manual && (

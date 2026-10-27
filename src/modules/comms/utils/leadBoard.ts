@@ -51,10 +51,13 @@ const DAY_MS = 86_400_000;
 
 /** Po ilu dniach ciszy klienta trzeba się przypomnieć. */
 export const REMIND_AFTER_DAYS = 3;
-/** Po ilu dniach ciszy (od odpowiedzi albo od przypomnienia) sprawa jest utracona. */
+/**
+ * Po ilu dniach ciszy (od odpowiedzi albo od przypomnienia) sprawa ucichła. Karta zostaje
+ * w „Ucichło", dopóki ktoś jej nie zamknie (decyzja biznesu 2026-10-27, V227): dawniej
+ * znikała po kolejnych 10 dniach jako otwarta i wisiała w statystykach „w toku" bez końca.
+ * Te same progi liczy serwer (`LeadFollowUpService`) do porannego podsumowania.
+ */
 export const LAPSE_AFTER_DAYS = 10;
-/** Ile dni karta stoi w „Utracie", zanim zniknie z tablicy. */
-export const VANISH_AFTER_DAYS = 10;
 
 /**
  * Przypomnienie stempluje serwer PO wysłaniu maila, więc stempel bywa o chwilę późniejszy
@@ -101,7 +104,7 @@ export const BOARD_COLUMNS: BoardColumnMeta[] = [
     {
         key: 'LAPSED',
         title: 'Ucichło',
-        empty: `Tu trafiają leady po ${LAPSE_AFTER_DAYS} dniach ciszy. Po kolejnych ${VANISH_AFTER_DAYS} schodzą z tablicy, a na liście zostają w „Ucichło".`,
+        empty: `Tu trafiają leady po ${LAPSE_AFTER_DAYS} dniach ciszy klienta. Zostają, dopóki ich nie zamkniesz.`,
         // Szarość, nie czerwień: sprawa ucichła, ale nie przepadła - jej status się nie zmienia.
         tone: { dot: '#94a3b8', tint: '#f1f5f9', ink: '#475569' },
         showsValue: true,
@@ -169,7 +172,6 @@ export function factColumnOf(lead: Lead, urgency: LeadUrgency, now: number): Boa
     const silence = silenceOf(lead, urgency, now);
     if (!silence) return null;
     const days = silence.ms / DAY_MS;
-    if (days >= LAPSE_AFTER_DAYS + VANISH_AFTER_DAYS) return null;
     if (days >= LAPSE_AFTER_DAYS) return 'LAPSED';
     if (!silence.reminded && days >= REMIND_AFTER_DAYS) return 'NEEDS_REMINDER';
     return 'REPLIED';
@@ -178,9 +180,7 @@ export function factColumnOf(lead: Lead, urgency: LeadUrgency, now: number): Boa
 export function boardColumnOf(lead: Lead, urgency: LeadUrgency, now: number = Date.now()): BoardColumnKey | null {
     // Zamknięta sprawa schodzi z tablicy, cokolwiek zapisano wcześniej.
     if (CLOSED_STATUSES.has(lead.status)) return null;
-    const manual = manualStageInForce(lead);
-    if (manual === 'LAPSED' && now - time(lead.boardStageAt) >= VANISH_AFTER_DAYS * DAY_MS) return null;
-    return manual ?? factColumnOf(lead, urgency, now);
+    return manualStageInForce(lead) ?? factColumnOf(lead, urgency, now);
 }
 
 export interface BoardCard {
@@ -191,8 +191,6 @@ export interface BoardCard {
     manual: boolean;
     /** Cisza klienta; null, gdy ruch jest nasz. */
     silence: Silence | null;
-    /** „Ucichło": za ile karta zejdzie z tablicy. */
-    vanishesInMs: number | null;
 }
 
 export interface BoardColumn extends BoardColumnMeta {
@@ -231,18 +229,7 @@ export function buildBoard(
         if (!column) continue;
         const silence = silenceOf(lead, urgency, now);
         const manual = manualStageInForce(lead) === column && factColumnOf(lead, urgency, now) !== column;
-        const lapsedAt = column !== 'LAPSED' ? null
-            : manual ? time(lead.boardStageAt)
-            : silence ? silence.since + LAPSE_AFTER_DAYS * DAY_MS
-            : null;
-        buckets.get(column)!.push({
-            lead,
-            urgency,
-            column,
-            manual,
-            silence,
-            vanishesInMs: lapsedAt === null ? null : Math.max(0, lapsedAt + VANISH_AFTER_DAYS * DAY_MS - now),
-        });
+        buckets.get(column)!.push({ lead, urgency, column, manual, silence });
     }
 
     return BOARD_COLUMNS.map((meta) => {

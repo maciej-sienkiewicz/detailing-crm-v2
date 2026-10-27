@@ -119,13 +119,11 @@ describe('przepływ sprawy przez tablicę', () => {
         expect(columnOf(replied(19.9))).toBe('LAPSED');
     });
 
-    it('po 10 kolejnych dniach karta znika z tablicy', () => {
-        expect(columnOf(replied(20))).toBeNull();
-        expect(columnOf(reminded(30, 20.01))).toBeNull();
-    });
-
-    it('Utrata mówi, za ile karta zniknie', () => {
-        expect(cardOf(replied(14)).vanishesInMs).toBe(6 * DAY);
+    it('ucichła sprawa zostaje w Ucichło, dopóki ktoś jej nie zamknie', () => {
+        // Dawniej znikała po kolejnych 10 dniach jako otwarta i wisiała w statystykach
+        // „w toku" bez końca - teraz kolumna proponuje „Zamknij bez odzewu".
+        expect(columnOf(replied(20))).toBe('LAPSED');
+        expect(columnOf(reminded(45, 30))).toBe('LAPSED');
     });
 
     it('klient odpisał po przypomnieniu - Oczekuje, a przypomnienie przestaje liczyć się jako ostatnie słowo', () => {
@@ -174,9 +172,10 @@ describe('ręczne położenie', () => {
         expect(cardOf(after).silence?.reminded).toBe(true);
     });
 
-    it('ręcznie odłożona Utrata znika po 10 dniach od przesunięcia', () => {
+    it('ręcznie odłożona do Ucichło zostaje tam, dopóki ktoś jej nie zamknie', () => {
+        // Dawniej znikała po 10 dniach od przesunięcia jako otwarta (decyzja z 2026-10-27, V227).
         const item = replied(11, { boardStage: 'LAPSED', boardStageAt: ago(10 * DAY) });
-        expect(columnOf(item, NOW)).toBeNull();
+        expect(columnOf(item, NOW)).toBe('LAPSED');
     });
 });
 
