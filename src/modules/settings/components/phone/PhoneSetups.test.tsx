@@ -3,9 +3,10 @@
 // Skrót głosowy (dawniej strona „Skróty mobilne"): link niesie token działający bez
 // sesji, więc token jest we fragmencie adresu (#token=), nie w query stringu - fragment
 // nie trafia do serwera ani do logów proxy. „Unieważnij link" wydaje nowy token dopiero
-// po potwierdzeniu. Na telefonie nie ma kodu QR - własnego ekranu nie da się zeskanować.
+// po potwierdzeniu. Na telefonie nie ma kodu QR - telefon od razu przechodzi na skrót.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
+import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
@@ -53,12 +54,25 @@ describe('VoiceShortcutSetup', () => {
         expect(rotate).toHaveBeenCalledTimes(1);
     });
 
-    it('na telefonie zamiast kodu QR otwiera skrót wprost', () => {
+    // Zgłoszenie z 27.10: strona ustawień dodana do ekranu głównego otwierała się na
+    // logowaniu. Na telefonie od razu przechodzimy na sam skrót - to on działa bez sesji.
+    it('na telefonie przechodzi od razu na skrót z tokenem we fragmencie', () => {
         state.phone = true;
-        renderIn(<VoiceShortcutSetup />);
+        const Shortcut = () => {
+            const { hash } = useLocation();
+            return <output data-testid="shortcut">{hash}</output>;
+        };
+        renderIn(
+            <MemoryRouter initialEntries={['/settings?tab=phone&view=voice']}>
+                <Routes>
+                    <Route path="/settings" element={<VoiceShortcutSetup />} />
+                    <Route path="/m/voice" element={<Shortcut />} />
+                </Routes>
+            </MemoryRouter>,
+        );
 
         expect(screen.queryByTestId('qr')).toBeNull();
-        expect(screen.getByRole('link', { name: 'Otwórz skrót' }).getAttribute('href')).toBe('/m/voice#token=tok-1');
+        expect(screen.getByTestId('shortcut').textContent).toBe('#token=tok-1');
     });
 
     it('bez tokenu mówi, że skrótów nie ma, i nie daje ich unieważnić', () => {

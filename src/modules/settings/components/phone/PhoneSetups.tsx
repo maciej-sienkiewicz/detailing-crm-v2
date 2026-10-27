@@ -10,9 +10,10 @@
 
 import { useState, type ReactNode } from 'react';
 import styled from 'styled-components';
+import { Navigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
-import { ButtonLink, Button, Notice, Panel, SectionTitle, Segmented, ui } from '@/common/components/ui';
+import { Button, Notice, Panel, SectionTitle, Segmented, ui } from '@/common/components/ui';
 import { isNativeApp } from '@/core/native/platform';
 import { usePermissions } from '@/core/permissions';
 import { useCapability } from '@/modules/subscription';
@@ -128,29 +129,26 @@ export function VoiceShortcutSetup() {
     const hash = `#token=${encodeURIComponent(token)}`;
     const url = `${window.location.origin}/m/voice${hash}`;
 
+    // Na telefonie ta strona przekierowuje od razu na sam skrót (jak dawne „Skróty
+    // mobilne"). Dodana do ekranu głównego wprost z ustawień ikona startowała z manifestu
+    // CRM - na Tablicy, a w aplikacji z ekranu głównego iPhone'a nie ma sesji z Safari,
+    // więc kończyło się logowaniem (zgłoszenie z 27.10). Działa bez logowania wyłącznie
+    // `/m/voice` z tokenem i własnym manifestem, więc to ją telefon ma dodać - a dawny
+    // przycisk „Otwórz skrót" łatwo było przeoczyć i dodać stronę ustawień.
+    if (isMobileDevice()) {
+        return <Navigate to={{ pathname: '/m/voice', hash }} replace />;
+    }
+
     return (
         <Stack>
-            {isMobileDevice() ? (
-                // Własnego ekranu nie da się zeskanować - na telefonie skrót otwiera się wprost.
-                <>
-                    <Lead>
-                        Otwórz skrót i dodaj go do ekranu głównego. Działa bez logowania, więc lead
-                        nagrasz jednym dotknięciem.
-                    </Lead>
-                    <div>
-                        <ButtonLink href={`/m/voice${hash}`} $variant="primary" $size="lg">Otwórz skrót</ButtonLink>
-                    </div>
-                </>
-            ) : (
-                <QrLayout>
-                    <QrBox><QRCodeSVG value={url} size={136} fgColor={ui.ink} bgColor="#ffffff" level="M" /></QrBox>
-                    <Steps>
-                        <li>Zeskanuj kod aparatem telefonu.</li>
-                        <li>Dodaj otwartą stronę do ekranu głównego. W Safari: Udostępnij, Do ekranu początkowego. W Chrome: menu ⋮, Dodaj do ekranu głównego. Ikona „Lead głosem” otwiera się bez logowania.</li>
-                        <li>Dotknij „Nowy lead” albo „Notatka” i mów.</li>
-                    </Steps>
-                </QrLayout>
-            )}
+            <QrLayout>
+                <QrBox><QRCodeSVG value={url} size={136} fgColor={ui.ink} bgColor="#ffffff" level="M" /></QrBox>
+                <Steps>
+                    <li>Zeskanuj kod aparatem telefonu.</li>
+                    <li>Dodaj otwartą stronę do ekranu głównego. W Safari: Udostępnij, Do ekranu początkowego. W Chrome: menu ⋮, Dodaj do ekranu głównego. Ikona „Lead głosem” otwiera się bez logowania.</li>
+                    <li>Dotknij „Nowy lead” albo „Notatka” i mów.</li>
+                </Steps>
+            </QrLayout>
 
             <RotateRow>
                 <Button variant="ghost" size="sm" onClick={() => setConfirmRotate(true)} disabled={rotate.isPending}>
