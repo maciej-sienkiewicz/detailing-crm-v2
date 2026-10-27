@@ -1,7 +1,8 @@
 // src/modules/bays/components/VisitBayStrip.tsx
 //
-// Wiersz „Na hali" w widoku wizyty - JEDEN zwinięty pasek, nie kolejna sekcja:
-// widok wizyty jest już gęsty. Stoi w miejscu paska Door to Door i mówi tym samym
+// Wiersz „Na hali" w widoku wizyty - JEDEN pasek, nie kolejna sekcja: widok wizyty
+// jest już gęsty. Mówi, gdzie auto stoi teraz i co ma w planie; przebiegu (ile stanowisk
+// auto odwiedziło i ile czasu spędziło) tu nie ma - na życzenie studia. Stoi w miejscu paska Door to Door i mówi tym samym
 // językiem (płaski pasek, każdy fakt osobno, CLAUDE.md §4).
 //
 // Dane bierze z modułu stanowisk, nie z odpowiedzi wizyty - wizyta nie dostaje
@@ -9,7 +10,7 @@
 
 import { useState } from 'react';
 import styled from 'styled-components';
-import { Check, ChevronDown, Warehouse } from 'lucide-react';
+import { Check, Warehouse } from 'lucide-react';
 import { Button, ui } from '@/common/components/ui';
 import { formatClockTime } from '@/common/dateTime';
 import { useToast } from '@/common/components/Toast';
@@ -17,7 +18,7 @@ import { useBaysMutation, useBaysNow, useBaysSnapshot } from '../hooks/useBays';
 import { useBaysEnabled, useStudioHours } from '../featureFlag';
 import { baysApi, isConflict } from '../api/baysApi';
 import { viewOf } from '../utils/boardState';
-import { dayMonth, dayShort, formatMinutes, rangeText, toDateKey } from '../utils/slots';
+import { rangeText } from '../utils/slots';
 import { BayPickerDialog, FinishDialog, PauseDialog } from './dialogs';
 
 const Strip = styled.div`
@@ -50,43 +51,6 @@ const Actions = styled.div`
     @media (max-width: 640px) { margin-left: 0; width: 100%; > button { flex: 1 1 auto; } }
 `;
 
-const Toggle = styled.button`
-    display: inline-flex;
-    align-items: center;
-    gap: 6px;
-    padding: 0;
-    border: none;
-    background: none;
-    font-family: inherit;
-    font-size: 13px;
-    font-weight: 600;
-    color: ${ui.brandInk};
-    cursor: pointer;
-
-    svg { width: 14px; height: 14px; transition: transform 150ms ease; }
-    &[aria-expanded='true'] svg { transform: rotate(180deg); }
-    &:focus-visible { outline: 2px solid ${ui.focusRing}; outline-offset: 2px; border-radius: 4px; }
-`;
-
-const Stints = styled.ol`
-    margin: 0;
-    padding: 4px 14px 12px 40px;
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    font-size: 13px;
-    color: ${ui.textSecondary};
-
-    li strong { color: ${ui.ink}; font-weight: 600; }
-`;
-
-const REASON: Record<string, string> = {
-    DONE: 'skończone',
-    WAITING_PART: 'zjechało, czeka na część',
-    WAITING_CUSTOMER: 'zjechało, czeka na klienta',
-    MOVED: 'przeniesione',
-};
-
 interface Props {
     visitId: string;
     /** Wizyta zamknięta (wydana, odrzucona) - pasek tylko pokazuje historię. */
@@ -100,8 +64,8 @@ export function VisitBayStrip(props: Props) {
     const { data: snap } = useBaysSnapshot(undefined, enabled);
     const now = useBaysNow();
     const { showError } = useToast();
-    const [open, setOpen] = useState(false);
-    const [dialog, setDialog] = useState<'pick' | 'finish' | 'pause' | null>(null);
+    // „move": zmiana stanowiska po „Zakończ" - to samo okno wyboru, inny tytuł.
+    const [dialog, setDialog] = useState<'pick' | 'move' | 'finish' | 'pause' | null>(null);
     const start = useBaysMutation(baysApi.startStint);
     const end = useBaysMutation(baysApi.endStint);
     // Wizyty nie ma w odczycie hali, dopóki przyjęcie nie jest skończone (szkic) - wtedy
@@ -132,12 +96,6 @@ export function VisitBayStrip(props: Props) {
                 <Warehouse aria-hidden="true" />
                 {state}
                 <span>{plan}</span>
-                {v.stints.length > 0 && (
-                    <Toggle type="button" aria-expanded={open} onClick={() => setOpen(o => !o)}>
-                        Przebieg: {v.stints.length} {v.stints.length === 1 ? 'odcinek' : v.stints.length < 5 ? 'odcinki' : 'odcinków'}, {formatMinutes(v.totalMinutes)}
-                        <ChevronDown aria-hidden="true" />
-                    </Toggle>
-                )}
                 {props.canEdit && !props.done && (
                     <Actions>
                         {v.place.kind === 'bay' ? (
@@ -146,25 +104,14 @@ export function VisitBayStrip(props: Props) {
                                 <Button variant="outline" size="sm" onClick={() => setDialog('pause')}>Wstrzymaj</Button>
                             </>
                         ) : v.place.kind === 'yard' ? (
-                            <Button variant="tinted" size="sm" onClick={() => setDialog('pick')}>Wjedź na stanowisko</Button>
+                            <Button variant="tinted" size="sm" onClick={() => setDialog('pick')}>Przypisz stanowisko</Button>
                         ) : null}
                     </Actions>
                 )}
             </Line>
-            {open && (
-                <Stints>
-                    {v.stints.map(s => (
-                        <li key={s.id}>
-                            <strong>{bayName(s.bayId)}</strong>, {dayShort(toDateKey(new Date(s.startedAt)))} {dayMonth(toDateKey(new Date(s.startedAt)))} {formatClockTime(s.startedAt)}
-                            {s.endedAt ? `–${formatClockTime(s.endedAt)}` : ', trwa'}
-                            {s.endReason ? `, ${REASON[s.endReason]}` : ''}
-                        </li>
-                    ))}
-                </Stints>
-            )}
-
-            {dialog === 'pick' && (
+            {(dialog === 'pick' || dialog === 'move') && (
                 <BayPickerDialog
+                    title={dialog === 'move' ? 'Zmiana stanowiska' : 'Przypisz stanowisko'}
                     view={v}
                     snap={snap}
                     suggestedBayId={v.nextBooking?.bayId}
@@ -175,14 +122,14 @@ export function VisitBayStrip(props: Props) {
                             setDialog(null);
                         } catch (e) {
                             // Zajęte w międzyczasie: okno zostaje, odczyt hali już się odświeża.
-                            showError(isConflict(e) ? 'Stanowisko jest już zajęte' : 'Nie udało się zapisać wjazdu', isConflict(e) ? 'Wybierz, co z autem, które tam stoi, albo inne stanowisko.' : 'Spróbuj ponownie.');
+                            showError(isConflict(e) ? 'Stanowisko jest już zajęte' : 'Nie udało się przypisać stanowiska', isConflict(e) ? 'Wybierz, co z autem, które tam stoi, albo inne stanowisko.' : 'Spróbuj ponownie.');
                         }
                     }}
                 />
             )}
             {dialog === 'finish' && (
                 <FinishDialog view={v} onClose={() => setDialog(null)} onConfirm={async choice => {
-                    if (choice === 'move') { setDialog('pick'); return; }
+                    if (choice === 'move') { setDialog('move'); return; }
                     // Status wizyty zmienia kierownik przyciskiem w nagłówku - tu tylko zamykamy pracę.
                     await end.mutateAsync([props.visitId, choice === 'ready' ? 'FINISHED' : 'DONE']);
                     setDialog(null);

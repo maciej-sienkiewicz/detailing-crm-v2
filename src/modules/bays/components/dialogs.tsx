@@ -135,7 +135,7 @@ export function PeoplePicker({ people, value, onChange }: { people: BayPerson[];
     );
 }
 
-/** Kto stoi na stanowisku - zdaniem, z godziną wjazdu. */
+/** Kto stoi na stanowisku - zdaniem, z godziną przypisania. */
 const occupantSentence = (snap: BaysSnapshot, bay: Bay, occupants: BayStint[]): string => {
     const parts = occupants.map(o => {
         const car = snap.cars.find(c => c.id === o.carId);
@@ -190,10 +190,10 @@ interface PickerProps {
 }
 
 /**
- * Wjazd na stanowisko: GDZIE (plan zaznaczony od razu), a jeśli miejsce jest zajęte -
+ * Przypisanie stanowiska: GDZIE (plan zaznaczony od razu), a jeśli miejsce jest zajęte -
  * CO Z TYM, KTÓRE TAM STOI. „Kto pracuje" tylko w firmach, które to zapisują.
  */
-export function BayPickerDialog({ view, snap, suggestedBayId, initialBayId, title = 'Wjazd na stanowisko', onClose, onConfirm, busy }: PickerProps) {
+export function BayPickerDialog({ view, snap, suggestedBayId, initialBayId, title = 'Przypisz stanowisko', onClose, onConfirm, busy }: PickerProps) {
     const bays = snap.bays.filter(b => b.active);
     const occupantsOf = (bayId: string) => snap.stints.filter(s => s.bayId === bayId && s.endedAt === null && s.carId !== view.car.id);
     const firstFree = bays.find(b => occupantsOf(b.id).length < b.capacity);
@@ -235,7 +235,7 @@ export function BayPickerDialog({ view, snap, suggestedBayId, initialBayId, titl
                         disabled={!canConfirm || busy}
                         onClick={() => onConfirm(bayId, personIds, full ? { carId: occupants[0].carId, how: evictHow } : null)}
                     >
-                        Zapisz wjazd
+                        Zapisz stanowisko
                     </Button>
                 </>
             )}
@@ -267,7 +267,7 @@ export function BayPickerDialog({ view, snap, suggestedBayId, initialBayId, titl
                             block
                             value={evictHow}
                             onChange={setEvictHow}
-                            options={[{ value: 'yard', label: 'Zjeżdża, czeka na przypisanie' }, { value: 'done', label: 'Skończone' }]}
+                            options={[{ value: 'yard', label: 'Zwalnia stanowisko, czeka na przypisanie' }, { value: 'done', label: 'Skończone' }]}
                         />
                     )}
                 </Group>
@@ -314,9 +314,9 @@ export function FinishDialog({ view, onClose, onConfirm, busy }: {
                 <ChoiceCard type="radio" name="finish" checked={choice === 'ready'} onChange={() => setChoice('ready')}
                     icon={<UserRoundCheck />} title="Gotowe do wydania" detail="Praca przy aucie skończona. O wydaniu i powiadomieniu klienta decyduje kierownik." />
                 <ChoiceCard type="radio" name="finish" checked={choice === 'move'} onChange={() => setChoice('move')}
-                    icon={<ArrowRightLeft />} title="Na inne stanowisko" detail="Na przykład na myjnię" />
+                    icon={<ArrowRightLeft />} title="Zmiana stanowiska" detail="Na przykład na myjnię" />
                 <ChoiceCard type="radio" name="finish" checked={choice === 'yard'} onChange={() => setChoice('yard')}
-                    icon={<ParkingSquare />} title="Czeka na przypisanie" detail="Zjeżdża ze stanowiska, praca będzie dalej" />
+                    icon={<ParkingSquare />} title="Czeka na przypisanie" detail="Zwalnia stanowisko, praca będzie dalej" />
             </ChoiceList>
         </Shell>
     );
@@ -324,7 +324,7 @@ export function FinishDialog({ view, onClose, onConfirm, busy }: {
 
 export type PauseReason = 'WAITING_PART' | 'WAITING_CUSTOMER';
 
-/** „Wstrzymaj": auto zjeżdża na plac z powodem, który widać potem na tablicy. */
+/** „Wstrzymaj": auto zwalnia stanowisko z powodem, który widać potem na tablicy. */
 export function PauseDialog({ view, onClose, onConfirm, busy }: {
     view: CarView;
     onClose: () => void;
@@ -343,7 +343,7 @@ export function PauseDialog({ view, onClose, onConfirm, busy }: {
             footer={(
                 <>
                     <Button variant="outline" size="lg" onClick={onClose}>Anuluj</Button>
-                    <Button variant="primary" size="lg" disabled={busy} onClick={() => onConfirm(reason, note.trim())}>Zjeżdża ze stanowiska</Button>
+                    <Button variant="primary" size="lg" disabled={busy} onClick={() => onConfirm(reason, note.trim())}>Zwolnij stanowisko</Button>
                 </>
             )}
         >
