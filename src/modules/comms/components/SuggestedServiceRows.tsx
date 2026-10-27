@@ -289,6 +289,7 @@ export function SuggestedServiceRows({ suggestions, actions }: Props) {
                                     formatGrosze(row.grossCents)
                                 )}
                                 {item.priceSource === 'HISTORY' && <PriceTag $tone="history">z historii</PriceTag>}
+                                {item.priceSource === 'QUOTED' && <PriceTag $tone="history">z wcześniejszych wycen</PriceTag>}
                                 {pending && <PriceTag $tone="pending">podaj kwotę</PriceTag>}
                             </Amount>
                             {item.note && <Note>{item.note}</Note>}

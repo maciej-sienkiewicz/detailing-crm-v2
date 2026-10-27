@@ -260,8 +260,11 @@ export type LeadSource = 'PHONE' | 'EMAIL' | 'FORM' | 'MANUAL' | 'INSTAGRAM';
 
 export type LeadServiceItemStatus = 'SUGGESTED' | 'ACCEPTED';
 export type LeadServiceItemSource = 'MANUAL' | 'AI';
-/** CATALOG (stała) | HISTORY (z podobnego zlecenia) | MANUAL | PENDING (czeka na kwotę). */
-export type LeadServicePriceSource = 'CATALOG' | 'HISTORY' | 'MANUAL' | 'PENDING';
+/**
+ * CATALOG (stała) | HISTORY (z podobnego zlecenia) | MANUAL | PENDING (czeka na kwotę)
+ * | QUOTED (pamięć wycen: kwota, którą studio podało wcześniej przy takiej samej robocie).
+ */
+export type LeadServicePriceSource = 'CATALOG' | 'HISTORY' | 'MANUAL' | 'PENDING' | 'QUOTED';
 
 export interface LeadServiceItem {
     id: string;
