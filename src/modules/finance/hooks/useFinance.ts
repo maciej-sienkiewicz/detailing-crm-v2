@@ -1,6 +1,7 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import { financeApi } from '../api/financeApi';
 import { INCOME_DOCUMENTS_KEY } from './useIncomeDocuments';
+import { useInvalidateCostDocuments } from './useKsef';
 import type {
   CreateDocumentRequest,
   UpdateDocumentRequest,
@@ -101,13 +102,19 @@ export const useCashHistory = (
 
 export const useAdjustCash = () => {
   const queryClient = useQueryClient();
+  const invalidateCostDocuments = useInvalidateCostDocuments();
+  const invalidateFinance = useInvalidateFinance();
 
   return useMutation({
     mutationFn: (data: CashAdjustRequest) => financeApi.adjustCash(data),
     // Odpowiedź to stan kasy po korekcie - podmieniamy go, a odświeżamy tylko historię.
-    onSuccess: register => {
+    onSuccess: (register, data) => {
       queryClient.setQueryData(FINANCE_CASH_KEY, register);
       queryClient.invalidateQueries({ queryKey: [...FINANCE_CASH_KEY, 'history'] });
+      if (!data.showInDocuments) return;
+      // Wypłata zapisana jako dokument to nowy koszt, wpłata - nowy przychód.
+      if (data.amount < 0) invalidateCostDocuments();
+      else invalidateFinance();
     },
   });
 };

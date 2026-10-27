@@ -145,6 +145,11 @@ export interface CashHistoryPage extends Page<CashOperation> {
 export interface CashAdjustRequest {
   amount:  number;
   comment: string;
+  /**
+   * Pieniądze bez faktury i paragonu: wypłata trafia też do dokumentów kosztowych
+   * („Inny dokument", VAT 0%), wpłata do przychodowych (zapis „bez paragonu").
+   */
+  showInDocuments?: boolean;
 }
 
 // ─── Finance: Raporty ─────────────────────────────────────────────────────────

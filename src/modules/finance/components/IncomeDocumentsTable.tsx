@@ -410,7 +410,7 @@ const DOCUMENT_TYPE: Record<IncomeDocumentType, { label: string; variant: BadgeV
   INVOICE:    { label: 'Faktura', variant: 'blue' },
   CORRECTION: { label: 'Korekta', variant: 'purple' },
   RECEIPT:    { label: 'Paragon', variant: 'teal' },
-  OTHER:      { label: 'Inny',    variant: 'slate' },
+  OTHER:      { label: 'Inny dokument', variant: 'slate' },
 };
 
 /**

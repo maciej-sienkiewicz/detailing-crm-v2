@@ -9,7 +9,9 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '@/core/context/AuthContext';
 import { useToast } from '@/common/components/Toast';
 import { authApi } from '@/modules/auth/api/authApi';
-import { setDeviceIdleTimeout, useDeviceIdleTimeout } from '@/core/deviceIdleLock';
+import {
+    effectiveIdleTimeoutSeconds, isPhone, setDeviceIdleTimeout, useDeviceIdleTimeout,
+} from '@/core/deviceIdleLock';
 import { ClearAccountModal } from './account/ClearAccountModal';
 import { DeleteAccountModal } from './account/DeleteAccountModal';
 import {
@@ -53,7 +55,10 @@ export const IdleLockCard = () => {
 
     useEffect(() => () => { if (savedTimerRef.current) clearTimeout(savedTimerRef.current); }, []);
 
-    const current = deviceSeconds ?? user?.idleTimeoutSeconds ?? 0;
+    // Lista pokazuje to, co naprawdę obowiązuje - na telefonie bez własnego ustawienia
+    // to „Wyłączona", nie wartość studia.
+    const current = effectiveIdleTimeoutSeconds(deviceSeconds, user?.idleTimeoutSeconds);
+    const phoneDefault = deviceSeconds === null && isPhone();
 
     const change = (next: number) => {
         setSaved(false);
@@ -78,6 +83,12 @@ export const IdleLockCard = () => {
                         Po tym czasie ekran prosi o PIN albo hasło. Każde stanowisko ustawiasz
                         osobno, więc komputer w recepcji może blokować się szybciej niż laptop w biurze.
                     </CardNote>
+                    {phoneDefault && (
+                        <CardNote>
+                            Na telefonie blokada jest domyślnie wyłączona. Wybierz czas, jeśli
+                            chcesz ją włączyć na tym telefonie.
+                        </CardNote>
+                    )}
                 </CardHeadText>
                 <CardActions>
                     {saved && <StateTag $on>Zapisano</StateTag>}

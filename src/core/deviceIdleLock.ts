@@ -10,7 +10,11 @@
 //
 // Dopóki na urządzeniu nic nie ustawiono, obowiązuje dotychczasowa wartość studia
 // (`user.idleTimeoutSeconds` z /auth/me) - po wdrożeniu żadne stanowisko nie traci
-// blokady, którą miało.
+// blokady, którą miało. Wyjątkiem jest telefon (zgłoszenie z 27.10): wartość studia
+// dobierano pod komputery na wspólnych stanowiskach, a telefon jest osobisty i ma
+// własną blokadę ekranu - dziedziczona blokada wylogowywała właściciela co chwilę.
+// Na telefonie blokada jest więc domyślnie wyłączona; włącza ją tylko własne
+// ustawienie tego urządzenia.
 //
 // Sama blokada dalej żyje na serwerze (sessionLock.ts) - tu jest tylko „po ilu
 // sekundach bez ruchu ją założyć".
@@ -44,6 +48,33 @@ export function setDeviceIdleTimeout(seconds: number): boolean {
     }
     window.dispatchEvent(new Event(CHANGE_EVENT));
     return true;
+}
+
+/**
+ * Telefon, nie tablet: dotyk i krótszy bok FIZYCZNEGO ekranu poniżej 600 px.
+ *
+ * Nie `isMobileDevice()` z webPush - ono obejmuje tablety i iPady, a tablet w recepcji
+ * albo przy podpisywaniu protokołów stoi na widoku klientów i ma się blokować dalej.
+ * Ekran, a nie okno: zwężone okno na komputerze nie może wyłączać blokady.
+ */
+export function isPhone(): boolean {
+    if (typeof window === 'undefined' || !window.matchMedia || !window.screen) return false;
+    const touch = navigator.maxTouchPoints > 0 && window.matchMedia('(pointer: coarse)').matches;
+    return touch && Math.min(window.screen.width, window.screen.height) < 600;
+}
+
+/**
+ * Sekundy, po których to urządzenie naprawdę się blokuje; 0 - nie blokuje się.
+ * Ustawienie urządzenia wygrywa; bez niego telefon się nie blokuje, a reszta bierze
+ * wartość studia.
+ */
+export function effectiveIdleTimeoutSeconds(
+    deviceSeconds: number | null,
+    studioSeconds: number | null | undefined,
+): number {
+    if (deviceSeconds !== null) return deviceSeconds;
+    if (isPhone()) return 0;
+    return studioSeconds ?? 0;
 }
 
 function subscribe(onChange: () => void): () => void {

@@ -203,19 +203,30 @@ export const useKsefExpenseTransfer = (id: string | null) => {
   return { transfer: data ?? null, isLoading, isError };
 };
 
-export const useCreateExpense = () => {
+/**
+ * Odświeża wszystko, co pokazuje nowy dokument kosztowy - dodany w „Dokumentach
+ * kosztowych" albo z wypłaty w „Kasie".
+ */
+export const useInvalidateCostDocuments = () => {
   const queryClient = useQueryClient();
+  return () => {
+    queryClient.invalidateQueries({ queryKey: KSEF_EXPENSES_KEY });
+    queryClient.invalidateQueries({ queryKey: KSEF_STATISTICS_KEY });
+    // Nowy dokument to nowa pozycja w statystykach „Pozycje kosztowe" (klucze z
+    // statistics/hooks/useCostCategories) - bez tego wchodziła dopiero po odświeżeniu.
+    queryClient.invalidateQueries({ queryKey: [COST_ITEMS_KEY] });
+    queryClient.invalidateQueries({ queryKey: [COST_BREAKDOWN_KEY] });
+    // ...i nowy koszt w kaflach „Koszty" i „Zysk".
+    queryClient.invalidateQueries({ queryKey: FINANCE_SUMMARY_KEY });
+  };
+};
+
+export const useCreateExpense = () => {
+  const invalidateCostDocuments = useInvalidateCostDocuments();
 
   return useMutation({
     mutationFn: (data: CreateExpenseRequest) => ksefApi.createExpense(data),
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: KSEF_EXPENSES_KEY });
-      queryClient.invalidateQueries({ queryKey: KSEF_STATISTICS_KEY });
-      // Nowy dokument to nowa pozycja w statystykach „Pozycje kosztowe" (klucze z
-      // statistics/hooks/useCostCategories) - bez tego wchodziła dopiero po odświeżeniu.
-      queryClient.invalidateQueries({ queryKey: [COST_ITEMS_KEY] });
-      queryClient.invalidateQueries({ queryKey: [COST_BREAKDOWN_KEY] });
-    },
+    onSuccess: invalidateCostDocuments,
   });
 };
 

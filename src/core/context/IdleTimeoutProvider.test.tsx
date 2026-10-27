@@ -197,3 +197,59 @@ describe('ProtectedRoute - nowa karta zablokowanej sesji', () => {
         expect(lockScreen()).toBeNull();
     });
 });
+
+// Zgłoszenie biznesu z 27.10: kto zalogował się na telefonie, był co chwilę wylogowywany
+// blokadą dobraną pod komputery na wspólnych stanowiskach. Telefon domyślnie się nie
+// blokuje; tablet (stoi na widoku klientów) i komputer - bez zmian.
+describe('IdleTimeoutProvider - telefon', () => {
+    const device = (touch: boolean, width: number, height: number) => {
+        vi.stubGlobal('matchMedia', (query: string) => ({
+            matches: touch && query === '(pointer: coarse)',
+            media: query,
+            addEventListener: () => {},
+            removeEventListener: () => {},
+        }));
+        Object.defineProperty(navigator, 'maxTouchPoints', { value: touch ? 5 : 0, configurable: true });
+        Object.defineProperty(window.screen, 'width', { value: width, configurable: true });
+        Object.defineProperty(window.screen, 'height', { value: height, configurable: true });
+    };
+
+    afterEach(() => {
+        vi.unstubAllGlobals();
+        Object.defineProperty(navigator, 'maxTouchPoints', { value: 0, configurable: true });
+    });
+
+    it('telefon bez własnego ustawienia nie dziedziczy blokady studia', () => {
+        device(true, 390, 844);
+        renderApp();
+        act(() => { vi.advanceTimersByTime(60 * MINUTE); });
+
+        expect(lockScreen()).toBeNull();
+        expect(authApi.lockSession).not.toHaveBeenCalled();
+    });
+
+    it('telefon z własnym ustawieniem blokuje się po wybranym czasie', () => {
+        device(true, 390, 844);
+        setDeviceIdleTimeout(5 * 60);
+        renderApp();
+        act(() => { vi.advanceTimersByTime(5 * MINUTE); });
+
+        expect(lockScreen()).not.toBeNull();
+    });
+
+    it('tablet dalej bierze blokadę studia', () => {
+        device(true, 820, 1180);
+        renderApp();
+        act(() => { vi.advanceTimersByTime(15 * MINUTE); });
+
+        expect(lockScreen()).not.toBeNull();
+    });
+
+    it('wąskie okno na komputerze nie wyłącza blokady', () => {
+        device(false, 390, 844);
+        renderApp();
+        act(() => { vi.advanceTimersByTime(15 * MINUTE); });
+
+        expect(lockScreen()).not.toBeNull();
+    });
+});

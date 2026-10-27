@@ -162,6 +162,35 @@ const ActionBtn = styled.button<{ $variant: 'positive' | 'negative' }>`
   &:disabled { opacity: 0.45; cursor: not-allowed; }
 `;
 
+/*
+ * Pieniądze bez faktury i paragonu (sprzątanie „do ręki", szybka usługa bez paragonu)
+ * i tak są kosztem albo przychodem. Bez dokumentu widać je było tylko w kasie.
+ */
+const DocumentToggle = styled.label`
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 10px;
+  border: 1px solid ${(p) => p.theme.colors.border};
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: ${st.fontSm};
+  color: ${(p) => p.theme.colors.text};
+
+  input { margin: 2px 0 0; flex-shrink: 0; cursor: pointer; }
+`;
+
+const DocumentToggleText = styled.span`
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+`;
+
+const DocumentToggleHint = styled.span`
+  font-size: ${st.fontXs};
+  color: ${(p) => p.theme.colors.textMuted};
+`;
+
 const ErrorMsg = styled.p`
   font-size: ${st.fontXs};
   color: ${st.accentRed};
@@ -476,6 +505,7 @@ export const CashRegisterPanel: React.FC<CashRegisterPanelProps> = ({ dateFrom, 
 
   const [amountDisplay, setAmountDisplay] = useState('');
   const [comment, setComment] = useState('');
+  const [asDocument, setAsDocument] = useState(false);
   const [adjustError, setAdjustError] = useState<string | null>(null);
 
   const selectDirection = (next: CashDirection | null) => {
@@ -493,9 +523,14 @@ export const CashRegisterPanel: React.FC<CashRegisterPanelProps> = ({ dateFrom, 
     if (grosz === 0) { setAdjustError('Podaj kwotę różną od zera.'); return; }
     if (!comment.trim()) { setAdjustError('Komentarz jest wymagany.'); return; }
     try {
-      await adjustCash.mutateAsync({ amount: grosz, comment: comment.trim() });
+      await adjustCash.mutateAsync({
+        amount: grosz,
+        comment: comment.trim(),
+        showInDocuments: asDocument,
+      });
       setAmountDisplay('');
       setComment('');
+      setAsDocument(false);
     } catch {
       setAdjustError('Nie udało się zapisać zmiany w kasie.');
     }
@@ -548,6 +583,26 @@ export const CashRegisterPanel: React.FC<CashRegisterPanelProps> = ({ dateFrom, 
                 onChange={(e) => setComment(e.target.value)}
               />
             </FieldGroup>
+
+            <DocumentToggle>
+              <input
+                type="checkbox"
+                checked={asDocument}
+                onChange={(e) => setAsDocument(e.target.checked)}
+              />
+              <DocumentToggleText>
+                Pokaż w dokumentach
+                <DocumentToggleHint>
+                  Zapisze się jako „Inny dokument” z VAT 0%, opisany komentarzem.
+                </DocumentToggleHint>
+                <DocumentToggleHint>
+                  Wypłata trafi do dokumentów kosztowych, np. sprzątanie płacone gotówką.
+                </DocumentToggleHint>
+                <DocumentToggleHint>
+                  Wpłata trafi do dokumentów przychodowych, np. gdy klient nie chce paragonu.
+                </DocumentToggleHint>
+              </DocumentToggleText>
+            </DocumentToggle>
 
             {adjustError && <ErrorMsg>{adjustError}</ErrorMsg>}
 
