@@ -70,7 +70,7 @@ function Tip({ tutorial }: { tutorial: TutorialModule }) {
                             <Duration>{formatDuration(lesson.seconds)}</Duration>
                         </Thumb>
                         <Copy>
-                            <Eyebrow>Instruktaż · {tutorial.module}</Eyebrow>
+                            <Eyebrow>Instruktaż: {tutorial.module}</Eyebrow>
                             <Title>{lesson.title}</Title>
                             <Meta>{meta}</Meta>
                         </Copy>

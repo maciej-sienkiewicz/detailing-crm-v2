@@ -141,7 +141,7 @@ export const TutorialLessonModal = ({ tutorial, isOpen, onClose }: TutorialLesso
                     <ModalSubtitle>
                         {many
                             ? `${lessonsLabel(tutorial.lessons.length)} o tym module. Wybierz, od której zacząć.`
-                            : `Instruktaż · ${tutorial.module} · ${lessonMeta(current)}`}
+                            : `Instruktaż: ${tutorial.module}, ${lessonMeta(current)}`}
                     </ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />

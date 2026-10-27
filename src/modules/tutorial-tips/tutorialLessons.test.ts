@@ -19,7 +19,8 @@ describe('tutorialFor', () => {
 
     it('moduł ma kilka lekcji, pierwsza to ta, od której warto zacząć', () => {
         expect(slugs('/batch-orders')).toEqual([
-            'jak-dodac-kontrahenta-do-zlecen-zbiorczych', 'jak-wygenerowac-pdf-zlecenia-zbiorczego',
+            'jak-dodac-kontrahenta-do-zlecen-zbiorczych', 'jak-dziala-zestawienie', 'jak-wygenerowac-pdf-zlecenia-zbiorczego',
+            'jak-dziala-cennik-zlecen-zbiorczych', 'do-czego-jest-archiwum-kontrahentow',
         ]);
         expect(slugs('/visits/1')?.[0]).toBe('jak-edytowac-wizyte');
         expect(slugs('/visits/1')?.length).toBeGreaterThan(3);
