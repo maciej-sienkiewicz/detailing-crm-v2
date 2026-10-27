@@ -1032,7 +1032,7 @@ h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.08; letter-spacing: -0.03
     <div class="eyebrow">DetailBoost, instrukcje</div>
     <h1>Jak ustawić stanowiska?</h1>
   </header>
-  <p class="lede">Marek dzieli halę na stanowiska: myjnię, dwie kabiny i strefę polerską. Animacja pokazuje, jak włączyć stanowiska, dodać je i ustawić podział dnia w planie. Wybierz rozdział pod animacją, żeby przejść od razu do niego.</p>
+  <p class="lede">Dzielisz halę na stanowiska: myjnię, dwa stanowiska robocze i strefę polerską. Animacja pokazuje, jak włączyć stanowiska, dodać je i ustawić podział dnia w planie. Wybierz rozdział pod animacją, żeby przejść od razu do niego.</p>
 
   <div class="player" id="player" aria-label="Animacja: jak ustawić stanowiska">
     <div class="stage" id="stage">
@@ -1254,7 +1254,7 @@ h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.08; letter-spacing: -0.03
   const TRASH = sv('<path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/>', 16);
   const DOWN = sv('<path d="m6 9 6 6 6-6"/>', 12, 2.5);
   // the studio's four bays after the lesson; the first is added and filled on screen, the rest arrive filled
-  const BAYS = [['Myjnia', 'Myjnia', 7], ['Kabina 1', 'Kabina', 2], ['Kabina 2', 'Kabina', 2], ['Strefa polerska', 'Strefa robocza', 2]];
+  const BAYS = [['Myjnia', 'Myjnia', 7], ['Stanowisko 1', 'Strefa robocza', 2], ['Stanowisko 2', 'Strefa robocza', 2], ['Strefa polerska', 'Strefa robocza', 2]];
   const KINDS = ['Podnośnik', 'Kabina', 'Myjnia', 'Strefa robocza'];
   const hrs = [['Poniedziałek–piątek', '6:00–20:00'], ['Sobota', '6:00–14:00'], ['Niedziela', 'zamknięte']];
   const body = `<div class="bs" id="bs">
@@ -1609,7 +1609,7 @@ h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.08; letter-spacing: -0.03
 
   // ===== 1 Włączenie =====
   B(0, { h: 'Jak ustawić stanowiska?', b: '', lead: .2, act: 1.4, hold: .5 }, (S, a, s) => { S.ap = P(s, .2, 1.3); cam(S, 'app', 1); });
-  B(0, { h: 'Stanowiska ustawisz w „Ustawieniach”, w sekcji „Stanowiska”.', b: 'Stanowisko to miejsce na hali, w którym stoi auto: myjnia, kabina albo podnośnik.', act: 1.8, hold: 1.0 }, (S, a) => {
+  B(0, { h: 'Stanowiska ustawisz w „Ustawieniach”, w sekcji „Stanowiska”.', b: 'Stanowisko to miejsce na hali, w którym stoi auto: myjnia, podnośnik albo strefa robocza.', act: 1.8, hold: 1.0 }, (S, a) => {
     S.ap = 1; cam(S, 'app', 1); foc(S, ['ssNav']); hl(S, 'snbays', P(a, .2, .6), 4);
   });
   B(0, { h: 'Włącz „Korzystaj ze stanowisk”.', b: 'Zmiana zapisuje się od razu.', act: 3.0, hold: .6 }, (S, a, s) => {
@@ -1618,7 +1618,7 @@ h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.08; letter-spacing: -0.03
     S.on = P(a, .55, .66); S.toast = P(a, .62, .82); S.nvG = P(a, .62, .9);
   });
   B(0, { h: 'W menu pojawiła się pozycja „Stanowiska”.', b: 'Tam jest plan tygodnia. Najpierw dodaj stanowiska.', act: 2.4, hold: 1.0 }, (S, a, s) => {
-    on(S); S.toast = 1 - P(a, 0, .3); S.cur.vis = 1 - P(s, 0, .4); cam(S, 'app', P(a, 0, .6)); hl(S, 'nvbays', P(a, .5, .9), 3);
+    on(S); S.toast = 1 - P(a, 0, .3); S.cur.vis = 1 - P(s, 0, .4); foc(S, null); cam(S, 'app', P(a, 0, .6)); hl(S, 'nvbays', P(a, .5, .9), 3);
   });
 
   // ===== 2 Stanowiska =====
@@ -1647,7 +1647,7 @@ h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.08; letter-spacing: -0.03
     mv(S, 'iS0', P(a, 0, .3), { from: 'kmW', dx: 20 }); tap(S, a, .34); S.slF = a > .38 ? 1 : 0;
     S.nmF = 0; S.sl = a < .5 ? 2 : a < .62 ? 0 : 7; S.typing = a > .5 && a < .66; hl(S, 'iH0', P(a, .72, .95), 4);
   });
-  B(1, { h: 'Tak samo dodaj pozostałe stanowiska.', b: 'Kabiny i strefa polerska mają po 2 okienka, czyli pół dnia.', act: 3.4, hold: .8 }, (S, a, s) => {
+  B(1, { h: 'Tak samo dodaj pozostałe stanowiska.', b: 'Stanowiska 1 i 2 oraz strefa polerska mają po 2 okienka, czyli pół dnia.', act: 3.4, hold: .8 }, (S, a, s) => {
     first(S); S.slF = 0; cam(S, DRW, P(a, 0, .5)); S.cur.vis = 1 - P(s, 0, .4);
     S.more = P(a, .1, .85); S.bsc = out3(P(a, .15, .9));
   });
