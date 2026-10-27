@@ -6,6 +6,8 @@
 //   - wysuwa się od dołu chwilę po wejściu na widok - najpierw użytkownik widzi to,
 //     po co przyszedł;
 //   - tylko na widokach, do których jest lekcja (tutorialLessons.ts);
+//   - po 5 sekundach sama się chowa (najechanie kursorem albo fokus wstrzymują odliczanie)
+//     i wraca przy następnym wejściu na widok albo odświeżeniu strony;
 //   - kliknięcie w plakat albo „Obejrzyj" otwiera lekcje w oknie, w programie;
 //   - „Nie pokazuj więcej" zamyka ją na tym widoku na zawsze, na koncie użytkownika
 //     (na każdym urządzeniu). Krzyżyk i obejrzenie chowają ją tylko do następnego
@@ -18,7 +20,7 @@
 
 import { useEffect, useState } from 'react';
 import { useLocation } from 'react-router-dom';
-import styled, { keyframes } from 'styled-components';
+import styled, { css, keyframes } from 'styled-components';
 import { Play, X } from 'lucide-react';
 import { Button, ui } from '@/common/components/ui';
 import {
@@ -29,6 +31,10 @@ import { TutorialLessonModal } from './TutorialLessonModal';
 
 /** Tyle trwa „najpierw to, po co przyszedł". */
 const SHOW_DELAY_MS = 1_500;
+/** Tyle chmurka stoi na widoku, zanim sama zniknie. */
+const HIDE_AFTER_MS = 5_000;
+/** Długość wysunięcia w dół przy samoczynnym zniknięciu. */
+const LEAVE_MS = 320;
 
 export function TutorialTip() {
     const { pathname, search } = useLocation();
@@ -41,7 +47,7 @@ export function TutorialTip() {
     return <Tip key={tutorial.view} tutorial={tutorial} />;
 }
 
-type TipState = 'waiting' | 'card' | 'watching' | 'closed';
+type TipState = 'waiting' | 'card' | 'leaving' | 'watching' | 'closed';
 
 function Tip({ tutorial }: { tutorial: TutorialModule }) {
     const dismiss = useDismissTutorialTip();
@@ -52,6 +58,19 @@ function Tip({ tutorial }: { tutorial: TutorialModule }) {
         return () => window.clearTimeout(timer);
     }, []);
 
+    // Odliczanie stoi, dopóki ktoś jest nad chmurką - nie znika spod kursora w pół kliknięcia.
+    const [held, setHeld] = useState(false);
+    useEffect(() => {
+        if (state !== 'card' || held) return;
+        const timer = window.setTimeout(() => setState(s => (s === 'card' ? 'leaving' : s)), HIDE_AFTER_MS);
+        return () => window.clearTimeout(timer);
+    }, [state, held]);
+    useEffect(() => {
+        if (state !== 'leaving') return;
+        const timer = window.setTimeout(() => setState(s => (s === 'leaving' ? 'closed' : s)), LEAVE_MS);
+        return () => window.clearTimeout(timer);
+    }, [state]);
+
     const watch = () => setState('watching');
     // Chmurka pokazuje lekcję, od której warto zacząć; resztę wymienia okno.
     const [lesson] = tutorial.lessons;
@@ -61,8 +80,16 @@ function Tip({ tutorial }: { tutorial: TutorialModule }) {
 
     return (
         <>
-            {state === 'card' && (
-                <Card role="region" aria-label="Instruktaż do tego modułu">
+            {(state === 'card' || state === 'leaving') && (
+                <Card
+                    role="region"
+                    aria-label="Instruktaż do tego modułu"
+                    $leaving={state === 'leaving'}
+                    onMouseEnter={() => setHeld(true)}
+                    onMouseLeave={() => setHeld(false)}
+                    onFocus={() => setHeld(true)}
+                    onBlur={() => setHeld(false)}
+                >
                     <Close type="button" aria-label="Zamknij" onClick={() => setState('closed')}><X /></Close>
                     <Row type="button" onClick={watch}>
                         <Thumb style={{ backgroundImage: `url(${lessonPosterSrc(lesson)})` }}>
@@ -97,7 +124,12 @@ const slideUp = keyframes`
     to   { opacity: 1; transform: translateY(0); }
 `;
 
-const Card = styled.div`
+const slideDown = keyframes`
+    from { opacity: 1; transform: translateY(0); }
+    to   { opacity: 0; transform: translateY(calc(100% + 32px)); }
+`;
+
+const Card = styled.div<{ $leaving: boolean }>`
     position: fixed;
     right: 28px;
     bottom: 28px;
@@ -112,6 +144,7 @@ const Card = styled.div`
     background: ${ui.surface};
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.06), 0 16px 40px rgba(15, 23, 42, 0.14);
     animation: ${slideUp} 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
+    ${p => p.$leaving && css`animation: ${slideDown} ${LEAVE_MS}ms ease-in both;`}
 
     @media (max-width: ${props => props.theme.breakpoints.md}) { display: none; }
     @media (prefers-reduced-motion: reduce) { animation: none; }
