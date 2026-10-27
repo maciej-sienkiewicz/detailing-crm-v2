@@ -35,6 +35,12 @@ const waitForTip = async () => {
     for (let i = 0; i < 5; i++) await act(async () => { await vi.advanceTimersByTimeAsync(500); });
 };
 
+/** 5 s na widoku, potem wysunięcie w dół. */
+const hideTip = async () => {
+    await act(async () => { await vi.advanceTimersByTimeAsync(5_000); });
+    await act(async () => { await vi.advanceTimersByTimeAsync(400); });
+};
+
 describe('TutorialTip', () => {
     afterEach(() => {
         cleanup();
@@ -107,6 +113,35 @@ describe('TutorialTip', () => {
 
         expect(apiClient.post).toHaveBeenCalledWith('/v1/me/tutorial-tips/BAYS/dismiss');
         expect(screen.queryByRole('region', { name: 'Instruktaż do tego modułu' })).toBeNull();
+    });
+
+    it('sama znika po 5 sekundach, a pod kursorem czeka', async () => {
+        vi.useFakeTimers();
+        renderAt('/bays');
+        await waitForTip();
+
+        const tip = screen.getByRole('region', { name: 'Instruktaż do tego modułu' });
+        fireEvent.mouseEnter(tip);
+        await act(async () => { await vi.advanceTimersByTimeAsync(8_000); });
+        expect(screen.queryByRole('region', { name: 'Instruktaż do tego modułu' })).not.toBeNull();
+
+        fireEvent.mouseLeave(tip);
+        await hideTip();
+        expect(screen.queryByRole('region', { name: 'Instruktaż do tego modułu' })).toBeNull();
+        expect(apiClient.post).not.toHaveBeenCalled();
+    });
+
+    it('wraca przy kolejnym wyświetleniu widoku', async () => {
+        vi.useFakeTimers();
+        const first = renderAt('/bays');
+        await waitForTip();
+        await hideTip();
+        expect(screen.queryByRole('region', { name: 'Instruktaż do tego modułu' })).toBeNull();
+        first.unmount();
+
+        renderAt('/bays');
+        await waitForTip();
+        expect(screen.queryByRole('region', { name: 'Instruktaż do tego modułu' })).not.toBeNull();
     });
 
     it('nie wraca na widoku zamkniętym wcześniej', async () => {
