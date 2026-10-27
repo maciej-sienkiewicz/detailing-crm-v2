@@ -53,11 +53,13 @@ import {
     useLead,
     useLeadAppointment,
     useLeadBooking,
+    useLeadReplyDraft,
     useLeadTimeline,
     useStagnationThresholds,
 } from '../hooks/useLeads';
 import type { ContactTarget, Lead, LeadStatus } from '../types';
 import { leadToBookingPrefill } from '../utils/bookingPrefill';
+import { preparedReplyHint } from '../utils/preparedReply';
 import { leadEmail, leadPhoneNumber } from '../utils/leadPrimaryAction';
 import { describeLeadUrgency } from '../utils/leadUrgency';
 import { boardColumnOf, canRemindByMail } from '../utils/leadBoard';
@@ -246,6 +248,13 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
     const { data: leadBooking } = useLeadBooking(leadId, Boolean(lead?.appointmentId));
     // Szkic potwierdzenia z paska rezerwacji - nowe `id` wpycha treść do kompozytora.
     const [confirmationPrefill, setConfirmationPrefill] = useState<{ id: number; text: string } | null>(null);
+    // Pierwsza odpowiedź przygotowana po przyjściu zapytania - tylko zanim ktoś odpisał.
+    const awaitingFirstReply = Boolean(lead && lead.threadId && lead.status === 'NEW' && !lead.firstResponseAt);
+    const { data: preparedReply } = useLeadReplyDraft(leadId, awaitingFirstReply);
+    const preparedHint = useMemo(
+        () => preparedReplyHint(preparedReply ?? null, contactCard?.customer?.completedVisitCount ?? 0),
+        [preparedReply, contactCard]
+    );
 
     const [sheetOpen, setSheetOpen] = useState(false);
     const [fullMessageId, setFullMessageId] = useState<string | null>(null);
@@ -453,6 +462,8 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                 sendAppearance={replyStep ? 'pill' : 'tint'}
                 galleryContext={galleryContext}
                 prefill={confirmationPrefill}
+                prepared={awaitingFirstReply ? preparedReply ?? null : null}
+                preparedHint={preparedHint}
                 onSent={() => onAdvance?.()}
             />
         ) : null

@@ -50,7 +50,7 @@ import { useToast } from '@/common/components/Toast';
 import { acquireScrollLock } from '@/common/utils/scrollLock';
 import type { GalleryPhoto } from '@/modules/gallery/types';
 import { useMailSignature, useProofread, useSendMail } from '../hooks/useComms';
-import { OUTGOING_ATTACHMENT_LIMITS, type ReplyDraft } from '../types';
+import { OUTGOING_ATTACHMENT_LIMITS, type PreparedReply, type ReplyDraft } from '../types';
 import {
     composerHtmlToText,
     isComposerHtmlEmpty,
@@ -59,6 +59,15 @@ import {
 } from '../utils/composerHtml';
 import { draftOriginLabel, pendingPlaceholders as findPendingPlaceholders } from '../utils/replyDraft';
 import { QUICK_REPLIES, type QuickReply } from '../utils/quickReplies';
+import {
+    REPLY_KIND_LABELS,
+    calendarDayLoad,
+    calendarDayShort,
+    datePlaceholder,
+    fillDatePlaceholder,
+    toReplyDraft,
+} from '../utils/preparedReply';
+import { leadsApi } from '../api/leadsApi';
 import { signatureHtmlToText } from '../utils/signatureText';
 import { useChangeLeadStatus } from '../hooks/useLeads';
 import { ReplyDraftButton } from './ReplyDraftButton';
@@ -420,6 +429,47 @@ const AttachmentTotal = styled.span<{ $warn: boolean }>`
  * i „Napisz inaczej" po prawej. Ostrzeżenia (znaczniki, kwoty spoza wyceny) stoją pod
  * spodem - to one niosą blokadę wysyłki.
  */
+/**
+ * Pasek odpowiedzi przygotowanej po zapytaniu: rodzaj, przełącznik na inny, podpowiedź
+ * z kalendarza. Same obwódki - wypełniony w karcie zostaje wyłącznie „Wyślij" (CLAUDE.md §2).
+ */
+const PreparedBar = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    font-size: 13px;
+    color: ${ix.text2};
+
+    .row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+    .label { color: ${ix.muted}; }
+    .hint { color: #b45309; }
+
+    button {
+        border: 1px solid ${ix.line};
+        background: #ffffff;
+        color: ${ix.text2};
+        border-radius: 999px;
+        padding: 4px 11px;
+        font: inherit;
+        font-weight: 500;
+        cursor: pointer;
+        transition: border-color 150ms ease, color 150ms ease;
+
+        &:hover { border-color: #cbd5e1; color: ${ix.ink}; }
+        &[aria-pressed='true'] { border-color: ${ix.accentLine}; background: ${ix.accentTint}; color: ${ix.accentInk}; }
+        .load { color: ${ix.muted}; font-weight: 400; margin-left: 4px; }
+    }
+`;
+
+/**
+ * Szybka odpowiedź, która jest tym samym rodzajem co przygotowana - przygotowana mówi to
+ * samo, tylko konkretnie o tym zapytaniu, więc dwóch „próśb o zdjęcia" nie pokazujemy.
+ */
+const SAME_KIND: Partial<Record<QuickReply['id'], PreparedReply['kind'][]>> = {
+    photos: ['PHOTOS'],
+    inspection: ['INSPECTION'],
+};
+
 const DraftNote = styled.div`
     display: flex;
     flex-wrap: wrap;
@@ -526,6 +576,13 @@ interface ReplyComposerProps {
      * przywrócić tym samym „Przywróć", co po korekcie.
      */
     prefill?: { id: number; text: string } | null;
+    /**
+     * Pierwsza odpowiedź przygotowana po przyjściu zapytania (serwer). Wpada do edytora
+     * sama, o ile ten jest pusty i szkic pisano pod tę samą stopkę.
+     */
+    prepared?: PreparedReply | null;
+    /** Zdanie pod przygotowaną odpowiedzią, np. „Stały klient - telefon bywa szybszy". */
+    preparedHint?: string | null;
 }
 
 export function ReplyComposer({
@@ -545,6 +602,8 @@ export function ReplyComposer({
     layout = 'card',
     divider = false,
     prefill = null,
+    prepared = null,
+    preparedHint = null,
 }: ReplyComposerProps) {
     const [expanded, setExpanded] = useState(false);
     const sheet = collapsible && expanded;
@@ -597,6 +656,21 @@ export function ReplyComposer({
         setAppliedPrefill(prefill.id);
         setUndoSnapshot(bodyEmpty ? null : { body, title: 'Przywróć treść sprzed potwierdzenia' });
         setBody(textToComposerHtml(prefill.text));
+        setExpanded(true);
+    }
+    // Przygotowana odpowiedź: w renderze, jak prefill. Tylko do pustego edytora i tylko szkic
+    // pisany pod tę samą stopkę - inaczej podpis wyszedłby podwójnie albo wcale.
+    const [appliedPrepared, setAppliedPrepared] = useState<string | null>(null);
+    // Czy w edytorze stoi właśnie przygotowana odpowiedź (a nie szybka odpowiedź po przełączeniu).
+    const [preparedInEditor, setPreparedInEditor] = useState(false);
+    const preparedUsable = Boolean(
+        prepared && signature !== undefined && prepared.signatureAppended === appendSignature
+    );
+    if (prepared && preparedUsable && prepared.preparedAt !== appliedPrepared && bodyEmpty && !draft) {
+        setAppliedPrepared(prepared.preparedAt);
+        setBody(textToComposerHtml(prepared.bodyText));
+        setDraft(toReplyDraft(prepared));
+        setPreparedInEditor(true);
         setExpanded(true);
     }
     const pendingPlaceholders = findPendingPlaceholders(draft, draft ? composerHtmlToText(body) : '');
@@ -708,8 +782,23 @@ export function ReplyComposer({
         setBody(textToComposerHtml(reply.text));
         setUndoSnapshot(null);
         setCloseReason(reply.closesWithReason ?? null);
+        setPreparedInEditor(false);
+        setDraft(null);
         setExpanded(true);
     };
+
+    /** Powrót z szybkiej odpowiedzi do przygotowanej. */
+    const restorePrepared = () => {
+        if (!prepared) return;
+        setBody(textToComposerHtml(prepared.bodyText));
+        setDraft(toReplyDraft(prepared));
+        setUndoSnapshot(null);
+        setCloseReason(null);
+        setPreparedInEditor(true);
+    };
+
+    const bodyText = composerHtmlToText(body);
+    const datePlaceholderInBody = appliedPrepared !== null ? datePlaceholder(bodyText) : null;
 
     const applyDraft = (next: ReplyDraft) => {
         setUndoSnapshot(bodyEmpty ? null : { body, title: 'Przywróć treść sprzed szkicu' });
@@ -741,6 +830,17 @@ export function ReplyComposer({
                     setGalleryPhotos([]);
                     setUndoSnapshot(null);
                     setDraft(null);
+                    // Wycena wysłana z przygotowanej odpowiedzi: jej sugestie przechodzą do
+                    // wyceny leada - inaczej lead pokazywałby inną kwotę niż mail.
+                    if (preparedInEditor && prepared?.kind === 'QUOTE' && contextLeadId) {
+                        const leadForOffer = contextLeadId;
+                        void Promise.allSettled(
+                            prepared.offer
+                                .filter((line) => line.suggested)
+                                .map((line) => leadsApi.acceptSuggestion(leadForOffer, line.itemId))
+                        );
+                    }
+                    setPreparedInEditor(false);
                     if (closeReason && contextLeadId) {
                         changeLeadStatus.mutate(
                             { leadId: contextLeadId, status: 'LOST', lostReasonCode: closeReason },
@@ -910,6 +1010,42 @@ export function ReplyComposer({
                         )}
                     </span>
                 </DraftNote>
+            )}
+
+            {appliedPrepared !== null && prepared && !sendMail.isPending && (
+                <PreparedBar aria-label="Przygotowana odpowiedź">
+                    <div className="row" role="group" aria-label="Rodzaj odpowiedzi">
+                        <span className="label">Odpowiedź:</span>
+                        <button type="button" aria-pressed={preparedInEditor} onClick={restorePrepared}>
+                            {REPLY_KIND_LABELS[prepared.kind]}
+                        </button>
+                        {QUICK_REPLIES.filter((reply) => !SAME_KIND[reply.id]?.includes(prepared.kind)).map((reply) => (
+                            <button key={reply.id} type="button" aria-pressed={false} onClick={() => applyQuickReply(reply)}>
+                                {reply.label}
+                            </button>
+                        ))}
+                    </div>
+                    {datePlaceholderInBody && prepared.calendar.length > 0 && (
+                        <div className="row" role="group" aria-label="Wpisz termin">
+                            <span className="label">Wpisz termin:</span>
+                            {prepared.calendar.map((day) => (
+                                <button
+                                    key={day.date}
+                                    type="button"
+                                    title={`W kalendarzu: ${calendarDayLoad(day)}. Sprawdź, czy usługa zmieści się w tym dniu.`}
+                                    onClick={() => {
+                                        const filled = fillDatePlaceholder(bodyText, day);
+                                        if (filled) setBody(textToComposerHtml(filled));
+                                    }}
+                                >
+                                    {calendarDayShort(day)}
+                                    <span className="load">{calendarDayLoad(day)}</span>
+                                </button>
+                            ))}
+                        </div>
+                    )}
+                    {preparedHint && <span className="hint">{preparedHint}</span>}
+                </PreparedBar>
             )}
 
             {closeReason && !bodyEmpty && (
@@ -1101,7 +1237,7 @@ export function ReplyComposer({
                 }}
             />
 
-            {contextLeadId && bodyEmpty && !sendMail.isPending && (
+            {contextLeadId && bodyEmpty && appliedPrepared === null && !sendMail.isPending && (
                 <QuickReplies aria-label="Gotowe odpowiedzi">
                     Szybka odpowiedź:
                     {QUICK_REPLIES.map((reply) => (

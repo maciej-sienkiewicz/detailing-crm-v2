@@ -161,6 +161,20 @@ export const useLead = (leadId: string | null) =>
     });
 
 /**
+ * Pierwsza odpowiedź przygotowana po przyjściu zapytania. Pytamy tylko wtedy, gdy ruch
+ * jest nasz i nikt jeszcze nie odpisał - po pierwszej odpowiedzi szkicu „od zera" nie ma.
+ * Błąd (np. starszy serwer bez tego adresu) = brak szkicu, nie komunikat.
+ */
+export const useLeadReplyDraft = (leadId: string | null, enabled: boolean) =>
+    useQuery({
+        queryKey: [...LEADS_KEY, 'reply-draft', leadId],
+        queryFn: () => leadsApi.getReplyDraft(leadId!).catch(() => null),
+        enabled: enabled && leadId !== null,
+        staleTime: 60_000,
+        retry: false,
+    });
+
+/**
  * Termin rezerwacji powiązanej z leadem.
  *
  * Lead niesie samo `appointmentId`, więc datę trzeba dobrać osobno. Świadomie

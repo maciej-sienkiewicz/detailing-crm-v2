@@ -19,6 +19,7 @@ import type {
     LeadCallback,
     LeadOverview,
     PreparedReminderDraft,
+    PreparedReply,
     MarkThreadAsLeadRequest,
     SuggestionRefreshResult,
 } from '../types';
@@ -166,6 +167,15 @@ export const leadsApi = {
     getReminderDraft: async (leadId: string): Promise<PreparedReminderDraft | null> => {
         const response = await apiClient.get(`/v1/leads/${leadId}/reminder-draft`, { skipErrorToast: true });
         return response.status === 204 ? null : (response.data as PreparedReminderDraft);
+    },
+
+    /**
+     * Pierwsza odpowiedź przygotowana zaraz po przyjściu zapytania; null, gdy jej nie ma
+     * albo rozmowa poszła dalej (204).
+     */
+    getReplyDraft: async (leadId: string): Promise<PreparedReply | null> => {
+        const response = await apiClient.get(`/v1/leads/${leadId}/reply-draft`, { skipErrorToast: true });
+        return response.status === 204 ? null : (response.data as PreparedReply);
     },
 
     sendReminder: async (leadId: string, request: { bodyHtml: string; appendSignature: boolean }): Promise<Lead> => {

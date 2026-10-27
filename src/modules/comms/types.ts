@@ -421,6 +421,29 @@ export interface BulkDeleteResult {
     skipped: { leadId: string; reason: string }[];
 }
 
+/** Rodzaj odpowiedzi przygotowanej po zapytaniu - wybiera go serwer z wyceny i potrzeb. */
+export type ReplyKind = 'QUOTE' | 'PHOTOS' | 'INSPECTION';
+
+/** Obciążenie dnia roboczego: ile rezerwacji go dotyka. */
+export interface CalendarDayLoad {
+    /** YYYY-MM-DD, czas Warszawy. */
+    date: string;
+    bookings: number;
+}
+
+/** Pierwsza odpowiedź przygotowana zaraz po przyjściu zapytania (GET /leads/{id}/reply-draft). */
+export interface PreparedReply {
+    kind: ReplyKind;
+    bodyText: string;
+    useSentStyle: boolean;
+    signatureAppended: boolean;
+    /** Pozycje wyceny przedstawione w szkicu; `suggested` - sugestia, przyjmowana przy wysyłce. */
+    offer: { itemId: string; name: string; quantity: number; priceGross: number; suggested: boolean }[];
+    preparedAt: string;
+    /** Najbliższe dni robocze z obciążeniem - podpowiedź do „[proponowany termin]". */
+    calendar: CalendarDayLoad[];
+}
+
 /** Szkic przypomnienia napisany rano przez serwer (GET /leads/{id}/reminder-draft). */
 export interface PreparedReminderDraft {
     bodyText: string;
