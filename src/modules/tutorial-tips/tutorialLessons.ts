@@ -23,7 +23,7 @@ export interface TutorialLesson {
 export interface TutorialModule {
     /** Klucz widoku do zapamiętania zamknięcia (A-Z, 0-9, _). */
     view: string;
-    /** Nazwa modułu jak w menu - „Instruktaż · Kalendarz". */
+    /** Nazwa modułu jak w menu - „Instruktaż: Kalendarz". */
     module: string;
     /** Najpierw lekcja, od której warto zacząć - to ją pokazuje chmurka. */
     lessons: readonly TutorialLesson[];
@@ -73,6 +73,9 @@ const LESSONS: Readonly<Record<string, Omit<TutorialLesson, 'slug'>>> = {
     'jak-usunac-wizyte': { title: 'Jak usunąć wizytę?', seconds: 40, chapters: 3 },
     'jak-dodac-kontrahenta-do-zlecen-zbiorczych': { title: 'Jak dodać kontrahenta do zleceń zbiorczych?', seconds: 71, chapters: 3 },
     'jak-wygenerowac-pdf-zlecenia-zbiorczego': { title: 'Jak wygenerować PDF zlecenia zbiorczego?', seconds: 62, chapters: 3 },
+    'jak-dziala-zestawienie': { title: 'Jak działa zestawienie?', seconds: 103, chapters: 3 },
+    'jak-dziala-cennik-zlecen-zbiorczych': { title: 'Jak działa cennik zleceń zbiorczych?', seconds: 71, chapters: 3 },
+    'do-czego-jest-archiwum-kontrahentow': { title: 'Do czego jest archiwum kontrahentów?', seconds: 67, chapters: 3 },
     'jak-stworzyc-kampanie-sms': { title: 'Jak stworzyć kampanię SMS?', seconds: 63, chapters: 4 },
     'jak-obserwowac-konkurencje-na-instagramie': { title: 'Jak obserwować konkurencję na Instagramie?', seconds: 134, chapters: 7 },
     'jak-czytac-finanse-i-statystyki': { title: 'Jak czytać finanse i statystyki?', seconds: 71, chapters: 3 },
@@ -177,7 +180,10 @@ const ROUTE_MODULES: readonly RouteModule[] = [
     {
         view: 'BATCH_ORDERS',
         module: 'Zlecenia zbiorcze',
-        slugs: ['jak-dodac-kontrahenta-do-zlecen-zbiorczych', 'jak-wygenerowac-pdf-zlecenia-zbiorczego'],
+        slugs: [
+            'jak-dodac-kontrahenta-do-zlecen-zbiorczych', 'jak-dziala-zestawienie', 'jak-wygenerowac-pdf-zlecenia-zbiorczego',
+            'jak-dziala-cennik-zlecen-zbiorczych', 'do-czego-jest-archiwum-kontrahentow',
+        ],
         matches: under('/batch-orders'),
     },
     {

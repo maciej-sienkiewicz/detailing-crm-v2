@@ -50,7 +50,7 @@ describe('TutorialTip', () => {
         await waitForTip();
 
         const tip = screen.getByRole('region', { name: 'Instruktaż do tego modułu' });
-        expect(tip.textContent).toContain('Instruktaż · Kalendarz');
+        expect(tip.textContent).toContain('Instruktaż: Kalendarz');
         expect(tip.textContent).toContain('Jak posługiwać się kalendarzem?');
         expect(tip.textContent).toContain('1:05');
         expect(tip.textContent).toContain('3 lekcje o tym module');

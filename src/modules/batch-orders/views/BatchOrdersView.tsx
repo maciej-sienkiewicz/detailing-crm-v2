@@ -103,7 +103,8 @@ export function BatchOrdersView() {
     async function handleDelete(contractor: BatchContractor) {
         try {
             await deleteContractor.mutateAsync(contractor.id);
-            showSuccess('Kontrahent w archiwum', `${contractor.name}. Przywrócisz go z archiwum u góry strony.`);
+            // Nazwa często kończy się kropką („sp. z o.o.”) - bez kropki po niej, żeby nie było „o.o..”.
+            showSuccess('Kontrahent w archiwum', `„${contractor.name}” przywrócisz z archiwum u góry strony.`);
         } catch (e) {
             showError('Nie udało się przenieść kontrahenta do archiwum', problemDetail(e, 'Spróbuj ponownie.'));
         }
