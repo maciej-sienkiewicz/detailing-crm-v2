@@ -780,7 +780,7 @@ h1 { font-size: clamp(30px, 5vw, 46px); line-height: 1.08; letter-spacing: -0.03
     <div class="eyebrow">DetailBoost, instrukcje</div>
     <h1>Jak zaplanować auto na stanowisku?</h1>
   </header>
-  <p class="lede">Volvo pani Nowak stoi w studiu. Animacja pokazuje, jak zaplanować auto na stanowisku, dodać drugi etap, zapisać wjazd na halę i przenieść auto na inne stanowisko. Wybierz rozdział pod animacją, żeby przejść od razu do niego.</p>
+  <p class="lede">Volvo pani Nowak stoi w studiu. Animacja pokazuje, jak zaplanować auto na stanowisku, dodać drugi etap, przypisać mu stanowisko i zmienić stanowisko w trakcie pracy. Wybierz rozdział pod animacją, żeby przejść od razu do niego.</p>
 
   <div class="player" id="player" aria-label="Animacja: jak zaplanować auto na stanowisku">
     <div class="stage" id="stage">
@@ -963,7 +963,7 @@ window.IMG = {"p": ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgG
   const DAYLEN = [840, 840, 840, 840, 840, 480];
   const X = (d, h, m = 0) => (d + Math.min(DAYLEN[d], Math.max(0, h * 60 + m - 360)) / 840) / 6;
   const pc = v => (v * 100).toFixed(4) + '%';
-  const ROWS = ['Myjnia', 'Kabina 1', 'Kabina 2', 'Strefa polerska'];
+  const ROWS = ['Myjnia', 'Stanowisko 1', 'Stanowisko 2', 'Strefa polerska'];
   const NOW = X(1, 9, 40);
   // other cars on the plan, all made up
   const bar = (cls, a, b, plate, sub, id = '', extra = '') => `<div class="bb ${cls}${b - a < .03 ? ' nar' : ''}"${id ? ` id="${id}"` : ''} style="left:${pc(a)};width:${pc(b - a)}">${extra}<span class="bt"><b>${plate}</b><span>${sub}</span></span></div>`;
@@ -996,7 +996,7 @@ window.IMG = {"p": ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgG
   const bzHTML = `<div class="bz" id="bz">
     <div class="bzh" id="bzh"><div><h1>Stanowiska</h1><p>Wtorek, 27.10, 09:40</p></div><div class="bzha"><span class="ibn">${sv(I.gear2, 18)}</span><span class="pbn">${sv(I.plus, 16, 2.5)}Nowa wizyta</span></div></div>
     <div class="bzn" id="bzn"><span class="ibn sm">${sv(I.left, 18)}</span><span class="ibn sm">${sv(I.right, 18)}</span><h2>26.10 – 31.10</h2><span class="seg"><span class="on">Tydzień</span><span>3 dni</span><span>Dzień</span></span></div>
-    <div class="bzg" id="gTr"><div><div class="tray" id="tray"><strong>Bez planu</strong><span class="tch" id="chip">${sv(I.move, 14)}<b>${PL}</b>${JOB}</span></div></div></div>
+    <div class="bzg" id="gTr"><div><div class="tray" id="tray"><strong>Oczekuje na przypisanie</strong><span class="tch" id="chip">${sv(I.move, 14)}<b>${PL}</b>${JOB}</span></div></div></div>
     ${grid}
     <div class="lgd" id="lgd"><span><i class="sw done"></i>Zrobione</span><span><i class="sw active"></i>Trwa</span><span><i class="sw plan"></i>Plan: przeciągnij, żeby przesunąć, chwyć krawędź, żeby zmienić długość</span><span><kbd>Alt</kbd> + przeciągnij pasek: kolejny etap tego auta</span></div>
   </div>`;
@@ -1048,7 +1048,7 @@ window.IMG = {"p": ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgG
   const choice = (id, ic, t, d) => `<div class="chc" id="${id}"><span class="chr"></span><span class="chi">${sv(ic, 15)}</span><div><b>${t}</b>${d ? `<small>${d}</small>` : ''}</div></div>`;
   const pdw = `<div class="lay pdw" id="pdw"><div class="pdh"><div><div class="pdt"><b>${PL}</b><span class="spl">Plan</span></div><p>Volvo XC60</p></div><span class="hmx">${sv(I.x, 18, 2.2)}</span></div>
     <div class="pdb">
-      <div class="hero"><div class="hrt"><h3>Kabina 1</h3><span>${JOB}</span></div><div class="hrr">dziś 6:00–20:00</div><div class="hrl">1 dzień pracy</div>
+      <div class="hero"><div class="hrt"><h3>Stanowisko 1</h3><span>${JOB}</span></div><div class="hrr">dziś 6:00–20:00</div><div class="hrl">1 dzień pracy</div>
         <div class="prm">${sv(I.calClock, 15)}<span>Odbiór obiecany <strong>jutro 17:00</strong></span></div></div>
       <section class="psec"><div class="phd"><h3>Klient</h3></div><div class="pps"><span class="ppi">${sv(I.user, 16)}</span><div><strong>${V.cu}</strong><span>${V.tel}</span></div><span class="ppc">${sv(I.phone, 14)}Zadzwoń</span></div></section>
       <section class="psec"><div class="phd"><h3>Usługi</h3><span class="pcn">2</span></div>
@@ -1060,15 +1060,15 @@ window.IMG = {"p": ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgG
     <div class="pg" id="vz">${vzHTML}</div>
     <div class="dav" id="dav"><b>${PL}</b><span>${JOB}</span></div>
     ${pdw}
-    ${shell('pkM', 'Wjazd na stanowisko', tiles, '<span class="hb lg">Anuluj</span><span class="hb lg pri" id="pkGo">Zapisz wjazd</span>')}
-    ${shell('fnM', 'Praca skończona', `<div class="chl">${choice('fc0', I.userChk, 'Gotowe do wydania', 'Praca przy aucie skończona. O wydaniu i powiadomieniu klienta decyduje kierownik.')}${choice('fc1', I.swap, 'Na inne stanowisko', 'Na przykład na myjnię')}${choice('fc2', I.park, 'Czeka na przypisanie', 'Zjeżdża ze stanowiska, praca będzie dalej')}</div>`, '<span class="hb lg">Anuluj</span><span class="hb lg pri" id="fnGo">Zatwierdź</span>')}`);
+    ${shell('pkM', 'Przypisz stanowisko', tiles, '<span class="hb lg">Anuluj</span><span class="hb lg pri" id="pkGo">Zapisz stanowisko</span>')}
+    ${shell('fnM', 'Praca skończona', `<div class="chl">${choice('fc0', I.userChk, 'Gotowe do wydania', 'Praca przy aucie skończona. O wydaniu i powiadomieniu klienta decyduje kierownik.')}${choice('fc1', I.swap, 'Zmiana stanowiska', 'Na przykład na myjnię')}${choice('fc2', I.park, 'Czeka na przypisanie', 'Zwalnia stanowisko, praca będzie dalej')}</div>`, '<span class="hb lg">Anuluj</span><span class="hb lg pri" id="fnGo">Zatwierdź</span>')}`);
   scene.insertAdjacentHTML('afterbegin', DBShell.app({ id: 'app', w: 1376, h: 1024, active: 'none', badges: { mail: 2 } }) + '<div class="dbov" id="ov"></div>');
   { const a = $('app'); a.style.left = '-248px'; a.style.top = '-8px'; $('appP').append($('bp')); $('appP').append($('vz')); const o = $('ov'); o.style.cssText = 'position:absolute;left:-248px;top:-8px;width:1376px;height:1024px;border-radius:22px;background:#0f172a;opacity:0;pointer-events:none'; }
   { const BAYS_IC = '<g><mask id="miBays" maskUnits="userSpaceOnUse" x="0" y="0" width="24" height="24"><rect width="24" height="24" fill="#fff"/><path d="M5.2 11.4h3.6V21H5.2z" fill="#000"/><path d="M10.2 11.4h3.6V21h-3.6z" fill="#000"/><path d="M15.2 11.4h3.6v3.2h-3.6z" fill="#000"/><path d="M9.29 27L27 9.29" fill="none" stroke="#000" stroke-width="1.3" stroke-linecap="square"/><path d="M6.89 27L27 6.89" fill="none" stroke="#000" stroke-width="1.3" stroke-linecap="square"/></mask><g mask="url(#miBays)"><path d="M12 2.6 21.5 8.2V14.5A6.5 6.5 0 0 1 15 21H2.5V8.2Z" fill="currentColor"/></g></g>';
     $('nvcal').insertAdjacentHTML('afterend', `<div class="dbit" id="nvbays"><span class="dbic"><svg viewBox="0 0 24 24" fill="none">${BAYS_IC}</svg></span><span class="dbtx">Stanowiska</span></div>`); }
   const GX = { X, pc, PL, JOB, NOW };
   // ---------- chapters and beats ----------
-  const CH = ['Plan tygodnia', 'Pierwszy etap', 'Kolejny etap', 'Wjazd', 'Zmiana stanowiska'];
+  const CH = ['Plan tygodnia', 'Pierwszy etap', 'Kolejny etap', 'Przypisanie stanowiska', 'Zmiana stanowiska'];
   const beats = [];
   const words = s => (s || '').split(/\s+/).filter(Boolean).length;
   window.beat = (ch, o, f) => beats.push({ ch, h: o.h, b: o.b, lead: o.lead ?? .6, act: o.act ?? 1, hold: o.hold ?? .6, f: f || (() => {}) });
@@ -1272,11 +1272,11 @@ window.IMG = {"p": ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgG
     { const g = $('gh1'), k = clamp(S.g1, 0, 1); g.style.opacity = k; g.style.visibility = k > .001 ? 'visible' : 'hidden';
       const end = S.rs ? lerp(X(1, 13), X(1, 20), io3(P(S.e1, .03, .22))) : X(1, 13);
       g.style.left = pc(X(1, 6)); g.style.width = pc(end - X(1, 6));
-      $('gh1T').textContent = S.rs ? PL : `${PL} na Kabina 1`; $('gh1S').textContent = `dziś 6:00–${S.rs && S.e1 > .12 ? '20:00' : '13:00'}`; }
+      $('gh1T').textContent = S.rs ? PL : `${PL} na Stanowisko 1`; $('gh1S').textContent = `dziś 6:00–${S.rs && S.e1 > .12 ? '20:00' : '13:00'}`; }
     { const g = $('gh2'), k = clamp(S.g2, 0, 1); g.style.opacity = k; g.style.visibility = k > .001 ? 'visible' : 'hidden';
       const end = S.rs2 ? lerp(X(2, 20), X(2, 13), io3(P(S.e2, .84, 1))) : X(2, 20);
       g.style.left = pc(X(2, 6)); g.style.width = pc(end - X(2, 6));
-      $('gh2T').textContent = S.rs2 ? PL : `Kolejny etap: ${PL} na Kabina 2`; $('gh2S').textContent = `jutro 6:00–${S.rs2 && S.e2 > .93 ? '13:00' : '20:00'}`; }
+      $('gh2T').textContent = S.rs2 ? PL : `Kolejny etap: ${PL} na Stanowisko 2`; $('gh2S').textContent = `jutro 6:00–${S.rs2 && S.e2 > .93 ? '13:00' : '20:00'}`; }
     $('dh1').textContent = DH(10 - (S.pl1 > .5 ? 1 : 0) - (S.r1 > .5 ? 1 : 0)); $('dh2').textContent = DH(13 - (S.pl2 > .5 ? (S.r2 > .5 ? 1 : 2) : 0));
 
     // --- preview drawer
@@ -1288,26 +1288,23 @@ window.IMG = {"p": ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgG
     // --- visit: „Na hali” strip
     $('schT').textContent = S.wed ? 'Odbiór dziś o 17:00' : 'Odbiór jutro o 17:00';
     { const st = S.st, wed = S.wed;
-      const plan = wed ? 'Plan: Kabina 2, dziś 6:00–13:00' : 'Plan: Kabina 1, dziś 6:00–20:00';
+      const plan = wed ? 'Plan: Stanowisko 2, dziś 6:00–13:00' : 'Plan: Stanowisko 1, dziś 6:00–20:00';
       const key = st + '|' + wed;
       if (key !== stripKey) {
         stripKey = key;
         const ic = sv(I.house, 16);
-        const tg = (n, t) => `<span class="tg" id="bTg">Przebieg: ${n}, ${t}<span id="bTgI" style="display:inline-flex">${sv(I.chevD, 14, 2.2)}</span></span>`;
         const run = '<span class="ac"><span class="hb sm out" id="bZk">' + sv(I.check, 14, 2.5) + 'Zakończ</span><span class="hb sm out">Wstrzymaj</span></span>';
-        $('bsl').innerHTML = st === 0 ? `${ic}<strong>Oczekuje na przypisanie</strong><span>${plan}</span><span class="ac"><span class="hb sm tin" id="bWj">Wjedź na stanowisko</span></span>`
-          : st === 1 ? `${ic}<strong>Kabina 1</strong><span>od 09:42</span><span>${plan}</span>${tg('1 odcinek', wed ? '10 h 23 min' : '0 min')}${run}`
-          : `${ic}<strong>Kabina 2</strong><span>od 06:05</span><span>${plan}</span>${tg('2 odcinki', '10 h 23 min')}${run}`;
-        $('bso').innerHTML = st === 2 ? '<li><strong>Kabina 1</strong>, wt 27.10 09:42–06:05, przeniesione</li><li><strong>Kabina 2</strong>, śr 28.10 06:05, trwa</li>' : '<li><strong>Kabina 1</strong>, wt 27.10 09:42, trwa</li>';
+        $('bsl').innerHTML = st === 0 ? `${ic}<strong>Oczekuje na przypisanie</strong><span>${plan}</span><span class="ac"><span class="hb sm tin" id="bWj">Przypisz stanowisko</span></span>`
+          : st === 1 ? `${ic}<strong>Stanowisko 1</strong><span>od 09:42</span><span>${plan}</span>${run}`
+          : `${ic}<strong>Stanowisko 2</strong><span>od 06:05</span><span>${plan}</span>${run}`;
       }
-      grow('gStl', S.stOpen, 0);
-      const ti = $('bTgI'); if (ti) ti.style.transform = `rotate(${io3(clamp(S.stOpen, 0, 1)) * 180}deg)`; }
+      grow('gStl', 0, 0); }
 
     // --- windows
     { const M = $('pkM'), m = S.pkMode;
       const txt = m ? ['wolne', 'wolne', 'wolne, w planie', 'wolne'] : ['wolne', 'wolne, w planie', 'PZ 21KM3', 'wolne'];
       for (let i = 0; i < 4; i++) { $('tl' + i + 'S').textContent = txt[i]; $('tl' + i).classList.toggle('busy', !m && i === 2); $('tl' + i).classList.toggle('on', i === (m ? 2 : 1)); }
-      center(M); enter(M, S.pk, 34, .95, 9); }
+      M.querySelector('.hmh b').textContent = m ? 'Zmiana stanowiska' : 'Przypisz stanowisko'; center(M); enter(M, S.pk, 34, .95, 9); }
     { const M = $('fnM'); for (let i = 0; i < 3; i++) $('fc' + i).classList.toggle('on', i === S.fnSel); center(M); enter(M, S.fn, 34, .95, 9); }
 
     // --- hover and press
@@ -1438,13 +1435,13 @@ window.IMG = {"p": ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgG
   B(0, { h: 'Volvo pani Nowak jest już w studiu. Zaplanuj, gdzie stanie.', b: 'W „Stanowiskach” każdy wiersz to stanowisko, a oś to dni tygodnia.', act: 2.4, hold: .8 }, (S, a) => {
     S.ap = 1; cam(S, PLAN, P(a, 0, .6)); foc(S, ['wg']); hl(S, 'wg', P(a, .5, .9), 4);
   });
-  B(0, { h: 'Auta bez planu czekają nad osią.', b: 'Przeciągasz je na stanowisko i dzień.', act: 1.8, hold: .8 }, (S, a) => {
+  B(0, { h: 'Nowe auta są nad osią, w „Oczekuje na przypisanie”.', b: 'Przeciągasz je na stanowisko i dzień.', act: 1.8, hold: .8 }, (S, a) => {
     S.ap = 1; cam(S, PLAN, 1); foc(S, ['gTr']); hl(S, 'chip', P(a, .1, .5), 4);
   });
 
   // ===== 2 Pierwszy etap =====
   B(1, { h: 'Przeciągnij auto na stanowisko.', b: 'Ramka pokazuje okienko, w które auto trafi.', act: 4.4, hold: .5 }, (S, a, s) => {
-    S.ap = 1; cam(S, PLAN, 1); show(S, s);
+    S.ap = 1; cam(S, PLAN, 1); show(S, s); foc(S, null);
     if (a < .3) { mv(S, 'chip', P(a, 0, .24), { from: 'chip', fdx: 180, fdy: 140, dx: -30 }); hov(S, a, .2, .3, 'chip'); }
     else mv(S, 'mk1a', P(a, .32, .76), { from: 'chip', fdx: -30, drag: 1 });
     if (a > .28 && a < .8) { S.hold = 1; S.drag = 1; }
@@ -1463,7 +1460,7 @@ window.IMG = {"p": ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgG
   });
 
   // ===== 3 Kolejny etap =====
-  B(2, { h: 'Auto pojedzie potem do Kabiny 2? Przytrzymaj Alt i przeciągnij pasek.', b: 'Tak dodajesz kolejny etap. Pierwszy plan zostaje na miejscu.', act: 4.6, hold: .5 }, (S, a) => {
+  B(2, { h: 'Auto przejdzie potem na Stanowisko 2? Przytrzymaj Alt i przeciągnij pasek.', b: 'Tak dodajesz kolejny etap. Pierwszy plan zostaje na miejscu.', act: 4.6, hold: .5 }, (S, a) => {
     p1(S); cam(S, PLAN, 1); S.cur.vis = 1; S.davBar = 1;
     if (a < .3) mv(S, 'vb1', P(a, 0, .22), { from: 'mk1e', dx: -30 }); else mv(S, 'mk2c', P(a, .34, .76), { from: 'vb1', fdx: -30, dx: -30, drag: 1 });
     S.alt = a < .82 ? P(a, .2, .28) : 1 - P(a, .82, .9);
@@ -1473,7 +1470,7 @@ window.IMG = {"p": ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgG
     S.g2 = a < .8 ? P(a, .6, .68) : 1 - P(a, .8, .88);
     S.p2 = P(a, .8, .92); S.pl2 = S.p2;
   });
-  B(2, { h: 'Chwyć prawą krawędź i skróć drugi etap.', b: 'Odbiór jest obiecany jutro o 17:00, więc w Kabinie 2 wystarczy pół dnia.', act: 4.0, hold: .6 }, (S, a) => {
+  B(2, { h: 'Chwyć prawą krawędź i skróć drugi etap.', b: 'Odbiór jest obiecany jutro o 17:00, więc na Stanowisku 2 wystarczy pół dnia.', act: 4.0, hold: .6 }, (S, a) => {
     p2(S); S.r2 = 0; cam(S, PLAN, 1); S.cur.vis = 1;
     if (a < .36) mv(S, 'mk2m', P(a, 0, .28), { from: 'mk2c', fdx: -30, dx: -4 }); else mv(S, 'mk2e', P(a, .38, .76), { from: 'mk2m', fdx: -4, drag: 1 });
     hov(S, a, .24, .36, 'vb2e');
@@ -1481,32 +1478,32 @@ window.IMG = {"p": ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgG
     S.rs2 = 1; S.g2 = a < .8 ? P(a, .35, .42) : 1 - P(a, .8, .9);
     S.e2 = io3(P(a, .38, .76)); S.r2 = P(a, .8, .9);
   });
-  B(2, { h: 'Auto ma teraz trasę z dwóch etapów.', b: 'Numer 1/2 na pasku mówi, że to pierwszy etap. Drugi jest jutro rano w Kabinie 2.', act: 2.4, hold: 1.0 }, (S, a, s) => {
+  B(2, { h: 'Auto ma teraz trasę z dwóch etapów.', b: 'Numer 1/2 na pasku mówi, że to pierwszy etap. Drugi jest jutro rano na Stanowisku 2.', act: 2.4, hold: 1.0 }, (S, a, s) => {
     p2(S); cam(S, PLAN, 1); S.cur.vis = 1 - P(s, 0, .4); foc(S, ['wg']); S.lnk = a > .2 ? 1 : 0; hl(S, 'sc1', P(a, .25, .6), 4);
   });
 
-  // ===== 4 Wjazd =====
+  // ===== 4 Przypisanie stanowiska =====
   B(3, { h: 'Kliknij pasek, żeby zobaczyć podgląd.', b: 'Jest w nim stanowisko, czas, obiecany odbiór, klient i usługi.', act: 3.0, hold: 1.0 }, (S, a, s) => {
     p2(S); show(S, s);
     mv(S, 'vb1', P(a, 0, .3), { from: 'vb1', fdx: 140, fdy: 120, dx: -30 }); tap(S, a, .34, 'vb1');
     S.dr = P(a, .4, .7); cam(S, a < .4 ? PLAN : DRW, a < .4 ? 1 : P(a, .4, .85), PLAN);
   });
-  B(3, { h: 'Auto wjeżdża na halę? Kliknij „Otwórz wizytę”.', b: '', act: 3.4, hold: .4 }, (S, a) => {
+  B(3, { h: 'Auto jest gotowe do pracy? Kliknij „Otwórz wizytę”.', b: '', act: 3.4, hold: .4 }, (S, a) => {
     p2(S); S.dr = 1; S.cur.vis = 1;
     mv(S, 'pdOpen', P(a, 0, .3), { from: 'vb1', fdx: -30 }); hov(S, a, .26, .4, 'pdOpen'); tap(S, a, .34, 'pdOpen');
     S.dr = a < .42 ? 1 : 1 - P(a, .42, .62);
     S.vw = P(a, .48, .8); if (a > .4) S.cur.vis = 1 - P(a, .4, .5);
     cam(S, a < .42 ? DRW : 'app', a < .42 ? 1 : P(a, .42, .9), DRW);
   });
-  B(3, { h: 'Pasek „Na hali” pokazuje, gdzie jest auto.', b: 'Auto czeka na przypisanie. W planie ma Kabinę 1 na dziś.', act: 2.2, hold: 1.0 }, (S, a) => {
+  B(3, { h: 'Pasek „Na hali” pokazuje, gdzie jest auto.', b: 'Auto czeka na przypisanie. W planie ma Stanowisko 1 na dziś.', act: 2.2, hold: 1.0 }, (S, a) => {
     visit(S); cam(S, STRIP, P(a, 0, .6)); foc(S, ['bayS']); hl(S, 'bayS', P(a, .5, .9), 4);
   });
-  B(3, { h: 'Kliknij „Wjedź na stanowisko”.', b: 'Stanowisko z planu jest już zaznaczone.', act: 3.2, hold: .8 }, (S, a, s) => {
+  B(3, { h: 'Kliknij „Przypisz stanowisko”.', b: 'Stanowisko z planu jest już zaznaczone.', act: 3.2, hold: .8 }, (S, a, s) => {
     visit(S); show(S, s); foc(S, a < .36 ? ['bayS'] : null);
     mv(S, 'bWj', P(a, 0, .26), { from: 'bWj', fdx: -160, fdy: 120 }); hov(S, a, .22, .36, 'bWj'); tap(S, a, .3, 'bWj');
     S.pk = P(a, .36, .6); cam(S, a < .36 ? STRIP : PK, a < .36 ? 1 : P(a, .36, .7), STRIP); if (a > .7) hl(S, 'tl1', P(a, .7, .95), 4);
   });
-  B(3, { h: 'Kliknij „Zapisz wjazd”.', b: 'Pasek pokazuje stanowisko i godzinę wjazdu.', act: 3.2, hold: 1.0 }, (S, a) => {
+  B(3, { h: 'Kliknij „Zapisz stanowisko”.', b: 'Pasek pokazuje stanowisko i godzinę przypisania.', act: 3.2, hold: 1.0 }, (S, a) => {
     visit(S); S.cur.vis = 1;
     mv(S, 'pkGo', P(a, 0, .26), { from: 'bWj' }); hov(S, a, .22, .34, 'pkGo'); tap(S, a, .28, 'pkGo');
     S.pk = 1 - P(a, .34, .54); S.st = a > .44 ? 1 : 0; if (a > .4) S.cur.vis = 1 - P(a, .4, .5);
@@ -1514,29 +1511,25 @@ window.IMG = {"p": ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgG
   });
 
   // ===== 5 Zmiana stanowiska =====
-  B(4, { h: 'W środę o 6:05 auto jedzie do Kabiny 2. Kliknij „Zakończ”.', b: '', act: 3.0, hold: .5 }, (S, a, s) => {
+  B(4, { h: 'W środę o 6:05 auto przechodzi na Stanowisko 2. Kliknij „Zakończ”.', b: '', act: 3.0, hold: .5 }, (S, a, s) => {
     visit(S); S.st = 1; S.wed = 1; show(S, s); foc(S, a < .45 ? ['bayS'] : null);
     mv(S, 'bZk', P(a, 0, .28), { from: 'bZk', fdx: -160, fdy: 120 }); hov(S, a, .24, .38, 'bZk'); tap(S, a, .32, 'bZk');
     S.fn = P(a, .4, .64); cam(S, a < .4 ? STRIP : FN, a < .4 ? 1 : P(a, .4, .75), STRIP);
   });
-  B(4, { h: 'Wybierz „Na inne stanowisko” i kliknij „Zatwierdź”.', b: 'Otworzy się wybór stanowiska.', act: 3.6, hold: .5 }, (S, a) => {
+  B(4, { h: 'Wybierz „Zmiana stanowiska” i kliknij „Zatwierdź”.', b: 'Otworzy się wybór stanowiska.', act: 3.6, hold: .5 }, (S, a) => {
     visit(S); S.st = 1; S.wed = 1; S.cur.vis = 1; S.pkMode = 1;
     if (a < .4) mv(S, 'fc1', P(a, 0, .26), { from: 'bZk', dx: -80 }); else mv(S, 'fnGo', P(a, .4, .6), { from: 'fc1', fdx: -80 });
     tap(S, a, .3); S.fnSel = a > .33 ? 1 : 0; hov(S, a, .58, .7, 'fnGo'); tap(S, a, .64, 'fnGo');
     S.fn = a < .7 ? 1 : 1 - P(a, .7, .86); S.pk = P(a, .78, 1); cam(S, a < .7 ? FN : PK, a < .7 ? 1 : P(a, .7, 1), FN);
   });
-  B(4, { h: 'Kabina 2 z planu jest zaznaczona. Kliknij „Zapisz wjazd”.', b: '', act: 3.0, hold: .6 }, (S, a) => {
+  B(4, { h: 'Stanowisko 2 z planu jest zaznaczone. Kliknij „Zapisz stanowisko”.', b: '', act: 3.0, hold: .6 }, (S, a) => {
     visit(S); S.st = 1; S.wed = 1; S.pkMode = 1; S.fnSel = 1; S.cur.vis = 1;
     if (a < .3) hl(S, 'tl2', P(a, 0, .2), 4);
     mv(S, 'pkGo', P(a, .2, .44), { from: 'fnGo' }); hov(S, a, .4, .52, 'pkGo'); tap(S, a, .46, 'pkGo');
     S.pk = a < .52 ? 1 : 1 - P(a, .52, .72); S.st = a > .62 ? 2 : 1; cam(S, a < .52 ? PK : STRIP, a < .52 ? 1 : P(a, .52, .9), PK);
   });
-  B(4, { h: 'Rozwiń „Przebieg”.', b: 'Widać każdy odcinek: gdzie auto stało i od kiedy.', act: 2.8, hold: 1.2 }, (S, a) => {
-    visit(S); S.st = 2; S.wed = 1; S.pkMode = 1; S.cur.vis = 1; cam(S, STRIP, 1); foc(S, ['bayS']);
-    mv(S, 'bTg', P(a, 0, .3), { from: 'pkGo', dx: -40 }); tap(S, a, .34); S.stOpen = P(a, .38, .62); if (a > .62) hl(S, 'bayS', P(a, .62, .9), 4);
-  });
   B(4, { h: 'Tak planujesz auta na stanowiskach.', b: 'Jeśli coś jest niejasne, napisz do nas przez „Zgłoś problem” w menu.', act: 4.6, hold: 2.6 }, (S, a, s) => {
-    visit(S); S.st = 2; S.wed = 1; S.pkMode = 1; S.stOpen = 1; S.cur.vis = 1 - P(s, 0, .4); foc(S, null);
+    visit(S); S.st = 2; S.wed = 1; S.pkMode = 1; S.cur.vis = 1 - P(s, 0, .4); foc(S, null);
     cam(S, 'app', P(a, 0, .85), STRIP); if (a > .75) hl(S, 'nvreport', P(a, .75, 1), 3);
   });
 })();
