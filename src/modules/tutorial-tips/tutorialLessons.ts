@@ -78,7 +78,7 @@ const LESSONS: Readonly<Record<string, Omit<TutorialLesson, 'slug'>>> = {
     'do-czego-jest-archiwum-kontrahentow': { title: 'Do czego jest archiwum kontrahentów?', seconds: 67, chapters: 3 },
     'jak-stworzyc-kampanie-sms': { title: 'Jak stworzyć kampanię SMS?', seconds: 63, chapters: 4 },
     'jak-obserwowac-konkurencje-na-instagramie': { title: 'Jak obserwować konkurencję na Instagramie?', seconds: 134, chapters: 7 },
-    'jak-czytac-finanse-i-statystyki': { title: 'Jak czytać finanse i statystyki?', seconds: 71, chapters: 3 },
+    'jak-czytac-finanse-i-statystyki': { title: 'Jak czytać finanse i statystyki?', seconds: 138, chapters: 5 },
 };
 
 interface RouteModule {

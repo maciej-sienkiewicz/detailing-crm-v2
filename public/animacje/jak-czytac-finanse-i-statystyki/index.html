@@ -901,6 +901,96 @@ i.g { background: #10b981; } i.b { background: #0369a1; }
 .st-tip { position: absolute; z-index: 5; padding: 10px 12px; border-radius: 10px; background: #0f172a; color: #fff; font-size: 12px; display: flex; flex-direction: column; gap: 4px; box-shadow: 0 10px 24px -6px rgba(15,23,42,.4); white-space: nowrap; opacity: 0; }
 .st-tip span { display: flex; align-items: center; gap: 6px; }
 .st-tip small { color: #94a3b8; font-size: 11px; }
+/* Należności: gdzie się je ukrywa (Ustawienia → Finanse i KSeF → PaymentTrackingPanel) */
+.fn-ot { position: absolute; z-index: 20; width: 330px; padding: 12px 14px; border-radius: 14px; background: #fff; border: 1px solid #e2e8f0; box-shadow: 0 14px 34px -8px rgba(15,23,42,.25); font-size: 12.5px; color: #64748b; opacity: 0; visibility: hidden; }
+.fn-ot small { display: block; font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; margin-bottom: 8px; }
+.fn-ot div { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.fn-ot b { font-size: 13.5px; font-weight: 600; color: #0f172a; }
+.fn-ot p { margin: 6px 0 0; line-height: 1.45; }
+.fn-tg { flex: 0 0 auto; width: 38px; height: 22px; border-radius: 999px; background: #0369a1; position: relative; }
+.fn-tg::after { content: ''; position: absolute; top: 3px; left: 19px; width: 16px; height: 16px; border-radius: 50%; background: #fff; }
+/* Statystyki: nawigacja, podział według kategorii (StatisticsView) */
+.st-nav span.hov:not(.on) { color: #0f172a; background: rgba(15,23,42,.04); }
+.st-tg { display: grid; grid-template-columns: 360px minmax(0, 1fr); gap: 16px; align-items: start; }
+.st-col { display: flex; flex-direction: column; gap: 10px; min-width: 0; }
+.st-colh { display: flex; align-items: center; justify-content: space-between; gap: 10px; min-height: 34px; }
+.st-colh b { font-size: 14px; font-weight: 700; color: #0f172a; }
+.st-add { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 10px; border: 1px solid #e2e8f0; background: #fff; font-size: 13px; font-weight: 600; color: #0369a1; }
+.st-clr { padding: 5px 10px; border-radius: 8px; background: #f1f5f9; font-size: 12px; font-weight: 600; color: #475569; opacity: 0; visibility: hidden; }
+.st-clr.hov { background: #e2e8f0; }
+.st-tab { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; }
+.st-cat { display: grid; grid-template-columns: 10px minmax(0, 1fr) auto 44px; gap: 10px; align-items: center; padding: 12px 14px; border-bottom: 1px solid #f1f5f9; font-size: 13.5px; color: #0f172a; transition: none; }
+.st-cat:last-child { border-bottom: 0; }
+.st-cat b { font-weight: 600; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.st-cat em { display: flex; gap: 8px; justify-content: flex-end; color: #cbd5e1; }
+.st-cat.hov { background: #f8fafc; }
+.st-cat.sel { background: #f0f6f9; box-shadow: inset 3px 0 0 #0369a1; }
+.st-cat.drop { background: #e0f2fe; box-shadow: inset 0 0 0 2px #0369a1; }
+.st-dot { display: inline-block; width: 10px; height: 10px; border-radius: 50%; }
+.st-fb { display: flex; align-items: center; gap: 8px; }
+.st-seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 10px; background: #f1f5f9; }
+.st-seg i { font-style: normal; padding: 5px 10px; border-radius: 8px; font-size: 12px; font-weight: 600; color: #64748b; white-space: nowrap; }
+.st-seg i.on { background: #fff; color: #0f172a; box-shadow: 0 1px 2px rgba(15,23,42,.08); }
+.st-se { flex: 1; padding: 7px 12px; border: 1px solid #e2e8f0; border-radius: 10px; background: #fff; font-size: 12.5px; color: #94a3b8; }
+.st-hint { padding: 9px 12px; border-radius: 10px; background: #fffbeb; border: 1px solid #fde68a; font-size: 12.5px; color: #92400e; }
+.st-ih, .st-ir { display: grid; grid-template-columns: minmax(0, 1fr) 60px 100px 170px 20px; gap: 10px; align-items: center; padding: 0 14px; }
+.st-ih { padding-top: 9px; padding-bottom: 9px; background: #f8fafc; border-bottom: 1px solid #e2e8f0; }
+.st-ih span { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; }
+.st-ir { padding-top: 10px; padding-bottom: 10px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #334155; background: #fff; }
+.st-ir > span:nth-child(2), .st-ir > span:nth-child(3) { font-variant-numeric: tabular-nums; white-space: nowrap; }
+.st-ir em { font-style: normal; color: #94a3b8; }
+.st-in { font-weight: 600; color: #0f172a; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.st-kb { color: #94a3b8; text-align: center; }
+.st-badge { display: inline-flex; padding: 2px 9px; border-radius: 999px; font-style: normal; font-size: 11.5px; font-weight: 600; white-space: nowrap; color: var(--c); background: color-mix(in srgb, var(--c) 12%, #fff); }
+.st-ghost { position: absolute; z-index: 40; padding: 8px 14px; border-radius: 10px; background: #fff; border: 1px solid #0369a1; box-shadow: 0 12px 28px -6px rgba(15,23,42,.3); font-size: 13px; font-weight: 600; color: #0f172a; opacity: 0; pointer-events: none; white-space: nowrap; }
+/* Statystyki → Koszty (CostsView, TrendChart) */
+.st-kpi.r { --ac: #ef4444; } .st-kpi.o { --ac: #f97316; } .st-kpi.s { --ac: #6b7280; }
+i.r { background: #ef4444; } i.s { background: #64748b; }
+.st-b.c i { background: #ef4444; opacity: .8; }
+.st-b.c u { background: #64748b; }
+.st-rc { background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; overflow: hidden; }
+.st-rh { display: flex; align-items: center; gap: 8px; padding: 14px 16px; font-size: 14px; font-weight: 700; color: #0f172a; }
+.st-rh > svg { color: #0369a1; }
+.st-rh.hov { background: #f8fafc; }
+.st-rn { margin-left: auto; padding: 2px 8px; border-radius: 999px; background: rgba(3,105,161,.1); color: #0369a1; font-size: 11px; font-weight: 700; }
+.st-rh > i { display: inline-flex; color: #94a3b8; }
+.st-rb { border-top: 1px solid #f1f5f9; }
+.st-rr { display: grid; grid-template-columns: 110px minmax(0, 1fr) 20px auto 50px; gap: 12px; align-items: center; padding: 11px 16px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #0f172a; }
+.st-rr > span:first-child { font-family: ui-monospace, monospace; font-size: 12.5px; color: #64748b; }
+.st-rr > span:nth-child(3) { color: #94a3b8; }
+.st-rr em { display: flex; gap: 8px; justify-content: flex-end; color: #cbd5e1; }
+.st-rf { display: flex; align-items: center; justify-content: space-between; padding: 12px 16px; }
+.st-ap { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border-radius: 10px; border: 1px solid #e2e8f0; font-size: 13px; font-weight: 600; color: #334155; }
+/* Statystyki → Raporty (ReportsView) */
+.rp-card { background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(0,0,0,.04); }
+.rp-hd { display: flex; align-items: flex-start; justify-content: space-between; gap: 14px 20px; padding: 20px 22px 16px; }
+.rp-tt { display: flex; align-items: center; gap: 12px; }
+.rp-ic { width: 40px; height: 40px; border-radius: 12px; display: inline-flex; align-items: center; justify-content: center; background: #f0f6f9; border: 1px solid rgba(3,105,161,.2); color: #0369a1; }
+.rp-tt b { display: block; font-size: 17px; font-weight: 700; color: #0f172a; }
+.rp-tt small { display: block; margin-top: 2px; font-size: 12.5px; color: #64748b; }
+.rp-ctl { display: flex; gap: 10px; }
+.rp-seg { display: inline-flex; gap: 2px; padding: 3px; border-radius: 10px; background: #f1f5f9; border: 1px solid #e2e8f0; }
+.rp-seg i { font-style: normal; padding: 6px 12px; border-radius: 8px; font-size: 13px; font-weight: 600; color: #64748b; white-space: nowrap; }
+.rp-seg i.on { background: #fff; color: #0f172a; box-shadow: 0 1px 2px rgba(15,23,42,.1); }
+.rp-seg i.hov:not(.on) { color: #0f172a; }
+.rp-th, .rp-tr { display: grid; grid-template-columns: minmax(0, 1.1fr) minmax(0, 1fr) minmax(0, 1fr) 150px; gap: 14px; align-items: center; padding: 0 22px; }
+.rp-th { padding-top: 10px; padding-bottom: 10px; background: #f8fafc; border-top: 1px solid #e2e8f0; border-bottom: 1px solid #e2e8f0; }
+.rp-th span { font-size: 11px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: #94a3b8; }
+.rp-tr { padding-top: 13px; padding-bottom: 13px; border-bottom: 1px solid #f1f5f9; font-size: 13px; color: #334155; background: #fff; }
+.rp-tr.cur { background: #fafcfe; }
+.rp-tr > span:first-child { display: flex; align-items: center; gap: 8px; }
+.rp-tr b { font-weight: 600; color: #0f172a; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.rp-tr small { display: block; margin-top: 3px; font-size: 12px; color: #94a3b8; white-space: nowrap; }
+.rp-cmp { display: flex; align-items: center; gap: 6px; margin-top: 4px; }
+.rp-cmp small { margin: 0; }
+.pill { display: inline-flex; padding: 1px 8px; border-radius: 999px; font-style: normal; font-size: 11.5px; font-weight: 600; white-space: nowrap; }
+.pill.ok { background: #f0fdf4; color: #15803d; } .pill.wa { background: #fffbeb; color: #b45309; } .pill.n { background: #f1f5f9; color: #475569; }
+.rp-ac { display: flex; justify-content: flex-end; }
+.rp-pend { display: inline-flex; align-items: center; gap: 8px; font-size: 12.5px; color: #64748b; white-space: nowrap; }
+.rp-ring { display: inline-block; width: 14px; height: 14px; border-radius: 50%; border: 2px solid rgba(3,105,161,.18); border-top-color: #0369a1; }
+.rp-pdf { display: inline-flex; align-items: center; gap: 6px; padding: 6px 12px; border-radius: 9px; border: 1px solid #cbd5e1; background: #fff; font-size: 12.5px; font-weight: 600; color: #0f172a; white-space: nowrap; }
+.rp-pdf em { font-style: normal; }
+.rp-pdf.hov { border-color: #0369a1; color: #0369a1; }
 /* ===== rama aplikacji DetailBoost (wspolne/shell.js): Layout/frame.ts + Sidebar/SidebarStyles.ts ===== */
 .dbapp { position: absolute; left: 0; top: 0; background: #0f172a; border-radius: 22px; overflow: hidden; box-shadow: 0 1px 2px rgba(15,23,42,.08), 0 30px 70px -20px rgba(15,23,42,.38); font-family: var(--font); line-height: normal; color: #0f172a; font-size: 14px; }
 .dbsb { position: absolute; left: 0; top: 0; bottom: 0; width: 248px; background: #0f172a; display: flex; flex-direction: column; overflow: hidden; }
@@ -939,7 +1029,7 @@ i.g { background: #10b981; } i.b { background: #0369a1; }
     <div class="eyebrow">DetailBoost, instrukcje</div>
     <h1>Jak czytać finanse i statystyki?</h1>
   </header>
-  <p class="lede">Marek zamyka listopad. Animacja pokazuje, co znaczą przychody netto, należności, koszty i zysk w „Finansach” oraz jak czytać sprzedaż w „Statystykach”. Wybierz rozdział pod animacją, żeby przejść od razu do niego.</p>
+  <p class="lede">Animacja pokazuje, co znaczą przychody netto, należności, koszty i zysk w „Finansach” oraz jak czytać sprzedaż, kategorie, koszty i raporty w „Statystykach”. Wybierz rozdział pod animacją, żeby przejść od razu do niego.</p>
 
   <div class="player" id="player" aria-label="Animacja: jak czytać finanse i statystyki">
     <div class="stage" id="stage">
@@ -1155,28 +1245,88 @@ window.IMG = {"p": ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgG
   </div>`;
   // Statystyki: ostatnie 12 miesięcy, grudzień 2025 do grudnia 2026 (7 dni), brutto z cen wizyt
   const MON = [['gru', 24300, 28], ['sty', 18900, 22], ['lut', 20450, 24], ['mar', 27800, 31], ['kwi', 33600, 37], ['maj', 39200, 43], ['cze', 41750, 45], ['lip', 36900, 40], ['sie', 31400, 34], ['wrz', 35260, 38], ['paź', 37950, 40], ['lis', 38180, 41], ['gru', 6120, 7]];
-  const CATS = [['Powłoki i ochrona lakieru', '#0369a1', 41, '160 642 zł'], ['Mycie i detailing', '#10b981', 33, '129 297 zł'], ['Wnętrze', '#f59e0b', 17, '66 608 zł'], ['Korekta lakieru', '#8b5cf6', 9, '35 263 zł']];
-  const pie = (() => { let a0 = -Math.PI / 2; return CATS.map(c => { const a1 = a0 + c[2] / 100 * Math.PI * 2, R = 74, r = 46, p = (a, rr) => `${(90 + rr * Math.cos(a)).toFixed(2)} ${(90 + rr * Math.sin(a)).toFixed(2)}`, big = a1 - a0 > Math.PI ? 1 : 0;
-    const d = `M ${p(a0, R)} A ${R} ${R} 0 ${big} 1 ${p(a1, R)} L ${p(a1, r)} A ${r} ${r} 0 ${big} 0 ${p(a0, r)} Z`; a0 = a1; return `<path d="${d}" fill="${c[1]}" stroke="#fff" stroke-width="2"/>`; }).join(''); })();
+  const CATS = [['Powłoki i ochrona lakieru', '#0369a1', 41, '160 642 zł'], ['Mycie i detailing', '#10b981', 33, '129 297 zł'], ['Wnętrze', '#f59e0b', 17, '66 308 zł'], ['Korekta lakieru', '#8b5cf6', 9, '35 263 zł']];
+  const mkPie = L => { let a0 = -Math.PI / 2; return L.map(c => { const a1 = a0 + c[2] / 100 * Math.PI * 2, R = 74, r = 46, p = (a, rr) => `${(90 + rr * Math.cos(a)).toFixed(2)} ${(90 + rr * Math.sin(a)).toFixed(2)}`, big = a1 - a0 > Math.PI ? 1 : 0;
+    const d = `M ${p(a0, R)} A ${R} ${R} 0 ${big} 1 ${p(a1, R)} L ${p(a1, r)} A ${r} ${r} 0 ${big} 0 ${p(a0, r)} Z`; a0 = a1; return `<path d="${d}" fill="${c[1]}" stroke="#fff" stroke-width="2"/>`; }).join(''); };
+  const pie = mkPie(CATS);
+  const legend = (L, p) => `<ul>${L.map((c, i) => `<li><i style="background:${c[1]}"></i><span>${c[0]}</span><b>${c[2]}%</b><small id="${p}${i}">${c[3]}</small></li>`).join('')}</ul>`;
+  const RCP = sv('<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/>', 15);
+  const NAV = on => `<span class="st-nav">${[[TUP, 'Przychody'], [RCP, 'Koszty'], [sv(I.file, 15), 'Raporty']].map((n, i) => `<span id="${'scr'[on]}n${i}"${i === on ? ' class="on"' : ''}>${n[0]}${n[1]}</span>`).join('')}</span>`;
+  // podział według kategorii: usługi z ostatnich 12 miesięcy (brutto), „Ozonowanie” jeszcze bez kategorii
+  const SRV = [['Powłoka ceramiczna 3 lata', 52, '98 800 zł', 0], ['Folia PPF przód', 18, '61 842 zł', 0], ['Pakiet kompleksowy', 98, '65 097 zł', 1], ['Mycie detailingowe', 214, '64 200 zł', 1],
+    ['Pranie tapicerki', 61, '39 650 zł', 2], ['Korekta lakieru 1-etapowa', 27, '35 263 zł', 3], ['Czyszczenie skór', 44, '26 658 zł', 2], ['Ozonowanie', 2, '300 zł', -1]];
+  const BADGE = i => `<i class="st-badge" style="--c:${CATS[i][1]}">${CATS[i][0]}</i>`;
+  const catHTML = `<div class="st-sec" id="stCat"><b>Podział według kategorii</b><i></i></div>
+    <div class="st-tg">
+      <div class="st-col"><div class="st-colh"><b>Kategorie usług</b><span class="st-add">${PLS}Nowa kategoria</span></div>
+        <div class="st-tab" id="scL">${CATS.map((c, i) => `<div class="st-cat" id="sc${i}"><i class="st-dot" style="background:${c[1]}"></i><span>${c[0]}</span><b id="sc${i}V">${c[3]}</b><em>${sv(I.pencil, 13)}${sv(I.trash, 13)}</em></div>`).join('')}</div></div>
+      <div class="st-col"><div class="st-colh"><b id="svT">Usługi</b><span class="st-clr" id="svClr">✕ Pokaż wszystkie</span></div>
+        <div class="st-fb"><span class="st-seg"><i class="on">Wszystkie</i><i>Bez kategorii</i><i>Z kategorią</i></span><span class="st-se">Szukaj po nazwie…</span></div>
+        <div id="svHw"><div class="st-hint">⚠ Usługi bez kategorii: 1. Przeciągnij je na kategorię po lewej albo użyj menu ⋮.</div></div>
+        <div class="st-tab" id="svL"><div class="st-ih"><span>Usługa</span><span>Wizyty</span><span>Przychód</span><span>Kategoria</span><span></span></div>
+          ${SRV.map((r, i) => `<div id="svw${i}"><div class="st-ir" id="sv${i}"><span class="st-in" id="sv${i}n">${r[0]}</span><span>${r[1]}</span><span>${r[2]}</span><span id="sv${i}c">${r[3] >= 0 ? BADGE(r[3]) : '<em>-</em>'}</span><span class="st-kb">⋮</span></div></div>`).join('')}</div></div>
+    </div>`;
+  // Statystyki → Koszty: ostatnie 12 miesięcy, brutto (donut i wykres liczą brutto pozycji)
+  const CC = [['Najem lokalu', '#ef4444', 47, '73 800 zł'], ['Chemia i materiały', '#f97316', 32, '51 414 zł'], ['Media', '#eab308', 11, '18 007 zł'], ['Inne', '#64748b', 10, '15 375 zł']];
+  const CMON = [['gru', 12100, 17], ['sty', 11800, 16], ['lut', 12000, 16], ['mar', 12900, 18], ['kwi', 13300, 18], ['maj', 13100, 17], ['cze', 12800, 17], ['lip', 12400, 16], ['sie', 11900, 16], ['wrz', 13000, 18], ['paź', 13200, 18], ['lis', 14123, 19], ['gru', 2214, 3]];
+  const RUL = [['7792233445', 'Detailing Hurt sp. z o.o.', 1], ['7831190264', 'Garbary Nieruchomości sp. z o.o.', 0], ['7822045518', 'Prąd Plus sp. z o.o.', 2]];
+  const ZAP = sv('<path d="M4 14a1 1 0 0 1-.78-1.63l9.9-10.2a.5.5 0 0 1 .86.46l-1.92 6.02A1 1 0 0 0 13 10h7a1 1 0 0 1 .78 1.63l-9.9 10.2a.5.5 0 0 1-.86-.46l1.92-6.02A1 1 0 0 0 11 14z"/>', 15);
+  const costHTML = `<div class="bo-pg fn-pg" id="pgC">
+    <div class="bo-ph"><div><h1>Statystyki</h1><p>Na co wydajesz pieniądze</p></div>
+      <div class="bo-pha"><span class="fn-dp">${CAL}<em>Ostatnie 12 miesięcy</em>${CHV}</span>${NAV(1)}</div></div>
+    <div class="st-sec"><b>Przegląd kosztów</b><i></i></div>
+    <div class="st-kpis" id="ckpis"><div class="st-kpi r"><small>Łączny koszt brutto</small><b>158 596,20 zł</b></div><div class="st-kpi o"><small>Łączny koszt netto</small><b>128 940,00 zł</b></div><div class="st-kpi s"><small>Liczba pozycji</small><b>214</b></div></div>
+    <div class="st-row">
+      <div class="st-cc" id="cpie"><div class="st-ct">Koszty według kategorii</div><div class="st-pie"><svg viewBox="0 0 180 180" width="180" height="180">${mkPie(CC)}</svg>${legend(CC, 'cl')}</div></div>
+      <div class="st-cc" id="cchC"><div class="st-ct">Koszty w czasie<span class="st-lg"><i class="r"></i>Koszt brutto<i class="s b"></i>Pozycje</span></div>
+        <div class="st-ch"><div class="st-ax">${['15k', '10k', '5k', '0'].map(v => `<span>${v}</span>`).join('')}</div>
+          <div class="st-bars">${CMON.map(m => `<div class="st-b c"><i style="height:${(m[1] / 15000 * 100).toFixed(1)}%"></i><u style="bottom:${(m[2] / 25 * 100).toFixed(1)}%"></u><span>${m[0]}</span></div>`).join('')}</div></div></div>
+    </div>
+    <div class="st-sec" id="cRul"><b>Reguły automatyczne</b><i></i></div>
+    <div class="st-rc" id="rcard"><div class="st-rh" id="rhd">${ZAP}Kategoria według dostawcy<span class="st-rn">3</span><i id="rchev">${CHV}</i></div>
+      <div id="rbw"><div class="st-rb">${RUL.map((r, i) => `<div class="st-rr" id="rr${i}"><span>${r[0]}</span><span>${r[1]}</span><span>→</span><span>${`<i class="st-badge" style="--c:${CC[r[2]][1]}">${CC[r[2]][0]}</i>`}</span><em>${sv(I.pencil, 13)}${sv(I.trash, 13)}</em></div>`).join('')}
+        <div class="st-rf"><span class="st-add">${PLS}Dodaj regułę</span><span class="st-ap">${sv(I.rot, 13)}Przypisz według reguł</span></div></div></div></div>
+  </div>`;
+  // Statystyki → Raporty: tydzień (domyślnie) i miesiąc, porównanie z poprzednim okresem (ReportFormat.change)
+  const DLI = sv(I.dl, 14);
+  const tone = c => c.startsWith('+') ? 'ok' : c.startsWith('-') ? 'wa' : 'n';
+  const curRow = r => `<div class="rp-tr cur"><span><b>${r[0]}</b><i class="pill n">Trwa</i></span><span><b>${r[1]}</b><small>do dziś</small></span><span><b>${r[2]}</b><small>do dziś</small></span><span class="rp-ac"><span class="rp-pend"><i class="rp-ring"></i>Gotowy ${r[3]}</span></span></div>`;
+  const fullRow = (id, r) => `<div class="rp-tr" id="${id}"><span><b>${r[0]}</b></span><span><b>${r[1]}</b><span class="rp-cmp"><i class="pill ${tone(r[2])}">${r[2]}</i><small>poprzednio ${r[3]}</small></span></span>
+      <span><b>${r[4]}</b><span class="rp-cmp"><i class="pill ${tone(r[5])}">${r[5]}</i><small>poprzednio ${r[6]}</small></span></span><span class="rp-ac"><span class="rp-pdf" id="${id}D">${DLI}<em id="${id}L">PDF</em></span></span></div>`;
+  const RW = [['30 lis – 6 gru', '6 970,00 zł', '-29%', '9 840,00 zł', '7', '-4', '11'], ['23 lis – 29 lis', '9 840,00 zł', '+14%', '8 620,00 zł', '11', '+10%', '10'],
+    ['16 lis – 22 lis', '8 620,00 zł', '+2%', '8 450,00 zł', '10', '+1', '9'], ['9 lis – 15 lis', '8 450,00 zł', '+2%', '8 300,00 zł', '9', 'bez zmian', '9']];
+  const RM = [['1 lis – 30 lis', '38 180,00 zł', '+1%', '37 950,00 zł', '41', '+3%', '40'], ['1 paź – 31 paź', '37 950,00 zł', '+8%', '35 260,00 zł', '40', '+5%', '38'],
+    ['1 wrz – 30 wrz', '35 260,00 zł', '+12%', '31 400,00 zł', '38', '+12%', '34'], ['1 sie – 31 sie', '31 400,00 zł', '-15%', '36 900,00 zł', '34', '-15%', '40']];
+  const repHTML = `<div class="bo-pg fn-pg" id="pgR">
+    <div class="bo-ph"><div><h1>Statystyki</h1><p>Raporty za pełne okresy od założenia konta</p></div><div class="bo-pha">${NAV(2)}</div></div>
+    <div class="rp-card" id="rpC">
+      <div class="rp-hd"><div class="rp-tt"><span class="rp-ic">${sv(I.file, 20)}</span><div><b>Raporty</b><small>Od 3 mar 2025</small></div></div>
+        <div class="rp-ctl"><span class="rp-seg"><i id="rl0" class="on">Tydzień</i><i>2 tygodnie</i><i id="rl2">Miesiąc</i></span><span class="rp-seg"><i class="on">Poprzedni okres</i><i>Typowy wynik z 6 okresów</i></span></div></div>
+      <div class="rp-th"><span>Okres</span><span>Sprzedaż brutto</span><span>Wizyty zamknięte</span><span></span></div>
+      <div class="fn-tw"><div id="rpW">${curRow(['7 gru – 13 gru', '1 050,00 zł', '1', '14 gru'])}${RW.map((r, i) => fullRow('rw' + i, r)).join('')}</div>
+        <div id="rpM">${curRow(['1 gru – 31 gru', '6 120,00 zł', '7', '1 sty 2027'])}${RM.map((r, i) => fullRow('rm' + i, r)).join('')}</div></div>
+    </div>
+  </div>`;
   const mx = 45000;
   const statHTML = `<div class="bo-pg fn-pg" id="pgS">
     <div class="bo-ph"><div><h1>Statystyki</h1><p>Ile zarabiasz i na czym</p></div>
       <div class="bo-pha"><span class="fn-dp" id="sdT">${CAL}<em id="sdL">Bieżący miesiąc</em>${CHV}</span>
-        <span class="st-nav"><span class="on">${TUP}Przychody</span><span>${sv('<path d="M4 2v20l2-1 2 1 2-1 2 1 2-1 2 1 2-1 2 1V2l-2 1-2-1-2 1-2-1-2 1-2-1-2 1Z"/><path d="M16 8h-6a2 2 0 1 0 0 4h4a2 2 0 1 1 0 4H8"/>', 15)}Koszty</span><span>${sv(I.file, 15)}Raporty</span></span></div></div>
+        ${NAV(0)}</div></div>
     <div class="st-sec"><b>Przegląd przychodów</b><i></i></div>
     <div class="st-kpis" id="kpis"><div class="st-kpi g"><small>Łączny przychód brutto</small><b id="kG">6 120 zł</b></div><div class="st-kpi b"><small>Liczba wizyt</small><b id="kN">7</b></div><div class="st-kpi v"><small>Średnia wartość wizyty</small><b id="kA">874,29 zł</b></div></div>
     <div class="st-row">
-      <div class="st-cc" id="pieC"><div class="st-ct">Przychód według kategorii</div><div class="st-pie"><svg viewBox="0 0 180 180" width="180" height="180">${pie}</svg>
-        <ul>${CATS.map(c => `<li><i style="background:${c[1]}"></i><span>${c[0]}</span><b>${c[2]}%</b><small>${c[3]}</small></li>`).join('')}</ul></div></div>
+      <div class="st-cc" id="pieC"><div class="st-ct">Przychód według kategorii</div><div class="st-pie"><svg viewBox="0 0 180 180" width="180" height="180">${pie}</svg>${legend(CATS, 'pl')}</div></div>
       <div class="st-cc" id="chC"><div class="st-ct">Przychody i wizyty<span class="st-lg"><i class="g"></i>Przychód<i class="b"></i>Wizyty</span></div>
         <div class="st-ch" id="chart"><div class="st-ax">${[40, 30, 20, 10, 0].map(v => `<span>${v ? v + 'k' : '0'}</span>`).join('')}</div>
           <div class="st-bars">${MON.map((m, i) => `<div class="st-b" id="bar${i}"><i style="height:${(m[1] / mx * 100).toFixed(1)}%"></i><u style="bottom:${(m[2] / 50 * 100).toFixed(1)}%"></u><span>${m[0]}</span></div>`).join('')}</div></div>
         <div class="st-tip" id="tip"><b>listopad 2026</b><span><i class="g"></i>38 180 zł</span><span><i class="b"></i>41 wizyt</span><small>Kliknij okres, aby zobaczyć jego wizyty</small></div></div>
     </div>
-    <div class="st-sec"><b>Podział według kategorii</b><i></i></div>
+    ${catHTML}
   </div>`;
   scene.insertAdjacentHTML('beforeend', `
-    <div class="pg" id="vz">${finHTML}${statHTML}</div>
+    <div class="pg" id="vz">${finHTML}${statHTML}${costHTML}${repHTML}</div>
+    <div class="st-ghost" id="ghost">Ozonowanie</div>
+    <div class="fn-ot" id="outTip"><small>Ustawienia → Finanse i KSeF</small><div><b>Obsługa statusów płatności</b><i class="fn-tg"></i></div><p>Wyłączona: należności i statusy płatności znikają, a każdy dokument od razu liczy się do przychodu albo kosztu.</p></div>
     <div class="lay fn-dpp" id="dpP">${PRE.map((p, i) => `<span class="fn-dpo${i === 0 ? ' on' : ''}" id="dpo${i}">${p[0]}${p[1] ? `<em>${p[1]}</em>` : ''}<i id="dpc${i}">${CHK}</i></span>`).join('')}
       <div class="fn-dpd"></div><small>Własny zakres</small><div class="fn-dpr"><span>dd.mm.rrrr</span>-<span>dd.mm.rrrr</span></div><span class="fn-dpa">Zastosuj zakres</span></div>
     <div class="lay fn-dpp st-dpp" id="sdP">${['Bieżący miesiąc|grudzień', 'Ostatnie 7 dni|7 dni', 'Ostatnie 30 dni|30 dni', 'Ostatnie 3 miesiące|3 mies.', 'Ostatnie 12 miesięcy|12 mies.'].map((p, i) => `<span class="fn-dpo${i === 0 ? ' on' : ''}" id="sdo${i}">${p.split('|')[0]}<em>${p.split('|')[1]}</em><i id="sdc${i}">${CHK}</i></span>`).join('')}
@@ -1185,7 +1335,7 @@ window.IMG = {"p": ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgG
   { const a = $('app'); a.style.left = '-248px'; a.style.top = '-8px'; $('appP').append($('vz')); const o = $('ov'); o.style.cssText = 'position:absolute;left:-248px;top:-8px;width:1376px;height:1024px;border-radius:22px;background:#0f172a;opacity:0;pointer-events:none'; }
 
   // ---------- chapters and beats ----------
-  const CH = ['Przychody', 'Koszty i zysk', 'Statystyki'];
+  const CH = ['Przychody', 'Koszty i zysk', 'Sprzedaż w statystykach', 'Koszty w statystykach', 'Raporty'];
   const beats = [];
   const words = s => (s || '').split(/\s+/).filter(Boolean).length;
   window.beat = (ch, o, f) => beats.push({ ch, h: o.h, b: o.b, lead: o.lead ?? .6, act: o.act ?? 1, hold: o.hold ?? .6, f: f || (() => {}) });
@@ -1203,7 +1353,7 @@ window.IMG = {"p": ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgG
   window.H.pscr = (S, to, k = 1, dy = 0) => { S.pscr = { to, k, dy }; };
 
   const fresh = () => ({
-    ap: 0, dp: 0, per: 0, gross: 0, tab: 0, nav: 0, pg: 0, sdp: 0, rng: 0, tip: 0,
+    ap: 0, dp: 0, per: 0, gross: 0, tab: 0, nav: 0, pg: 0, sdp: 0, rng: 0, tip: 0, ot: 0, ss: 0, cf: 0, gh: 0, drop: 0, pc: 0, ro: 0, pr: 0, mo: 0, dl: 0,
     foc: null, focPrev: null, hov: null, hl: null, hlLast: null,
     cam: { to: 'app', k: 1 }, cur: { to: null, k: 1, vis: 0, dx: 0, dy: 0 },
     tap: 0, press: null, key: 0, _s: 0,
@@ -1360,8 +1510,11 @@ window.IMG = {"p": ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgG
     const P0 = offR(app);
     const center = M => at(M, P0.x + P0.w / 2 - M.offsetWidth / 2, P0.y + P0.h / 2 - M.offsetHeight / 2);
     // --- Finanse: period picker, tiles, tabs and the lists
-    { const F = $('pgF'), St = $('pgS'), pk = io3(clamp(S.pg, 0, 1)); vis(F, 1 - P(S.pg, 0, .5)); vis(St, P(S.pg, .5, 1));
+    { const F = $('pgF'), St = $('pgS'), C = $('pgC'), R = $('pgR'), pk = io3(clamp(S.pg, 0, 1)), ck = io3(P(S.pc, .5, 1)), rk = io3(P(S.pr, .5, 1));
+      vis(F, 1 - P(S.pg, 0, .5)); vis(St, P(S.pg, .5, 1) * (1 - P(S.pc, 0, .5))); vis(C, P(S.pc, .5, 1) * (1 - P(S.pr, 0, .5))); vis(R, P(S.pr, .5, 1));
       F.style.filter = pk > 0 && pk < 1 ? `blur(${pk * 6}px)` : ''; St.style.transform = pk < 1 ? `translateY(${(1 - pk) * 18}px)` : '';
+      C.style.transform = ck < 1 ? `translateY(${(1 - ck) * 18}px)` : ''; R.style.transform = rk < 1 ? `translateY(${(1 - rk) * 18}px)` : '';
+      { const T = $('tOut'), r = offR(T), O = $('outTip'); at(O, r.x + r.w - O.offsetWidth, r.y + r.h + 12); pop(O, S.ot); }
       $('nvfin').classList.toggle('on', S.pg < .5); $('nvstats').classList.toggle('on', S.pg >= .5);
       const nov = S.per > .5; $('dpL').textContent = nov ? 'Poprzedni miesiąc' : 'Bieżący miesiąc';
       $('dpo0').classList.toggle('on', !nov); $('dpo1').classList.toggle('on', nov);
@@ -1392,6 +1545,19 @@ window.IMG = {"p": ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgG
       for (let i = 0; i < 13; i++) $('bar' + i).classList.toggle('on', yr && i === 11 && S.tip > .5);
       enter($('chart'), yr ? P(S.rng, .5, 1) : 1, 8, .995, 4);
       const tp = $('tip'), b = $('bar11'); if (b.offsetParent) { const R = offR(b), C = offR($('chC')); at(tp, Math.min(R.x - C.x + R.w / 2 - tp.offsetWidth / 2, C.w - tp.offsetWidth - 12), R.y - C.y + 10); } pop(tp, S.tip); }
+    // --- Statystyki: podział według kategorii (przewinięcie, filtr kategorii, przeciągnięcie usługi)
+    { const sp = Math.round(io3(clamp(S.ss, 0, 1)) * ($('stCat').offsetTop - 22)); $('pgS').style.top = -sp + 'px';
+      const f = clamp(S.cf, 0, 1), dk = clamp(S.drop, 0, 1), on = dk > .5;
+      SRV.forEach((r, i) => grow('svw' + i, r[3] === 0 ? 1 : 1 - f));
+      $('sc0').classList.toggle('sel', f > .5); $('svT').textContent = f > .5 ? CATS[0][0] : 'Usługi'; vis($('svClr'), f);
+      grow('svHw', (1 - f) * (1 - dk));
+      $('sv7c').innerHTML = on ? BADGE(2) : '<em>-</em>'; $('sc2V').textContent = $('pl2').textContent = on ? '66 608 zł' : '66 308 zł'; flash($('sc2V'), dk);
+      $('sc2').classList.toggle('drop', S.gh > .5 && !on); $('sv7').style.opacity = S.gh > 0 && !on ? .4 : ''; }
+    // --- Statystyki → Koszty: reguły; → Raporty: długość okresu i pobranie PDF
+    { grow('rbw', S.ro); $('rchev').style.transform = `rotate(${io3(clamp(S.ro, 0, 1)) * 180}deg)`;
+      const m = S.mo > .5; $('rl0').classList.toggle('on', !m); $('rl2').classList.toggle('on', m);
+      enter($('rpW'), 1 - P(S.mo, 0, .5), 10, .995, 4); enter($('rpM'), P(S.mo, .5, 1), 10, .995, 4);
+      $('rm0L').textContent = S.dl > 0 && S.dl < 1 ? 'Przygotowuję…' : 'PDF'; }
     // --- hover and press
     hovEl.forEach(e => e.classList.remove('hov')); hovEl = [];
     if (S.hov) { const e = $(S.hov); if (e) { e.classList.add('hov'); hovEl.push(e); } }
@@ -1431,6 +1597,7 @@ window.IMG = {"p": ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgG
       cur = { x: lerp(a.x, cur.x, k) - dy / d * bend, y: lerp(a.y, cur.y, k) + dx / d * bend };
     }
     lastCur = cur;
+    { const g = $('ghost'); g.style.opacity = S.gh; if (S.gh > 0) at(g, (cur.x - tx) / ds2 + 12, (cur.y - ty) / ds2 + 14); }
     const cv2 = $('cursor'), press = S.tap > 0 ? Math.sin(Math.PI * clamp(S.tap * 2.2, 0, 1)) : 0;
     cv2.style.opacity = S.cur.vis; $('tdot').style.opacity = 0;
     cv2.style.transform = `translate(${cur.x - 7}px, ${cur.y - 5}px) scale(${1 - press * .16})`;
@@ -1504,10 +1671,12 @@ window.IMG = {"p": ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgG
   const HDR = { box: ['dpT', 'tOut'], s: 1.3 }, T12 = { box: ['tRev', 'tCost'], s: 1.45, dx: 130 }, T34 = { box: ['tProf', 'tOut'], s: 1.45 }, CARD = { box: ['fCard'], s: 1.1 };
   const SHD = { box: ['sdT', 'kpis'], s: 1.2 }, KPI = { box: ['kpis'], s: 1.3 }, CHT = { el: 'chC', s: 1.4 }, PIE = { el: 'pieC', s: 1.5, dx: 165 };
   const fin = S => { S.ap = 1; S.per = 1; };
+  const st = S => { fin(S); S.tab = 1; S.pg = 1; S.rng = 1; };
+  const CATB = { box: ['stCat', 'scL'], s: 1.2, dy: 130 }, CK = { box: ['ckpis'], s: 1.3 }, CPIE = { el: 'cpie', s: 1.5, dx: 165 }, RUL = { box: ['cRul', 'rbw'], s: 1.3 }, RPC = { box: ['rpC'], s: 1.15 };
 
   // ===== 1 Przychody =====
   B(0, { h: 'Jak czytać finanse i statystyki?', b: '', lead: .2, act: 1.4, hold: .5 }, (S, a, s) => { S.ap = P(s, .2, 1.3); cam(S, 'app', 1); });
-  B(0, { h: 'Jest 7 grudnia. Marek sprawdza wynik listopada.', b: 'Kliknij okres nad kaflami i wybierz „Poprzedni miesiąc”.', act: 3.6, hold: .5 }, (S, a, s) => {
+  B(0, { h: 'Jest 7 grudnia. Sprawdzasz wynik listopada.', b: 'Kliknij okres nad kaflami i wybierz „Poprzedni miesiąc”.', act: 3.6, hold: .5 }, (S, a, s) => {
     S.ap = 1; cam(S, HDR, P(a, 0, .3)); show(S, s, .2, .7);
     mv(S, 'dpT', P(a, .05, .28), { dx: -30, from: 'aInv', fdy: 40 }); hov(S, a, .26, .36, 'dpT'); tap(S, a, .32, 'dpT'); S.dp = P(a, .36, .5) * (1 - P(a, .84, .98));
     if (a > .5) mv(S, 'dpo1', P(a, .5, .72), { from: 'dpT', fdx: -30 }); hov(S, a, .7, .84, 'dpo1'); tap(S, a, .78, 'dpo1'); S.per = P(a, .82, .96);
@@ -1519,8 +1688,11 @@ window.IMG = {"p": ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgG
     fin(S); cam(S, T34, P(a, 0, .35)); show(S, s, .3, .8); if (a < .3) hl(S, 'tOut', 1, 4);
     mv(S, 'bsG', P(a, .3, .6), { from: 'tRevV', fdy: 10 }); hov(S, a, .58, .72, 'bsG'); tap(S, a, .66, 'bsG'); S.gross = P(a, .7, .8); if (a > .8) hl(S, 'tOutV', P(a, .8, .95), 4);
   });
+  B(0, { h: 'Nie śledzisz płatności? Należności możesz ukryć.', b: 'Wyłącz „Obsługę statusów płatności” w Ustawieniach, w „Finanse i KSeF”. Każdy dokument liczy się wtedy od razu.', act: 2.4, hold: .8 }, (S, a, s) => {
+    fin(S); S.gross = 1; S.cur.vis = 1 - P(s, 0, .4); cam(S, { box: ['tProf', 'tOut'], s: 1.3, dy: 90 }, P(a, 0, .4)); hl(S, 'tOut', P(a, .1, .3), 4); S.ot = P(a, .3, .55);
+  });
   B(0, { h: 'Pod kaflami jest każdy dokument z listopada.', b: 'Kwota brutto, a pod nią netto. „Płatność” mówi, czy klient już zapłacił.', act: 2.8, hold: .6 }, (S, a, s) => {
-    fin(S); S.gross = 1; S.cur.vis = 1 - P(s, 0, .4); cam(S, CARD, P(a, 0, .4)); if (a > .35) hl(S, a < .68 ? 'ri0G' : 'ri0P', P(a, .35, .5), 4);
+    fin(S); S.gross = 1; S.ot = 1 - P(s, 0, .4); S.cur.vis = 0; cam(S, CARD, P(a, 0, .4)); if (a > .35) hl(S, a < .68 ? 'ri0G' : 'ri0P', P(a, .35, .5), 4);
   });
 
   // ===== 2 Koszty i zysk =====
@@ -1555,8 +1727,55 @@ window.IMG = {"p": ["data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAgG
   B(2, { h: 'Wykres kołowy pokazuje, na czym zarabiasz.', b: 'Najwięcej dają powłoki i ochrona lakieru: 41% sprzedaży.', act: 2.4, hold: .6 }, (S, a, s) => {
     fin(S); S.tab = 1; S.pg = 1; S.rng = 1; S.tip = 1 - P(a, 0, .2); S.cur.vis = 1 - P(s, 0, .4); cam(S, PIE, P(a, 0, .45)); if (a > .35) hl(S, 'pieC', P(a, .35, .55), 4);
   });
-  B(2, { h: 'Listopad jest policzony.', b: 'Jeśli coś jest niejasne, napisz do nas przez „Zgłoś problem” w menu.', act: 3.0, hold: 3.0 }, (S, a) => {
-    fin(S); S.tab = 1; S.pg = 1; S.rng = 1; S.cur.vis = 0; cam(S, 'app', P(a, 0, .8)); if (a > .7) hl(S, 'nvreport', P(a, .7, 1), 3);
+  B(2, { h: 'Niżej jest podział według kategorii.', b: 'Po lewej kategorie usług, po prawej usługi z liczbą wizyt i sprzedażą brutto.', act: 2.6, hold: .6 }, (S, a) => {
+    st(S); S.cur.vis = 0; S.ss = P(a, 0, .55); cam(S, CATB, P(a, 0, .6)); if (a > .55) hl(S, 'scL', P(a, .55, .75), 4);
+  });
+  B(2, { h: 'Kliknij kategorię, żeby zobaczyć jej usługi.', b: '„Powłoki i ochrona lakieru” to powłoka ceramiczna i folia PPF.', act: 2.6, hold: .7 }, (S, a, s) => {
+    st(S); S.ss = 1; cam(S, CATB, 1); show(S, s, .2, .7);
+    mv(S, 'sc0', P(a, .05, .38), { from: 'scL', fdy: 80, dx: -40 }); hov(S, a, .36, .5, 'sc0'); tap(S, a, .44, 'sc0'); S.cf = P(a, .5, .78);
+  });
+  B(2, { h: 'Usługę bez kategorii przeciągnij na kategorię.', b: '„Ozonowanie” trafia do „Wnętrza” i od teraz liczy się w jego sprzedaży.', act: 4.6, hold: .9 }, (S, a) => {
+    st(S); S.ss = 1; cam(S, CATB, 1); S.cur.vis = 1;
+    mv(S, 'svClr', P(a, 0, .14), { from: 'sc0', dx: -40 }); hov(S, a, .12, .2, 'svClr'); tap(S, a, .16, 'svClr'); S.cf = 1 - P(a, .2, .34);
+    if (a > .34) mv(S, 'sv7n', P(a, .34, .5), { from: 'svClr', dx: -20 });
+    if (a > .54) mv(S, 'sc2', P(a, .56, .84), { from: 'sv7n', fdx: -20, dx: -40, drag: 1 });
+    S.gh = P(a, .52, .56) * (1 - P(a, .86, .9)); S.drop = P(a, .86, .96); if (a > .9) hl(S, 'sc2', P(a, .9, 1), 4);
+  });
+
+  // ===== 4 Koszty w statystykach =====
+  B(3, { h: 'Kliknij „Koszty” nad wykresami.', b: 'Koszty mają te same kafle i wykresy, tylko dla wydatków.', act: 3.0, hold: .5 }, (S, a, s) => {
+    st(S); S.drop = 1; S.ss = 1 - P(a, 0, .35); cam(S, { box: ['sn0', 'kpis'], s: 1.25 }, P(a, 0, .4));
+    mv(S, 'sn1', P(a, .25, .55), { from: 'sc2', dx: -10 }); hov(S, a, .52, .64, 'sn1'); tap(S, a, .6, 'sn1'); S.pc = P(a, .66, .92);
+  });
+  B(3, { h: 'Przez 12 miesięcy koszty wyniosły 158 596,20 zł brutto.', b: 'Netto to 128 940,00 zł w 214 pozycjach z faktur kosztowych.', act: 2.4, hold: .6 }, (S, a, s) => {
+    st(S); S.drop = 1; S.pc = 1; S.cur.vis = 1 - P(s, 0, .4); cam(S, CK, P(a, 0, .4)); if (a > .3) hl(S, 'ckpis', P(a, .3, .5), 4);
+  });
+  B(3, { h: 'Wykres kołowy pokazuje, na co wydajesz.', b: 'Najwięcej kosztuje najem lokalu: 47% wszystkich kosztów.', act: 2.4, hold: .6 }, (S, a) => {
+    st(S); S.drop = 1; S.pc = 1; S.cur.vis = 0; cam(S, CPIE, P(a, 0, .45)); if (a > .35) hl(S, 'cpie', P(a, .35, .55), 4);
+  });
+  B(3, { h: 'Reguła sama nada kategorię fakturom od dostawcy.', b: 'Każda faktura od Detailing Hurt, także z KSeF, trafi od razu do „Chemii i materiałów”.', act: 3.2, hold: .8 }, (S, a, s) => {
+    st(S); S.drop = 1; S.pc = 1; cam(S, RUL, P(a, 0, .4)); show(S, s, .3, .8);
+    mv(S, 'rhd', P(a, .1, .4), { from: 'cpie', fdy: 60, dx: -200 }); hov(S, a, .38, .5, 'rhd'); tap(S, a, .44, 'rhd'); S.ro = P(a, .48, .72); if (a > .76) hl(S, 'rr0', P(a, .76, .92), 3);
+  });
+
+  // ===== 5 Raporty =====
+  B(4, { h: 'Kliknij „Raporty”.', b: 'Raport podsumowuje każdy zakończony okres od założenia konta.', act: 3.0, hold: .5 }, (S, a) => {
+    st(S); S.drop = 1; S.pc = 1; S.ro = 1; cam(S, 'app', P(a, 0, .4));
+    mv(S, 'cn2', P(a, .15, .5), { from: 'rhd', dx: -10 }); hov(S, a, .48, .6, 'cn2'); tap(S, a, .56, 'cn2'); S.pr = P(a, .62, .9);
+  });
+  B(4, { h: 'Wybierz okres „Miesiąc”.', b: 'Przy każdej kwocie jest zmiana względem poprzedniego okresu.', act: 2.8, hold: .6 }, (S, a) => {
+    st(S); S.drop = 1; S.pc = 1; S.ro = 1; S.pr = 1; cam(S, RPC, P(a, 0, .4));
+    mv(S, 'rl2', P(a, .1, .42), { from: 'cn2', dx: -10 }); hov(S, a, .4, .52, 'rl2'); tap(S, a, .48, 'rl2'); S.mo = P(a, .54, .84);
+  });
+  B(4, { h: 'Listopad: 38 180 zł brutto i 41 zamkniętych wizyt.', b: 'Sprzedaż o 1% wyższa niż w październiku, wizyt o 3% więcej.', act: 2.4, hold: .7 }, (S, a, s) => {
+    st(S); S.drop = 1; S.pc = 1; S.ro = 1; S.pr = 1; S.mo = 1; S.cur.vis = 1 - P(s, 0, .4); cam(S, { el: 'rm0', s: 1.35 }, P(a, 0, .4)); if (a > .3) hl(S, 'rm0', P(a, .3, .5), 4);
+  });
+  B(4, { h: 'Kliknij „PDF”, żeby pobrać raport za listopad.', b: 'Plik możesz wysłać księgowej albo wspólnikowi.', act: 2.6, hold: .6 }, (S, a, s) => {
+    st(S); S.drop = 1; S.pc = 1; S.ro = 1; S.pr = 1; S.mo = 1; cam(S, { el: 'rm0', s: 1.35 }, 1); show(S, s, .2, .7);
+    mv(S, 'rm0D', P(a, .05, .4), { from: 'rm0', fdx: -300 }); hov(S, a, .38, .5, 'rm0D'); tap(S, a, .46, 'rm0D'); S.dl = P(a, .5, .9);
+  });
+  B(4, { h: 'Listopad jest policzony.', b: 'Jeśli coś jest niejasne, napisz do nas przez „Zgłoś problem” w menu.', act: 3.0, hold: 3.0 }, (S, a) => {
+    st(S); S.drop = 1; S.pc = 1; S.ro = 1; S.pr = 1; S.mo = 1; S.dl = 1; S.cur.vis = 0; cam(S, 'app', P(a, 0, .8)); if (a > .7) hl(S, 'nvreport', P(a, .7, 1), 3);
   });
 })();
 
