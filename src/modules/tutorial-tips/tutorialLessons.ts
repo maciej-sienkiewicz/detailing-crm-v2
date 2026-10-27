@@ -74,6 +74,8 @@ const LESSONS: Readonly<Record<string, Omit<TutorialLesson, 'slug'>>> = {
     'jak-dodac-kontrahenta-do-zlecen-zbiorczych': { title: 'Jak dodać kontrahenta do zleceń zbiorczych?', seconds: 71, chapters: 3 },
     'jak-wygenerowac-pdf-zlecenia-zbiorczego': { title: 'Jak wygenerować PDF zlecenia zbiorczego?', seconds: 62, chapters: 3 },
     'jak-dziala-zestawienie': { title: 'Jak działa zestawienie?', seconds: 103, chapters: 3 },
+    'jak-poprawic-auto-z-zestawienia': { title: 'Jak poprawić auto z zestawienia?', seconds: 90, chapters: 3 },
+    'jak-dodac-zdjecia-do-auta-w-zleceniu': { title: 'Jak dodać zdjęcia do auta w zleceniu?', seconds: 85, chapters: 3 },
     'jak-dziala-cennik-zlecen-zbiorczych': { title: 'Jak działa cennik zleceń zbiorczych?', seconds: 71, chapters: 3 },
     'do-czego-jest-archiwum-kontrahentow': { title: 'Do czego jest archiwum kontrahentów?', seconds: 67, chapters: 3 },
     'jak-stworzyc-kampanie-sms': { title: 'Jak stworzyć kampanię SMS?', seconds: 63, chapters: 4 },
@@ -181,7 +183,8 @@ const ROUTE_MODULES: readonly RouteModule[] = [
         view: 'BATCH_ORDERS',
         module: 'Zlecenia zbiorcze',
         slugs: [
-            'jak-dodac-kontrahenta-do-zlecen-zbiorczych', 'jak-dziala-zestawienie', 'jak-wygenerowac-pdf-zlecenia-zbiorczego',
+            'jak-dodac-kontrahenta-do-zlecen-zbiorczych', 'jak-dziala-zestawienie', 'jak-poprawic-auto-z-zestawienia',
+            'jak-wygenerowac-pdf-zlecenia-zbiorczego', 'jak-dodac-zdjecia-do-auta-w-zleceniu',
             'jak-dziala-cennik-zlecen-zbiorczych', 'do-czego-jest-archiwum-kontrahentow',
         ],
         matches: under('/batch-orders'),
