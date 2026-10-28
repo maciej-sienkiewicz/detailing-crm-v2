@@ -15,6 +15,7 @@ import { ArrowLeft, ChevronLeft, Paperclip } from 'lucide-react';
 import type { CommAttachment, CommMessage } from '../types';
 import { MessageBody } from '../components/MessageBody';
 import { isPreviewableAttachment, messageMoment, withEvents, type ConversationEvent } from './messageFormat';
+import { followLatestMessage } from './latestMessageScroll';
 
 export type { ConversationEvent } from './messageFormat';
 import { ix } from './tokens';
@@ -271,15 +272,16 @@ interface MailThreadProps {
     events?: ConversationEvent[];
 }
 
-/** Wątek maila jako sekcje: kto i kiedy w nagłówku, treść pod spodem. Otwiera się na końcu. */
+/** Wątek maila jako sekcje: kto i kiedy w nagłówku, treść pod spodem. Otwiera się na ostatniej wiadomości. */
 export function MailThread({ messages, phone, onDownload, onPreview, onOpenFull, before, loading, alignBottom = true, events = [] }: MailThreadProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
     const lastId = messages[messages.length - 1]?.id;
 
-    // Nowa wiadomość albo otwarcie rozmowy - na dół, tam jest to, na co się odpowiada.
+    // Nowa wiadomość albo otwarcie rozmowy - ostatnia wiadomość w całości, od jej początku.
     useEffect(() => {
         const element = scrollRef.current;
-        if (element) element.scrollTop = element.scrollHeight;
+        if (!element || !lastId) return;
+        return followLatestMessage(element, lastId);
     }, [lastId]);
 
     return (
@@ -291,7 +293,7 @@ export function MailThread({ messages, phone, onDownload, onPreview, onOpenFull,
                 const message = item;
                 const out = message.direction === 'OUTBOUND';
                 return (
-                    <Section key={message.id} $out={out} $phone={phone} aria-label={out ? 'Wiadomość studia' : 'Wiadomość klienta'}>
+                    <Section key={message.id} data-message-id={message.id} $out={out} $phone={phone} aria-label={out ? 'Wiadomość studia' : 'Wiadomość klienta'}>
                         {/* Data także przy własnej wiadomości: „kiedy odpisaliśmy?" to pierwsze
                             pytanie przy reklamacji, a sam podpis „Ty" na nie nie odpowiadał. */}
                         <p className="head">
