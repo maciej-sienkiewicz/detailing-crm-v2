@@ -27,6 +27,8 @@ import { useExcludeIncomeDocument, useRestoreIncomeDocument } from '../hooks/use
 import { usePaymentTracking } from '../hooks/usePaymentTracking';
 import { formatMoney, formatMoneyCompact, formatDate, formatBankAccount } from '../utils/formatters';
 import { RevenueStatusBadge } from './RevenueStatusBadge';
+import { InvoiceEditCorrection } from './InvoiceEditCorrection';
+import { correctedLinesPayload, editChange, editLinesFromItems, type EditLine } from '../utils/invoiceEdit';
 import type { RevenueInvoice, RevenueParty } from '../types';
 import { problemDetail } from '@/core/problem';
 
@@ -532,7 +534,9 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
   const excludeMutation    = useExcludeIncomeDocument();
   const restoreMutation    = useRestoreIncomeDocument();
 
-  const [correctionMode, setCorrectionMode]     = useState(false);
+  // 'zero' - korekta do zera, 'edit' - „Popraw fakturę" (korekta jak edycja pozycji).
+  const [correctionMode, setCorrectionMode]     = useState<null | 'zero' | 'edit'>(null);
+  const [editLines, setEditLines]               = useState<EditLine[]>([]);
   const [correctionReason, setCorrectionReason] = useState('');
   const [correctionExemption, setCorrectionExemption] = useState<string | null>(null);
   const [actionError, setActionError]           = useState<string | null>(null);
@@ -540,7 +544,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
   if (!invoiceId) return null;
 
   const close = () => {
-    setCorrectionMode(false);
+    setCorrectionMode(null);
     setCorrectionReason('');
     setCorrectionExemption(null);
     setActionError(null);
@@ -567,9 +571,25 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
           ...(hasExemptItem && exemption.trim() ? { exemptionLegalBasis: exemption.trim() } : {}),
         },
       });
-      setCorrectionMode(false);
+      setCorrectionMode(null);
       setCorrectionReason('');
       setCorrectionExemption(null);
+    });
+
+  const handleEditCorrection = (lines: ReturnType<typeof correctedLinesPayload>) =>
+    run(async () => {
+      if (!lines) return;
+      await correctionMutation.mutateAsync({
+        id: invoiceId,
+        data: {
+          reason: correctionReason.trim(),
+          lines,
+          ...(hasExemptItem && exemption.trim() ? { exemptionLegalBasis: exemption.trim() } : {}),
+        },
+      });
+      setCorrectionMode(null);
+      setCorrectionReason('');
+      setEditLines([]);
     });
 
   const handleDelete = () =>
@@ -587,6 +607,10 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
   const hasExemptItem = items.some(item => item.vatRate.trim().toLowerCase() === 'zw');
   // Podstawa z faktury, dopóki ktoś jej nie zmieni w formularzu korekty.
   const exemption = correctionExemption ?? invoice?.exemptionLegalBasis ?? '';
+  const editPayload = correctionMode === 'edit' ? correctedLinesPayload(editLines) : null;
+  const editKind = correctionMode === 'edit' ? editChange(editLines, items) : 'none';
+  // Korekta „przed i po": wiersze stanu przed korektą i po niej mówią o tym w tabeli.
+  const beforeAndAfter = items.some(item => item.stateBefore);
 
   return (
     <ModalShell isOpen={invoiceId !== null} onClose={close} size="full" fillHeight>
@@ -603,7 +627,17 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
           <>
             {actionError && <FormAlertBanner>{actionError}</FormAlertBanner>}
 
-            {correctionMode && (
+            {correctionMode === 'edit' && (
+              <InvoiceEditCorrection
+                lines={editLines}
+                onLinesChange={setEditLines}
+                reason={correctionReason}
+                onReasonChange={setCorrectionReason}
+                change={editKind}
+              />
+            )}
+
+            {correctionMode === 'zero' && (
               <CorrectionBox>
                 <strong>Korekta do zera</strong>
                 Wystawimy korektę zerującą tę fakturę i wyślemy ją do KSeF. Pierwotny dokument
@@ -779,9 +813,16 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
                         </thead>
                         <tbody>
                           {items.map((item) => (
-                            <tr key={item.lineNumber}>
+                            <tr key={`${item.lineNumber}-${item.stateBefore ? 'before' : 'after'}`} style={item.stateBefore ? { color: '#64748b' } : undefined}>
                               <ItemTd><ItemNum>{item.lineNumber}</ItemNum></ItemTd>
-                              <ItemTd>{item.name}</ItemTd>
+                              <ItemTd>
+                                {beforeAndAfter && (
+                                  <Badge $tone="slate" style={{ marginRight: 6 }}>
+                                    {item.stateBefore ? 'przed korektą' : 'po korekcie'}
+                                  </Badge>
+                                )}
+                                {item.name}
+                              </ItemTd>
                               <ItemTd $align="right"><Mono>{formatQuantity(item.quantity)}</Mono></ItemTd>
                               <ItemTd>{item.unit ?? 'szt.'}</ItemTd>
                               <ItemTd $align="right"><Mono>{formatMoneyCompact(item.unitPriceNet)}</Mono></ItemTd>
@@ -897,13 +938,16 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
              znika, żeby nie stało obok „Anuluj" i nie kazało zgadywać, które z nich
              porzuca korektę, a które całe okno - od zamknięcia jest krzyżyk w nagłówku. */
           <>
-            <SharedButton $variant="secondary" onClick={() => setCorrectionMode(false)}>
+            <SharedButton $variant="secondary" onClick={() => setCorrectionMode(null)}>
               Anuluj korektę
             </SharedButton>
             <SharedButton
               $variant="primary"
-              disabled={busy || !correctionReason.trim() || (hasExemptItem && !exemption.trim())}
-              onClick={handleFullCorrection}
+              disabled={
+                busy || !correctionReason.trim() || (hasExemptItem && !exemption.trim()) ||
+                (correctionMode === 'edit' && (editKind === 'none' || editPayload === null))
+              }
+              onClick={correctionMode === 'edit' ? () => handleEditCorrection(editPayload) : handleFullCorrection}
             >
               {correctionMutation.isPending ? 'Wysyłanie korekty…' : 'Wystaw korektę i wyślij'}
             </SharedButton>
@@ -973,8 +1017,18 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
                 : <><EyeOff size={14} /> Ukryj w Finansach</>}
             </SharedButton>
             {invoice.source === 'CRM' && invoice.ksefStatus === 'ACCEPTED' &&
+              invoice.invoiceType === 'VAT' && !correctionMode && items.length > 0 && (
+              <SharedButton
+                $variant="secondary" $size="sm"
+                title="Popraw nazwę, ilość albo cenę - wystawimy jedną fakturę korygującą"
+                onClick={() => { setEditLines(editLinesFromItems(items)); setCorrectionMode('edit'); }}
+              >
+                Popraw fakturę
+              </SharedButton>
+            )}
+            {invoice.source === 'CRM' && invoice.ksefStatus === 'ACCEPTED' &&
               invoice.invoiceType === 'VAT' && !correctionMode && (
-              <SharedButton $variant="secondary" $size="sm" onClick={() => setCorrectionMode(true)}>
+              <SharedButton $variant="secondary" $size="sm" onClick={() => setCorrectionMode('zero')}>
                 Wystaw korektę do zera
               </SharedButton>
             )}

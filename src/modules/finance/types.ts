@@ -666,6 +666,12 @@ export interface RevenueInvoiceItem {
   vatValue:     number;  // grosze
   grossValue:   number;  // grosze
   vatRate:      string;
+  /** Cena jednostkowa brutto, gdy pozycję wpisano w brutto. */
+  unitPriceGross?: number | null;  // grosze
+  /** Którą cenę wpisał człowiek - tę samą poprawia się w korekcie. */
+  priceMode?:   'NET' | 'GROSS';
+  /** Wiersz korekty ze stanem PRZED korektą (FA(3): StanPrzed). */
+  stateBefore?: boolean;
 }
 
 export interface RevenueInvoice {
@@ -771,9 +777,25 @@ export interface IssueInvoiceRequest {
   description?:         string;
 }
 
+/**
+ * Pozycja faktury tak, jak ma wyglądać PO korekcie („jak edycja"). Pozycji pierwotnej,
+ * której nie ma na liście, korekta usuwa; `originalLineNumber: null` - pozycja dopisana.
+ */
+export interface CorrectedLineRequest {
+  originalLineNumber: number | null;
+  name:               string;
+  unit?:              string;
+  quantity:           number;
+  unitPriceNet?:      number;  // grosze
+  unitPriceGross?:    number;  // grosze
+  vatRate:            string;
+}
+
 export interface IssueCorrectionRequest {
   reason:               string;
   items?:               IssueInvoiceItemRequest[];
+  /** Korekta „jak edycja" - wszystkie pozycje po korekcie. */
+  lines?:               CorrectedLineRequest[];
   issueDate?:           string;
   exemptionLegalBasis?: string;
 }
