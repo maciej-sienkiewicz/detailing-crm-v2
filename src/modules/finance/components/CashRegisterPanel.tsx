@@ -595,12 +595,6 @@ export const CashRegisterPanel: React.FC<CashRegisterPanelProps> = ({ dateFrom, 
                 <DocumentToggleHint>
                   Zapisze się jako „Inny dokument” z VAT 0%, opisany komentarzem.
                 </DocumentToggleHint>
-                <DocumentToggleHint>
-                  Wypłata trafi do dokumentów kosztowych, np. sprzątanie płacone gotówką.
-                </DocumentToggleHint>
-                <DocumentToggleHint>
-                  Wpłata trafi do dokumentów przychodowych, np. gdy klient nie chce paragonu.
-                </DocumentToggleHint>
               </DocumentToggleText>
             </DocumentToggle>
 
