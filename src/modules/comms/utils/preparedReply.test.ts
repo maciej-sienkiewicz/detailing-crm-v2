@@ -1,6 +1,8 @@
 import { describe, it, expect } from 'vitest';
 import type { PreparedReply } from '../types';
 import {
+    preparedReplyPreview,
+    preparedReplyTitle,
     preparedTextFor,
     calendarDayLoad,
     calendarDayShort,
@@ -61,5 +63,19 @@ describe('preparedTextFor - szkic z tła a stopka odpisującego', () => {
 
     it('szkic podpisany imieniem, a edytor doda stopkę - nie zgadujemy, co wyciąć', () => {
         expect(preparedTextFor(body, false, true, 'Jakub')).toBeNull();
+    });
+});
+
+describe('karta gotowej odpowiedzi - nagłówek i podgląd', () => {
+    it('wycena z kwotą co do grosza, inne rodzaje słowem', () => {
+        expect(preparedReplyTitle(prepared({ offer: [{ itemId: 'a', name: 'Pakiet', quantity: 1, priceGross: 99_000, suggested: true }] })))
+            .toBe('Gotowa odpowiedź: wycena na 990,00 zł');
+        expect(preparedReplyTitle(prepared({ kind: 'PHOTOS', offer: [] }))).toBe('Gotowa odpowiedź: prośba o zdjęcia');
+    });
+
+    it('podgląd pomija samo powitanie', () => {
+        expect(preparedReplyPreview('Witam,\n\nDziękujemy za wiadomość.\nCena to 990 zł.\n\nPozdrawiam'))
+            .toBe('Dziękujemy za wiadomość. Cena to 990 zł.');
+        expect(preparedReplyPreview('Dziękujemy za wiadomość.')).toBe('Dziękujemy za wiadomość.');
     });
 });

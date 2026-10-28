@@ -52,6 +52,46 @@ export const toReplyDraft = (prepared: PreparedReply, bodyText: string = prepare
     offer: prepared.offer.map((line) => ({ name: line.name, quantity: line.quantity, priceGross: line.priceGross })),
 });
 
+/**
+ * „1 000,00 zł" - kwota z oferty szkicu, co do grosza i zapisana tak jak w treści maila.
+ * Grupowanie ręcznie: polskie Intl nie dzieli czterocyfrowych kwot („1000,00"), a mail
+ * od serwera dzieli - karta i mail pokazywałyby tę samą kwotę dwoma zapisami.
+ */
+const formatGross = (grosze: number): string => {
+    const zloty = Math.floor(grosze / 100);
+    const cents = String(grosze % 100).padStart(2, '0');
+    return `${String(zloty).replace(/\B(?=(\d{3})+(?!\d))/g, '\u00a0')},${cents}\u00a0zł`;
+};
+
+const KIND_IN_TITLE: Record<ReplyKind, string> = {
+    QUOTE: 'wycena',
+    PHOTOS: 'prośba o zdjęcia',
+    INSPECTION: 'zaproszenie na oględziny',
+};
+
+/** „Gotowa odpowiedź: wycena na 990,00 zł" - nagłówek karty pod rozmową. */
+export const preparedReplyTitle = (prepared: PreparedReply): string => {
+    const total = offerTotal(prepared);
+    const what = prepared.kind === 'QUOTE' && total > 0
+        ? `wycena na ${formatGross(total)}`
+        : KIND_IN_TITLE[prepared.kind];
+    return `Gotowa odpowiedź: ${what}`;
+};
+
+const GREETING = /^(witam|dzień dobry|dobry wieczór|szanown|cześć|hej)/i;
+
+/**
+ * Pierwszy akapit treści po powitaniu - podgląd w karcie. „Witam," nie mówi nic o tym,
+ * co jest w odpowiedzi, a w dwóch linijkach podglądu zajęłoby całą pierwszą.
+ */
+export const preparedReplyPreview = (text: string): string => {
+    const paragraphs = text.split(/\n\s*\n/).map((part) => part.replace(/\s+/g, ' ').trim()).filter(Boolean);
+    const body = paragraphs.length > 1 && GREETING.test(paragraphs[0]) && paragraphs[0].length <= 40
+        ? paragraphs.slice(1)
+        : paragraphs;
+    return body[0] ?? '';
+};
+
 /** Próg, od którego po wysłaniu wyceny warto zadzwonić - 10 000 zł brutto. */
 export const BIG_QUOTE_GROSS = 1_000_000;
 

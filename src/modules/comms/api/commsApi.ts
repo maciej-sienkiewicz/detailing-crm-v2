@@ -109,6 +109,14 @@ export const commsApi = {
         return data;
     },
 
+    /**
+     * Co pracownik wpisał w miejsce znaczników szkicu (placeholderAnswers) - wiedza studia,
+     * którą backend podaje kolejnym szkicom zamiast tego samego znacznika.
+     */
+    saveReplyFacts: async (threadId: string | undefined, facts: { topic: string; answer: string }[]): Promise<void> => {
+        await apiClient.post('/v1/comms/reply-facts', { threadId, facts }, { skipErrorToast: true });
+    },
+
     // ── Stopka nadawcy ───────────────────────────────────────────────────────
 
     getSignature: async (): Promise<MailSignature> => {

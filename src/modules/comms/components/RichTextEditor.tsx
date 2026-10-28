@@ -445,7 +445,13 @@ export function RichTextEditor({
     // inaczej placeholder mignąłby nad przywróconą treścią.
     useLayoutEffect(() => {
         const element = editableRef.current;
-        if (element && element.innerHTML !== value) element.innerHTML = value;
+        if (element && element.innerHTML !== value) {
+            element.innerHTML = value;
+            // Treść podmieniona z zewnątrz (szkic, gotowa odpowiedź, szybka odpowiedź) czyta się
+            // od początku. Pole zostawało przewinięte tam, gdzie było, i gotowa wycena otwierała
+            // się na „Razem: 990,00 zł", bez powitania i bez tego, co w niej jest.
+            if (document.activeElement !== element) element.scrollTop = 0;
+        }
     }, [value]);
 
     const refreshActive = useCallback(() => {

@@ -60,7 +60,6 @@ import {
 import { draftOriginLabel, pendingPlaceholders as findPendingPlaceholders } from '../utils/replyDraft';
 import { QUICK_REPLIES, type QuickReply } from '../utils/quickReplies';
 import {
-    REPLY_KIND_LABELS,
     calendarDayLoad,
     calendarDayShort,
     datePlaceholder,
@@ -69,8 +68,11 @@ import {
     toReplyDraft,
 } from '../utils/preparedReply';
 import { leadsApi } from '../api/leadsApi';
+import { commsApi } from '../api/commsApi';
+import { placeholderAnswers } from '../utils/placeholderAnswers';
 import { signatureHtmlToText } from '../utils/signatureText';
 import { useChangeLeadStatus } from '../hooks/useLeads';
+import { PreparedReplyOffer } from './PreparedReplyOffer';
 import { ReplyDraftButton } from './ReplyDraftButton';
 import { ReplyDraftRevise } from './ReplyDraftRevise';
 import { RichTextEditor } from './RichTextEditor';
@@ -435,6 +437,9 @@ const AttachmentTotal = styled.span<{ $warn: boolean }>`
  * Pasek odpowiedzi przygotowanej po zapytaniu: rodzaj, przełącznik na inny, podpowiedź
  * z kalendarza. Same obwódki - wypełniony w karcie zostaje wyłącznie „Wyślij" (CLAUDE.md §2).
  */
+/** Dni z kalendarza przy znaczniku terminu - trzy najbliższe mieszczą się w jednej linii. */
+const CALENDAR_DAYS_SHOWN = 3;
+
 const PreparedBar = styled.div`
     display: flex;
     flex-direction: column;
@@ -444,9 +449,20 @@ const PreparedBar = styled.div`
 
     .row { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
     .label { color: ${ix.muted}; }
+    .warn { color: #b45309; }
     .hint { color: #b45309; }
+    .mark { flex: none; width: 16px; height: 16px; color: ${ix.accentInk}; }
+    /* „Odrzuć" na końcu linii, tekstem - to wyjście, nie kolejna pigułka do wyboru. */
+    .row > button.discard {
+        margin-left: auto;
+        padding: 4px 2px;
+        border: none;
+        background: none;
+        color: ${ix.muted};
+        &:hover { color: ${ix.ink}; text-decoration: underline; }
+    }
 
-    button {
+    .row > button {
         border: 1px solid ${ix.line};
         background: #ffffff;
         color: ${ix.text2};
@@ -462,15 +478,6 @@ const PreparedBar = styled.div`
         .load { color: ${ix.muted}; font-weight: 400; margin-left: 4px; }
     }
 `;
-
-/**
- * Szybka odpowiedź, która jest tym samym rodzajem co przygotowana - przygotowana mówi to
- * samo, tylko konkretnie o tym zapytaniu, więc dwóch „próśb o zdjęcia" nie pokazujemy.
- */
-const SAME_KIND: Partial<Record<QuickReply['id'], PreparedReply['kind'][]>> = {
-    photos: ['PHOTOS'],
-    inspection: ['INSPECTION'],
-};
 
 const DraftNote = styled.div`
     display: flex;
@@ -661,21 +668,17 @@ export function ReplyComposer({
         setBody(textToComposerHtml(prefill.text));
         setExpanded(true);
     }
-    // Przygotowana odpowiedź: w renderze, jak prefill. Tylko do pustego edytora i tylko szkic
-    // pisany pod tę samą stopkę - inaczej podpis wyszedłby podwójnie albo wcale.
+    // Przygotowana odpowiedź trafia do edytora dopiero na „Otwórz odpowiedź" w karcie pod
+    // rozmową (PreparedReplyOffer). Dawniej wskakiwała sama i rozsuwała kompozytor - rozmowie
+    // zostawało kilka centymetrów, a w polu stał tekst, którego nikt nie napisał.
     const [appliedPrepared, setAppliedPrepared] = useState<string | null>(null);
     // Czy w edytorze stoi właśnie przygotowana odpowiedź (a nie szybka odpowiedź po przełączeniu).
     const [preparedInEditor, setPreparedInEditor] = useState(false);
+    // „Napiszę od zera" chowa kartę do końca wizyty w sprawie.
+    const [preparedDismissed, setPreparedDismissed] = useState(false);
     const preparedText = prepared && signature !== undefined
         ? preparedTextFor(prepared.bodyText, prepared.signatureAppended, appendSignature, user?.firstName)
         : null;
-    if (prepared && preparedText !== null && prepared.preparedAt !== appliedPrepared && bodyEmpty && !draft) {
-        setAppliedPrepared(prepared.preparedAt);
-        setBody(textToComposerHtml(preparedText));
-        setDraft(toReplyDraft(prepared, preparedText));
-        setPreparedInEditor(true);
-        setExpanded(true);
-    }
     const pendingPlaceholders = findPendingPlaceholders(draft, draft ? composerHtmlToText(body) : '');
     const totalAttachmentBytes = attachments.reduce((sum, file) => sum + file.size, 0);
 
@@ -790,18 +793,37 @@ export function ReplyComposer({
         setExpanded(true);
     };
 
-    /** Powrót z szybkiej odpowiedzi do przygotowanej. */
-    const restorePrepared = () => {
+    /** „Otwórz odpowiedź" w karcie - szkic do edytora, edytor od początku tekstu. */
+    const openPrepared = () => {
         if (!prepared || preparedText === null) return;
+        setAppliedPrepared(prepared.preparedAt);
         setBody(textToComposerHtml(preparedText));
         setDraft(toReplyDraft(prepared, preparedText));
         setUndoSnapshot(null);
         setCloseReason(null);
         setPreparedInEditor(true);
+        setExpanded(true);
+    };
+
+    /** „Odrzuć" nad otwartą odpowiedzią - pusty edytor znika, wraca karta. */
+    const discardPrepared = () => {
+        setAppliedPrepared(null);
+        setBody('');
+        setDraft(null);
+        setPreparedInEditor(false);
+        setUndoSnapshot(null);
+        setExpanded(false);
     };
 
     const bodyText = composerHtmlToText(body);
     const datePlaceholderInBody = appliedPrepared !== null ? datePlaceholder(bodyText) : null;
+    // Gotowa odpowiedź w edytorze: jej pasek przejmuje notkę szkicu, a znacznik terminu
+    // obsługują przyciski dni - w notce zostają tylko pozostałe znaczniki i kwoty.
+    const preparedHeader = appliedPrepared !== null && preparedInEditor && !sendMail.isPending;
+    const datePending = Boolean(preparedHeader && datePlaceholderInBody && prepared?.calendar.length);
+    const otherPlaceholders = datePending
+        ? pendingPlaceholders.filter((placeholder) => placeholder !== datePlaceholderInBody)
+        : pendingPlaceholders;
 
     const applyDraft = (next: ReplyDraft) => {
         setUndoSnapshot(bodyEmpty ? null : { body, title: 'Przywróć treść sprzed szkicu' });
@@ -812,6 +834,10 @@ export function ReplyComposer({
     const submit = () => {
         const bodyHtml = normalizeComposerHtml(body);
         if (!bodyHtml || sendMail.isPending || pendingPlaceholders.length > 0) return;
+        // Liczone przed wysyłką: po sukcesie szkic znika z edytora razem ze znacznikami.
+        const learned = draft
+            ? placeholderAnswers(draft.bodyText, composerHtmlToText(bodyHtml), draft.placeholders)
+            : [];
         setUploadProgress(attachments.length > 0 ? 0 : null);
         sendMail.mutate(
             {
@@ -844,6 +870,10 @@ export function ReplyComposer({
                         );
                     }
                     setPreparedInEditor(false);
+                    // Studio zapamiętuje, co wpisano w miejsce znaczników - błąd zapisu nie psuje wysyłki.
+                    if (learned.length > 0) {
+                        void commsApi.saveReplyFacts(result.threadId, learned).catch(() => undefined);
+                    }
                     if (closeReason && contextLeadId) {
                         changeLeadStatus.mutate(
                             { leadId: contextLeadId, status: 'LOST', lostReasonCode: closeReason },
@@ -885,6 +915,20 @@ export function ReplyComposer({
     };
     // Rozsunięta, a wciąż pusta karta da się zwinąć z powrotem do „Odpisz".
     const canFold = layout === 'collapsed' && !collapsible && expanded && nothingWritten;
+    // Gotowa odpowiedź czeka w karcie, dopóki nikt nic nie napisał - zamiast „Odpisz".
+    const offer = prepared && preparedText !== null && !preparedDismissed && appliedPrepared === null && nothingWritten
+        ? (compactView: boolean) => (
+            <PreparedReplyOffer
+                prepared={prepared}
+                text={preparedText}
+                hint={preparedHint}
+                compact={compactView}
+                onOpen={openPrepared}
+                onQuickReply={applyQuickReply}
+                onWriteOwn={() => { setPreparedDismissed(true); open(); }}
+            />
+        )
+        : null;
 
     const draftButton = (height: number, iconOnly = false) =>
         threadId ? (
@@ -903,6 +947,15 @@ export function ReplyComposer({
     const sendDisabled = sendMail.isPending || bodyEmpty || pendingPlaceholders.length > 0;
     const sendTitle = pendingPlaceholders.length > 0 ? 'Uzupełnij miejsca w nawiasach [ ]' : undefined;
 
+    if (collapsible && !expanded && offer) {
+        return (
+            <Composer $dragging={false} $divider $phone>
+                {barExtra}
+                {offer(true)}
+            </Composer>
+        );
+    }
+
     if (collapsible && !expanded) {
         return (
             <Composer $dragging={false} $divider $phone>
@@ -919,6 +972,14 @@ export function ReplyComposer({
                         <Send />
                     </RoundSend>
                 </CompactRow>
+            </Composer>
+        );
+    }
+
+    if (compactCollapsed && offer) {
+        return (
+            <Composer $dragging={false} $divider={divider} $phone={false} style={{ paddingTop: 16 }}>
+                {offer(false)}
             </Composer>
         );
     }
@@ -974,16 +1035,18 @@ export function ReplyComposer({
                 </SheetTop>
             )}
 
-            {draft && (
+            {draft && !(preparedHeader && otherPlaceholders.length === 0 && draft.unverifiedAmounts.length === 0) && (
                 <DraftNote role="status">
                     <Sparkle />
                     <div className="lines">
-                        <span title={draft.examples.map((example) => example.subject ?? '(bez tematu)').join('\n') || undefined}>
-                            {draftOriginLabel(draft)}
-                        </span>
-                        {pendingPlaceholders.length > 0 && (
+                        {!preparedHeader && (
+                            <span title={draft.examples.map((example) => example.subject ?? '(bez tematu)').join('\n') || undefined}>
+                                {draftOriginLabel(draft)}
+                            </span>
+                        )}
+                        {otherPlaceholders.length > 0 && (
                             <span className="warn">
-                                Uzupełnij przed wysłaniem: {pendingPlaceholders.join(', ')}
+                                Uzupełnij przed wysłaniem: {otherPlaceholders.join(', ')}
                             </span>
                         )}
                         {draft.unverifiedAmounts.length > 0 && (
@@ -994,7 +1057,7 @@ export function ReplyComposer({
                         )}
                     </div>
                     <span className="side">
-                        {threadId && (
+                        {threadId && !preparedHeader && (
                             <ReplyDraftRevise
                                 threadId={threadId}
                                 draft={draft}
@@ -1006,7 +1069,7 @@ export function ReplyComposer({
                             />
                         )}
                         {/* Informację wolno schować dopiero po uzupełnieniu znaczników - to ona niesie blokadę wysyłki. */}
-                        {pendingPlaceholders.length === 0 && (
+                        {pendingPlaceholders.length === 0 && !preparedHeader && (
                             <button type="button" className="close" onClick={() => setDraft(null)} aria-label="Ukryj informację o szkicu">
                                 <X size={12} />
                             </button>
@@ -1015,39 +1078,36 @@ export function ReplyComposer({
                 </DraftNote>
             )}
 
-            {appliedPrepared !== null && prepared && !sendMail.isPending && (
+            {preparedHeader && prepared && (
                 <PreparedBar aria-label="Przygotowana odpowiedź">
-                    <div className="row" role="group" aria-label="Rodzaj odpowiedzi">
-                        <span className="label">Odpowiedź:</span>
-                        <button type="button" aria-pressed={preparedInEditor} onClick={restorePrepared}>
-                            {REPLY_KIND_LABELS[prepared.kind]}
-                        </button>
-                        {QUICK_REPLIES.filter((reply) => !SAME_KIND[reply.id]?.includes(prepared.kind)).map((reply) => (
-                            <button key={reply.id} type="button" aria-pressed={false} onClick={() => applyQuickReply(reply)}>
-                                {reply.label}
-                            </button>
-                        ))}
+                    {/* Jedna linia nad treścią: dopóki brakuje terminu - dni, które go wpisują
+                        (znacznik blokuje wysyłkę); potem - przypomnienie, że tekst trzeba
+                        przeczytać. Rodzaj odpowiedzi wybiera się wcześniej, w karcie. */}
+                    <div className="row" role="group" aria-label={datePending ? 'Wpisz termin' : 'Przygotowana odpowiedź'}>
+                        <Sparkle className="mark" aria-hidden="true" />
+                        {datePending ? (
+                            <>
+                                <span className="label warn">Wpisz termin, zanim wyślesz:</span>
+                                {prepared.calendar.slice(0, CALENDAR_DAYS_SHOWN).map((day) => (
+                                    <button
+                                        key={day.date}
+                                        type="button"
+                                        title={`W kalendarzu: ${calendarDayLoad(day)}. Sprawdź, czy usługa zmieści się w tym dniu.`}
+                                        onClick={() => {
+                                            const filled = fillDatePlaceholder(bodyText, day);
+                                            if (filled) setBody(textToComposerHtml(filled));
+                                        }}
+                                    >
+                                        {calendarDayShort(day)}
+                                        <span className="load">{calendarDayLoad(day)}</span>
+                                    </button>
+                                ))}
+                            </>
+                        ) : (
+                            <span className="label">Gotowa odpowiedź. Przeczytaj ją przed wysłaniem.</span>
+                        )}
+                        <button type="button" className="discard" onClick={discardPrepared}>Odrzuć</button>
                     </div>
-                    {datePlaceholderInBody && prepared.calendar.length > 0 && (
-                        <div className="row" role="group" aria-label="Wpisz termin">
-                            <span className="label">Wpisz termin:</span>
-                            {prepared.calendar.map((day) => (
-                                <button
-                                    key={day.date}
-                                    type="button"
-                                    title={`W kalendarzu: ${calendarDayLoad(day)}. Sprawdź, czy usługa zmieści się w tym dniu.`}
-                                    onClick={() => {
-                                        const filled = fillDatePlaceholder(bodyText, day);
-                                        if (filled) setBody(textToComposerHtml(filled));
-                                    }}
-                                >
-                                    {calendarDayShort(day)}
-                                    <span className="load">{calendarDayLoad(day)}</span>
-                                </button>
-                            ))}
-                        </div>
-                    )}
-                    {preparedHint && <span className="hint">{preparedHint}</span>}
                 </PreparedBar>
             )}
 
