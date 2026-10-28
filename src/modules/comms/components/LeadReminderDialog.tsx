@@ -26,11 +26,13 @@ import { useReplyDraftPreferences } from '../hooks/useReplyDraft';
 import type { Lead } from '../types';
 import { normalizeComposerHtml, textToComposerHtml } from '../utils/composerHtml';
 import { canRemindByMail, silenceOf } from '../utils/leadBoard';
+import { preparedTextFor } from '../utils/preparedReply';
 import { describeLeadUrgency } from '../utils/leadUrgency';
 import { caseTitle, rowAge } from '../inbox/caseModel';
 import { ix } from '../inbox/tokens';
 import { problemDetail } from '@/core/problem';
 import { useCapability } from '@/modules/subscription/hooks/useCapability';
+import { useAuth } from '@/core/context/AuthContext';
 
 /**
  * Uwagi dla asystenta. Prompt sam pisze przypomnienie, gdy ostatnie słowo należy do studia -
@@ -206,6 +208,7 @@ export function LeadReminderDialog({ leads, onClose, zIndex }: LeadReminderDialo
     const [selected, setSelected] = useState<Set<string>>(() => new Set(remindable.map((lead) => lead.id)));
     const [rows, setRows] = useState<Record<string, Row>>({});
     const [signatureChoice, setSignatureChoice] = useState<boolean | null>(null);
+    const { user } = useAuth();
     const hasSignature = Boolean(signature?.bodyHtml);
     const appendSignature = hasSignature && (signatureChoice ?? signature?.enabledByDefault ?? false);
 
@@ -220,11 +223,15 @@ export function LeadReminderDialog({ leads, onClose, zIndex }: LeadReminderDialo
         }
         setRow(lead.id, { phase: 'drafting' });
         if (!fresh) {
-            // Szkic poranny, o ile pisany pod tę samą stopkę: bez stopki szkic kończy się
-            // podpisem, ze stopką - nie, więc przy innym wyborze byłby podpisany dwa razy albo wcale.
+            // Szkic poranny pisany pod stopkę: bez stopki dostaje imię pod pożegnaniem
+            // (preparedTextFor). Dawniej każda różnica stopki kończyła się nowym szkicem od
+            // modelu, a stopkę ma zwykle jedna osoba w studiu.
             const prepared = await leadsApi.getReminderDraft(lead.id).catch(() => null);
-            if (prepared && prepared.signatureAppended === appendSignature && prepared.bodyText.trim()) {
-                setRow(lead.id, { phase: 'ready', text: prepared.bodyText, prepared: true });
+            const text = prepared && prepared.bodyText.trim()
+                ? preparedTextFor(prepared.bodyText, prepared.signatureAppended, appendSignature, user?.firstName)
+                : null;
+            if (text !== null) {
+                setRow(lead.id, { phase: 'ready', text, prepared: true });
                 return;
             }
         }

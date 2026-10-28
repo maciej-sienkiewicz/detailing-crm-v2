@@ -15,6 +15,7 @@ const sendMutate = vi.fn();
 const acceptSuggestion = vi.fn().mockResolvedValue({});
 let signature: { bodyHtml: string; enabledByDefault: boolean } | null = { bodyHtml: '<p>Jakub</p>', enabledByDefault: true };
 
+vi.mock('@/core/context/AuthContext', () => ({ useAuth: () => ({ user: { firstName: 'Jakub' } }) }));
 vi.mock('@/modules/subscription/hooks/useCapabilityGate', () => ({
     useCapabilityGate: () => ({ enabled: true, run: (action: () => void) => action(), upsell: null }),
 }));
@@ -131,12 +132,14 @@ describe('ReplyComposer - odpowiedź przygotowana po zapytaniu', () => {
         expect(screen.queryByText(/Po wysłaniu zapytanie zamknie się/)).toBeNull();
     });
 
-    it('szkic pisany pod stopkę nie wpada, gdy stopki nie ma - podpis wyszedłby bez imienia', () => {
+    // Zapytanie z 28.10.2026: szkic był gotowy 11 s po przyjściu maila, a odpisujący nie miał
+    // stopki - edytor odrzucił szkic po cichu i pokazał samo „Odpisz".
+    it('bez stopki szkic też wpada - imię odpisującego staje pod pożegnaniem', () => {
         signature = null;
-        renderComposer();
+        renderComposer({ prepared: { ...prepared, bodyText: `${prepared.bodyText}\n\nPozdrawiam serdecznie` } });
 
-        expect(screen.queryByLabelText('Treść')).toBeNull();
-        expect(screen.getByRole('button', { name: /Odpisz/ })).toBeTruthy();
+        expect(editorText()).toContain('przyciemnienie szyb to 1 000,00 zł');
+        expect(editorText()).toMatch(/Pozdrawiam serdecznie(?:<[^>]+>|\s)*Jakub(?:<[^>]+>|\s)*$/);
     });
 
     it('stały klient i duża wycena dostają zdanie o telefonie', () => {

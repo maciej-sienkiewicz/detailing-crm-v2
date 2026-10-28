@@ -65,6 +65,7 @@ import {
     calendarDayShort,
     datePlaceholder,
     fillDatePlaceholder,
+    preparedTextFor,
     toReplyDraft,
 } from '../utils/preparedReply';
 import { leadsApi } from '../api/leadsApi';
@@ -80,6 +81,7 @@ import { PillPrimary, TintBtn, ToolBtn } from '../inbox/primitives';
 import { ix } from '../inbox/tokens';
 import { problemDetail } from '@/core/problem';
 import { useCapabilityGate } from '@/modules/subscription/hooks/useCapabilityGate';
+import { useAuth } from '@/core/context/AuthContext';
 
 /*
  * Rozsunięcie z przycisku „Odpisz": karta odsłania się od prawego dolnego rogu,
@@ -605,6 +607,7 @@ export function ReplyComposer({
     prepared = null,
     preparedHint = null,
 }: ReplyComposerProps) {
+    const { user } = useAuth();
     const [expanded, setExpanded] = useState(false);
     const sheet = collapsible && expanded;
     // Pod kompozytorem na cały ekran wątek nie może się przewijać razem z palcem (CLAUDE.md §3).
@@ -663,13 +666,13 @@ export function ReplyComposer({
     const [appliedPrepared, setAppliedPrepared] = useState<string | null>(null);
     // Czy w edytorze stoi właśnie przygotowana odpowiedź (a nie szybka odpowiedź po przełączeniu).
     const [preparedInEditor, setPreparedInEditor] = useState(false);
-    const preparedUsable = Boolean(
-        prepared && signature !== undefined && prepared.signatureAppended === appendSignature
-    );
-    if (prepared && preparedUsable && prepared.preparedAt !== appliedPrepared && bodyEmpty && !draft) {
+    const preparedText = prepared && signature !== undefined
+        ? preparedTextFor(prepared.bodyText, prepared.signatureAppended, appendSignature, user?.firstName)
+        : null;
+    if (prepared && preparedText !== null && prepared.preparedAt !== appliedPrepared && bodyEmpty && !draft) {
         setAppliedPrepared(prepared.preparedAt);
-        setBody(textToComposerHtml(prepared.bodyText));
-        setDraft(toReplyDraft(prepared));
+        setBody(textToComposerHtml(preparedText));
+        setDraft(toReplyDraft(prepared, preparedText));
         setPreparedInEditor(true);
         setExpanded(true);
     }
@@ -789,9 +792,9 @@ export function ReplyComposer({
 
     /** Powrót z szybkiej odpowiedzi do przygotowanej. */
     const restorePrepared = () => {
-        if (!prepared) return;
-        setBody(textToComposerHtml(prepared.bodyText));
-        setDraft(toReplyDraft(prepared));
+        if (!prepared || preparedText === null) return;
+        setBody(textToComposerHtml(preparedText));
+        setDraft(toReplyDraft(prepared, preparedText));
         setUndoSnapshot(null);
         setCloseReason(null);
         setPreparedInEditor(true);

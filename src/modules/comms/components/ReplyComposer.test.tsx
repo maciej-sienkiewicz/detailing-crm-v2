@@ -15,6 +15,7 @@ import { ReplyComposer } from './ReplyComposer';
 
 const mutate = vi.fn();
 
+vi.mock('@/core/context/AuthContext', () => ({ useAuth: () => ({ user: { firstName: 'Jakub' } }) }));
 vi.mock('@/modules/subscription/hooks/useCapabilityGate', () => ({
     useCapabilityGate: () => ({ enabled: true, run: (action: () => void) => action(), upsell: null }),
 }));

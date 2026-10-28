@@ -13,15 +13,39 @@ export const REPLY_KIND_LABELS: Record<ReplyKind, string> = {
 const PLACEHOLDER = /\[[^\]\n]{1,80}\]/g;
 
 /**
- * Szkic przygotowany w tle w kształcie szkicu z przycisku - ten sam edytor, te same
- * blokady: niewypełniony „[proponowany termin]" wstrzymuje wysyłkę.
+ * Treść szkicu pod stopkę, z którą ten pracownik odpowiada; null - szkicu nie da się użyć.
+ *
+ * Szkic z tła pisze serwer, zanim wiadomo, KTO odpisze, więc zawsze zakłada stopkę:
+ * kończy się samym „Pozdrawiam", bez imienia. Dawniej edytor wymagał tej samej stopki
+ * i przy jakiejkolwiek różnicy szkic po cichu znikał - a w studiu z sześcioma osobami
+ * stopkę miała jedna, więc pierwszego zapytania po wdrożeniu (28.10.2026) nikt nie
+ * zobaczył z gotową odpowiedzią. Bez stopki dopisujemy imię pod pożegnaniem, tak jak
+ * zrobiłby to asystent. W drugą stronę (szkic podpisany imieniem, a edytor doda stopkę)
+ * nie zgadujemy, co wyciąć - wtedy null i szkic piszemy od nowa.
  */
-export const toReplyDraft = (prepared: PreparedReply): ReplyDraft => ({
-    bodyText: prepared.bodyText,
+export function preparedTextFor(
+    bodyText: string,
+    writtenWithSignature: boolean,
+    appendSignature: boolean,
+    senderFirstName?: string | null,
+): string | null {
+    if (writtenWithSignature === appendSignature) return bodyText;
+    if (!writtenWithSignature) return null;
+    const name = senderFirstName?.trim();
+    return name ? `${bodyText.trimEnd()}\n${name}` : bodyText;
+}
+
+/**
+ * Szkic przygotowany w tle w kształcie szkicu z przycisku - ten sam edytor, te same
+ * blokady: niewypełniony „[proponowany termin]" wstrzymuje wysyłkę. [bodyText] - treść
+ * już dopasowana do stopki ([preparedTextFor]).
+ */
+export const toReplyDraft = (prepared: PreparedReply, bodyText: string = prepared.bodyText): ReplyDraft => ({
+    bodyText,
     useSentStyle: prepared.useSentStyle,
     styleApplied: false,
     examples: [],
-    placeholders: Array.from(new Set(prepared.bodyText.match(PLACEHOLDER) ?? [])),
+    placeholders: Array.from(new Set(bodyText.match(PLACEHOLDER) ?? [])),
     unverifiedAmounts: [],
     notice: 'Odpowiedź przygotowana zaraz po przyjściu zapytania. Przeczytaj ją przed wysłaniem.',
     offerIncluded: prepared.kind === 'QUOTE',

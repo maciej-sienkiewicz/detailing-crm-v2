@@ -4,7 +4,7 @@
 // zamiast kazać czekać na asystenta - ale tylko szkic pisany pod tę samą stopkę.
 import type { ReactNode } from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { fireEvent, render, screen } from '@testing-library/react';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme/theme';
 import type { Lead, PreparedReminderDraft } from '../types';
@@ -14,6 +14,7 @@ const getReminderDraft = vi.fn<(leadId: string) => Promise<PreparedReminderDraft
 const draftReply = vi.fn();
 let signatureByDefault = true;
 
+vi.mock('@/core/context/AuthContext', () => ({ useAuth: () => ({ user: { firstName: 'Jakub' } }) }));
 vi.mock('../api/leadsApi', () => ({ leadsApi: { getReminderDraft: (id: string) => getReminderDraft(id) } }));
 vi.mock('../api/commsApi', () => ({ commsApi: { draftReply: (...args: unknown[]) => draftReply(...args) } }));
 vi.mock('../hooks/useComms', () => ({
@@ -111,14 +112,14 @@ describe('LeadReminderDialog - szkic poranny', () => {
         expect(draftReply).toHaveBeenCalledTimes(1);
     });
 
-    it('szkic pisany pod inną stopkę nie wskakuje - asystent pisze nowy', async () => {
+    it('bez stopki szkic poranny dostaje imię pod spodem - bez nowego szkicu od asystenta', async () => {
         signatureByDefault = false;
         getReminderDraft.mockResolvedValue(prepared);
 
         renderDialog();
 
-        expect(await screen.findByDisplayValue('Szkic napisany teraz')).toBeTruthy();
-        await waitFor(() => expect(draftReply).toHaveBeenCalledTimes(1));
+        expect(await screen.findByDisplayValue(/aktualna dla Pana\?\s+Jakub$/)).toBeTruthy();
+        expect(draftReply).not.toHaveBeenCalled();
     });
 
     it('bez szkicu porannego asystent pisze jak dotąd', async () => {

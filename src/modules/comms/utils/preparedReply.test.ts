@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import type { PreparedReply } from '../types';
 import {
+    preparedTextFor,
     calendarDayLoad,
     calendarDayShort,
     fillDatePlaceholder,
@@ -43,5 +44,22 @@ describe('preparedReply', () => {
         const small = prepared({ offer: [{ itemId: 'i-2', name: 'Polerowanie szyby', quantity: 1, priceGross: 90_000, suggested: false }] });
         expect(preparedReplyHint(small, 0)).toBeNull();
         expect(preparedReplyHint(null, 5)).toBeNull();
+    });
+});
+
+describe('preparedTextFor - szkic z tła a stopka odpisującego', () => {
+    const body = 'Dzień dobry,\n\ncena to 990,00 zł.\n\nPozdrawiam serdecznie';
+
+    it('ta sama stopka - treść bez zmian', () => {
+        expect(preparedTextFor(body, true, true, 'Jakub')).toBe(body);
+    });
+
+    it('bez stopki - imię pod pożegnaniem, a bez imienia sama treść', () => {
+        expect(preparedTextFor(body, true, false, 'Jakub')).toBe(`${body}\nJakub`);
+        expect(preparedTextFor(body, true, false, '  ')).toBe(body);
+    });
+
+    it('szkic podpisany imieniem, a edytor doda stopkę - nie zgadujemy, co wyciąć', () => {
+        expect(preparedTextFor(body, false, true, 'Jakub')).toBeNull();
     });
 });
