@@ -46,6 +46,9 @@ export function WorkTimeGrid({ period, rows }: Props) {
                     <span><Swatch $kind="missing" aria-hidden="true" />brak wpisu</span>
                     <span><Swatch $kind="leave" aria-hidden="true">U</Swatch>urlop</span>
                     <span><Swatch $kind="leave" aria-hidden="true">L4</Swatch>zwolnienie</span>
+                    {rows.some(row => (row.leaveConflictDays ?? 0) > 0) && (
+                        <span><Swatch $kind="conflict" aria-hidden="true">U</Swatch>godziny w dniu urlopu</span>
+                    )}
                 </MonthLegend>
             </Head>
 
@@ -111,6 +114,8 @@ const Head = styled.div`
 const kindStyle = (kind: Kind) => {
     if (kind === 'hours') return css`background: ${ui.okTintHover}; color: ${ui.okInk};`;
     if (kind === 'leave') return css`background: #fde68a; color: ${ui.warnInk};`;
+    // Urlop z wpisanymi godzinami: odcień urlopu z czerwoną obwódką - dwa fakty, które się wykluczają.
+    if (kind === 'conflict') return css`background: #fde68a; color: ${ui.dangerInk}; box-shadow: inset 0 0 0 2px ${ui.dangerInk};`;
     if (kind === 'missing') return css`background: #fee2e2; box-shadow: inset 0 0 0 1px ${ui.dangerLine};`;
     return css``;
 };

@@ -417,10 +417,27 @@ const DOCUMENT_TYPE: Record<IncomeDocumentType, { label: string; variant: BadgeV
  * Typ w kolumnie. Reszta wizyty zapłacona bez paragonu i bez VAT jest zapisem typu
  * „inny” - bez własnej plakietki ginęłaby wśród zwykłych dokumentów „inny”.
  */
-const documentTypeBadge = (doc: IncomeDocument) =>
-  doc.withoutReceipt && doc.documentType === 'OTHER'
-    ? { label: 'Bez paragonu', variant: 'amber' as BadgeVariant }
-    : DOCUMENT_TYPE[doc.documentType] ?? DOCUMENT_TYPE.OTHER;
+const documentTypeBadge = (doc: IncomeDocument) => {
+  if (doc.withoutReceipt && doc.documentType === 'OTHER') return { label: 'Bez paragonu', variant: 'amber' as BadgeVariant };
+  if (isPaymentRecord(doc)) return { label: 'Faktura księgowości', variant: 'blue' as BadgeVariant };
+  return DOCUMENT_TYPE[doc.documentType] ?? DOCUMENT_TYPE.OTHER;
+};
+
+/**
+ * Sprzedaż, którą fakturuje księgowość: CRM ma tylko zapis płatności, a jego numer FAK/…
+ * nie jest numerem faktury (CLAUDE.md §1). Taki zapis jest przychodem od chwili wydania
+ * pojazdu, więc stoi na liście - ale bez numeru, który udawałby fakturę.
+ */
+const isPaymentRecord = (doc: IncomeDocument) => !!doc.invoicedExternally && doc.documentType === 'INVOICE';
+
+const PAYMENT_RECORD_NUMBER = 'Numer nada księgowość';
+
+/** Numer do pokazania; zapis płatności nie ma własnego. */
+const displayNumber = (doc: IncomeDocument) => (isPaymentRecord(doc) ? PAYMENT_RECORD_NUMBER : doc.documentNumber);
+
+/** Nazwa dokumentu w etykiecie pola wyboru - czytnik ekranu nie przeczyta „Numer nada księgowość”. */
+const selectLabel = (doc: IncomeDocument) =>
+  isPaymentRecord(doc) ? `Zaznacz zapis płatności z ${formatDate(doc.issueDate)}` : `Zaznacz dokument ${doc.documentNumber}`;
 
 /**
  * Tooltip ptaszka. Zielony znaczy dokładnie jedno: dokument jest w KSeF i ma nadany numer.
@@ -651,7 +668,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                       <RowCheckbox
                         checked={selected}
                         onChange={() => selection.toggle(rowKey)}
-                        label={`Zaznacz dokument ${doc.documentNumber}`}
+                        label={selectLabel(doc)}
                       />
                     </CardSelect>
                   )}
@@ -666,7 +683,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                     </CardTop>
 
                     <CardMeta>
-                      <span>{doc.documentNumber}</span>
+                      <span>{displayNumber(doc)}</span>
                       <span>{formatDate(doc.issueDate)}</span>
                     </CardMeta>
 
@@ -782,13 +799,13 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                         <RowCheckbox
                           checked={selection.isSelected(rowKey)}
                           onChange={() => selection.toggle(rowKey)}
-                          label={`Zaznacz dokument ${doc.documentNumber}`}
+                          label={selectLabel(doc)}
                         />
                       </SelectCell>
                     )}
                     <Td>
                       <IssueDate>{formatDate(doc.issueDate)}</IssueDate>
-                      <DocumentNumber>{doc.documentNumber}</DocumentNumber>
+                      <DocumentNumber>{displayNumber(doc)}</DocumentNumber>
                       {doc.excluded && (
                         <Badge
                           $variant="slate"

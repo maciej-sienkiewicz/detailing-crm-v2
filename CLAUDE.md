@@ -81,10 +81,13 @@ podano w brutto.
   ustalić (`typedPriceSide` zwraca `null`: brutto z cennika równe netto × stawka),
   ekran zachowuje swoje dotychczasowe zachowanie.
 - **Faktury wystawia księgowość** (Ustawienia → KSeF): „Faktura" przy wydaniu i w poprawce
-  rozliczenia nie tworzy faktury w CRM, tylko zapis płatności poza przychodem. Przychód
-  niesie faktura księgowości z KSeF, a numer `FAK/…` takiego zapisu nie jest numerem
-  faktury — nie pokazuj go jako faktury. Listy „do zafakturowania" dla księgowości CRM
-  nie prowadzi (decyzja biznesu) — nie dokładaj jej.
+  rozliczenia nie tworzy faktury w CRM, tylko zapis płatności — i od V230 ten zapis JEST
+  przychodem, od chwili wydania pojazdu. Faktur sprzedaży CRM z KSeF nie pobiera (koszty
+  tak), więc nic nie liczy się dwa razy. Wyjątek historyczny: zapisy sprzed V230 mają
+  `revenue_from_ksef = true` i stoją poza sumami, bo ich przychód niesie pobrana wcześniej
+  faktura księgowości — warunek przychodu to `revenue_from_ksef`, nie `invoiced_externally`.
+  Numer `FAK/…` zapisu nie jest numerem faktury — nie pokazuj go jako faktury. Listy „do
+  zafakturowania" dla księgowości CRM nie prowadzi (decyzja biznesu) — nie dokładaj jej.
 - **Dokładne brutto musi przejść przez każdą granicę**: katalog → pozycja
   wyceny → payload API → odczyt z API. Zgubione raz, nie odtworzy się już nigdy.
 - **Mapowania odpowiedzi API to miejsce, w którym ginie najczęściej.** Funkcja

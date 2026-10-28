@@ -69,18 +69,6 @@ const OptionHint = styled.div`
   max-width: 62ch;
 `;
 
-const OptionNote = styled.div`
-  margin-top: 8px;
-  font-size: 12.5px;
-  line-height: 1.5;
-  max-width: 62ch;
-  padding: 8px 10px;
-  border-radius: 8px;
-  border: 1px solid #fcd34d;
-  background: ${(p) => p.theme.colors.warningLight};
-  color: #92400e;
-`;
-
 /**
  * Ustawienia → Faktury → domyślna odpowiedź na pytanie o wysyłkę do KSeF.
  *
@@ -111,20 +99,18 @@ export const KsefSendingDefaultsPanel: React.FC = () => {
         Faktury wystawia księgowość: przy wydaniu pojazdu „Faktura” nie tworzy faktury
         w CRM, więc nie ma też czego wysyłać - przełącznik wysyłki traci sens i jest
         wyłączony, żeby nie sugerował, że cokolwiek pojedzie do KSeF.
+
+        Ostrzeżenie „przychód pojawi się dopiero po pobraniu z KSeF” zniknęło razem
+        z pobieraniem faktur sprzedaży: przychodem jest zapis płatności z wydania.
       */}
       <OptionRow>
         <OptionTexts>
           <OptionLabel>Faktury wystawia księgowość</OptionLabel>
           <OptionHint>
-            Przy wydaniu pojazdu „Faktura” nie tworzy faktury w CRM. Wizyta od razu liczy się
-            do statystyk, a o zgodność Finansów trzeba zadbać samodzielnie.
+            Przy wydaniu pojazdu „Faktura” nie tworzy faktury w CRM, tylko zapis płatności.
+            Kwota od razu liczy się do przychodu w Finansach, a fakturę wystawia księgowość
+            w swoim programie.
           </OptionHint>
-          {external && (
-            <OptionNote>
-              Faktury księgowości trafiają do Finansów przez pobieranie z KSeF. Bez niego
-              przychód z tych sprzedaży nie pojawi się w podsumowaniu finansów.
-            </OptionNote>
-          )}
         </OptionTexts>
         <Toggle
           checked={external}

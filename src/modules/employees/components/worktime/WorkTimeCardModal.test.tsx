@@ -224,4 +224,45 @@ describe('Okno karty czasu pracy - akcje zależne od statusu', () => {
         await screen.findByRole('dialog', { name: 'Maciej Sienkiewicz' });
         expect(screen.queryByRole('button', { name: 'Przypomnij' })).toBeNull();
     });
+
+    describe('godziny w dniach urlopu (wrzesień 2026: tydzień urlopu wypełniony po 8 h)', () => {
+        /** Urlop 7–11.09 z wpisanymi godzinami, jak u pracownika ze zgłoszenia. */
+        const conflictCard = (overrides: Partial<CardDetail> = {}) => card({
+            days: septemberDays().map(d => (d.date >= '2026-09-07' && d.date <= '2026-09-11'
+                ? { ...d, leave: { type: 'ANNUAL', label: 'Urlop' }, leaveConflict: true }
+                : d)),
+            leaveConflictDays: 5,
+            leaveConflictMinutes: 2400,
+            ...overrides,
+        });
+
+        it('złożona: bez „Zatwierdź", zwrot jest krokiem następnym z gotową notatką', async () => {
+            api.returnCard.mockResolvedValue(card({ status: 'RETURNED' }));
+            renderCard(conflictCard());
+
+            expect(await screen.findByText('W 5 dniach urlopu lub L4 są wpisane godziny pracy: 7–11.09.')).toBeInTheDocument();
+            expect(screen.getByText(/Te godziny \(40 h\) nie wchodzą do sumy/)).toBeInTheDocument();
+            expect(screen.queryByRole('button', { name: 'Zatwierdź kartę' })).toBeNull();
+            const back = within(actionBar()).getByRole('button', { name: 'Zwróć do poprawy' });
+            expect(Array.from(filledIn(document.body))).toEqual([back]);
+            expect(screen.getAllByText('godziny w dniu urlopu')).toHaveLength(5);
+
+            fireEvent.click(back);
+            const dialog = await screen.findByRole('dialog', { name: 'Zwróć do poprawy' });
+            expect(within(dialog).getByLabelText('Co trzeba poprawić?')).toHaveValue(
+                'Usuń godziny pracy z dni urlopu: 7–11.09. Gdy tego dnia była praca, daj znać, a urlop zostanie zmieniony.',
+            );
+            fireEvent.click(within(dialog).getByRole('button', { name: 'Zwróć kartę' }));
+            await waitFor(() => expect(api.returnCard).toHaveBeenCalledWith(
+                'anna', '2026-09', expect.stringContaining('7–11.09'),
+            ));
+        });
+
+        it('zatwierdzona przed blokadą: komunikat każe odblokować kartę', async () => {
+            renderCard(conflictCard({ status: 'APPROVED', approvedAt: '2026-10-07T16:29:54Z' }));
+
+            expect(await screen.findByText(/Kartę zatwierdzono z tymi dniami. Odblokuj ją/)).toBeInTheDocument();
+            expect(within(actionBar()).getByRole('button', { name: 'Odblokuj kartę' })).toBeInTheDocument();
+        });
+    });
 });

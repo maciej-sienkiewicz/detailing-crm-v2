@@ -14,6 +14,8 @@ export interface PeriodSummary {
     totalMinutes: number;
     totalHours: string;
     entryCount: number;
+    /** Suma nadwyżek ponad 8 h dziennie, bez dni urlopu/L4. */
+    overtimeMinutes?: number;
     returnNote: string | null;
 }
 
@@ -34,6 +36,8 @@ export interface CardDay {
     leave: null | { type: string; label: string };
     /** Dzień roboczy ≤ dziś bez wpisu i bez urlopu/L4. */
     missing: boolean;
+    /** Urlop/L4 i godziny tego samego dnia - godziny nie liczą się do sumy. */
+    leaveConflict?: boolean;
 }
 
 export interface PeriodDetail extends PeriodSummary {
@@ -43,6 +47,9 @@ export interface PeriodDetail extends PeriodSummary {
     /** Norma: (dni robocze − dni roboczych urlopu/L4) × 480 min. */
     expectedMinutes?: number;
     missingWorkingDays?: number;
+    /** Dni urlopu/L4 z wpisanymi godzinami - karty z nimi nie da się złożyć. */
+    leaveConflictDays?: number;
+    leaveConflictMinutes?: number;
 }
 
 export interface UpsertEntryRequest {

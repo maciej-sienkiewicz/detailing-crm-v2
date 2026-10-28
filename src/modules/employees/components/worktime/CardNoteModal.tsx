@@ -28,12 +28,14 @@ interface Props {
     onClose: () => void;
     /** Warstwa okna - SUBMODAL_Z_INDEX, gdy otwiera się nad oknem karty. */
     zIndex?: number;
+    /** Gotowa treść notatki, gdy wiadomo, co poprawić (np. godziny w dniach urlopu). */
+    initialNote?: string;
 }
 
-export function CardNoteModal({ kind, name, resignWarning, pending, onSubmit, onClose, zIndex }: Props) {
+export function CardNoteModal({ kind, name, resignWarning, pending, onSubmit, onClose, zIndex, initialNote }: Props) {
     const titleId = useId();
     const noteId = useId();
-    const [note, setNote] = useState('');
+    const [note, setNote] = useState(initialNote ?? '');
     const [error, setError] = useState<string | null>(null);
     const unlock = kind === 'unlock';
 

@@ -358,10 +358,9 @@ export const INVOICES_HELP: HelpContent = {
         {
             id: 'ksef',
             label: 'Połączenie z KSeF',
-            description: 'KSeF to rządowy system e-faktur. Po połączeniu pobieramy z niego faktury kosztowe, a gdy faktury wystawia księgowość, także jej faktury sprzedaży.',
+            description: 'KSeF to rządowy system e-faktur. Po połączeniu pobieramy z niego faktury kosztowe. Faktur sprzedaży nie pobieramy: przychód z wydania pojazdu jest w Finansach od razu.',
             usedIn: [
                 'Pobieranie faktur kosztowych',
-                'Faktury wystawione przez księgowość',
             ],
         },
         {

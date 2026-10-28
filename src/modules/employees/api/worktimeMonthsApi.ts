@@ -38,6 +38,12 @@ export interface MonthCardRow {
     overtimeMinutes: number;
     /** Dni robocze urlopu/L4 w miesiącu. */
     leaveWorkingDays: number;
+    /**
+     * Dni urlopu/L4 z wpisanymi godzinami i suma tych godzin - poza `totalMinutes`.
+     * Karty z nimi nie da się złożyć ani zatwierdzić. Starszy backend ich nie wysyłał.
+     */
+    leaveConflictDays?: number;
+    leaveConflictMinutes?: number;
     submittedAt: string | null;
     approvedAt: string | null;
     approvedByName: string | null;

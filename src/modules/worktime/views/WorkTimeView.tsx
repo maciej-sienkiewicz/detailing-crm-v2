@@ -8,6 +8,10 @@
 // odrzuca wtedy zmiany (409). Dni bierzemy z `days[]` serwera: święta i urlop/L4 są
 // podpisane, a brakujący dzień roboczy jest bursztynowy - pracownik widzi braki, zanim
 // złoży kartę, zamiast dowiadywać się o nich ze zwrotu.
+//
+// Godziny wpisane w dzień urlopu/L4 są oznaczone na czerwono i nie liczą się do sumy,
+// a karty z nimi nie da się złożyć (patrz utils/leaveConflict.ts). Wpisać ich też się
+// nie da - backend odrzuca godziny w dniu urlopu, a arkusz edycji mówi to od razu.
 
 import { useState, useRef } from 'react';
 import styled, { css, keyframes } from 'styled-components';
@@ -29,6 +33,7 @@ import {
 } from '../hooks/useWorkTime';
 import type { CardDay, PeriodStatus, WorkTimeEntry } from '../types';
 import { problemDetail } from '@/core/problem';
+import { leaveConflictDatesText, leaveConflictTitle } from '../utils/leaveConflict';
 
 // ─── utils ───────────────────────────────────────────────────────────────────
 
@@ -194,11 +199,19 @@ export function WorkTimeView() {
     const dayInfo = new Map<string, CardDay>((detail?.days ?? []).map(d => [d.date, d]));
     const missingCount = detail?.missingWorkingDays
         ?? (detail?.days ?? []).filter(d => d.missing).length;
+    const conflictCount = detail?.leaveConflictDays
+        ?? (detail?.days ?? []).filter(d => d.leaveConflict).length;
+    const conflictTitle = conflictCount > 0
+        ? leaveConflictTitle(conflictCount, leaveConflictDatesText(detail?.days ?? []))
+        : '';
     // Zwrócone karty z innych miesięcy - pracownik ma je zobaczyć, gdziekolwiek jest.
     const returnedElsewhere = (periods ?? []).filter(p => p.status === 'RETURNED' && p.period !== period);
 
     const days = periodToDays(period);
     const today = toDateStr(new Date());
+
+    // Dzień urlopu/L4 w arkuszu edycji: backend odrzuci godziny, więc mówimy to przed zapisem.
+    const editLeave = editDay ? dayInfo.get(editDay.date)?.leave ?? null : null;
 
     const openEdit = (d: Date) => {
         if (readOnly) return;
@@ -265,6 +278,11 @@ export function WorkTimeView() {
     // Braki nie blokują złożenia (kontrakt), ale pracownik ma o nich wiedzieć, zanim karta
     // trafi do przełożonego - inaczej dowiaduje się o nich dopiero ze zwrotu.
     const handleSubmit = () => {
+        // Backend i tak odmówi (409) - mówimy to od razu i tymi samymi słowami co komunikat.
+        if (conflictCount > 0) {
+            showError('Nie można złożyć karty', `${conflictTitle} Usuń te godziny albo poproś przełożonego o zmianę urlopu.`);
+            return;
+        }
         if (missingCount > 0) {
             setShowSubmitConfirm(true);
             return;
@@ -323,6 +341,16 @@ export function WorkTimeView() {
                     </Banner>
                 )}
 
+                {conflictCount > 0 && (
+                    <Banner>
+                        <Notice tone="danger" title={conflictTitle}>
+                            {readOnly
+                                ? 'Te godziny nie wchodzą do sumy. Żeby je usunąć, poproś przełożonego o zwrot karty.'
+                                : 'Te godziny nie wchodzą do sumy i karty z nimi nie można złożyć. Usuń je albo poproś przełożonego o zmianę urlopu, gdy tego dnia była praca.'}
+                        </Notice>
+                    </Banner>
+                )}
+
                 {detail?.status === 'RETURNED' && (
                     <Banner>
                         <Notice tone="danger" title="Karta zwrócona do poprawy">
@@ -338,7 +366,8 @@ export function WorkTimeView() {
                         <SkeletonLine $w="40%" />
                     </SummaryCard>
                 ) : detail ? (() => {
-                    const overtimeMinutes = detail.entries.reduce(
+                    // Nadgodziny z serwera: liczone bez dni urlopu, tak jak suma i lista obecności.
+                    const overtimeMinutes = detail.overtimeMinutes ?? detail.entries.reduce(
                         (sum, e) => sum + Math.max(0, e.minutes - 480), 0
                     );
                     return (
@@ -412,6 +441,7 @@ export function WorkTimeView() {
                             // Święto to dzień wolny jak weekend - przygaszony, z nazwą.
                             const weekend = info ? !info.isWorkingDay : isWeekend(d);
                             const missing = !readOnly && !!info?.missing;
+                            const conflict = !!info?.leaveConflict;
                             const tags = [info?.holidayName, info?.leave?.label].filter((t): t is string => !!t);
                             return (
                                 <DayRow
@@ -430,10 +460,13 @@ export function WorkTimeView() {
                                         <DayDate $today={isToday}>{formatDate(d)}</DayDate>
                                         {tags.map(tag => <DayTag key={tag} $leave={tag === info?.leave?.label}>{tag}</DayTag>)}
                                         {missing && <DayTag $missing>brak wpisu</DayTag>}
+                                        {conflict && <DayTag $conflict>godziny w dniu urlopu</DayTag>}
                                     </DayLeft>
                                     <DayRight>
                                         {entry ? (
-                                            <HoursChip $filled>{entry.hours}</HoursChip>
+                                            <HoursChip $filled $struck={conflict} title={conflict ? 'Nie liczy się do sumy' : undefined}>
+                                                {entry.hours}
+                                            </HoursChip>
                                         ) : (
                                             <HoursChip $filled={false}>-</HoursChip>
                                         )}
@@ -508,6 +541,11 @@ export function WorkTimeView() {
                                 autoComplete="off"
                             />
                             {editError && <InputError>{editError}</InputError>}
+                            {editLeave && (
+                                <SheetLeave>
+                                    W tym dniu jest {editLeave.type === 'SICK' ? editLeave.label : editLeave.label.toLowerCase()}, więc godzin pracy nie można wpisać.
+                                </SheetLeave>
+                            )}
                             <SheetHint>
                                 Zostaw puste i zapisz, aby usunąć wpis
                             </SheetHint>
@@ -827,12 +865,12 @@ const DayLeft = styled.div`
 `;
 
 /** Święto, urlop/L4 albo brak - podpis dnia, nie kolejna liczba. */
-const DayTag = styled.span<{ $leave?: boolean; $missing?: boolean }>`
+const DayTag = styled.span<{ $leave?: boolean; $missing?: boolean; $conflict?: boolean }>`
     padding: 1px 8px;
     border-radius: 999px;
-    border: 1px solid ${p => p.$missing ? '#fcd34d' : p.$leave ? '#c0d9e8' : '#e2e8f0'};
-    background: ${p => p.$missing ? '#fef3c7' : p.$leave ? '#f0f6f9' : '#f1f5f9'};
-    color: ${p => p.$missing ? '#92400e' : p.$leave ? '#075985' : '#475569'};
+    border: 1px solid ${p => p.$conflict ? '#fca5a5' : p.$missing ? '#fcd34d' : p.$leave ? '#c0d9e8' : '#e2e8f0'};
+    background: ${p => p.$conflict ? '#fef2f2' : p.$missing ? '#fef3c7' : p.$leave ? '#f0f6f9' : '#f1f5f9'};
+    color: ${p => p.$conflict ? '#b91c1c' : p.$missing ? '#92400e' : p.$leave ? '#075985' : '#475569'};
     font-size: 12px;
     font-weight: 600;
     line-height: 1.5;
@@ -860,10 +898,12 @@ const DayRight = styled.div`
     color: #94a3b8;
 `;
 
-const HoursChip = styled.span<{ $filled: boolean }>`
+// Godziny z dnia urlopu: widoczne, ale przekreślone - nie liczą się do sumy.
+const HoursChip = styled.span<{ $filled: boolean; $struck?: boolean }>`
     font-size: 14px;
     font-weight: ${p => p.$filled ? '700' : '400'};
-    color: ${p => p.$filled ? '#0f172a' : '#cbd5e1'};
+    color: ${p => p.$struck ? '#b91c1c' : p.$filled ? '#0f172a' : '#cbd5e1'};
+    text-decoration: ${p => p.$struck ? 'line-through' : 'none'};
     min-width: 40px;
     text-align: right;
 `;
@@ -1007,6 +1047,13 @@ const InputError = styled.span`
     font-size: 12px;
     color: #ef4444;
     font-weight: 500;
+`;
+
+const SheetLeave = styled.p`
+    margin: 0;
+    font-size: 13px;
+    font-weight: 600;
+    color: #b91c1c;
 `;
 
 const SheetHint = styled.p`

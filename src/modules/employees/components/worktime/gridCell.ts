@@ -5,7 +5,7 @@
 import type { CardDay } from '../../api/worktimeMonthsApi';
 import { hoursText } from './monthFormat';
 
-export type CellKind = 'hours' | 'leave' | 'missing' | null;
+export type CellKind = 'hours' | 'leave' | 'conflict' | 'missing' | null;
 
 interface Cell {
     kind: CellKind;
@@ -20,11 +20,16 @@ const shortHours = (minutes: number) => hoursText(minutes).replace(/ h$/, '');
 
 export function cellOf(day: CardDay | undefined): Cell {
     if (!day) return { kind: null, text: '', description: null };
-    // Urlop wygrywa z wpisem: godziny wpisane w dzień urlopu i tak nie wchodzą do normy,
-    // a pytanie siatki brzmi „czy ten dzień jest rozliczony".
+    // Urlop wygrywa z wpisem: godziny wpisane w dzień urlopu nie wchodzą do sumy, a pytanie
+    // siatki brzmi „czy ten dzień jest rozliczony". Taki dzień ma jednak własny wygląd -
+    // w siatce wyglądał jak zwykły urlop i 40 h wpisanych w tydzień urlopu nikt nie zauważył.
     if (day.leave) {
         const sick = day.leave.type === 'SICK';
-        return { kind: 'leave', text: sick ? 'L4' : 'U', description: day.leave.label };
+        const text = sick ? 'L4' : 'U';
+        if (day.leaveConflict && day.minutes !== null) {
+            return { kind: 'conflict', text, description: `${day.leave.label}, wpisane ${hoursText(day.minutes)}` };
+        }
+        return { kind: 'leave', text, description: day.leave.label };
     }
     if (day.minutes !== null) {
         return { kind: 'hours', text: shortHours(day.minutes), description: hoursText(day.minutes) };

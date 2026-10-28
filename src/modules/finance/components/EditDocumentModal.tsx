@@ -300,7 +300,8 @@ const EditDocumentForm: React.FC<{ document: FinancialDocument; onClose: () => v
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Edytuj dokument</ModalTitle>
-                    <ModalSubtitle>{document.documentNumber}</ModalSubtitle>
+                    {/* Numer FAK/… zapisu płatności nie jest numerem faktury - nie udajemy, że nim jest. */}
+                    <ModalSubtitle>{document.invoicedExternally && document.documentType === 'INVOICE' ? 'Numer nada księgowość' : document.documentNumber}</ModalSubtitle>
                 </ModalTitleGroup>
                 <CloseBtn onClick={onClose} />
             </ModalHeader>

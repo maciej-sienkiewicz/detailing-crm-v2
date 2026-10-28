@@ -63,6 +63,11 @@ export interface FinancialDocument {
   supersededAt?:       string | null;
   /** Część kwoty wizyty zapłacona bez paragonu i bez VAT (documentTypeLabel „Bez paragonu”). */
   withoutReceipt?:     boolean;
+  /**
+   * Fakturę wystawia księgowość: dokument jest zapisem płatności, a jego numer FAK/… nie jest
+   * numerem faktury i nie wolno go jako takiego pokazywać (CLAUDE.md §1).
+   */
+  invoicedExternally?: boolean;
 }
 
 export interface CreateDocumentRequest {
@@ -568,6 +573,8 @@ export interface IncomeDocument {
   visitNumber?:     string | null;
   /** Ile obowiązujących dokumentów rozlicza wizytę (2 = faktura + drugi dokument). */
   visitDocumentCount?: number;
+  /** Zapis płatności sprzedaży, którą fakturuje księgowość - numer FAK/… nie jest numerem faktury. */
+  invoicedExternally?: boolean;
 }
 
 export type IncomeSettlementState = 'CANCELLED' | 'ZEROED' | 'SUPERSEDED';

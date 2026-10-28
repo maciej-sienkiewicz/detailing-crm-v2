@@ -20,10 +20,11 @@ const WEEKDAYS = ['Nd', 'Pn', 'Wt', 'Śr', 'Cz', 'Pt', 'So'];
 const parse = (iso: string) => new Date(`${iso}T00:00:00`);
 const dayMonth = (d: Date) => `${String(d.getDate()).padStart(2, '0')}.${String(d.getMonth() + 1).padStart(2, '0')}`;
 
-type Kind = 'missing' | 'leave' | 'holiday' | 'weekend' | 'work';
+type Kind = 'missing' | 'conflict' | 'leave' | 'holiday' | 'weekend' | 'work';
 
 function kindOf(day: CardDay): Kind {
     if (day.missing) return 'missing';
+    if (day.leaveConflict) return 'conflict';
     if (day.leave) return 'leave';
     if (day.holidayName) return 'holiday';
     if (!day.isWorkingDay) return 'weekend';
@@ -52,11 +53,16 @@ export function CardDays({ days }: Props) {
                                     {day.holidayName && <Label $tone="holiday">{day.holidayName}</Label>}
                                     {day.leave && <Label $tone="leave">{day.leave.label}</Label>}
                                     {day.missing && <Label $tone="missing">brak wpisu</Label>}
+                                    {kind === 'conflict' && <Label $tone="conflict">godziny w dniu urlopu</Label>}
                                 </Labels>
                             )}
                             {day.note && <Note>{day.note}</Note>}
                         </What>
-                        <Hours $empty={day.minutes === null}>
+                        <Hours
+                            $empty={day.minutes === null}
+                            $struck={kind === 'conflict'}
+                            title={kind === 'conflict' ? 'Nie liczy się do sumy' : undefined}
+                        >
                             {day.minutes === null ? '-' : hoursText(day.minutes)}
                         </Hours>
                     </Row>
@@ -94,6 +100,11 @@ const Row = styled.li<{ $kind: Kind }>`
     color: ${ui.inkSoft};
 
     &:last-child { border-bottom: none; }
+
+    ${p => p.$kind === 'conflict' && css`
+        background: ${ui.dangerTint};
+        box-shadow: inset 3px 0 0 ${ui.dangerInk};
+    `}
 
     ${p => (p.$kind === 'weekend' || p.$kind === 'holiday') && css`
         background: ${ui.surfaceSoft};
@@ -135,6 +146,7 @@ const LABEL_INK = {
     holiday: ui.textSecondary,
     leave: ui.brandDeep,
     missing: ui.warnInk,
+    conflict: ui.dangerInk,
 } as const;
 
 const Label = styled.span<{ $tone: keyof typeof LABEL_INK }>`
@@ -151,10 +163,12 @@ const Note = styled.span`
     overflow-wrap: anywhere;
 `;
 
-const Hours = styled.span<{ $empty: boolean }>`
+// Godziny z dnia urlopu zostają widoczne, ale przekreślone: nie liczą się do sumy.
+const Hours = styled.span<{ $empty: boolean; $struck?: boolean }>`
     font-size: 13.5px;
     font-weight: ${p => p.$empty ? 400 : 700};
-    color: ${p => p.$empty ? ui.textFaint : ui.ink};
+    color: ${p => p.$empty ? ui.textFaint : p.$struck ? ui.dangerInk : ui.ink};
+    text-decoration: ${p => p.$struck ? 'line-through' : 'none'};
     font-variant-numeric: tabular-nums;
     white-space: nowrap;
 `;

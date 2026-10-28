@@ -69,6 +69,9 @@ describe('KsefSendingDefaultsPanel', () => {
         const send = screen.getByRole('switch', { name: 'Domyślnie wysyłaj fakturę do KSeF' }) as HTMLInputElement;
         expect(send.checked).toBe(false);
         expect(send.disabled).toBe(true);
-        expect(document.body.textContent).toContain('pobieranie z KSeF');
+        // Faktur sprzedaży z KSeF już nie pobieramy: przychodem jest zapis płatności z wydania,
+        // więc dawne ostrzeżenie „bez pobierania nie zobaczysz przychodu” byłoby nieprawdą.
+        expect(document.body.textContent).toContain('od razu liczy się do przychodu');
+        expect(document.body.textContent).not.toContain('pobieranie z KSeF');
     });
 });

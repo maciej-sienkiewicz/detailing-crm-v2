@@ -15,6 +15,9 @@
 // W oknie: liczba godzin wobec normy, jedno zdanie o brakach, nadgodzinach i urlopie,
 // miesiąc dzień po dniu, a w stopce tylko akcje, które mają sens przy tym statusie.
 // Wypełniony jest najwyżej jeden przycisk - „Zatwierdź kartę" (CLAUDE.md §2).
+//
+// Karta z godzinami w dniach urlopu/L4 nie ma „Zatwierdź" (backend i tak odmówi): krokiem
+// następnym jest zwrot do poprawy z gotową notatką, które dni poprawić.
 
 import { useId, useState } from 'react';
 import styled from 'styled-components';
@@ -29,6 +32,7 @@ import { useAuth } from '@/core/context/AuthContext';
 import {
     useApproveCard, useCardDetail, useMonthOverview, useRemind, useReturnCard,
 } from '../../hooks/useWorktimeMonths';
+import { leaveConflictDatesText, leaveConflictTitle } from '@/modules/worktime/utils/leaveConflict';
 import { CardDays } from './CardDays';
 import { CardNoteModal } from './CardNoteModal';
 import { StatusText } from './StatusText';
@@ -93,9 +97,23 @@ export function WorkTimeCardModal({ period, userId, onClose }: Props) {
     // zawsze daje false), więc „własna karta" to porównanie z zalogowanym.
     const isOwn = !!user?.userId && user.userId === userId;
     const pending = approve.isPending || returnCard.isPending;
+    const conflictDays = data?.leaveConflictDays ?? 0;
+    const conflictDates = data && conflictDays > 0 ? leaveConflictDatesText(data.days) : '';
+    const conflictNote = conflictDays > 0
+        ? `Usuń godziny pracy z dni urlopu: ${conflictDates}. Gdy tego dnia była praca, daj znać, a urlop zostanie zmieniony.`
+        : undefined;
 
     let actions = null;
-    if (data?.status === 'SUBMITTED' && data.canDecide) {
+    if (data?.status === 'SUBMITTED' && data.canDecide && conflictDays > 0) {
+        actions = (
+            <>
+                <ActionNote>Karty z godzinami w dniach urlopu nie można zatwierdzić.</ActionNote>
+                <Button variant="primary" onClick={() => setNoteFor('return')} disabled={pending}>
+                    Zwróć do poprawy
+                </Button>
+            </>
+        );
+    } else if (data?.status === 'SUBMITTED' && data.canDecide) {
         actions = (
             <>
                 <Button variant="outline" onClick={() => setNoteFor('return')} disabled={pending}>
@@ -170,6 +188,16 @@ export function WorkTimeCardModal({ period, userId, onClose }: Props) {
                                     <TotalOf> z {hoursText(data.expectedMinutes)}</TotalOf>
                                 </Total>
                                 {facts && <Facts>{facts}</Facts>}
+                                {conflictDays > 0 && (
+                                    <Notice tone="danger" title={leaveConflictTitle(conflictDays, conflictDates)}>
+                                        Te godziny ({hoursText(data.leaveConflictMinutes ?? 0)}) nie wchodzą do sumy.{' '}
+                                        {data.status === 'APPROVED'
+                                            ? 'Kartę zatwierdzono z tymi dniami. Odblokuj ją, żeby pracownik usunął te godziny, albo zmień urlop.'
+                                            : data.status === 'SUBMITTED'
+                                                ? 'Zwróć kartę do poprawy albo zmień urlop, gdy tego dnia była praca.'
+                                                : 'Pracownik nie złoży karty, dopóki tych godzin nie usunie albo urlop się nie zmieni.'}
+                                    </Notice>
+                                )}
                                 {data.status === 'RETURNED' && data.returnNote && (
                                     <Facts>Uwagi przy zwrocie: {data.returnNote}</Facts>
                                 )}
@@ -187,6 +215,7 @@ export function WorkTimeCardModal({ period, userId, onClose }: Props) {
                     kind={noteFor}
                     name={data.name}
                     resignWarning={resignWarning}
+                    initialNote={conflictNote}
                     pending={returnCard.isPending}
                     zIndex={SUBMODAL_Z_INDEX}
                     onSubmit={handleNote}

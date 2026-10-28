@@ -28,7 +28,7 @@ import { StatusText } from './StatusText';
 import { WorkTimeCardModal } from './WorkTimeCardModal';
 import { WorkTimeGrid } from './WorkTimeGrid';
 import {
-    addMonths, approvedSummary, defaultPeriod, hoursOfNorm, isPeriod, missingDaysText,
+    addMonths, approvedSummary, daysLabel, defaultPeriod, hoursOfNorm, isPeriod, missingDaysText,
     monthOptions, periodLabel, periodOf,
 } from './monthFormat';
 
@@ -149,6 +149,11 @@ function MonthRow({ row, onOpen }: { row: MonthCardRow; onOpen: () => void }) {
                         {hoursOfNorm(row.totalMinutes, row.expectedMinutes)}
                         {row.missingWorkingDays > 0 && `, ${missingDaysText(row.missingWorkingDays)}`}
                     </Hours>
+                    {(row.leaveConflictDays ?? 0) > 0 && (
+                        <Conflict>
+                            Godziny w dniach urlopu: {daysLabel(row.leaveConflictDays ?? 0)}
+                        </Conflict>
+                    )}
                 </Who>
                 <StatusText status={row.status} />
                 <Chevron aria-hidden="true"><ChevronRight /></Chevron>
@@ -255,6 +260,13 @@ const Hours = styled.span`
     font-size: 13px;
     color: ${ui.textMuted};
     font-variant-numeric: tabular-nums;
+`;
+
+// Osobna linia w czerwieni: w zwykłym dopisku „136 z 136 h" spór o 40 h ginął.
+const Conflict = styled.span`
+    font-size: 13px;
+    font-weight: 600;
+    color: ${ui.dangerInk};
 `;
 
 const Chevron = styled.span`
