@@ -48,6 +48,23 @@
       "port": 5174
     },
     {
+      "name": "vite-tablet",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "/Users/maciej/Documents/repozytoria/detailboost-tablet",
+        "run",
+        "dev",
+        "--",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5175",
+        "--strictPort"
+      ],
+      "port": 5175
+    },
+    {
       "name": "vite-subaudit-preview",
       "runtimeExecutable": "npx",
       "runtimeArgs": [

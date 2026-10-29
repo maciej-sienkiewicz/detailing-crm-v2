@@ -63,11 +63,11 @@ interface PaymentMethodPickerProps {
 }
 
 /**
- * Wybór formy zapłaty: karta i gotówka zawsze na wierzchu, reszta pod jednym
- * rozwijanym przyciskiem.
+ * Wybór formy zapłaty: karta, gotówka i przelew zawsze na wierzchu, reszta (BLIK)
+ * pod jednym rozwijanym przyciskiem.
  *
  * Pięć równorzędnych pigułek zmuszało do czytania wszystkich za każdym razem,
- * choć w praktyce niemal zawsze wybierana jest jedna z dwóch pierwszych.
+ * choć w praktyce niemal zawsze wybierana jest jedna z trzech pierwszych.
  * Rzadsze metody nie znikają, schodzą o jedno kliknięcie niżej, a wybrana
  * z nich zostaje na przycisku, więc widać, co jest zaznaczone.
  */
