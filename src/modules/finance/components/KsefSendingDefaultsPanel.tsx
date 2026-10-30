@@ -145,6 +145,30 @@ export const KsefSendingDefaultsPanel: React.FC = () => {
           }
         />
       </OptionRow>
+
+      {/*
+        Sam widok listy. „Obsługa statusów płatności" (panel „Płatności") też chowa status,
+        ale przy okazji zmienia sumy przychodu i kosztów - tu biznes chciał tylko krótszej tabeli.
+      */}
+      <OptionRow>
+        <OptionTexts>
+          <OptionLabel>Pokaż kolumnę ze statusem płatności</OptionLabel>
+          <OptionHint>
+            Kolumna „Płatność” na liście przychodów w Finansach: status płatności i jej forma.
+            Ukrycie nie zmienia sum ani należności.
+          </OptionHint>
+        </OptionTexts>
+        <Toggle
+          checked={ksef.paymentStatusColumnVisible}
+          disabled={isPending || ksef.isLoading}
+          ariaLabel="Pokaż kolumnę ze statusem płatności"
+          onChange={(value) =>
+            mutate({ paymentStatusColumnVisible: value }, {
+              onError: () => showError('Nie udało się zapisać ustawienia kolumny płatności'),
+            })
+          }
+        />
+      </OptionRow>
     </Panel>
   );
 };

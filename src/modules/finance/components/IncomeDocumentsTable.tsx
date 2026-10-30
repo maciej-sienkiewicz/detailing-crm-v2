@@ -566,6 +566,11 @@ interface IncomeDocumentsTableProps {
    * płatności go nie prowadzi - w kolumnie zostaje sama forma płatności.
    */
   showPaymentStatus?: boolean;
+  /**
+   * Cała kolumna „Płatność" (Ustawienia → Faktury przy wydaniu pojazdu). Ukrywa sam widok:
+   * filtr, zaznaczanie i sumy zostają, bo zależą od obsługi statusów, nie od tej kolumny.
+   */
+  showPaymentColumn?: boolean;
 }
 
 export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
@@ -575,6 +580,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
   searchTerm,
   selection,
   showPaymentStatus = true,
+  showPaymentColumn = true,
 }) => {
   const excludeMutation = useExcludeIncomeDocument();
   const restoreMutation = useRestoreIncomeDocument();
@@ -698,7 +704,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                           </KsefCheck>
                         )}
                       </TypeCell>
-                      {showPaymentStatus && <Badge $variant={payment.variant}>{payment.label}</Badge>}
+                      {showPaymentStatus && showPaymentColumn && <Badge $variant={payment.variant}>{payment.label}</Badge>}
                       {doc.ksefStatus === 'REJECTED' && <Badge $variant="red">Odrzucona</Badge>}
                       {settled && <Badge $variant="slate" title={settled.title}>{settled.label}</Badge>}
                       {doc.duplicateStatus === 'SUSPECTED' && (
@@ -759,7 +765,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
             <Th>Notatka</Th>
             <Th $align="right">Kwota</Th>
             <Th>Źródło</Th>
-            <Th>Płatność</Th>
+            {showPaymentColumn && <Th>Płatność</Th>}
             <Th $align="right">Akcje</Th>
           </tr>
         </Thead>
@@ -767,7 +773,7 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
           {isLoading
             ? Array.from({ length: 5 }).map((_, i) => (
                 <SkeletonRow key={i}>
-                  {Array.from({ length: selection ? 9 : 8 }).map((_, j) => (
+                  {Array.from({ length: (selection ? 9 : 8) - (showPaymentColumn ? 0 : 1) }).map((_, j) => (
                     <td key={j}><div /></td>
                   ))}
                 </SkeletonRow>
@@ -896,16 +902,18 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                         </VisitRef>
                       )}
                     </Td>
-                    <Td>
-                      {showPaymentStatus ? (
-                        <>
-                          <Badge $variant={payment.variant}>{payment.label}</Badge>
-                          {doc.paymentLabel && <PartyNip>{doc.paymentLabel}</PartyNip>}
-                        </>
-                      ) : (
-                        doc.paymentLabel ?? '–'
-                      )}
-                    </Td>
+                    {showPaymentColumn && (
+                      <Td>
+                        {showPaymentStatus ? (
+                          <>
+                            <Badge $variant={payment.variant}>{payment.label}</Badge>
+                            {doc.paymentLabel && <PartyNip>{doc.paymentLabel}</PartyNip>}
+                          </>
+                        ) : (
+                          doc.paymentLabel ?? '–'
+                        )}
+                      </Td>
+                    )}
                     <Td $align="right">
                       <ActionsCell>
                         {canPreviewPdf(doc) && (

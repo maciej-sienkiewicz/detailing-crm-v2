@@ -85,6 +85,12 @@ export const useKsefAutomation = (options?: { enabled?: boolean }) => {
      * CRM at all - the accountant issues it; the CRM keeps only a payment record.
      */
     invoicesIssuedExternally: data?.invoicesIssuedExternally === true,
+    /**
+     * Kolumna „Płatność" na liście przychodów. Tylko widok - sumy i obsługa statusów
+     * płatności zostają bez zmian. Do odpowiedzi serwera (i bez modułu KSeF) widoczna,
+     * bo tak wyglądała lista przed tym ustawieniem.
+     */
+    paymentStatusColumnVisible: data?.paymentStatusColumnVisible !== false,
     /** True while the answer is still unknown; do not render a warning yet. */
     isLoading: ksefModule.isLoading || (enabled && isLoading),
   };

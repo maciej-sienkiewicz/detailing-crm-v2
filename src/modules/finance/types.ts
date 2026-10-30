@@ -300,12 +300,15 @@ export interface KsefInvoicingStatus {
    * zapis płatności poza przychodem. Brak pola = starszy backend = wyłączone.
    */
   invoicesIssuedExternally?: boolean;
+  /** Kolumna „Płatność" na liście przychodów. Brak pola = starszy backend = widoczna. */
+  paymentStatusColumnVisible?: boolean;
 }
 
 /** Ustawienia fakturowania przy wydaniu pojazdu (Ustawienia → Faktury). */
 export interface KsefInvoicingSettings {
   autoSendDefault: boolean;
   invoicesIssuedExternally: boolean;
+  paymentStatusColumnVisible: boolean;
 }
 
 export interface SaveKsefCredentialsRequest {

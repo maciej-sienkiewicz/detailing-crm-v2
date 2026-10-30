@@ -21,7 +21,7 @@ const FINANCE_TABS: { tab: FinanceTab; label: string; requires: PermissionCode }
 import type { CostDocumentKind, ExpenseSource, ExpensePaymentStatus } from '../types';
 import { COST_DOCUMENT_KINDS, COST_DOCUMENT_KIND_LABEL } from '../utils/costDocumentKinds';
 import { useFinanceDocument } from '../hooks/useFinance';
-import { useKsefExpenses, useBulkUpdateExpensesPaymentStatus } from '../hooks/useKsef';
+import { useKsefExpenses, useBulkUpdateExpensesPaymentStatus, useKsefAutomation } from '../hooks/useKsef';
 import { useIncomeDocuments, useBulkUpdateIncomePaymentStatus } from '../hooks/useIncomeDocuments';
 import { usePaymentTracking } from '../hooks/usePaymentTracking';
 import {
@@ -1291,6 +1291,7 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, on
   // „Oznacz jako opłacone" - wybrany wcześniej filtr też przestaje działać.
   const { enabled: paymentTracking } = usePaymentTracking();
   const paymentStatusFilter = paymentTracking ? filters.paymentStatus : '';
+  const { paymentStatusColumnVisible } = useKsefAutomation();
 
   const { documents, total, isLoading, isError, refetch } = useIncomeDocuments({
     documentType:  (filters.documentType  as IncomeDocumentType) || undefined,
@@ -1432,6 +1433,7 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, on
           searchTerm={searchTerm}
           selection={paymentTracking ? selection : undefined}
           showPaymentStatus={paymentTracking}
+          showPaymentColumn={paymentStatusColumnVisible}
         />
       )}
 

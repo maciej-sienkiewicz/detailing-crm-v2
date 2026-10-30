@@ -17,9 +17,9 @@ vi.mock('../api/ksefApi', () => ({
     ksefApi: { getInvoicingStatus: vi.fn(), updateInvoicingSettings: vi.fn() },
 }));
 
-const status = (invoicesIssuedExternally: boolean) => ({
+const status = (invoicesIssuedExternally: boolean, paymentStatusColumnVisible?: boolean) => ({
     configured: true, tokenChecked: true, tokenValid: true, permissionsKnown: true, canIssueInvoices: true,
-    checkedAt: null, autoSendDefault: true, invoicesIssuedExternally,
+    checkedAt: null, autoSendDefault: true, invoicesIssuedExternally, paymentStatusColumnVisible,
 });
 
 const renderPanel = () => {
@@ -36,7 +36,7 @@ const renderPanel = () => {
 };
 
 beforeEach(() => {
-    vi.mocked(ksefApi.updateInvoicingSettings).mockResolvedValue({ autoSendDefault: true, invoicesIssuedExternally: true });
+    vi.mocked(ksefApi.updateInvoicingSettings).mockResolvedValue({ autoSendDefault: true, invoicesIssuedExternally: true, paymentStatusColumnVisible: true });
 });
 
 afterEach(() => {
@@ -73,5 +73,29 @@ describe('KsefSendingDefaultsPanel', () => {
         // więc dawne ostrzeżenie „bez pobierania nie zobaczysz przychodu” byłoby nieprawdą.
         expect(document.body.textContent).toContain('od razu liczy się do przychodu');
         expect(document.body.textContent).not.toContain('pobieranie z KSeF');
+    });
+
+    it('kolumna statusu płatności: bez pola z serwera widoczna, wyłączenie zapisuje tylko tę flagę', async () => {
+        vi.mocked(ksefApi.getInvoicingStatus).mockResolvedValue(status(false));
+        const user = userEvent.setup();
+        renderPanel();
+
+        const toggle = await screen.findByRole('switch', { name: 'Pokaż kolumnę ze statusem płatności' });
+        await waitFor(() => expect((toggle as HTMLInputElement).disabled).toBe(false));
+        expect((toggle as HTMLInputElement).checked).toBe(true);
+        await user.click(toggle);
+
+        await waitFor(() =>
+            expect(ksefApi.updateInvoicingSettings).toHaveBeenCalledWith({ paymentStatusColumnVisible: false }),
+        );
+    });
+
+    it('kolumna statusu płatności nie zależy od trybu księgowości', async () => {
+        vi.mocked(ksefApi.getInvoicingStatus).mockResolvedValue(status(true, false));
+        renderPanel();
+
+        const toggle = await screen.findByRole('switch', { name: 'Pokaż kolumnę ze statusem płatności' });
+        await waitFor(() => expect((toggle as HTMLInputElement).disabled).toBe(false));
+        expect((toggle as HTMLInputElement).checked).toBe(false);
     });
 });

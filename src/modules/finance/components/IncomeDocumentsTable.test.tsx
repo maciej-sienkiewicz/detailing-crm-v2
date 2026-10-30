@@ -22,13 +22,13 @@ const doc = (patch: Partial<IncomeDocument> = {}): IncomeDocument => ({
     ...patch,
 });
 
-const renderTable = (documents: IncomeDocument[]) => {
+const renderTable = (documents: IncomeDocument[], props: { showPaymentColumn?: boolean } = {}) => {
     const client = new QueryClient();
     render(
         <QueryClientProvider client={client}>
             <ThemeProvider theme={theme}>
                 <ToastProvider>
-                    <IncomeDocumentsTable documents={documents} isLoading={false} onSelect={vi.fn()} />
+                    <IncomeDocumentsTable documents={documents} isLoading={false} onSelect={vi.fn()} {...props} />
                 </ToastProvider>
             </ThemeProvider>
         </QueryClientProvider>,
@@ -95,5 +95,22 @@ describe('IncomeDocumentsTable - numer pod datą', () => {
         const name = 'Przedsiębiorstwo Handlowo-Usługowe Auto-Detailing Jan Kowalski i Wspólnicy sp.k.';
         renderTable([doc({ counterpartyName: name, counterpartyNip: '5270000000' })]);
         expect(screen.getByText(name)).toHaveAttribute('title', name);
+    });
+});
+
+describe('IncomeDocumentsTable - kolumna „Płatność”', () => {
+    afterEach(cleanup);
+
+    it('domyślnie jest widoczna, ze statusem i formą płatności', () => {
+        renderTable([doc({ ksefStatus: 'ACCEPTED' })]);
+        expect(screen.getByRole('columnheader', { name: 'Płatność' })).toBeInTheDocument();
+        expect(screen.getAllByText('Karta').length).toBeGreaterThan(0);
+    });
+
+    it('wyłączona w ustawieniach znika razem z nagłówkiem i plakietką statusu', () => {
+        renderTable([doc({ ksefStatus: 'ACCEPTED' })], { showPaymentColumn: false });
+        expect(screen.queryByRole('columnheader', { name: 'Płatność' })).toBeNull();
+        expect(screen.queryByText('Karta')).toBeNull();
+        expect(screen.queryByText('Opłacony')).toBeNull();
     });
 });
