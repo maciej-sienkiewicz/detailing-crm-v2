@@ -1,6 +1,14 @@
 import type { ReactNode } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { COMPANY_ADDRESS, COMPANY_CAPITAL, COMPANY_COURT, COMPANY_IDS, COMPANY_NAME } from '@/core/companyLegal';
+import {
+    COMPANY_ADDRESS,
+    COMPANY_CAPITAL,
+    COMPANY_COURT,
+    COMPANY_EMAIL,
+    COMPANY_IDS,
+    COMPANY_NAME,
+    COMPANY_PHONES,
+} from '@/core/companyLegal';
 import { AuthDotField } from './AuthDotField';
 import { LEGAL_DOCUMENTS, legalPath, type LegalSlug } from '@/modules/legal/documents';
 import { PaymentFlags } from '@/modules/legal/components/PaymentFlags';
@@ -237,6 +245,16 @@ function CompanyInfo() {
                 ))}
             </span>
             <div>{COMPANY_CAPITAL}</div>
+            <div>
+                <a href={`mailto:${COMPANY_EMAIL}`}>{COMPANY_EMAIL}</a>
+            </div>
+            <span>
+                {COMPANY_PHONES.map((phone) => (
+                    <span key={phone.tel}>
+                        {phone.person} <a href={`tel:${phone.tel}`}>{phone.display}</a>
+                    </span>
+                ))}
+            </span>
             {/* Przelewy24 wymaga regulaminu i polityki pod ręką na każdej stronie przed zakupem. */}
             <span>
                 {FOOTER_DOCUMENTS.map((slug) => {
