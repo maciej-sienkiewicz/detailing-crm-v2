@@ -86,11 +86,11 @@ export const useKsefAutomation = (options?: { enabled?: boolean }) => {
      */
     invoicesIssuedExternally: data?.invoicesIssuedExternally === true,
     /**
-     * Kolumna „Płatność" na liście przychodów. Tylko widok - sumy i obsługa statusów
-     * płatności zostają bez zmian. Do odpowiedzi serwera (i bez modułu KSeF) widoczna,
-     * bo tak wyglądała lista przed tym ustawieniem.
+     * „Pokaż kolumnę ze statusem płatności" - surowa wartość z serwera, `undefined` gdy
+     * nieznana (wczytywanie, starszy backend, studio bez modułu KSeF). O tym, co pokazać,
+     * decyduje usePaymentStatusVisible, które w takim razie wraca do obsługi statusów.
      */
-    paymentStatusColumnVisible: data?.paymentStatusColumnVisible !== false,
+    paymentStatusColumnVisible: data?.paymentStatusColumnVisible,
     /** True while the answer is still unknown; do not render a warning yet. */
     isLoading: ksefModule.isLoading || (enabled && isLoading),
   };

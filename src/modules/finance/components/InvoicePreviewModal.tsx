@@ -2,7 +2,7 @@ import React from 'react';
 import styled, { keyframes } from 'styled-components';
 import type { KsefExpenseDetail, KsefExpenseParty } from '../types';
 import { useKsefExpenseDetail } from '../hooks/useKsef';
-import { usePaymentTracking } from '../hooks/usePaymentTracking';
+import { usePaymentStatusVisible, usePaymentTracking } from '../hooks/usePaymentTracking';
 import { formatMoneyFloat, formatMoneyFloatCompact, formatDate, formatBankAccount } from '../utils/formatters';
 import {
   ModalShell,
@@ -379,9 +379,12 @@ interface Props {
 
 export const InvoicePreviewModal: React.FC<Props> = ({ expenseId, onClose }) => {
   const { detail, isLoading, isError } = useKsefExpenseDetail(expenseId);
-  // Bez obsługi statusów płatności faktura kosztowa jest kosztem od razu: status
-  // i karta „Zapłać przelewem" (pokazywana tylko nieopłaconym) znikają.
-  const { enabled: paymentTracking } = usePaymentTracking();
+  // Status i karta „Zapłać przelewem" (tylko nieopłaconym) są tu, gdy studio widzi statusy
+  // na liście albo liczy według nich należności. Gdy żadne z dwóch - faktura jest kosztem
+  // od razu i oba znikają. Okno pokazuje status także przy ukrytej kolumnie, bo przy obsłudze
+  // statusów to stąd oznacza się dokument jako opłacony.
+  const { enabled: tracking } = usePaymentTracking();
+  const paymentTracking = usePaymentStatusVisible() || tracking;
 
   /**
    * Wartość brutto pozycji: z faktury, gdy ją ma (CLAUDE.md §1 - brutto, które ktoś ustalił,

@@ -100,9 +100,9 @@ export const PaymentTrackingPanel: React.FC = () => {
           <OptionLabel>Obsługa statusów płatności</OptionLabel>
           <OptionHint>
             {known === false
-              ? 'Każdy dokument od razu liczy się do przychodu albo kosztu. Status płatności, ' +
-                'należności i oznaczanie dokumentów jako opłaconych są ukryte. Statusy nie są ' +
-                'kasowane: po ponownym włączeniu wrócą takie, jakie były.'
+              ? 'Każdy dokument od razu liczy się do przychodu albo kosztu, bez należności. ' +
+                'Status płatności przy dokumentach pokazuje osobno „Pokaż kolumnę ze statusem ' +
+                'płatności”. Statusy nie są kasowane: po ponownym włączeniu liczą się takie, jakie są.'
               : 'Przychodem i kosztem jest dokument opłacony. Przelew i nieopłacona faktura ' +
                 'kosztowa czekają w należnościach, dopóki ktoś nie oznaczy ich jako opłaconych. ' +
                 'Wyłącz, jeśli nie śledzisz płatności - wtedy każdy dokument liczy się od razu.'}

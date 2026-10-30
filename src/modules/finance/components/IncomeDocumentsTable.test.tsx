@@ -22,7 +22,7 @@ const doc = (patch: Partial<IncomeDocument> = {}): IncomeDocument => ({
     ...patch,
 });
 
-const renderTable = (documents: IncomeDocument[], props: { showPaymentColumn?: boolean } = {}) => {
+const renderTable = (documents: IncomeDocument[], props: { showPaymentStatus?: boolean } = {}) => {
     const client = new QueryClient();
     render(
         <QueryClientProvider client={client}>
@@ -98,19 +98,20 @@ describe('IncomeDocumentsTable - numer pod datą', () => {
     });
 });
 
-describe('IncomeDocumentsTable - kolumna „Płatność”', () => {
+describe('IncomeDocumentsTable - status płatności', () => {
     afterEach(cleanup);
 
-    it('domyślnie jest widoczna, ze statusem i formą płatności', () => {
+    it('przy włączonym statusie kolumna „Płatność” ma status i formę płatności', () => {
         renderTable([doc({ ksefStatus: 'ACCEPTED' })]);
         expect(screen.getByRole('columnheader', { name: 'Płatność' })).toBeInTheDocument();
+        expect(screen.getAllByText('Opłacony').length).toBeGreaterThan(0);
         expect(screen.getAllByText('Karta').length).toBeGreaterThan(0);
     });
 
-    it('wyłączona w ustawieniach znika razem z nagłówkiem i plakietką statusu', () => {
-        renderTable([doc({ ksefStatus: 'ACCEPTED' })], { showPaymentColumn: false });
-        expect(screen.queryByRole('columnheader', { name: 'Płatność' })).toBeNull();
-        expect(screen.queryByText('Karta')).toBeNull();
+    it('bez statusu kolumna zostaje z samą formą płatności', () => {
+        renderTable([doc({ ksefStatus: 'ACCEPTED' })], { showPaymentStatus: false });
+        expect(screen.getByRole('columnheader', { name: 'Płatność' })).toBeInTheDocument();
+        expect(screen.getAllByText('Karta').length).toBeGreaterThan(0);
         expect(screen.queryByText('Opłacony')).toBeNull();
     });
 });

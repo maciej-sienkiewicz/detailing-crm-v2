@@ -3,6 +3,7 @@ import styled from 'styled-components';
 import { Toggle } from '@/common/components/Toggle';
 import { useToast } from '@/common/components/Toast';
 import { useKsefAutomation, useUpdateKsefInvoicingSettings } from '../hooks/useKsef';
+import { usePaymentStatusVisible } from '../hooks/usePaymentTracking';
 
 const Panel = styled.div`
   background: ${(p) => p.theme.colors.surface};
@@ -87,6 +88,7 @@ export const KsefSendingDefaultsPanel: React.FC = () => {
   // zanim przełącznik powstał, więc migotnięcie nie sugeruje zmiany zachowania.
   const autoSendDefault = ksef.autoSendDefault ?? true;
   const external = ksef.invoicesIssuedExternally;
+  const statusVisible = usePaymentStatusVisible();
 
   return (
     <Panel>
@@ -147,19 +149,22 @@ export const KsefSendingDefaultsPanel: React.FC = () => {
       </OptionRow>
 
       {/*
-        Sam widok listy. „Obsługa statusów płatności" (panel „Płatności") też chowa status,
-        ale przy okazji zmienia sumy przychodu i kosztów - tu biznes chciał tylko krótszej tabeli.
+        Sam widok: status przy dokumentach, a sum nie rusza. Co liczy się do przychodu,
+        kosztów i należności, mówi „Obsługa statusów płatności" (panel „Płatności"). Biznes
+        chciał widzieć, kto zapłacił, bez przenoszenia nieopłaconych do należności.
       */}
       <OptionRow>
         <OptionTexts>
           <OptionLabel>Pokaż kolumnę ze statusem płatności</OptionLabel>
           <OptionHint>
-            Kolumna „Płatność” na liście przychodów w Finansach: status płatności i jej forma.
-            Ukrycie nie zmienia sum ani należności.
+            Status Opłacony, Nieopłacony albo Po terminie przy dokumentach przychodowych
+            i kosztowych w Finansach, z filtrem i oznaczaniem jako opłacone. Nie zmienia sum:
+            do należności nieopłacone dokumenty trafiają dopiero przy włączonej obsłudze
+            statusów płatności.
           </OptionHint>
         </OptionTexts>
         <Toggle
-          checked={ksef.paymentStatusColumnVisible}
+          checked={statusVisible}
           disabled={isPending || ksef.isLoading}
           ariaLabel="Pokaż kolumnę ze statusem płatności"
           onChange={(value) =>

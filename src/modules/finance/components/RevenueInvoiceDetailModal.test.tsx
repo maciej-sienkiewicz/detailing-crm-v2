@@ -43,7 +43,10 @@ vi.mock('../hooks/useKsefRevenue', () => {
         useUpdateRevenuePaymentStatus: mutation,
     };
 });
-vi.mock('../hooks/usePaymentTracking', () => ({ usePaymentTracking: () => ({ enabled: true }) }));
+vi.mock('../hooks/usePaymentTracking', () => ({
+    usePaymentTracking: () => ({ enabled: true }),
+    usePaymentStatusVisible: () => true,
+}));
 vi.mock('@/modules/visits/components/SettlementCorrectionModal', () => ({
     SettlementCorrectionModal: ({ visitId }: { visitId: string }) => <div>Popraw rozliczenie {visitId}</div>,
 }));

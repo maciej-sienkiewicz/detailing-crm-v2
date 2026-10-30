@@ -571,8 +571,8 @@ interface Props {
   /** Zaznaczanie wielu wierszy pod operację grupową; brak = tabela bez pól wyboru. */
   selection?: RowSelection;
   /**
-   * Status płatności z wyborem Opłacona / Nieopłacona i akcja „Oznacz jako opłaconą".
-   * Studio bez obsługi statusów płatności go nie prowadzi - zostaje sama forma płatności.
+   * Status płatności z wyborem Opłacona / Nieopłacona i akcja „Oznacz jako opłaconą" -
+   * ustawienie „Pokaż kolumnę ze statusem płatności". Wyłączone: sama forma płatności.
    */
   showPaymentStatus?: boolean;
 }

@@ -24,7 +24,7 @@ import {
   useUpdateRevenuePaymentStatus,
 } from '../hooks/useKsefRevenue';
 import { useExcludeIncomeDocument, useRestoreIncomeDocument } from '../hooks/useIncomeDocuments';
-import { usePaymentTracking } from '../hooks/usePaymentTracking';
+import { usePaymentStatusVisible, usePaymentTracking } from '../hooks/usePaymentTracking';
 import { formatMoney, formatMoneyCompact, formatDate, formatBankAccount } from '../utils/formatters';
 import { RevenueStatusBadge } from './RevenueStatusBadge';
 import { InvoiceEditCorrection } from './InvoiceEditCorrection';
@@ -524,9 +524,10 @@ interface RevenueInvoiceDetailModalProps {
 
 export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps> = ({ invoiceId, onClose }) => {
   const { invoice } = useKsefRevenueInvoiceDetail(invoiceId);
-  // Bez obsługi statusów płatności faktura jest przychodem od razu - status i jego
-  // przełączanie nie mają tu nic do powiedzenia.
-  const { enabled: paymentTracking } = usePaymentTracking();
+  // Jak w podglądzie faktury kosztowej: status i „Oznacz jako opłaconą”, gdy studio widzi
+  // statusy na liście albo liczy według nich należności.
+  const { enabled: tracking } = usePaymentTracking();
+  const paymentTracking = usePaymentStatusVisible() || tracking;
   const retryMutation      = useRetryRevenueInvoice();
   const deleteMutation     = useDeleteRejectedInvoice();
   const duplicateMutation  = useResolveDuplicate();

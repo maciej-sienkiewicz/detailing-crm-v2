@@ -21,9 +21,9 @@ const FINANCE_TABS: { tab: FinanceTab; label: string; requires: PermissionCode }
 import type { CostDocumentKind, ExpenseSource, ExpensePaymentStatus } from '../types';
 import { COST_DOCUMENT_KINDS, COST_DOCUMENT_KIND_LABEL } from '../utils/costDocumentKinds';
 import { useFinanceDocument } from '../hooks/useFinance';
-import { useKsefExpenses, useBulkUpdateExpensesPaymentStatus, useKsefAutomation } from '../hooks/useKsef';
+import { useKsefExpenses, useBulkUpdateExpensesPaymentStatus } from '../hooks/useKsef';
 import { useIncomeDocuments, useBulkUpdateIncomePaymentStatus } from '../hooks/useIncomeDocuments';
-import { usePaymentTracking } from '../hooks/usePaymentTracking';
+import { usePaymentStatusVisible } from '../hooks/usePaymentTracking';
 import {
   FinanceSummaryCards,
   CreateDocumentModal,
@@ -1287,11 +1287,11 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, on
   const [filters, setFilters] = useState<IncomeFilters>(EMPTY_INCOME_FILTERS);
   const [hiddenFilter, setHiddenFilter] = useState<HiddenFilter>('default');
   const searchTerm = useDebounce(filters.search.trim(), SEARCH_DEBOUNCE_MS);
-  // Bez obsługi statusów płatności nie ma filtra po statusie ani zaznaczania do
-  // „Oznacz jako opłacone" - wybrany wcześniej filtr też przestaje działać.
-  const { enabled: paymentTracking } = usePaymentTracking();
-  const paymentStatusFilter = paymentTracking ? filters.paymentStatus : '';
-  const { paymentStatusColumnVisible } = useKsefAutomation();
+  // Status płatności widać, gdy włączona jest „kolumna ze statusem płatności" - sam widok,
+  // sumy liczą się według obsługi statusów. Bez kolumny nie ma też filtra po statusie ani
+  // zaznaczania do „Oznacz jako opłacone"; wybrany wcześniej filtr przestaje działać.
+  const statusVisible = usePaymentStatusVisible();
+  const paymentStatusFilter = statusVisible ? filters.paymentStatus : '';
 
   const { documents, total, isLoading, isError, refetch } = useIncomeDocuments({
     documentType:  (filters.documentType  as IncomeDocumentType) || undefined,
@@ -1354,7 +1354,7 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, on
           ]}
           placeholder="Wszystkie typy"
         />
-        {paymentTracking && (
+        {statusVisible && (
           <FilterSelect
             value={filters.paymentStatus}
             onChange={(val) => setFilter('paymentStatus', val)}
@@ -1410,7 +1410,7 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, on
         />
       )}
 
-      {paymentTracking && (
+      {statusVisible && (
         <BulkPaymentStatusBar
           count={selection.count}
           busy={bulkStatus.isPending}
@@ -1431,9 +1431,8 @@ const IncomeTabContent: React.FC<IncomeTabContentProps> = ({ activeDateRange, on
           isLoading={isLoading}
           onSelect={onSelect}
           searchTerm={searchTerm}
-          selection={paymentTracking ? selection : undefined}
-          showPaymentStatus={paymentTracking}
-          showPaymentColumn={paymentStatusColumnVisible}
+          selection={statusVisible ? selection : undefined}
+          showPaymentStatus={statusVisible}
         />
       )}
 
@@ -1486,8 +1485,9 @@ const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange
   const [filters, setFilters] = useState<ExpenseFilters>(EMPTY_EXPENSE_FILTERS);
   const [hiddenFilter, setHiddenFilter] = useState<HiddenFilter>('default');
   const searchTerm = useDebounce(filters.search.trim(), SEARCH_DEBOUNCE_MS);
-  const { enabled: paymentTracking } = usePaymentTracking();
-  const paymentStatusFilter = paymentTracking ? filters.paymentStatus : '';
+  // Jak na liście przychodów: status, filtr i zaznaczanie idą za kolumną statusu.
+  const statusVisible = usePaymentStatusVisible();
+  const paymentStatusFilter = statusVisible ? filters.paymentStatus : '';
 
   const { expenses, total, isLoading, isError, refetch } = useKsefExpenses({
     source:          (filters.source        as ExpenseSource)        || undefined,
@@ -1542,7 +1542,7 @@ const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange
           options={COST_DOCUMENT_KINDS.map((k) => ({ value: k, label: COST_DOCUMENT_KIND_LABEL[k] }))}
           placeholder="Wszystkie rodzaje"
         />
-        {paymentTracking && (
+        {statusVisible && (
           <FilterSelect
             value={filters.paymentStatus}
             onChange={(val) => setFilter('paymentStatus', val)}
@@ -1585,7 +1585,7 @@ const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange
         />
       )}
 
-      {paymentTracking && (
+      {statusVisible && (
         <BulkPaymentStatusBar
           count={selection.count}
           busy={bulkStatus.isPending}
@@ -1605,8 +1605,8 @@ const ExpensesTabContent: React.FC<ExpensesTabContentProps> = ({ activeDateRange
           expenses={expenses}
           isLoading={isLoading}
           searchTerm={searchTerm}
-          selection={paymentTracking ? selection : undefined}
-          showPaymentStatus={paymentTracking}
+          selection={statusVisible ? selection : undefined}
+          showPaymentStatus={statusVisible}
         />
       )}
 

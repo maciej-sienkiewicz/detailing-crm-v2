@@ -16,6 +16,9 @@ vi.mock('@/modules/subscription', () => ({ useCapability: () => ({ enabled: true
 vi.mock('../api/ksefApi', () => ({
     ksefApi: { getInvoicingStatus: vi.fn(), updateInvoicingSettings: vi.fn() },
 }));
+vi.mock('../api/financeApi', () => ({
+    financeApi: { getFinanceConfig: vi.fn().mockResolvedValue({ paymentTrackingEnabled: false }) },
+}));
 
 const status = (invoicesIssuedExternally: boolean, paymentStatusColumnVisible?: boolean) => ({
     configured: true, tokenChecked: true, tokenValid: true, permissionsKnown: true, canIssueInvoices: true,
@@ -75,27 +78,29 @@ describe('KsefSendingDefaultsPanel', () => {
         expect(document.body.textContent).not.toContain('pobieranie z KSeF');
     });
 
-    it('kolumna statusu płatności: bez pola z serwera widoczna, wyłączenie zapisuje tylko tę flagę', async () => {
+    it('status płatności przy wyłączonej obsłudze statusów: włączenie zapisuje tylko tę flagę', async () => {
+        // Bez pola z serwera przełącznik idzie za obsługą statusów (tu wyłączoną).
         vi.mocked(ksefApi.getInvoicingStatus).mockResolvedValue(status(false));
         const user = userEvent.setup();
         renderPanel();
 
         const toggle = await screen.findByRole('switch', { name: 'Pokaż kolumnę ze statusem płatności' });
         await waitFor(() => expect((toggle as HTMLInputElement).disabled).toBe(false));
-        expect((toggle as HTMLInputElement).checked).toBe(true);
+        expect((toggle as HTMLInputElement).checked).toBe(false);
         await user.click(toggle);
 
         await waitFor(() =>
-            expect(ksefApi.updateInvoicingSettings).toHaveBeenCalledWith({ paymentStatusColumnVisible: false }),
+            expect(ksefApi.updateInvoicingSettings).toHaveBeenCalledWith({ paymentStatusColumnVisible: true }),
         );
+        expect(document.body.textContent).toContain('Nie zmienia sum');
     });
 
     it('kolumna statusu płatności nie zależy od trybu księgowości', async () => {
-        vi.mocked(ksefApi.getInvoicingStatus).mockResolvedValue(status(true, false));
+        vi.mocked(ksefApi.getInvoicingStatus).mockResolvedValue(status(true, true));
         renderPanel();
 
         const toggle = await screen.findByRole('switch', { name: 'Pokaż kolumnę ze statusem płatności' });
         await waitFor(() => expect((toggle as HTMLInputElement).disabled).toBe(false));
-        expect((toggle as HTMLInputElement).checked).toBe(false);
+        await waitFor(() => expect((toggle as HTMLInputElement).checked).toBe(true));
     });
 });
