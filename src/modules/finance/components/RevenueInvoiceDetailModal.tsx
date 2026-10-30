@@ -31,6 +31,7 @@ import { InvoiceEditCorrection } from './InvoiceEditCorrection';
 import { correctedLinesPayload, editChange, editLinesFromItems, type EditLine } from '../utils/invoiceEdit';
 import type { RevenueInvoice, RevenueParty } from '../types';
 import { problemDetail } from '@/core/problem';
+import { SettlementCorrectionModal } from '@/modules/visits/components/SettlementCorrectionModal';
 
 // ─── Wizualizacja dokumentu ──────────────────────────────────────────────────
 // Układ celowo bliźniaczy do podglądu faktury kosztowej: ta sama „kartka",
@@ -540,6 +541,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
   const [correctionReason, setCorrectionReason] = useState('');
   const [correctionExemption, setCorrectionExemption] = useState<string | null>(null);
   const [actionError, setActionError]           = useState<string | null>(null);
+  const [settlementOpen, setSettlementOpen]     = useState(false);
 
   if (!invoiceId) return null;
 
@@ -613,7 +615,11 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
   const beforeAndAfter = items.some(item => item.stateBefore);
 
   return (
-    <ModalShell isOpen={invoiceId !== null} onClose={close} size="full" fillHeight>
+    <>
+    {settlementOpen && invoice?.visitId && (
+      <SettlementCorrectionModal visitId={invoice.visitId} onClose={() => setSettlementOpen(false)} />
+    )}
+    <ModalShell isOpen={invoiceId !== null && !settlementOpen} onClose={close} size="full" fillHeight>
       <ModalHeader>
         <ModalTitleGroup>
           <ModalTitle>Podgląd faktury</ModalTitle>
@@ -1016,7 +1022,23 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
                 ? <><Eye size={14} /> Przywróć w Finansach</>
                 : <><EyeOff size={14} /> Ukryj w Finansach</>}
             </SharedButton>
+            {/*
+              Faktura z wydania pojazdu: korekta wystawiona stąd zmieniała fakturę w KSeF, ale nie
+              ceny w wizycie ani dokumentu wizyty - wizyta i Finanse pokazywały potem dwie kwoty
+              tej samej sprzedaży. Taką fakturę poprawia się przez rozliczenie wizyty: ono zmienia
+              ceny, dokumenty, kasę i fakturę razem (korekta o różnicę albo do zera w KSeF).
+            */}
             {invoice.source === 'CRM' && invoice.ksefStatus === 'ACCEPTED' &&
+              invoice.invoiceType === 'VAT' && !correctionMode && invoice.visitId && (
+              <SharedButton
+                $variant="secondary" $size="sm"
+                title="Zmień ceny usług wizyty - faktura dostanie korektę w KSeF, a wizyta i dokumenty nowe kwoty"
+                onClick={() => setSettlementOpen(true)}
+              >
+                Popraw rozliczenie wizyty
+              </SharedButton>
+            )}
+            {invoice.source === 'CRM' && invoice.ksefStatus === 'ACCEPTED' && !invoice.visitId &&
               invoice.invoiceType === 'VAT' && !correctionMode && items.length > 0 && (
               <SharedButton
                 $variant="secondary" $size="sm"
@@ -1026,7 +1048,7 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
                 Popraw fakturę
               </SharedButton>
             )}
-            {invoice.source === 'CRM' && invoice.ksefStatus === 'ACCEPTED' &&
+            {invoice.source === 'CRM' && invoice.ksefStatus === 'ACCEPTED' && !invoice.visitId &&
               invoice.invoiceType === 'VAT' && !correctionMode && (
               <SharedButton $variant="secondary" $size="sm" onClick={() => setCorrectionMode('zero')}>
                 Wystaw korektę do zera
@@ -1044,5 +1066,6 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
         )}
       </ModalFooter>
     </ModalShell>
+    </>
   );
 };

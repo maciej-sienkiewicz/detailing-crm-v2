@@ -31,7 +31,15 @@ import {
     FormAlertBanner,
 } from '@/common/components/Form';
 import { NipInputWithGus, type CompanyInfoResponse } from '@/common/components/NipInputWithGus';
+import { useToast } from '@/common/components/Toast';
+import { formatCurrency } from '@/common/utils';
 import { problemDetail } from '@/core/problem';
+import { PricesSection } from '@/modules/visits/components/handover/PricesSection';
+import type { PaymentMethod as VisitPaymentMethod } from '@/modules/visits/types/stateTransitions';
+import { useVisitDocumentCorrection } from '../hooks/useVisitDocumentCorrection';
+import type { VisitDocumentLock } from '../utils/visitDocumentCorrection';
+
+const pln = (cents: number) => formatCurrency(cents / 100);
 
 // ─── Direction badge ──────────────────────────────────────────────────────────
 
@@ -71,6 +79,34 @@ const DirectionHint = styled.p`
     color: ${p => p.theme.colors.textMuted};
     margin: 0 0 16px;
 `;
+
+const PriceBlock = styled.div`
+    display: flex;
+    flex-direction: column;
+    gap: 12px;
+    margin-bottom: 20px;
+`;
+
+const Muted = styled.p`
+    margin: 0;
+    font-size: 13px;
+    color: ${p => p.theme.colors.textMuted};
+`;
+
+const Steps = styled.ul`
+    margin: 6px 0 0;
+    padding-left: 18px;
+    display: flex;
+    flex-direction: column;
+    gap: 4px;
+`;
+
+/** Dlaczego kwoty dokumentu z wizyty nie zmienisz z Finansów - zdanie dla człowieka. */
+const LOCK_TEXT: Record<Exclude<VisitDocumentLock, null>, string> = {
+    NOT_IN_SETTLEMENT: 'Ten dokument nie obowiązuje już w rozliczeniu wizyty. Otwórz wizytę, żeby zobaczyć, co go zastąpiło.',
+    BATCH: 'Wizyta jest w zleceniu zbiorczym. Cenę auta zmienisz w zleceniu albo przez „Popraw rozliczenie” w wizycie.',
+    NO_SERVICES: 'Wizyta nie ma usług, z których składa się ta kwota. Zmień ją przez „Popraw rozliczenie” w wizycie.',
+};
 
 // ─── Custom Select (portal-based) ────────────────────────────────────────────
 
@@ -243,7 +279,21 @@ const EditDocumentForm: React.FC<{ document: FinancialDocument; onClose: () => v
     // Korekta i dokument zastąpiony to para, która sumuje się do zera - zmienia się je
     // tylko kolejną poprawką rozliczenia wizyty (backend odrzuci ręczną zmianę).
     const isSettlementLocked = document.documentType === 'CORRECTION' || !!document.supersededAt;
+    // Pola kwot dokumentu zostają zablokowane - kwota dokumentu z wizyty zmienia się cenami
+    // usług poniżej (visitDocumentCorrection.ts), nigdy samym dokumentem.
     const amountsLocked = isKsefInvoice || isFromVisit || isSettlementLocked;
+    const isVisitDocument = isFromVisit && !!document.visitId && !isSettlementLocked;
+    const { showSuccess } = useToast();
+    const correction = useVisitDocumentCorrection(
+        document, form.paymentMethod as VisitPaymentMethod, form.dueDate, isVisitDocument,
+    );
+    const lock = correction.scope?.lock ?? null;
+    const visitPricing = isVisitDocument && !correction.isLoading && !correction.isError && !!correction.scope && lock === null;
+    // Nowa cena zastępuje ten dokument nowym (dzisiejsza data, opis poprawki), więc zmiany
+    // daty, kontrahenta i opisu starego dokumentu by przepadły - na ten czas są zablokowane
+    // i pokazują to, co jest zapisane.
+    const priceEdit = visitPricing && correction.pricesChanged;
+    const shown = priceEdit ? docToForm(document) : form;
 
     const set = (key: keyof FormState) => (e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
         setForm(prev => prev && ({ ...prev, [key]: e.target.value }));
@@ -262,6 +312,18 @@ const EditDocumentForm: React.FC<{ document: FinancialDocument; onClose: () => v
     const handleSubmit = async (e: React.FormEvent) => {
         e.preventDefault();
         setError(null);
+
+        if (priceEdit) {
+            if (!correction.canSave) return;
+            try {
+                await correction.save();
+                showSuccess('Kwota zmieniona', 'Ceny usług w wizycie też są nowe. Stary dokument zostaje w historii obok korekty.');
+                onClose();
+            } catch (e) {
+                setError(problemDetail(e, 'Nie udało się zmienić kwoty. Spróbuj ponownie.'));
+            }
+            return;
+        }
 
         const cents = documentAmountsToCents(form.amounts);
         if (!cents || cents.totalGross <= 0) {
@@ -296,7 +358,7 @@ const EditDocumentForm: React.FC<{ document: FinancialDocument; onClose: () => v
     };
 
     return (
-        <ModalShell isOpen onClose={onClose} size="md">
+        <ModalShell isOpen onClose={onClose} size={visitPricing ? 'lg' : 'md'}>
             <ModalHeader>
                 <ModalTitleGroup>
                     <ModalTitle>Edytuj dokument</ModalTitle>
@@ -328,15 +390,18 @@ const EditDocumentForm: React.FC<{ document: FinancialDocument; onClose: () => v
                     {!isSettlementLocked && isKsefInvoice && (
                         <LockNote>
                             <Notice tone="info" title="Dokument faktury KSeF">
-                                Faktura jest już w KSeF, więc kwoty, daty i nabywcę zmienisz tylko korektą.
-                                Tu poprawisz opis.
+                                {isVisitDocument
+                                    ? 'Faktura jest już w KSeF. Nowa cena usługi wystawi korektę faktury, a przed zapisem zobaczysz, co dokładnie się stanie. Daty i nabywcę zmienisz tylko korektą.'
+                                    : 'Faktura jest już w KSeF, więc kwoty, daty i nabywcę zmienisz tylko korektą. Tu poprawisz opis.'}
                             </Notice>
                         </LockNote>
                     )}
-                    {!isKsefInvoice && isFromVisit && (
+                    {!isKsefInvoice && isFromVisit && !isSettlementLocked && (
                         <LockNote>
                             <Notice tone="info" title="Dokument z wydania pojazdu">
-                                Kwota musi zgadzać się z kwotą wizyty. Możesz poprawić formę płatności, daty i opis.
+                                {isVisitDocument
+                                    ? 'Kwota to suma cen usług wizyty. Zmiana ceny tutaj zmienia ją też w wizycie.'
+                                    : 'Wizyty tego dokumentu już nie ma, więc kwoty nie zmienisz. Możesz poprawić formę płatności, daty i opis.'}
                             </Notice>
                         </LockNote>
                     )}
@@ -377,13 +442,83 @@ const EditDocumentForm: React.FC<{ document: FinancialDocument; onClose: () => v
                         </DirectionHint>
                     )}
 
-                    <ModalSectionTitle>Kwoty</ModalSectionTitle>
-                    <DocumentAmountFields
-                        idPrefix="ed"
-                        value={form.amounts}
-                        onChange={amounts => setForm(prev => prev && ({ ...prev, amounts }))}
-                        disabled={amountsLocked}
-                    />
+                    <ModalSectionTitle>{visitPricing ? 'Ceny usług' : 'Kwoty'}</ModalSectionTitle>
+                    {isVisitDocument && correction.isLoading && (
+                        <PriceBlock><Muted>Wczytywanie cen usług…</Muted></PriceBlock>
+                    )}
+                    {isVisitDocument && correction.isError && (
+                        <PriceBlock>
+                            <Notice
+                                tone="danger"
+                                title="Nie udało się wczytać cen usług"
+                                action={<SharedButton $variant="secondary" type="button" onClick={() => correction.retry()}>Spróbuj ponownie</SharedButton>}
+                            >
+                                Bez nich kwoty nie da się zmienić. Pozostałe pola zapiszesz normalnie.
+                            </Notice>
+                        </PriceBlock>
+                    )}
+                    {isVisitDocument && lock && (
+                        <PriceBlock><Notice tone="info" title="Kwoty nie zmienisz tutaj">{LOCK_TEXT[lock]}</Notice></PriceBlock>
+                    )}
+                    {visitPricing ? (
+                        <PriceBlock>
+                            <PricesSection
+                                prices={correction.prices}
+                                onChange={correction.changePrice}
+                                onReset={correction.reset}
+                                discount={correction.originalGross - correction.newGross}
+                                totalGross={correction.newGross}
+                                problems={[]}
+                                fmt={pln}
+                                changeContext="przy zmianie kwoty"
+                                defaultEditing
+                            />
+                            {correction.scope!.alsoAffected.length > 0 && (
+                                <Notice tone="warn" title="Zmiana dotyczy całej wizyty">
+                                    Wizyta ma też dokument {correction.scope!.alsoAffected.map(d => d.number).join(', ')}.
+                                    Nowa cena zastąpi wszystkie dokumenty wizyty, nie tylko ten.
+                                </Notice>
+                            )}
+                            {priceEdit && correction.preview.isChecking && <Muted>Sprawdzanie zmiany…</Muted>}
+                            {priceEdit && correction.preview.blockReason && (
+                                <Notice tone="danger" title="Tej zmiany nie da się teraz zapisać">
+                                    {correction.preview.blockReason}
+                                </Notice>
+                            )}
+                            {priceEdit && correction.preview.isError && (
+                                <Notice tone="danger" title="Nie udało się sprawdzić zmiany">
+                                    {problemDetail(correction.preview.error, 'Spróbuj ponownie za chwilę.')}
+                                </Notice>
+                            )}
+                            {priceEdit && correction.preview.effects && (
+                                <Notice tone="info" title="Co się stanie po zapisie">
+                                    <Steps>
+                                        {correction.preview.effects.steps.map(step => <li key={step}>{step}</li>)}
+                                        <li>
+                                            {correction.preview.effects.customerDifference > 0
+                                                ? `Klient dopłaca ${pln(correction.preview.effects.customerDifference)}.`
+                                                : correction.preview.effects.customerDifference < 0
+                                                    ? `Klient dostaje zwrot ${pln(-correction.preview.effects.customerDifference)}.`
+                                                    : 'Klient nie dopłaca i nie dostaje zwrotu.'}
+                                        </li>
+                                    </Steps>
+                                </Notice>
+                            )}
+                        </PriceBlock>
+                    ) : (
+                        <DocumentAmountFields
+                            idPrefix="ed"
+                            value={form.amounts}
+                            onChange={amounts => setForm(prev => prev && ({ ...prev, amounts }))}
+                            disabled={amountsLocked}
+                        />
+                    )}
+                    {priceEdit && (
+                        <DirectionHint>
+                            Nowa kwota zastępuje ten dokument nowym z dzisiejszą datą. Datę wystawienia,
+                            kontrahenta i opis zmienisz w nowym dokumencie.
+                        </DirectionHint>
+                    )}
 
                     <ModalSectionTitle>Daty</ModalSectionTitle>
                     <FormGrid>
@@ -392,9 +527,9 @@ const EditDocumentForm: React.FC<{ document: FinancialDocument; onClose: () => v
                             <InputShell>
                                 <BareInput
                                     id="ed-issueDate"
-                                    disabled={isKsefInvoice}
+                                    disabled={isKsefInvoice || priceEdit}
                                     type="date"
-                                    value={form.issueDate}
+                                    value={shown.issueDate}
                                     onChange={set('issueDate')}
                                     required
                                     autoComplete="new-password"
@@ -430,10 +565,10 @@ const EditDocumentForm: React.FC<{ document: FinancialDocument; onClose: () => v
                             <InputShell>
                                 <BareInput
                                     id="ed-counterpartyName"
-                                    disabled={isKsefInvoice}
+                                    disabled={isKsefInvoice || priceEdit}
                                     type="text"
                                     placeholder="Jan Kowalski / Firma Sp. z o.o."
-                                    value={form.counterpartyName}
+                                    value={shown.counterpartyName}
                                     onChange={set('counterpartyName')}
                                     autoComplete="new-password"
                                 />
@@ -447,7 +582,8 @@ const EditDocumentForm: React.FC<{ document: FinancialDocument; onClose: () => v
                             ) : (
                                 <NipInputWithGus
                                     id="ed-counterpartyNip"
-                                    value={form.counterpartyNip}
+                                    disabled={priceEdit}
+                                    value={shown.counterpartyNip}
                                     onChange={setField('counterpartyNip')}
                                     onFetch={handleGUSFetch}
                                     placeholder="1234567890"
@@ -463,8 +599,9 @@ const EditDocumentForm: React.FC<{ document: FinancialDocument; onClose: () => v
                             <InputShellTextArea>
                                 <BareTextArea
                                     id="ed-description"
+                                    disabled={priceEdit}
                                     placeholder="Np. Detailing kompletny + powłoka ceramiczna"
-                                    value={form.description}
+                                    value={shown.description}
                                     onChange={set('description')}
                                     autoComplete="new-password"
                                 />
@@ -480,9 +617,9 @@ const EditDocumentForm: React.FC<{ document: FinancialDocument; onClose: () => v
                     $variant="primary"
                     type="submit"
                     form="edit-document-form"
-                    disabled={updateDoc.isPending || isSettlementLocked}
+                    disabled={updateDoc.isPending || isSettlementLocked || (priceEdit && !correction.canSave)}
                 >
-                    {updateDoc.isPending ? 'Zapisywanie…' : 'Zapisz zmiany'}
+                    {updateDoc.isPending || correction.isSaving ? 'Zapisywanie…' : priceEdit ? 'Zapisz nową kwotę' : 'Zapisz zmiany'}
                 </SharedButton>
             </ModalFooter>
         </ModalShell>

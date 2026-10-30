@@ -25,7 +25,7 @@ import { Button, Notice, StatusPill, ui } from '@/common/components/ui';
 import { useToast } from '@/common/components/Toast';
 import { formatCurrency } from '@/common/utils';
 import { isPiiMasked } from '@/common/pii';
-import { localIsoDate } from '@/common/utils/localDate';
+import { dueDateNotBeforeToday, localIsoDate } from '@/common/utils/localDate';
 import {
     settlementApi,
     type SettlementBuyer,
@@ -258,7 +258,8 @@ function CorrectionForm({ view, visitId, intent, onClose }: { view: SettlementVi
     const [docMethods, setDocMethods] = useState<Record<string, PaymentMethod>>(initialDocMethods);
     // Termin z obowiązującej faktury, a bez niej typowe 14 dni - wcześniej pole było
     // puste, a poprawka blokowała się na „Płatność przelewem wymaga terminu".
-    const [dueDate, setDueDate] = useState(view.paymentDueDate ?? plusDays(14));
+    // Termin, który już minął, przechodzi na dziś: nowy dokument poprawki ma dzisiejszą datę.
+    const [dueDate, setDueDate] = useState(dueDateNotBeforeToday(view.paymentDueDate) ?? plusDays(14));
     // Nabywca z faktury, a bez niej z karty klienta (serwer podaje oba): podsumowanie
     // pokazuje go od razu, a „Zmień” otwiera to samo okno nabywcy co przy wydaniu.
     const initialBuyer = useMemo<HandoverBuyer>(() => ({

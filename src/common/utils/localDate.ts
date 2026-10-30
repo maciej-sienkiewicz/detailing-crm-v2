@@ -11,3 +11,13 @@ export const localIsoDate = (date: Date = new Date()): string => {
     const d = String(date.getDate()).padStart(2, '0');
     return `${y}-${m}-${d}`;
 };
+
+/**
+ * Termin płatności przeniesiony ze starego dokumentu na nowy, wystawiany dziś: termin,
+ * który już minął, staje się dzisiejszym. Serwer odrzuca termin wcześniejszy niż data
+ * wystawienia, a poprawka rozliczenia wystawia nowy dokument z dzisiejszą datą - przelew
+ * z terminem 22.10 poprawiany 30.10 kończył się błędem dopiero przy zapisie.
+ * Daty YYYY-MM-DD porównują się poprawnie jako tekst.
+ */
+export const dueDateNotBeforeToday = (iso: string | null | undefined, today: string = localIsoDate()): string | null =>
+    iso ? (iso < today ? today : iso) : null;

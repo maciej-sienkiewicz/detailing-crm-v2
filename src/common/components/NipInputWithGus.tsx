@@ -43,6 +43,7 @@ interface NipInputWithGusProps {
     placeholder?: string;
     /** Shrinks padding/font for dense, single-screen layouts. */
     compact?: boolean;
+    disabled?: boolean;
 }
 
 export const NipInputWithGus = ({
@@ -53,6 +54,7 @@ export const NipInputWithGus = ({
     hasError,
     placeholder,
     compact,
+    disabled,
 }: NipInputWithGusProps) => {
     const [isLoading, setIsLoading] = useState(false);
     const [gusError, setGusError] = useState<string | null>(null);
@@ -83,12 +85,13 @@ export const NipInputWithGus = ({
                     onChange={e => onChange(e.target.value)}
                     placeholder={placeholder}
                     autoComplete="new-password"
+                    disabled={disabled}
                     $compact={compact}
                 />
                 <GusBtn
                     type="button"
                     onClick={handleFetch}
-                    disabled={isLoading}
+                    disabled={isLoading || disabled}
                     title="Pobierz dane firmy z GUS"
                     $compact={compact}
                 >

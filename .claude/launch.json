@@ -79,6 +79,21 @@
         "--strictPort"
       ],
       "port": 5191
+    },
+    {
+      "name": "vite-amountedit",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--config",
+        ".claude/vite.amountedit.config.ts",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5195",
+        "--strictPort"
+      ],
+      "port": 5195
     }
   ]
 }
