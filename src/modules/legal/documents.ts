@@ -37,6 +37,9 @@ const TERMS_UPDATED_AT = '22 października 2026 r.';
 // (bez reklamowych cookies i baneru, których nie było). LEGAL_VERSION się nie zmienia -
 // dotyczy tylko regulaminu i umowy powierzenia.
 const PRIVACY_UPDATED_AT = '23 października 2026 r.';
+// Klauzula: zapis akceptacji dokumentów, zgód i potwierdzenia umowy (IP, przeglądarka,
+// okres przechowywania).
+const CLAUSE_UPDATED_AT = '3 listopada 2026 r.';
 
 export const LEGAL_DOCUMENTS: LegalDocument[] = [
     {
@@ -54,7 +57,7 @@ export const LEGAL_DOCUMENTS: LegalDocument[] = [
     {
         slug: 'klauzula-informacyjna',
         title: 'Klauzula informacyjna dla Użytkowników',
-        updatedAt: PRIVACY_UPDATED_AT,
+        updatedAt: CLAUSE_UPDATED_AT,
         load: () => import('./content/klauzula-informacyjna.json') as Promise<{ default: LegalBlock[] }>,
     },
     {

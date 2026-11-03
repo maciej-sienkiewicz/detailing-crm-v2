@@ -14,6 +14,7 @@ import { Label, FieldGroup, ErrorMessage, FormGrid } from '@/common/components/F
 import { AuthLayout } from '../components/AuthLayout';
 import { AuthAside, AuthForm, AuthHeading, AuthLink, AuthMeta, AuthPrimaryButton } from '../components/AuthUi';
 import { LEGAL_VERSION, legalPath } from '@/modules/legal/documents';
+import { MARKETING_CONSENT_TEXT } from '@/modules/legal/marketingConsent';
 import { LegalNotice } from '../components/LegalNotice';
 import { problemDetail } from '@/core/problem';
 
@@ -39,6 +40,7 @@ export const SignupView = () => {
         email: '',
         password: '',
         acceptTerms: false,
+        marketingConsent: false,
     });
     const [errors, setErrors] = useState<Partial<Record<keyof SignupFormData, string>>>({});
     const [apiError, setApiError] = useState<string>('');
@@ -177,6 +179,14 @@ export const SignupView = () => {
                         }
                     />
                     {errors.acceptTerms && <ErrorMessage>{errors.acceptTerms}</ErrorMessage>}
+                    {/* Osobno i niezaznaczona: zgoda dołączona do regulaminu albo zaznaczona
+                        z góry nie jest zgodą (art. 398 Prawa komunikacji elektronicznej). */}
+                    <Checkbox
+                        id="marketingConsent"
+                        checked={formData.marketingConsent}
+                        onChange={(checked) => setFormData({ ...formData, marketingConsent: checked })}
+                        label={<>{MARKETING_CONSENT_TEXT} {t.auth.signup.marketingOptional}</>}
+                    />
                     <LegalNotice>
                         {t.auth.signup.privacyNotice}{' '}
                         <a href={legalPath('polityka-prywatnosci')} target="_blank" rel="noopener noreferrer">

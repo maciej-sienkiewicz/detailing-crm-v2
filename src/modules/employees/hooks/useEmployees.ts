@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@/core/context/AuthContext';
 import { employeeApi } from '../api/employeeApi';
 import type {
     EmployeeFilters,
@@ -62,10 +63,16 @@ export const useCreateEmployee = () => {
 
 export const useUpdateEmployee = () => {
     const invalidate = useInvalidateEmployees();
+    const { user, refreshUser } = useAuth();
     return useMutation({
         mutationFn: ({ employeeId, payload }: { employeeId: string; payload: UpdateEmployeePayload }) =>
             employeeApi.updateEmployee(employeeId, payload),
-        onSuccess: (_data, { employeeId }) => invalidate(employeeId),
+        onSuccess: (_data, { employeeId }) => {
+            invalidate(employeeId);
+            // Własna karta: imię, nazwisko i telefon idą na konto logowania, więc nagłówek,
+            // przełącznik PIN-u i kreator stopki mają je pokazać od razu, nie po F5.
+            if (user?.employeeId && user.employeeId === employeeId) void refreshUser();
+        },
     });
 };
 

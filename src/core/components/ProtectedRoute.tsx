@@ -1,4 +1,4 @@
-import { ReactNode, useEffect } from 'react';
+import { Fragment, ReactNode, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { SubscriptionGate } from './SubscriptionGate';
@@ -40,9 +40,13 @@ export function ProtectedRoute({ children, withSubscriptionGate = true }: Protec
     return <SessionLockedScreen />;
   }
 
-  if (!withSubscriptionGate) {
-    return <>{children}</>;
-  }
-
-  return <SubscriptionGate>{children}</SubscriptionGate>;
+  // Klucz po osobie: przełączenie PIN-em (także z ekranu blokady, który zostawia stronę
+  // pod spodem) montuje aplikację od nowa. Pusty cache zapytań (AuthContext) nie
+  // wystarcza - otwarte okno trzyma w stanie to, czym je wypełniono. Kreator stopki
+  // otwarty przez jedną osobę i zapisany przez drugą zapisywał cudzą stopkę na jej konto.
+  return (
+    <Fragment key={user?.userId}>
+      {withSubscriptionGate ? <SubscriptionGate>{children}</SubscriptionGate> : children}
+    </Fragment>
+  );
 }

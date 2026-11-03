@@ -69,6 +69,7 @@ export interface TranslationKeys {
             termsLink: string;
             and: string;
             dpaLink: string;
+            marketingOptional: string;
             privacyNotice: string;
             privacyLink: string;
             clauseLink: string;

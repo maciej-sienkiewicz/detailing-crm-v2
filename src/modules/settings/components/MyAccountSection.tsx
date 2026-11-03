@@ -3,9 +3,9 @@
 // Ustawienia → Moje → Moje konto.
 //
 // Wszystko, co należy do zalogowanej OSOBY: logowanie, PIN, podpis na protokołach,
-// stopka maila i styl szkiców AI. Dawniej leżało w czterech miejscach: konto i PIN
-// w „Bezpieczeństwie", podpis w „Dokumentach i podpisach", a stopka i styl szkiców
-// tylko pod kołem zębatym poczty. Koło zostaje jako skrót, ale ustawienia osoby
+// stopka maila, styl szkiców AI i zgoda na informacje handlowe. Dawniej leżało
+// w czterech miejscach: konto i PIN w „Bezpieczeństwie", podpis w „Dokumentach
+// i podpisach", a stopka i styl szkiców tylko pod kołem zębatym poczty. Koło zostaje jako skrót, ale ustawienia osoby
 // mają jedno miejsce, w którym ich się szuka.
 //
 // Na dole, tylko dla właściciela, „Dane i konto studia": wyczyszczenie i usunięcie
@@ -24,6 +24,7 @@ import { signatureHtmlToText } from '@/modules/comms/utils/signatureText';
 import { AccountCard, ClearAccountCard, DeleteAccountCard } from './AccountCards';
 import { PinCard } from './security/PinCard';
 import { MySignatureSection } from './MySignatureSection';
+import { MarketingConsentCard } from './MarketingConsentCard';
 import {
     Card, CardActions, CardHead, CardHeadText, CardNote, CardTitle, OutlineBtn,
 } from './security/SecurityCard';
@@ -160,6 +161,7 @@ export function MyAccountSection() {
             <MySignatureSection />
             {usesMail && <MailSignatureCard />}
             {usesMail && <DraftStyleCard />}
+            <MarketingConsentCard />
 
             {isOwner && (
                 <Group aria-labelledby="studio-account-title">

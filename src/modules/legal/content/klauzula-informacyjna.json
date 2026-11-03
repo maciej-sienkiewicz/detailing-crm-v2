@@ -119,7 +119,12 @@
  {
   "t": "li",
   "n": "k)",
-  "text": "umożliwienia autoryzacji czynności serwisowych, potwierdzania przyjęcia oraz wydania pojazdów poprzez zapisanie w profilu Użytkownika wzoru jego podpisu, który Aplikacja nanosi na generowane dokumenty (np. protokoły przyjęcia i wydania pojazdu), a także rejestrowanie podpisów składanych przez Użytkownika w Aplikacji wraz z datą, adresem IP i informacją o urządzeniu – ponieważ przetwarzanie jest niezbędne do realizacji naszego prawnie uzasadnionego interesu, jakim jest zapewnienie rozliczalności działań Użytkowników w Aplikacji oraz ochrona przed roszczeniami (art. 6 ust. 1 lit. f RODO)."
+  "text": "umożliwienia autoryzacji czynności serwisowych, potwierdzania przyjęcia oraz wydania pojazdów poprzez zapisanie w profilu Użytkownika wzoru jego podpisu, który Aplikacja nanosi na generowane dokumenty (np. protokoły przyjęcia i wydania pojazdu), a także rejestrowanie podpisów składanych przez Użytkownika w Aplikacji wraz z datą, adresem IP i informacją o urządzeniu – ponieważ przetwarzanie jest niezbędne do realizacji naszego prawnie uzasadnionego interesu, jakim jest zapewnienie rozliczalności działań Użytkowników w Aplikacji oraz ochrona przed roszczeniami (art. 6 ust. 1 lit. f RODO);"
+ },
+ {
+  "t": "li",
+  "n": "l)",
+  "text": "dokumentowania zawarcia umowy i udzielonych zgód: zapisujemy, kto i kiedy zaakceptował regulamin oraz umowę powierzenia przetwarzania danych osobowych, którą wersję tych dokumentów (wraz z jej skrótem SHA-256, który jednoznacznie wskazuje treść dokumentu), kiedy udzielono i wycofano zgodę na otrzymywanie informacji handlowych oraz kiedy wysłaliśmy na adres e-mail potwierdzenie zawarcia umowy; razem z tymi zdarzeniami zapisujemy adres IP oraz informację o przeglądarce lub urządzeniu (tzw. user-agent) – ponieważ przetwarzanie jest niezbędne do realizacji naszego prawnie uzasadnionego interesu, jakim jest wykazanie zawarcia umowy i zgodności przetwarzania z przepisami (zasada rozliczalności) oraz ustalenie, dochodzenie lub obrona przed roszczeniami (art. 5 ust. 2 i art. 6 ust. 1 lit. f RODO)."
  },
  {
   "t": "p",
@@ -300,7 +305,12 @@
  {
   "t": "li",
   "n": "j)",
-  "text": "Wzór podpisu zapisany w profilu Użytkownika – do czasu jego usunięcia przez Użytkownika lub usunięcia konta Użytkownika; podpisy złożone przez Użytkownika na dokumentach – przez okres posiadania konta w Aplikacji przez Licencjobiorcę lub do momentu przedawnienia roszczeń związanych z realizacją zleceń, w których dany podpis został użyty."
+  "text": "Wzór podpisu zapisany w profilu Użytkownika – do czasu jego usunięcia przez Użytkownika lub usunięcia konta Użytkownika; podpisy złożone przez Użytkownika na dokumentach – przez okres posiadania konta w Aplikacji przez Licencjobiorcę lub do momentu przedawnienia roszczeń związanych z realizacją zleceń, w których dany podpis został użyty;"
+ },
+ {
+  "t": "li",
+  "n": "k)",
+  "text": "Zapisy akceptacji regulaminu i umowy powierzenia przetwarzania danych osobowych, zapisy udzielenia i wycofania zgody na otrzymywanie informacji handlowych oraz zapisy wysłania potwierdzenia zawarcia umowy, wraz z adresem IP i informacją o przeglądarce lub urządzeniu – przez okres obowiązywania umowy, a po jej zakończeniu do upływu terminu przedawnienia roszczeń z niej wynikających (co do zasady 6 lat, a dla roszczeń związanych z prowadzeniem działalności gospodarczej 3 lata, w obu przypadkach do końca roku kalendarzowego, w którym termin upływa). Zapisy te nie są usuwane przy wyczyszczeniu ani usunięciu konta, a zapis zgody na informacje handlowe przechowujemy także po jej wycofaniu, jako dowód, że informacje handlowe wysyłaliśmy wyłącznie na podstawie zgody."
  },
  {
   "t": "h",

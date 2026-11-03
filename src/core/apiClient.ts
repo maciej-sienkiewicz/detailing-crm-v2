@@ -2,6 +2,7 @@ import axios from 'axios';
 import { setPiiAccessFromHeader } from '@/common/pii';
 import { isRateLimited, shouldAnnounceRateLimit } from './rateLimit';
 import { SESSION_LOCKED_EVENT, isSessionLocked } from './sessionLock';
+import { EXPECTED_USER_HEADER, SESSION_USER_CHANGED_EVENT, expectedUserFor, isSessionUserChanged } from './sessionUser';
 import { isPublicAppPath } from './publicPaths';
 import { PAGE_FORMAT, PAGE_FORMAT_HEADER } from './page';
 import { problemDetail, problemOf } from './problem';
@@ -59,6 +60,9 @@ apiClient.interceptors.request.use(
             delete config.headers['Content-Type'];
             if (config.timeout === DEFAULT_TIMEOUT_MS) config.timeout = UPLOAD_TIMEOUT_MS;
         }
+        // Zapis z karty, która pokazuje inną osobę niż ta w sesji, serwer odrzuca (sessionUser.ts).
+        const expectedUser = expectedUserFor(config.method);
+        if (expectedUser) config.headers[EXPECTED_USER_HEADER] = expectedUser;
         return config;
     },
     error => {
@@ -98,6 +102,13 @@ apiClient.interceptors.response.use(
             return Promise.reject(error);
         }
 
+        // W innej karcie zalogowała się inna osoba, a ta karta tego nie zauważyła. Serwer
+        // niczego nie zapisał; AuthContext wczytuje osobę z sesji (czyści cache i stan widoków),
+        // a treść odmowy pokazuje zwykły dymek błędu niżej.
+        if (isSessionUserChanged(error)) {
+            window.dispatchEvent(new CustomEvent(SESSION_USER_CHANGED_EVENT));
+        }
+
         if (status === 402) {
             // Paywall contract: every 402 body carries a machine-readable `code`.
             // Same soft-UX rule as 403 below: background READS the user did not
@@ -121,7 +132,10 @@ apiClient.interceptors.response.use(
         // renders its own message passes `skipErrorToast` (declared at the top);
         // without it the user saw the same sentence twice, once bare from here and
         // once with a title from the call site.
-        const handledLocally = error.config?.skipErrorToast === true;
+        // Wyjątek: odmowa po zmianie osoby. Widok, który obsłużyłby ją u siebie, za chwilę
+        // znika (ProtectedRoute montuje aplikację od nowa dla osoby z sesji) - bez dymka
+        // ekran zmieniał się bez słowa wyjaśnienia.
+        const handledLocally = error.config?.skipErrorToast === true && !isSessionUserChanged(error);
         // 429: jeden komunikat na okno limitu, a nie po jednym na każde odrzucone żądanie.
         const rateLimitRepeat = isRateLimited(error) && !shouldAnnounceRateLimit(error);
         if (

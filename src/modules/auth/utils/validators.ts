@@ -60,6 +60,8 @@ export const signupSchema = z.object({
         .refine((val) => val === true, {
             message: t.auth.validation.termsRequired,
         }),
+    // Zgoda na informacje handlowe: można pominąć, więc bez walidacji.
+    marketingConsent: z.boolean().default(false),
 });
 
 export const forgotPasswordSchema = z.object({

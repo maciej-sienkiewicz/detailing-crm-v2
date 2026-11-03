@@ -659,6 +659,7 @@ export const pl: TranslationKeys = {
             termsLink: 'regulamin',
             and: 'oraz',
             dpaLink: 'umowę powierzenia przetwarzania danych osobowych',
+            marketingOptional: 'Można pominąć.',
             privacyNotice: 'Administratorem Twoich danych jest M&M SOLUTIONS sp. z o.o. Zasady ich przetwarzania opisują',
             privacyLink: 'polityka prywatności',
             clauseLink: 'klauzula informacyjna',

@@ -39,6 +39,9 @@ vi.mock('@/modules/role-preview', () => ({
     PreviewIcon: () => null,
 }));
 vi.mock('@/modules/subscription', () => ({ useEntitlements: () => ({ data: undefined }) }));
+// Zalogowana osoba: właściciel ze swoją kartą „e-owner" (edycja własnej karty odświeża /auth/me).
+const auth = vi.hoisted(() => ({ user: { employeeId: 'e-owner' }, refreshUser: vi.fn(async () => {}) }));
+vi.mock('@/core/context/AuthContext', () => ({ useAuth: () => auth }));
 
 const person = (overrides: Partial<EmployeeListItem>): EmployeeListItem => ({
     id: 'e1',
@@ -155,6 +158,35 @@ describe('TeamList - lista pracowników', () => {
             firstName: 'Marta', lastName: 'Kowalczyk', phone: '+48 700 000 000', email: 'marta@studio.pl',
         }));
         expect(await screen.findByText('Zmiany zapisane')).toBeTruthy();
+    });
+
+    it('edycja cudzej karty nie przeładowuje danych zalogowanej osoby', async () => {
+        vi.mocked(teamApi.updateEmployee).mockResolvedValue({} as never);
+        renderSection();
+
+        fireEvent.click(await screen.findByRole('button', { name: 'Więcej akcji: Marta Kowalczyk' }));
+        fireEvent.click(await screen.findByRole('menuitem', { name: /Edytuj dane/ }));
+        const dialog = await screen.findByRole('dialog');
+        fireEvent.change(within(dialog).getByLabelText(/^Nazwisko/), { target: { value: 'Nowak' } });
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Zapisz zmiany' }));
+
+        expect(await screen.findByText('Zmiany zapisane')).toBeTruthy();
+        expect(auth.refreshUser).not.toHaveBeenCalled();
+    });
+
+    it('edycja własnej karty od razu pokazuje nowe nazwisko w aplikacji (konto idzie za kartą)', async () => {
+        const owner = person({ id: 'e-owner', firstName: 'Jan', lastName: 'Właściciel', fullName: 'Jan Właściciel' });
+        vi.mocked(teamApi.listEmployees).mockResolvedValue(listOf([owner, marta]));
+        vi.mocked(teamApi.updateEmployee).mockResolvedValue({} as never);
+        renderSection();
+
+        fireEvent.click(await screen.findByRole('button', { name: 'Więcej akcji: Jan Właściciel' }));
+        fireEvent.click(await screen.findByRole('menuitem', { name: /Edytuj dane/ }));
+        const dialog = await screen.findByRole('dialog');
+        fireEvent.change(within(dialog).getByLabelText(/^Nazwisko/), { target: { value: 'Kowalski' } });
+        fireEvent.click(within(dialog).getByRole('button', { name: 'Zapisz zmiany' }));
+
+        await waitFor(() => expect(auth.refreshUser).toHaveBeenCalledTimes(1));
     });
 
     it('„Zaproś do aplikacji" zakłada konto z wybraną rolą', async () => {

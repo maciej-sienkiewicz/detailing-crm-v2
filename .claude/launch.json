@@ -94,6 +94,22 @@
         "--strictPort"
       ],
       "port": 5195
+    },
+    {
+      "name": "vite-signature",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--config",
+        ".claude/vite.signature.config.ts",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5197",
+        "--strictPort"
+      ],
+      "port": 5197,
+      "url": "http://after.localhost:5197"
     }
   ]
 }

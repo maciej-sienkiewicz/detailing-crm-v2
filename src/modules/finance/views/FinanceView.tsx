@@ -12,11 +12,12 @@ import type { FinanceTab, IncomeDocument, IncomeDocumentType } from '../types';
  * a zakładka pokazywała „0 zł" albo błąd wczytywania, który nigdy nie zniknie. Do modułu
  * wpuszcza dowolne uprawnienie finansowe, więc zakładki filtrujemy pojedynczo.
  */
-const FINANCE_TABS: { tab: FinanceTab; label: string; requires: PermissionCode }[] = [
-  { tab: 'income', label: 'Dokumenty przychodowe', requires: 'FINANCE_INVOICES' },
-  { tab: 'expenses', label: 'Dokumenty kosztowe', requires: 'FINANCE_INVOICES' },
-  { tab: 'cash', label: 'Kasa', requires: 'FINANCE_MANAGE_CASH_REGISTER' },
-  { tab: 'payment-summary', label: 'Podsumowanie płatności', requires: 'FINANCE_VIEW_REPORTS' },
+/* `short` - nazwa na telefonie, gdzie cztery zakładki stoją w jednym rzędzie. */
+const FINANCE_TABS: { tab: FinanceTab; label: string; short: string; requires: PermissionCode }[] = [
+  { tab: 'income', label: 'Dokumenty przychodowe', short: 'Przychody', requires: 'FINANCE_INVOICES' },
+  { tab: 'expenses', label: 'Dokumenty kosztowe', short: 'Koszty', requires: 'FINANCE_INVOICES' },
+  { tab: 'cash', label: 'Kasa', short: 'Kasa', requires: 'FINANCE_MANAGE_CASH_REGISTER' },
+  { tab: 'payment-summary', label: 'Podsumowanie płatności', short: 'Płatności', requires: 'FINANCE_VIEW_REPORTS' },
 ];
 import type { CostDocumentKind, ExpenseSource, ExpensePaymentStatus } from '../types';
 import { COST_DOCUMENT_KINDS, COST_DOCUMENT_KIND_LABEL } from '../utils/costDocumentKinds';
@@ -37,6 +38,7 @@ import {
   IssueInvoiceModal,
   RevenueInvoiceDetailModal,
   BulkPaymentStatusBar,
+  FinanceMobileTabs,
 } from '../components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { monthHint, resolveDateRange, type DatePreset } from '../utils/dateRange';
@@ -89,33 +91,9 @@ const TabBar = styled.div`
   scrollbar-width: none;
   &::-webkit-scrollbar { display: none; }
 
+  /* Telefon: FinanceMobileTabs nad kaflami. */
   @media (max-width: 639px) {
     display: none;
-  }
-`;
-
-const TabSelect = styled.select`
-  display: none;
-
-  @media (max-width: 639px) {
-    display: block;
-    width: 100%;
-    padding: 12px 16px;
-    font-size: 14px;
-    font-weight: 600;
-    font-family: inherit;
-    color: ${(p) => p.theme.colors.text};
-    background: ${(p) => p.theme.colors.surface};
-    border: none;
-    border-bottom: 1px solid ${(p) => p.theme.colors.border};
-    outline: none;
-    appearance: none;
-    -webkit-appearance: none;
-    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2.5'%3E%3Cpolyline points='6 9 12 15 18 9'/%3E%3C/svg%3E");
-    background-repeat: no-repeat;
-    background-position: right 16px center;
-    padding-right: 40px;
-    cursor: pointer;
   }
 `;
 
@@ -136,11 +114,6 @@ const TabItem = styled.button<{ $active: boolean }>`
   &:hover {
     color: ${(p) => (p.$active ? st.accentBlue : st.text)};
     background: ${(p) => (p.$active ? 'transparent' : st.bg)};
-  }
-
-  @media (max-width: 639px) {
-    padding: 10px 14px;
-    font-size: 12px;
   }
 `;
 
@@ -378,33 +351,43 @@ type ToolbarMenuItem =
   | { kind: 'toggle'; key: string; label: string; on: boolean; onSelect: () => void }
   | { kind: 'action'; key: string; label: string; icon?: React.ReactNode; onSelect: () => void };
 
-/** Menu „trzy kropki" paska narzędzi tabeli - widoczne tylko na telefonie. */
-const ToolbarKebab: React.FC<{ items: ToolbarMenuItem[] }> = ({ items }) => {
+/**
+ * Menu „trzy kropki" paska narzędzi tabeli - widoczne poniżej 1200 px.
+ *
+ * Pozycję ustawia useFloatingPanel, jak w FilterSelect. Panel jest niewidoczny do
+ * pierwszego pomiaru (SelectPanel), a to menu liczyło pozycję samo i hooka nie wołało -
+ * otwierało się więc niewidzialne, a następne dotknięcie trafiało w przezroczyste tło
+ * i je zamykało. Na telefonie wyglądało to tak, jakby kropki w ogóle nie reagowały.
+ */
+export const ToolbarKebab: React.FC<{ items: ToolbarMenuItem[] }> = ({ items }) => {
   const [open, setOpen] = useState(false);
-  const [pos, setPos] = useState<{ top: number; right: number } | null>(null);
   const btnRef = useRef<HTMLButtonElement>(null);
+  const panelRef = useRef<HTMLDivElement>(null);
+  useFloatingPanel(open, btnRef, panelRef, { align: 'right', offset: 6 }, items.length);
   const hasActiveToggle = items.some((i) => i.kind === 'toggle' && i.on);
-
-  const toggleOpen = () => {
-    if (!open && btnRef.current) {
-      const rect = btnRef.current.getBoundingClientRect();
-      setPos({ top: rect.bottom + 6, right: Math.max(8, window.innerWidth - rect.right) });
-    }
-    setOpen((p) => !p);
-  };
 
   return (
     <KebabWrap>
       {open && <SelectBackdrop onClick={() => setOpen(false)} />}
-      <KebabBtn ref={btnRef} onClick={toggleOpen} $dot={hasActiveToggle} title="Więcej opcji" aria-label="Więcej opcji">
+      <KebabBtn
+        ref={btnRef}
+        onClick={() => setOpen((p) => !p)}
+        $dot={hasActiveToggle}
+        title="Więcej opcji"
+        aria-label="Więcej opcji"
+        aria-haspopup="menu"
+        aria-expanded={open}
+      >
         <KebabIcon />
       </KebabBtn>
-      {open && pos && createPortal(
-        <SelectPanel style={{ top: pos.top, right: pos.right, minWidth: 230 }}>
+      {open && createPortal(
+        <SelectPanel ref={panelRef} role="menu" style={{ minWidth: 230 }}>
           <SelectPanelBody>
             {items.map((item) => (
               <KebabMenuRow
                 key={item.key}
+                role={item.kind === 'toggle' ? 'menuitemcheckbox' : 'menuitem'}
+                aria-checked={item.kind === 'toggle' ? item.on : undefined}
                 onClick={() => {
                   item.onSelect();
                   if (item.kind === 'action') setOpen(false);
@@ -1662,6 +1645,8 @@ export const FinanceView: React.FC = () => {
       return next;
     }, { replace: true });
   }, [setSearchParams]);
+  const mobileTabs = useMemo(() => availableTabs.map(t => ({ value: t.tab, label: t.short })), [availableTabs]);
+  const panelRef = useRef<HTMLDivElement>(null);
   const [isIncomeModalOpen, setIncomeModalOpen] = useState(false);
   const [isExpenseModalOpen, setExpenseModalOpen] = useState(false);
   const [isIssueInvoiceModalOpen, setIssueInvoiceModalOpen] = useState(false);
@@ -1741,6 +1726,15 @@ export const FinanceView: React.FC = () => {
         }
       />
 
+      {/* Na telefonie zakładka stoi nad kaflami: decyduje też o nich (należności albo
+          zobowiązania), a pod kaflami była dopiero w połowie ekranu. */}
+      <FinanceMobileTabs
+        tabs={mobileTabs}
+        value={activeTab}
+        onChange={setActiveTab}
+        contentRef={panelRef}
+      />
+
       {/* Kafle to raport (/finance/summary) - bez prawa do raportów zostawał sam nagłówek. */}
       {canSeeReports && (
       <div>
@@ -1754,7 +1748,7 @@ export const FinanceView: React.FC = () => {
       </div>
       )}
 
-      <div>
+      <div ref={panelRef}>
         <PanelCard>
           <TabBar>
             {availableTabs.map(t => (
@@ -1763,9 +1757,6 @@ export const FinanceView: React.FC = () => {
               </TabItem>
             ))}
           </TabBar>
-          <TabSelect value={activeTab} onChange={e => setActiveTab(e.target.value as FinanceTab)}>
-            {availableTabs.map(t => <option key={t.tab} value={t.tab}>{t.label}</option>)}
-          </TabSelect>
 
           {activeTab === 'income' && (
             <IncomeTabContent activeDateRange={activeDateRange} onSelect={handleSelectDocument} />

@@ -15,6 +15,8 @@ export interface SignupCredentials {
     acceptTerms: boolean;
     /** Wersja dokumentów pokazanych przy zgodzie - backend zapisuje ją jako dowód akceptacji. */
     legalVersion?: string;
+    /** Osobna, niezaznaczona zgoda na informacje handlowe e-mailem. */
+    marketingConsent?: boolean;
 }
 
 export interface AuthResponse {

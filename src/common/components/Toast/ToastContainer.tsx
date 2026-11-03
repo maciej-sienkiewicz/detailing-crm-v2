@@ -62,9 +62,14 @@ interface ToastProviderProps {
 export const ToastProvider = ({ children }: ToastProviderProps) => {
     const [toasts, setToasts] = useState<ToastItem[]>([]);
 
+    // To samo zdanie dwa razy na ekranie nic nie mówi. Zdarza się, gdy błąd API ogłasza
+    // apiClient, a okno, które go dostało, pokazuje go jeszcze raz pod własnym tytułem
+    // (np. odmowa zapisu po zmianie osoby w sesji idzie dymkiem zawsze - sessionUser.ts).
+    // Nowszy dymek zastępuje starszy: zwykle to ten z tytułem mówiącym, CO się nie udało.
     const showToast = useCallback((toast: Omit<ToastItem, 'id'>) => {
         const id = `toast-${Date.now()}-${Math.random()}`;
-        setToasts(prev => [...prev, { ...toast, id }]);
+        const sentence = toast.message ?? toast.title;
+        setToasts(prev => [...prev.filter(t => (t.message ?? t.title) !== sentence), { ...toast, id }]);
     }, []);
 
     const showSuccess = useCallback((title: string, message?: string) => {

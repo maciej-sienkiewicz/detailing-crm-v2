@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom';
 import { authApi } from '../api/authApi';
 import type { LoginCredentials, SignupCredentials } from '../types';
 import { useAuth as useAuthContext } from '@/core/context/AuthContext';
+import { announceUnlock } from '@/core/sessionLock';
 
 export const useLogin = () => {
     const navigate = useNavigate();
@@ -18,6 +19,11 @@ export const useLogin = () => {
             if (data.user) {
                 setUser(data.user);
             }
+            // Ciasteczko sesji jest wspólne dla kart: logowanie na inne konto podmienia
+            // osobę także w karcie otwartej obok, która dalej pokazywała poprzednią i jej
+            // zapisy (np. stopka e-mail) szły na nowe konto. Ten sam sygnał co po PIN-ie -
+            // inne karty pytają /auth/me, kto jest teraz zalogowany.
+            announceUnlock();
 
             if (data.redirectUrl) {
                 navigate(data.redirectUrl);

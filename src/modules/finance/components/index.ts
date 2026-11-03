@@ -15,3 +15,4 @@ export { IssueInvoiceModal }       from './IssueInvoiceModal';
 export { RevenueInvoiceDetailModal } from './RevenueInvoiceDetailModal';
 export { BulkPaymentStatusBar, RowCheckbox } from './SelectionControls';
 export { PaymentTrackingPanel }    from './PaymentTrackingPanel';
+export { FinanceMobileTabs }       from './FinanceMobileTabs';
