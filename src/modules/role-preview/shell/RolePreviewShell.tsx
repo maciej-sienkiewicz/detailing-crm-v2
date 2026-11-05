@@ -4,7 +4,7 @@ import { rolePreviewApi, type RolePreviewState } from '../rolePreviewApi';
 import type { StartFailureWatch } from '../startFailure';
 import { PreviewPanel } from './PreviewPanel';
 import {
-    changeCount, DEVICE_LABEL, DEVICE_WIDTH, diffCodes, effectiveExpiry, frameLostSession, type DeviceMode,
+    changeCount, changesWord, DEVICE_LABEL, DEVICE_WIDTH, diffCodes, effectiveExpiry, frameLostSession, type DeviceMode,
 } from './previewModel';
 import { problemDetail, problemStatus } from '@/core/problem';
 
@@ -14,14 +14,41 @@ type Phase =
     | { kind: 'ready'; state: RolePreviewState }
     | { kind: 'used' }
     | { kind: 'gone' }
-    | { kind: 'ended' }
+    | { kind: 'replaced'; roleName: string }
+    | { kind: 'ended'; erased: boolean }
     | { kind: 'failed'; message: string };
 
 /** Ile najdłużej czekamy na przygotowanie piaskownicy - tyle żyje kod wejścia. */
 const ENTER_DEADLINE_MS = 115_000;
 const ENTER_RETRY_MS = 1_000;
 const SLOW_AFTER_MS = 15_000;
-const REFRESH_MS = 30_000;
+/**
+ * Stan (lista „Co system wysłałby na zewnątrz”, czas wygaśnięcia) - co 10 s. Przy 30 s
+ * panel przez pół minuty po wysłaniu SMS-a twierdził „Nic. Podgląd niczego nie wysyła”.
+ */
+const REFRESH_MS = 10_000;
+/** Ile razy próbujemy wczytać stan po wejściu, zanim pokażemy błąd zamiast kręcącego się kółka. */
+const LOAD_ATTEMPTS = 5;
+const LOAD_RETRY_MS = 2_000;
+
+/**
+ * Który podgląd należy do tej karty. Przeglądarka ma pod adresem podglądu jedno ciasteczko
+ * sesji, więc podgląd otwarty w drugim oknie przejmuje sesję także tego okna. Bez tego okno
+ * pokazywało cudzą rolę pod swoim paskiem, a „Zakończ podgląd” kończyło podgląd z drugiego
+ * okna (audyt 05.11). Piaskownicę rozpoznajemy po końcu jej życia - stałym i różnym dla
+ * każdej. sessionStorage, bo jest osobny dla każdej karty i przeżywa przeładowanie.
+ */
+const OWN_PREVIEW_KEY = 'role-preview:own-expires-at';
+const readOwnPreview = (): string | null => {
+    try { return window.sessionStorage.getItem(OWN_PREVIEW_KEY); } catch { return null; }
+};
+const writeOwnPreview = (expiresAt: string) => {
+    try { window.sessionStorage.setItem(OWN_PREVIEW_KEY, expiresAt); } catch { /* bez pamięci karty sprawdzamy tylko w tej sesji okna */ }
+};
+const samePreview = (a: string, b: string) => Date.parse(a) === Date.parse(b);
+
+/** Komunikat serwera bywa bez kropki, a w karcie stoi przed kolejnym zdaniem. */
+const asSentence = (text: string) => (/[.!?…]$/.test(text.trim()) ? text.trim() : `${text.trim()}.`);
 
 const statusOf = (error: unknown) => problemStatus(error);
 const messageOf = (error: unknown) =>
@@ -48,6 +75,12 @@ async function enterWithRetry(entryCode: string, startFailure?: StartFailureWatc
         } catch (error) {
             const status = statusOf(error);
             if (status === 409 || status === 400) return { kind: 'used' };
+            // Brak sieci, przeciążenie, restart serwera: kod żyje dalej, więc próbujemy znowu,
+            // zamiast kończyć podgląd na pierwszym czkawce połączenia.
+            if (status === undefined || status === 429 || status >= 500) {
+                await sleep(ENTER_RETRY_MS);
+                continue;
+            }
             return { kind: 'failed', message: messageOf(error) ?? 'Nie udało się wejść do podglądu.' };
         }
     }
@@ -93,19 +126,51 @@ export function RolePreviewShell({ entryCode, startFailure }: {
     const [applyError, setApplyError] = useState<string | null>(null);
     const [ending, setEnding] = useState(false);
     const frameRef = useRef<HTMLIFrameElement>(null);
+    // Z kodem w adresie to nowy podgląd tej karty; bez kodu (przeładowanie) - zapamiętany.
+    const ownPreview = useRef<string | null>(entryCode ? null : readOwnPreview());
+    const loadFailures = useRef(0);
+
+    /** Czy stan z serwera to podgląd tej karty; pierwszy widziany zostaje jej podglądem. */
+    const isOwn = useCallback((state: RolePreviewState) => {
+        if (!ownPreview.current) {
+            ownPreview.current = state.expiresAt;
+            writeOwnPreview(state.expiresAt);
+            return true;
+        }
+        return samePreview(ownPreview.current, state.expiresAt);
+    }, []);
 
     const refresh = useCallback(async () => {
         try {
             const state = await rolePreviewApi.current();
-            setPhase(prev => (prev.kind === 'ended' ? prev : { kind: 'ready', state }));
+            loadFailures.current = 0;
+            const own = isOwn(state);
+            setPhase(prev => {
+                if (prev.kind === 'ended') return prev;
+                return own ? { kind: 'ready', state } : { kind: 'replaced', roleName: state.roleName };
+            });
         } catch (error) {
             const status = statusOf(error);
             if (status === 401 || status === 404) {
                 setPhase(prev => (prev.kind === 'ended' ? prev : { kind: 'gone' }));
+                return;
             }
-            // Chwilowy błąd sieci nie kończy podglądu - następne odświeżenie spróbuje znowu.
+            // Chwilowy błąd sieci nie kończy działającego podglądu - następne odświeżenie spróbuje
+            // znowu. Ale przed pierwszym stanem okno kręciło kółkiem bez końca (audyt 05.11):
+            // po kilku próbach mówimy, co się stało.
+            loadFailures.current += 1;
+            const giveUp = loadFailures.current >= LOAD_ATTEMPTS;
+            setPhase(prev => {
+                if (prev.kind !== 'entering' && prev.kind !== 'loading') return prev;
+                return giveUp
+                    ? { kind: 'failed', message: 'Nie udało się wczytać podglądu. Sprawdź połączenie i odśwież okno.' }
+                    : prev;
+            });
+            if (!giveUp) window.setTimeout(() => { void refreshRef.current(); }, LOAD_RETRY_MS);
         }
-    }, []);
+    }, [isOwn]);
+    const refreshRef = useRef(refresh);
+    refreshRef.current = refresh;
 
     // Wejście: kod z adresu na sesję piaskownicy. Bez kodu (np. po przeładowaniu okna)
     // sprawdzamy, czy sesja piaskownicy jeszcze żyje.
@@ -130,15 +195,34 @@ export function RolePreviewShell({ entryCode, startFailure }: {
         };
     }, [entryCode, refresh, startFailure]);
 
-    // Odświeżanie stanu (efekty, czas wygaśnięcia) - tylko gdy okno jest na wierzchu.
+    // Odświeżanie stanu (efekty, czas wygaśnięcia) - tylko gdy okno jest na wierzchu, oraz od
+    // razu po powrocie do karty: podgląd z drugiego okna mógł ją w międzyczasie przejąć.
     const ready = phase.kind === 'ready';
     useEffect(() => {
         if (!ready) return;
         const timer = window.setInterval(() => {
             if (document.visibilityState === 'visible') void refresh();
         }, REFRESH_MS);
-        return () => window.clearInterval(timer);
+        const onVisible = () => { if (document.visibilityState === 'visible') void refresh(); };
+        document.addEventListener('visibilitychange', onVisible);
+        return () => {
+            window.clearInterval(timer);
+            document.removeEventListener('visibilitychange', onVisible);
+        };
     }, [ready, refresh]);
+
+    /** Przed zmianą roli i końcem: sesja tej przeglądarki może już należeć do podglądu z innego okna. */
+    const stillOwn = async (): Promise<boolean> => {
+        try {
+            const state = await rolePreviewApi.current();
+            if (isOwn(state)) return true;
+            setPhase({ kind: 'replaced', roleName: state.roleName });
+            return false;
+        } catch {
+            // Wygasła albo niedostępna - dalsze wywołanie samo to zgłosi.
+            return true;
+        }
+    };
 
     const handleFrameLoad = () => {
         let path: string | null = null;
@@ -167,6 +251,7 @@ export function RolePreviewShell({ entryCode, startFailure }: {
         setApplying(true);
         setApplyError(null);
         try {
+            if (!(await stillOwn())) return;
             const state = await rolePreviewApi.updateRole(permissions, trackWorkTime);
             setPhase({ kind: 'ready', state });
             // Aplikacja w ramce zna uprawnienia z chwili załadowania - przeładowanie w tym
@@ -183,14 +268,26 @@ export function RolePreviewShell({ entryCode, startFailure }: {
 
     const endPreview = async () => {
         setEnding(true);
+        if (!(await stillOwn())) {
+            setEnding(false);
+            return;
+        }
+        let erased = true;
         try {
             await rolePreviewApi.end();
         } catch {
             // Sesja mogła już wygasnąć - i tak pokazujemy koniec, piaskownicę usunie sprzątanie.
+            erased = false;
         }
-        setPhase({ kind: 'ended' });
+        setPhase({ kind: 'ended', erased });
         setEnding(false);
         window.close();
+    };
+
+    const togglePanel = () => {
+        // Otwarcie panelu to pytanie „co by wyszło” - odpowiedź ma być aktualna.
+        if (!panelOpen) void refresh();
+        setPanelOpen(!panelOpen);
     };
 
     return (
@@ -224,7 +321,7 @@ export function RolePreviewShell({ entryCode, startFailure }: {
                                 </DeviceBtn>
                             ))}
                         </DeviceSwitch>
-                        <BannerBtn type="button" aria-expanded={panelOpen} onClick={() => setPanelOpen(v => !v)}>
+                        <BannerBtn type="button" aria-expanded={panelOpen} onClick={togglePanel}>
                             Uprawnienia
                             <ChangesBadge state={phase.state} />
                         </BannerBtn>
@@ -270,8 +367,9 @@ function ChangesBadge({ state }: { state: RolePreviewState }) {
     const count = changeCount(diffCodes(state.initialPermissions, state.permissions))
         + (state.trackWorkTime !== state.initialTrackWorkTime ? 1 : 0);
     if (count === 0) return null;
-    return <Count aria-label={`${count} zmian względem roli z ustawień`}>{count}</Count>;
+    return <Count aria-label={`${count} ${changesWord(count)} względem roli z ustawień`}>{count}</Count>;
 }
+
 
 function StatusCard({ phase }: { phase: Exclude<Phase, { kind: 'ready' }> }) {
     switch (phase.kind) {
@@ -282,9 +380,11 @@ function StatusCard({ phase }: { phase: Exclude<Phase, { kind: 'ready' }> }) {
                     <Spinner aria-hidden="true" />
                     <CardTitle>Przygotowujemy podgląd</CardTitle>
                     <CardText>
-                        {phase.kind === 'entering' && phase.slow
-                            ? 'To trwa dłużej niż zwykle - zakładamy studio z danymi przykładowymi.'
-                            : 'Zakładamy studio z danymi przykładowymi i konto pracownika z tą rolą.'}
+                        {phase.kind === 'loading'
+                            ? 'Wczytujemy podgląd tej roli.'
+                            : phase.slow
+                                ? 'To trwa dłużej niż zwykle - zakładamy studio z danymi przykładowymi.'
+                                : 'Zakładamy studio z danymi przykładowymi i konto pracownika z tą rolą.'}
                     </CardText>
                 </Card>
             );
@@ -303,8 +403,18 @@ function StatusCard({ phase }: { phase: Exclude<Phase, { kind: 'ready' }> }) {
                 <Card>
                     <CardTitle>Podgląd roli się zakończył</CardTitle>
                     <CardText>
-                        Podgląd wygasa po wylogowaniu albo dłuższej przerwie, a dane przykładowe znikają.
-                        Otwórz go ponownie w ustawieniach ról.
+                        Podgląd kończy się po wylogowaniu, po dłuższej przerwie albo po upływie czasu podglądu.
+                        Dane przykładowe znikają razem z nim. Otwórz go ponownie w ustawieniach ról.
+                    </CardText>
+                </Card>
+            );
+        case 'replaced':
+            return (
+                <Card>
+                    <CardTitle>Ten podgląd zastąpił nowszy</CardTitle>
+                    <CardText>
+                        W tej przeglądarce otwarto podgląd roli „{phase.roleName}” w innym oknie. Przeglądarka
+                        ma jeden podgląd naraz, więc ten się zakończył. Możesz zamknąć to okno.
                     </CardText>
                 </Card>
             );
@@ -312,14 +422,18 @@ function StatusCard({ phase }: { phase: Exclude<Phase, { kind: 'ready' }> }) {
             return (
                 <Card>
                     <CardTitle>Podgląd zakończony</CardTitle>
-                    <CardText>Dane przykładowe zostały usunięte. Możesz zamknąć to okno.</CardText>
+                    <CardText>
+                        {phase.erased
+                            ? 'Dane przykładowe zostały usunięte. Możesz zamknąć to okno.'
+                            : 'Dane przykładowe znikną same, gdy podgląd wygaśnie. Możesz zamknąć to okno.'}
+                    </CardText>
                 </Card>
             );
         case 'failed':
             return (
                 <Card>
                     <CardTitle>Nie udało się otworzyć podglądu</CardTitle>
-                    <CardText>{phase.message} Zamknij to okno i otwórz podgląd ponownie z ustawień ról.</CardText>
+                    <CardText>{asSentence(phase.message)} Zamknij to okno i otwórz podgląd ponownie z ustawień ról.</CardText>
                 </Card>
             );
     }

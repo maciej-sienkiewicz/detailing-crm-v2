@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import React from 'react';
-import { render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RolePreviewState } from '../rolePreviewApi';
 
@@ -34,6 +34,7 @@ const code = (seed: string) => seed.padEnd(43, 'x');
 describe('okno podglądu roli', () => {
     beforeEach(() => {
         vi.clearAllMocks();
+        window.sessionStorage.clear();
     });
 
     it('wymienia kod raz, także gdy React uruchamia efekty dwukrotnie', async () => {
@@ -87,5 +88,107 @@ describe('okno podglądu roli', () => {
 
         expect(await screen.findByText('Podgląd roli się zakończył')).toBeInTheDocument();
         expect(api.enter).not.toHaveBeenCalled();
+    });
+
+    // Audyt 05.11: podgląd otwarty w drugim oknie przejmował sesję tego okna (jedno ciasteczko
+    // na adres podglądu). Okno pokazywało cudzą rolę, a „Zakończ podgląd” kończyło tamten podgląd.
+    it('przejęty przez nowszy podgląd mówi to wprost zamiast pokazywać cudzą rolę', async () => {
+        api.enter.mockResolvedValue('entered');
+        api.current.mockResolvedValue(state);
+        render(<RolePreviewShell entryCode={code('e')} />);
+        expect(await screen.findByText(/Rola „Recepcja”/)).toBeInTheDocument();
+
+        api.current.mockResolvedValue({ ...state, roleName: 'Detailer', expiresAt: '2026-09-23T12:05:00Z' });
+        await act(async () => { document.dispatchEvent(new Event('visibilitychange')); });
+
+        expect(await screen.findByText('Ten podgląd zastąpił nowszy')).toBeInTheDocument();
+        expect(screen.getByText(/podgląd roli „Detailer”/)).toBeInTheDocument();
+        expect(screen.queryByTitle('Aplikacja CRM oczami pracownika z podglądaną rolą')).not.toBeInTheDocument();
+    });
+
+    it('„Zakończ podgląd” w przejętym oknie nie kończy podglądu z drugiego okna', async () => {
+        api.enter.mockResolvedValue('entered');
+        api.current.mockResolvedValue(state);
+        render(<RolePreviewShell entryCode={code('f')} />);
+        expect(await screen.findByText(/Rola „Recepcja”/)).toBeInTheDocument();
+
+        api.current.mockResolvedValue({ ...state, roleName: 'Detailer', expiresAt: '2026-09-23T12:05:00Z' });
+        fireEvent.click(screen.getByRole('button', { name: 'Zakończ podgląd' }));
+
+        expect(await screen.findByText('Ten podgląd zastąpił nowszy')).toBeInTheDocument();
+        expect(api.end).not.toHaveBeenCalled();
+    });
+
+    it('przeładowana karta pamięta swój podgląd', async () => {
+        window.sessionStorage.setItem('role-preview:own-expires-at', '2026-09-23T12:05:00Z');
+        api.current.mockResolvedValue(state);
+
+        render(<RolePreviewShell entryCode={null} />);
+
+        expect(await screen.findByText('Ten podgląd zastąpił nowszy')).toBeInTheDocument();
+    });
+
+    it('błąd wczytania stanu nie zostawia kręcącego się kółka', async () => {
+        vi.useFakeTimers({ shouldAdvanceTime: true });
+        try {
+            api.current.mockRejectedValue({ response: { status: 503 } });
+            render(<RolePreviewShell entryCode={null} />);
+            await act(async () => { await vi.advanceTimersByTimeAsync(12_000); });
+
+            expect(screen.getByText('Nie udało się otworzyć podglądu')).toBeInTheDocument();
+            expect(screen.getByText(/Nie udało się wczytać podglądu\./)).toBeInTheDocument();
+            expect(api.current).toHaveBeenCalledTimes(5);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it('chwilowy błąd serwera przy wejściu jest ponawiany', async () => {
+        api.enter
+            .mockRejectedValueOnce({ response: { status: 503 } })
+            .mockResolvedValue('entered');
+        api.current.mockResolvedValue(state);
+
+        render(<RolePreviewShell entryCode={code('g')} />);
+
+        expect(await screen.findByText(/Rola „Recepcja”/, {}, { timeout: 3000 })).toBeInTheDocument();
+        expect(api.enter).toHaveBeenCalledTimes(2);
+    });
+
+    it('komunikat serwera bez kropki nie skleja się z następnym zdaniem', async () => {
+        api.enter.mockRejectedValue({ response: { status: 404, data: { detail: 'Podgląd roli nie istnieje' } } });
+
+        render(<RolePreviewShell entryCode={code('h')} />);
+
+        expect(await screen.findByText('Podgląd roli nie istnieje. Zamknij to okno i otwórz podgląd ponownie z ustawień ról.')).toBeInTheDocument();
+    });
+
+    it('nieudane zakończenie nie twierdzi, że dane już usunięto', async () => {
+        const close = vi.spyOn(window, 'close').mockImplementation(() => {});
+        api.enter.mockResolvedValue('entered');
+        api.current.mockResolvedValue(state);
+        api.end.mockRejectedValue({ response: { status: 500 } });
+        render(<RolePreviewShell entryCode={code('i')} />);
+        expect(await screen.findByText(/Rola „Recepcja”/)).toBeInTheDocument();
+
+        fireEvent.click(screen.getByRole('button', { name: 'Zakończ podgląd' }));
+
+        expect(await screen.findByText(/Dane przykładowe znikną same/)).toBeInTheDocument();
+        expect(screen.queryByText(/zostały usunięte/)).not.toBeInTheDocument();
+        close.mockRestore();
+    });
+
+    it('otwarcie panelu odświeża listę tego, co by wyszło', async () => {
+        api.enter.mockResolvedValue('entered');
+        api.current.mockResolvedValue(state);
+        render(<RolePreviewShell entryCode={code('j')} />);
+        expect(await screen.findByText(/Rola „Recepcja”/)).toBeInTheDocument();
+        const calls = api.current.mock.calls.length;
+
+        fireEvent.click(screen.getByRole('button', { name: /Uprawnienia/ }));
+        expect(api.current).toHaveBeenCalledTimes(calls);
+        fireEvent.click(screen.getByRole('button', { name: /Uprawnienia/ }));
+
+        await vi.waitFor(() => expect(api.current).toHaveBeenCalledTimes(calls + 1));
     });
 });

@@ -18,6 +18,14 @@ export function changeCount(changes: PermissionChanges): number {
     return changes.added.size + changes.removed.size;
 }
 
+/** 1 zmiana, 2-4 zmiany (bez 12-14), reszta zmian - dawniej czytnik mówił „1 zmian”. */
+export function changesWord(count: number): string {
+    if (count === 1) return 'zmiana';
+    const tens = count % 100;
+    const units = count % 10;
+    return units >= 2 && units <= 4 && (tens < 12 || tens > 14) ? 'zmiany' : 'zmian';
+}
+
 /** Podgląd kończy się wcześniej z dwóch terminów: końca życia albo bezczynności. */
 export function effectiveExpiry(expiresAt: string, idleExpiresAt: string): Date {
     return new Date(Math.min(Date.parse(expiresAt), Date.parse(idleExpiresAt)));

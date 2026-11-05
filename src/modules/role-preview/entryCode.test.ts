@@ -24,6 +24,9 @@ describe('kod wejścia do podglądu roli', () => {
         expect(readEntryCodeFromHash('#k=krotki')).toBeNull();
         expect(readEntryCodeFromHash(`#k=${code.slice(1)}+`)).toBeNull();
         expect(readEntryCodeFromHash(`#x=${code}`)).toBeNull();
+        // Dokładnie 43 znaki: dłuższy albo z obcym znakiem przed kodem też odpada.
+        expect(readEntryCodeFromHash(`#k=${code}A`)).toBeNull();
+        expect(readEntryCodeFromHash(`#k=!${code}`)).toBeNull();
     });
 
     it('trafia do okna podglądu w części adresu, której przeglądarka nie wysyła serwerowi', () => {

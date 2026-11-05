@@ -14,7 +14,9 @@ describe('otwieranie podglądu roli', () => {
         const open = vi.fn((url: string) => { events.push(`open ${url}`); return previewWindow; });
         const start = vi.fn(async (payload: { entryCode: string }) => { events.push(`start ${payload.entryCode}`); });
 
-        await openRolePreview('https://podglad.detailboost.pl', input, { open, start, newCode: () => 'KOD' });
+        // Każde wywołanie daje inny kod: serwer musi dostać ten z adresu okna, a nie świeży.
+        const codes = ['KOD', 'INNY'];
+        await openRolePreview('https://podglad.detailboost.pl', input, { open, start, newCode: () => codes.shift()! });
 
         // Okno przed serwerem: po odpowiedzi przeglądarka zablokowałaby je jako wyskakujące.
         expect(events).toEqual(['open https://podglad.detailboost.pl/preview#k=KOD', 'start KOD']);
