@@ -1,7 +1,7 @@
 // @vitest-environment jsdom
 
 import React from 'react';
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RolePreviewState } from '../rolePreviewApi';
 
@@ -99,9 +99,13 @@ describe('okno podglądu roli', () => {
         expect(await screen.findByText(/Rola „Recepcja”/)).toBeInTheDocument();
 
         api.current.mockResolvedValue({ ...state, roleName: 'Detailer', expiresAt: '2026-09-23T12:05:00Z' });
-        await act(async () => { document.dispatchEvent(new Event('visibilitychange')); });
-
-        expect(await screen.findByText('Ten podgląd zastąpił nowszy')).toBeInTheDocument();
+        // Nasłuch powrotu do karty podpina efekt, który React odpala osobnym zadaniem już po
+        // wyrenderowaniu roli - pojedyncze zdarzenie potrafiło go wyprzedzić i test raz na kilka
+        // przebiegów padał. Zdarzenie powtarzamy, aż okno zareaguje.
+        await waitFor(() => {
+            document.dispatchEvent(new Event('visibilitychange'));
+            expect(screen.getByText('Ten podgląd zastąpił nowszy')).toBeInTheDocument();
+        });
         expect(screen.getByText(/podgląd roli „Detailer”/)).toBeInTheDocument();
         expect(screen.queryByTitle('Aplikacja CRM oczami pracownika z podglądaną rolą')).not.toBeInTheDocument();
     });
