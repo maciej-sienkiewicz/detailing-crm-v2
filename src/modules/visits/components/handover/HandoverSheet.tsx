@@ -10,7 +10,7 @@ import {
     ModalContent,
     CloseBtn,
 } from '@/common/components/ModalKit';
-import { Button, ui } from '@/common/components/ui';
+import { Button, Notice, ui } from '@/common/components/ui';
 import { formatCurrency } from '@/common/utils';
 import { isPiiMasked, joinPiiName } from '@/common/pii';
 import { usePermissions } from '@/core/permissions';
@@ -30,6 +30,8 @@ import { paymentMethods } from './paymentOptions';
 import { FinanceUpsellPanel } from './FinanceUpsellPanel';
 import { ProtocolSection } from './ProtocolSection';
 import { ThankYouSmsSection } from './ThankYouSmsSection';
+import { dayLabel, type HandoverDateState } from './handoverDate';
+import { localIsoDate } from '@/common/utils/localDate';
 import { advanceLabel, allProtocolsSigned, type ProtocolSignatureStatus } from './signatureStep';
 import { HandoverResultView } from './HandoverResultView';
 import { InvoicePreviewModal } from './InvoicePreviewModal';
@@ -105,6 +107,10 @@ interface HandoverSheetProps {
     visit: Visit;
     isOpen: boolean;
     onClose: () => void;
+    /** Odpowiedź z okna daty wydania (HandoverDateModal), gdy było pytanie. */
+    handoverDate?: HandoverDateState | null;
+    /** Powrót do okna daty; bez niego wiersz z datą jest tylko do odczytu. */
+    onChangeDate?: () => void;
 }
 
 /**
@@ -121,8 +127,8 @@ interface HandoverSheetProps {
  * nie znika - pokazuje potwierdzenie z numerem dokumentu i akcjami naprawczymi,
  * gdy KSeF odrzucił fakturę.
  */
-export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) => {
-    const handover = useHandover({ visit, isOpen });
+export const HandoverSheet = ({ visit, isOpen, onClose, handoverDate, onChangeDate }: HandoverSheetProps) => {
+    const handover = useHandover({ visit, isOpen, handoverDate });
     const { comments } = useVisitComments(visit.id);
     const customerComments = comments.filter(c => c.type === 'FOR_CUSTOMER' && !c.isDeleted);
 
@@ -231,6 +237,20 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                     />
                 ) : (
                     <Body>
+                        {/* Data wybrana w oknie przed tym (wydanie po dniu planu) stoi nad oboma
+                            krokami: zmienia datę sprzedaży na dokumentach, więc ma być widać,
+                            z jaką datą to wszystko wyjdzie, i dać się poprawić bez zamykania. */}
+                        {handoverDate && (
+                            <Notice
+                                tone="info"
+                                title={`Wizyta zakończy się z datą ${dayLabel(handover.pickupDate ?? localIsoDate())}.`}
+                                action={onChangeDate && (
+                                    <Button size="sm" variant="ghost" disabled={handover.isSubmitting} onClick={onChangeDate}>
+                                        Zmień datę
+                                    </Button>
+                                )}
+                            />
+                        )}
                         {/* Bez paska „1 Podpis protokołu, 2 Rozliczenie”: przy dwóch krokach nie
                             niósł nic, czego nie mówią przycisk kroku 1 („…przejdź do płatności”),
                             „Wstecz do protokołu” i linia „Protokół” w podsumowaniu - a zabierał
@@ -355,6 +375,7 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                                             transferDueDate={handover.transferDueDate}
                                             problems={handover.problems}
                                             onBuyerChange={buyer => handover.patch({ buyer })}
+                                            saleDate={handover.pickupDate}
                                         />
                                     </SettlementGrid>
                                 ) : handover.isFreeVisit ? (
@@ -440,6 +461,7 @@ export const HandoverSheet = ({ visit, isOpen, onClose }: HandoverSheetProps) =>
                 items={handover.invoiceItems}
                 paymentMethod={handover.state.paymentMethod}
                 dueDate={handover.state.paymentMethod === 'TRANSFER' ? defaultDueDate() : undefined}
+                saleDate={handover.pickupDate}
             />
         </ModalShell>
     );

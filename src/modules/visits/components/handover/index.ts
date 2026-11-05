@@ -1,4 +1,5 @@
 export { HandoverSheet } from './HandoverSheet';
+export { HandoverDateModal } from './HandoverDateModal';
 export { MarkReadyDialog } from './MarkReadyDialog';
 export { CustomerNotesSection } from './CustomerNotesSection';
 export { SettlementSection } from './SettlementSection';

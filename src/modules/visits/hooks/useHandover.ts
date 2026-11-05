@@ -12,6 +12,7 @@ import { isPiiMasked } from '@/common/pii';
 import { useThankYouSmsAvailability } from './useThankYouSmsAvailability';
 import { useMessageDefaults } from '@/modules/message-templates/hooks/useMessageDefaults';
 import { buildThankYouSmsPayload } from '../components/handover/thankYouSms';
+import { isAfterPlannedDay, pickupDateFor, type HandoverDateState } from '../components/handover/handoverDate';
 import type { ServiceLineItem, Visit } from '../types';
 import type { CompleteVisitResponse, PaymentMethod } from '../types/stateTransitions';
 import {
@@ -87,6 +88,8 @@ const addressLines = (visit: Visit): { line1: string; line2: string } => {
 interface UseHandoverArgs {
     visit: Visit;
     isOpen: boolean;
+    /** Odpowiedź z okna „Z jaką datą chcesz zakończyć wizytę?” (HandoverDateModal); brak = dziś. */
+    handoverDate?: HandoverDateState | null;
 }
 
 /**
@@ -101,7 +104,7 @@ interface UseHandoverArgs {
 const countsTowardTotal = (service: ServiceLineItem): boolean =>
     service.status === 'CONFIRMED' || service.status === 'APPROVED';
 
-export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
+export const useHandover = ({ visit, isOpen, handoverDate }: UseHandoverArgs) => {
     const queryClient = useQueryClient();
     const { showError, showInfo } = useToast();
     const handleStateConflict = useVisitStateConflict(visit.id);
@@ -389,6 +392,17 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         []
     );
 
+    // ── Data wydania ─────────────────────────────────────────────────────────
+    // Po dniu planowanego zakończenia „Wydaj pojazd” najpierw pyta w osobnym oknie, z jaką
+    // datą zamknąć wizytę (HandoverDateModal) - od niej liczą się statystyki, data zapisu
+    // płatności i data sprzedaży na fakturze. Odpowiedź sprzed dnia planu się nie liczy:
+    // wtedy pytania nie było i wydanie jest dzisiejsze. Wybór nie trafia do draftu - to
+    // decyzja o tym jednym kliknięciu, a jutro „dziś” znaczyłoby co innego.
+    const today = localIsoDate();
+    const pickupDate = handoverDate && isAfterPlannedDay(visit.estimatedCompletionDate, today)
+        ? pickupDateFor(handoverDate, visit.estimatedCompletionDate, today)
+        : undefined;
+
     // ── Walidacja ────────────────────────────────────────────────────────────
     const problems: HandoverProblem[] = useMemo(() => {
         // Usługa czekająca na zgodę klienta nie liczy się do kwoty wizyty - najpierw decyzja.
@@ -416,6 +430,7 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
             if (isBatch) {
                 return stateTransitionApi.complete(visit.id, {
                     signatureObtained: state.protocolSigned,
+                    pickupDate,
                     settlement: { mode: 'BATCH', contractorId: state.batchContractorId ?? undefined },
                     // Ceny z „Cen usług” - przy zleceniu zbiorczym nie ma faktury, która by je zmieniała.
                     priceChanges: toPriceChanges(state.prices),
@@ -433,6 +448,7 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
                     : 'RECEIPT'; // backend pomija dokument bez modułu; jawna faktura dałaby 402
             return stateTransitionApi.complete(visit.id, {
                 signatureObtained: state.protocolSigned,
+                pickupDate,
                 payment: {
                     method: nothingToPay ? ('OTHER' as PaymentMethod) : state.paymentMethod,
                     invoiceType: documentType,
@@ -520,6 +536,8 @@ export const useHandover = ({ visit, isOpen }: UseHandoverArgs) => {
         ksef,
         sendToKsef,
         ksefBlocked,
+        /** Dzień wydania wysyłany na serwer (YYYY-MM-DD); undefined = dziś. */
+        pickupDate,
         /** Termin płatności przy przelewie (ISO) - ten sam, który pójdzie na serwer. */
         transferDueDate: state.paymentMethod === 'TRANSFER' ? defaultDueDate() : null,
         problems,

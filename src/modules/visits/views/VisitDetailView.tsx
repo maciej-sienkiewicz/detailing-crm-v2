@@ -43,7 +43,8 @@ import { VisitCostsSection } from '../components/VisitCostsSection';
 import { DocumentGallery } from '../components/DocumentGallery';
 import { VisitComments } from '../components/VisitComments';
 import { VisitCommunicationHistory } from '../components/VisitCommunicationHistory';
-import { HandoverSheet, MarkReadyDialog } from '../components/handover';
+import { HandoverDateModal, HandoverSheet, MarkReadyDialog } from '../components/handover';
+import { isAfterPlannedDay, type HandoverDateState } from '../components/handover/handoverDate';
 import { QualityCertificateModal } from '../components/QualityCertificateModal';
 import { SmsReminderModal } from '../components/SmsReminderModal';
 import { useSmsReminder, type SmsReminderResponse } from '../hooks/useSmsReminder';
@@ -315,6 +316,11 @@ export const VisitDetailView = () => {
     const navigate = useNavigate();
 
     const [isTransitionWizardOpen, setIsTransitionWizardOpen] = useState(false);
+    // Wydanie po dniu planowanego zakończenia: najpierw osobne okno „Z jaką datą chcesz zakończyć
+    // wizytę?”, potem okno wydania. Okno wydania zostaje zamontowane także wtedy, gdy ktoś wraca
+    // „Zmień datę” - inaczej powrót gubiłby krok i wybory w rozliczeniu.
+    const [isHandoverDateStep, setHandoverDateStep] = useState(false);
+    const [handoverDate, setHandoverDate] = useState<HandoverDateState | null>(null);
     const [isDoorToDoorOpen, setIsDoorToDoorOpen] = useState(false);
     const [isDeleteModalOpen, setIsDeleteModalOpen] = useState(false);
     const [transitionType, setTransitionType] = useState<'in_progress_to_ready' | 'ready_to_completed' | null>(null);
@@ -495,6 +501,8 @@ export const VisitDetailView = () => {
             setIsTransitionWizardOpen(true);
         } else if (visit.status === 'READY_FOR_PICKUP') {
             setTransitionType('ready_to_completed');
+            setHandoverDate(null);
+            setHandoverDateStep(isAfterPlannedDay(visit.estimatedCompletionDate));
             setIsTransitionWizardOpen(true);
         }
         /*
@@ -510,6 +518,8 @@ export const VisitDetailView = () => {
     const closeTransition = () => {
         setIsTransitionWizardOpen(false);
         setTransitionType(null);
+        setHandoverDateStep(false);
+        setHandoverDate(null);
     };
 
     const buildGeneratePostPrefill = (): GeneratePostPrefill => {
@@ -978,11 +988,28 @@ export const VisitDetailView = () => {
             )}
 
             {transitionType === 'ready_to_completed' && can('VISITS_SERVICE_PRICES_VIEW') && (
-                <HandoverSheet
-                    visit={visit}
-                    isOpen={isTransitionWizardOpen}
-                    onClose={closeTransition}
-                />
+                <>
+                    {isHandoverDateStep && (
+                        <HandoverDateModal
+                            visit={visit}
+                            isOpen={isTransitionWizardOpen}
+                            initial={handoverDate}
+                            onClose={handoverDate ? () => setHandoverDateStep(false) : closeTransition}
+                            onConfirm={value => {
+                                setHandoverDate(value);
+                                setHandoverDateStep(false);
+                            }}
+                        />
+                    )}
+                    {/* Montowane od kliknięcia „Wydaj pojazd”, otwarte dopiero po wyborze daty. */}
+                    <HandoverSheet
+                        visit={visit}
+                        isOpen={isTransitionWizardOpen && !isHandoverDateStep}
+                        onClose={closeTransition}
+                        handoverDate={handoverDate}
+                        onChangeDate={handoverDate ? () => setHandoverDateStep(true) : undefined}
+                    />
+                </>
             )}
 
             {/* Montowany warunkowo: inaczej stan formularza zamraża się przy

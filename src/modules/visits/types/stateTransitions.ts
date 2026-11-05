@@ -111,6 +111,11 @@ export interface SettlementModePayload {
 
 export interface TransitionToCompletedPayload {
     signatureObtained: boolean;
+    /**
+     * Dzień wydania (YYYY-MM-DD), gdy „Wydaj pojazd” klika się po fakcie. Pominięty = teraz.
+     * Serwer ustawia z niego wydanie wizyty, datę zapisu płatności i datę sprzedaży na fakturze.
+     */
+    pickupDate?: string;
     /** Wymagane przy rozliczeniu od razu; przy zleceniu zbiorczym pominięte. */
     payment?: PaymentDetails;
     settlement?: SettlementModePayload;

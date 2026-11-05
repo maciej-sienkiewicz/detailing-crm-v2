@@ -738,7 +738,7 @@ export const linesMatchServices = (lines: InvoiceLine[], prices: HandoverPrice[]
 
 export interface HandoverProblem {
     /** Sekcja, przy której należy pokazać komunikat, nie w banerze na górze. */
-    section: 'seller' | 'buyer' | 'prices' | 'items' | 'balance' | 'contractor';
+    section: 'seller' | 'buyer' | 'prices' | 'items' | 'balance' | 'contractor' | 'handoverDate';
     message: string;
 }
 

@@ -32,6 +32,7 @@ const ANCHOR: Record<HandoverProblem['section'], string> = {
     items: 'handover-positions',
     balance: 'handover-positions',
     contractor: 'handover-contractor',
+    handoverDate: 'handover-date',
 };
 
 const jumpTo = (id: string) => {
@@ -62,6 +63,8 @@ interface SettlementSummaryProps {
     problems: HandoverProblem[];
     /** Zmiana nabywcy z okna „Zmień” przy nabywcy; bez niej wiersz jest tylko do odczytu. */
     onBuyerChange?: (buyer: HandoverBuyer) => void;
+    /** Dzień wydania (YYYY-MM-DD), gdy wydanie jest wpisywane po fakcie - data sprzedaży na fakturze. */
+    saleDate?: string;
     /**
      * Zlecenie zbiorcze: podsumowanie mówi, do kogo trafi auto i że teraz nie ma dokumentu
      * ani płatności. `contractorName` null = kontrahent jeszcze nie wybrany.
@@ -83,6 +86,7 @@ export const SettlementSummary = ({
     transferDueDate,
     problems,
     onBuyerChange,
+    saleDate,
     batch,
 }: SettlementSummaryProps) => {
     const [isBuyerOpen, setBuyerOpen] = useState(false);
@@ -192,7 +196,12 @@ export const SettlementSummary = ({
                 {crmInvoice && (
                     <ReviewRow>
                         <span>Data</span>
-                        <span>Dziś, {todayLabel()}</span>
+                        {/* Wydanie po fakcie: fakturę wystawia się dziś (inaczej KSeF uzna ją
+                            za offline), a dzień wydania idzie na nią jako data sprzedaży. */}
+                        <span>
+                            Dziś, {todayLabel()}
+                            {saleDate && <small>data sprzedaży {dateLabel(saleDate)}</small>}
+                        </span>
                     </ReviewRow>
                 )}
                 {crmInvoice && (

@@ -279,6 +279,8 @@ interface InvoicePreviewModalProps {
     paymentMethod: PaymentMethod;
     /** Termin płatności (yyyy-MM-dd) - tylko przy przelewie, jak w fakturze z wydania. */
     dueDate?: string;
+    /** Data sprzedaży (yyyy-MM-dd), gdy wydanie wpisuje się po fakcie; jak na PDF - tylko inna niż dziś. */
+    saleDate?: string;
 }
 
 export const InvoicePreviewModal = ({
@@ -289,6 +291,7 @@ export const InvoicePreviewModal = ({
     items,
     paymentMethod,
     dueDate,
+    saleDate,
 }: InvoicePreviewModalProps) => {
     const [logoFailed, setLogoFailed] = useState(false);
     const nip = normalizeNip(buyer.nip);
@@ -317,6 +320,7 @@ export const InvoicePreviewModal = ({
     const meta: Array<[string, React.ReactNode]> = [
         ['Numer faktury', <Pending>nada system przy wystawieniu</Pending>],
         ['Data wystawienia', dateLabel(new Date())],
+        ...(saleDate ? [['Data sprzedaży', isoLabel(saleDate)] as [string, string]] : []),
         ...(owes && dueDate ? [['Termin płatności', isoLabel(dueDate)] as [string, string]] : []),
     ];
 
