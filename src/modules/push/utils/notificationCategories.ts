@@ -35,7 +35,7 @@ export const CATEGORY_COPY: Record<string, CategoryCopy> = {
     },
     LEADS_WAITING: {
         label: 'Klient czeka na odpowiedź',
-        hint: 'Gdy nikt z zespołu nie odpisał klientowi. Rano przychodzi też lista zapytań bez odpowiedzi.',
+        hint: 'Gdy nikt z zespołu nie odpisał klientowi. Rano właściciel dostaje też listę zapytań bez odpowiedzi.',
     },
     RESERVATIONS: {
         label: 'Nowa rezerwacja',

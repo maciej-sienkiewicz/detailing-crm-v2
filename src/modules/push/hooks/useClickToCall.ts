@@ -2,6 +2,7 @@ import { useMutation } from '@tanstack/react-query';
 import { isAxiosError } from 'axios';
 import { useToast } from '@/common/components/Toast';
 import { pushApi } from '../api/pushApi';
+import { problemDetail } from '@/core/problem';
 
 /**
  * The DESKTOP half of Click-to-Call: click a customer's number → the user's
@@ -23,10 +24,13 @@ export const useClickToCall = () => {
             }
         },
         onError: error => {
-            // 422 = valid click, no paired phone - an onboarding nudge, not an error.
+            // 422 = valid click the server cannot carry out - an onboarding nudge, not an error.
+            // Two reasons: no paired phone, or the paired phone has „Dzwonienie z komputera”
+            // switched off. The server says which; the toast used to always claim the first.
             if (isAxiosError(error) && error.response?.status === 422) {
                 showInfo(
-                    'Nie masz sparowanego telefonu. Sparuj telefon: Ustawienia → Telefon → Dzwonienie z komputera.',
+                    problemDetail(error)
+                        ?? 'Nie masz sparowanego telefonu. Sparuj go w Ustawieniach → Telefon → Dzwonienie z komputera.',
                 );
                 return;
             }

@@ -68,12 +68,14 @@ interface Notice {
 }
 
 const PUSH_NOTICES: Notice[] = [
-    { id: 'lead', title: 'Nowy lead', body: 'Kamil Zieliński, z Instagrama.', when: 'teraz' },
-    { id: 'reservation', title: 'Nowa rezerwacja: jutro 9:00', body: 'Anna Nowak, BMW X3. Powłoka ceramiczna.', when: '8 min' },
-    { id: 'earning', title: 'Właśnie zarobiłeś 2 460,00 zł', body: 'Pojazd wydany: Audi A6.', when: '1 godz.' },
+    // Ten sam zapis co prawdziwe powiadomienia (backend: PushMessages) - makieta obiecywała
+    // „Właśnie zarobiłeś” i godzinę bez zera, a telefon dostawał co innego.
+    { id: 'lead', title: 'Nowy lead: Kamil Zieliński', body: 'Wiadomość na Instagramie.', when: 'teraz' },
+    { id: 'reservation', title: 'Nowa rezerwacja: jutro, 09:00', body: 'Anna Nowak, BMW X3. Powłoka ceramiczna.', when: '8 min' },
+    { id: 'earning', title: 'Studio zarobiło 2 460,00 zł', body: 'Pojazd wydany: Audi A6.', when: '1 godz.' },
 ];
 
-const PUSH_DEMO: Notice = { id: 'demo', title: 'Nowy lead', body: 'Marta Kowalczyk, formularz na stronie.', when: 'teraz' };
+const PUSH_DEMO: Notice = { id: 'demo', title: 'Nowy lead: Marta Kowalczyk', body: 'Formularz na stronie.', when: 'teraz' };
 
 // Ta sama treść co w service-worker.js (showCallNotification).
 const DIAL_DEMO: Notice = {

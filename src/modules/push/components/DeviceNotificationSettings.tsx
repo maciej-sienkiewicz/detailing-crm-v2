@@ -165,8 +165,8 @@ export function DeviceNotificationSettings({ onRevoke, currentDeviceId = null, e
             </SectionTitle>
             <Lead>
                 {manageAll
-                    ? 'Wybierz, jakie powiadomienia dostaje każde urządzenie w studiu. Nowe rodzaje powiadomień są domyślnie włączone.'
-                    : 'Wybierz, jakie powiadomienia dostaje każde z Twoich urządzeń. Nowe rodzaje powiadomień są domyślnie włączone.'}
+                    ? 'Wybierz, jakie powiadomienia dostaje każde urządzenie w studiu. Nowe urządzenie dostaje wszystkie rodzaje poza przypomnieniem o rezerwacji i nowym raportem.'
+                    : 'Wybierz, jakie powiadomienia dostaje każde z Twoich urządzeń. Nowe urządzenie dostaje wszystkie rodzaje poza przypomnieniem o rezerwacji i nowym raportem.'}
             </Lead>
         </Head>
     );

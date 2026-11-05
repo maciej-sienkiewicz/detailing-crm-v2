@@ -6,9 +6,16 @@ import { describeThisDevice } from '@/modules/push/utils/webPush';
 
 export const CARDDAV_ACCOUNTS_KEY = ['carddav', 'accounts'] as const;
 
+/** Nazwa telefonu z kontaktami: ten iPhone, gdy profil pobiera się na nim, inaczej po prostu „iPhone". */
+export function carddavDeviceName(userAgent: string = navigator.userAgent): string {
+    return /iPhone|iPad|iPod/.test(userAgent) ? describeThisDevice() : 'iPhone';
+}
+
 export function useCreateProvisioning() {
     return useMutation({
-        mutationFn: () => carddavApi.createProvisioning({ deviceName: describeThisDevice() }),
+        // Profil instaluje się tylko na iPhonie. Z komputera (kod QR) nazwa opisywała urządzenie,
+        // które kliknęło - telefon z kontaktami stał na liście jako „Mac, Chrome".
+        mutationFn: () => carddavApi.createProvisioning({ deviceName: carddavDeviceName() }),
     });
 }
 
