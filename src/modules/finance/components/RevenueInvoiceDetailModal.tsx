@@ -25,6 +25,7 @@ import {
 } from '../hooks/useKsefRevenue';
 import { useExcludeIncomeDocument, useRestoreIncomeDocument } from '../hooks/useIncomeDocuments';
 import { usePaymentStatusVisible, usePaymentTracking } from '../hooks/usePaymentTracking';
+import { useKsefAutomation } from '../hooks/useKsef';
 import { formatMoney, formatMoneyCompact, formatDate, formatBankAccount } from '../utils/formatters';
 import { RevenueStatusBadge } from './RevenueStatusBadge';
 import { InvoiceEditCorrection } from './InvoiceEditCorrection';
@@ -528,6 +529,10 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
   // statusy na liście albo liczy według nich należności.
   const { enabled: tracking } = usePaymentTracking();
   const paymentTracking = usePaymentStatusVisible() || tracking;
+  // Bez tokenu KSeF wysyłka nie przejdzie nigdy: faktura w kolejce nie czeka na KSeF,
+  // tylko na token. W trakcie ładowania nie mówimy o braku tokenu.
+  const ksef = useKsefAutomation({ enabled: invoiceId !== null });
+  const noKsefToken = ksef.moduleEnabled && !ksef.isLoading && !ksef.configured;
   const retryMutation      = useRetryRevenueInvoice();
   const deleteMutation     = useDeleteRejectedInvoice();
   const duplicateMutation  = useResolveDuplicate();
@@ -708,15 +713,17 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
 
             {invoice.ksefStatus === 'NOT_SENT' && (
               <OfflineBox>
-                Tej faktury nie wysłano do KSeF. Wyślij ją przyciskiem na dole albo pobierz XML
-                i wgraj sam.
+                {noKsefToken
+                  ? 'Tej faktury nie wysłano do KSeF. Studio nie ma tokenu KSeF: dodaj go w Ustawieniach → Finanse i KSeF, a potem wyślij fakturę. Możesz też pobrać XML i wgrać go do KSeF.'
+                  : 'Tej faktury nie wysłano do KSeF. Wyślij ją albo pobierz XML i wgraj go do KSeF.'}
               </OfflineBox>
             )}
 
             {invoice.ksefStatus === 'QUEUED_RETRY' && (
               <OfflineBox>
-                KSeF nie działał przy wystawieniu. Wyślemy fakturę sami, najpóźniej w następny
-                dzień roboczy. Możesz też wysłać ją teraz.
+                {noKsefToken
+                  ? 'Faktura nie trafiła do KSeF, bo studio nie ma tokenu KSeF. Dodaj go w Ustawieniach → Finanse i KSeF, a potem wyślij fakturę.'
+                  : 'KSeF nie działał przy wystawieniu. Wyślemy fakturę sami, najpóźniej w następny dzień roboczy. Możesz też wysłać ją teraz.'}
               </OfflineBox>
             )}
 
@@ -986,7 +993,8 @@ export const RevenueInvoiceDetailModal: React.FC<RevenueInvoiceDetailModalProps>
               </SharedButton>
             )}
             {invoice.source === 'CRM' &&
-              ['PENDING', 'QUEUED_RETRY', 'SUBMITTED', 'NOT_SENT'].includes(invoice.ksefStatus) && (
+              (invoice.ksefStatus === 'SUBMITTED' ||
+                (!noKsefToken && ['PENDING', 'QUEUED_RETRY', 'NOT_SENT'].includes(invoice.ksefStatus))) && (
               <SharedButton
                 $variant="secondary" $size="sm" disabled={busy}
                 onClick={() => run(() => retryMutation.mutateAsync(invoice.id))}

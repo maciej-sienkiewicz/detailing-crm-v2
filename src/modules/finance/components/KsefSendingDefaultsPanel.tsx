@@ -132,8 +132,9 @@ export const KsefSendingDefaultsPanel: React.FC = () => {
           <OptionHint>
             {external
               ? 'Nie dotyczy, gdy faktury wystawia księgowość: CRM nie tworzy wtedy faktur, więc nie ma czego wysyłać.'
-              : 'Tak ustawi się przełącznik „Wyślij fakturę do KSeF” przy wydaniu pojazdu. ' +
-                'Można go zmienić przy każdej fakturze, a niewysłaną fakturę wysłać później.'}
+              : 'Dotyczy faktury dla konsumenta przy wydaniu pojazdu i w oknie „Wystaw fakturę” w Finansach. ' +
+                'Faktura na firmę domyślnie idzie do KSeF. Wybór można zmienić przy każdej fakturze, ' +
+                'a niewysłaną fakturę wysłać później.'}
           </OptionHint>
         </OptionTexts>
         <Toggle

@@ -43,6 +43,10 @@ vi.mock('../hooks/useKsefRevenue', () => {
         useUpdateRevenuePaymentStatus: mutation,
     };
 });
+let ksefConfigured = true;
+vi.mock('../hooks/useKsef', () => ({
+    useKsefAutomation: () => ({ moduleEnabled: true, isLoading: false, configured: ksefConfigured }),
+}));
 vi.mock('../hooks/usePaymentTracking', () => ({
     usePaymentTracking: () => ({ enabled: true }),
     usePaymentStatusVisible: () => true,
@@ -84,5 +88,58 @@ describe('RevenueInvoiceDetailModal - faktura z wydania pojazdu', () => {
         expect(screen.getByRole('button', { name: 'Popraw fakturę' })).toBeInTheDocument();
         expect(screen.getByRole('button', { name: 'Wystaw korektę do zera' })).toBeInTheDocument();
         expect(screen.queryByRole('button', { name: 'Popraw rozliczenie wizyty' })).toBeNull();
+    });
+});
+
+// Audyt 05.11: faktura z okna „Wystaw fakturę (KSeF)” w studiu bez tokenu stała w kolejce
+// z komunikatem „KSeF nie działał przy wystawieniu. Wyślemy fakturę sami” - nieprawda,
+// bo bez tokenu wysyłka nie przejdzie nigdy.
+describe('RevenueInvoiceDetailModal - faktura niewysłana do KSeF', () => {
+    afterEach(() => {
+        cleanup();
+        current = invoice();
+        ksefConfigured = true;
+    });
+
+    it('w kolejce bez tokenu: mówi o tokenie i nie obiecuje wysyłki', () => {
+        ksefConfigured = false;
+        current = invoice({ ksefStatus: 'QUEUED_RETRY', ksefNumber: null, visitId: null });
+        renderModal();
+
+        expect(screen.getByText(/studio nie ma tokenu KSeF/)).toBeInTheDocument();
+        expect(screen.queryByText(/KSeF nie działał przy wystawieniu/)).toBeNull();
+        expect(screen.queryByRole('button', { name: /Ponów wysyłkę do KSeF/ })).toBeNull();
+    });
+
+    it('w kolejce z tokenem: zostaje obietnica dosłania i ponowienie', () => {
+        current = invoice({ ksefStatus: 'QUEUED_RETRY', ksefNumber: null, visitId: null });
+        renderModal();
+
+        expect(screen.getByText(/KSeF nie działał przy wystawieniu/)).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Ponów wysyłkę do KSeF/ })).toBeInTheDocument();
+    });
+
+    it('w sesji KSeF (SUBMITTED): ponowienie dociąga status', () => {
+        current = invoice({ ksefStatus: 'SUBMITTED', ksefNumber: null, visitId: null });
+        renderModal();
+
+        expect(screen.getByRole('button', { name: /Ponów wysyłkę do KSeF/ })).toBeInTheDocument();
+    });
+
+    it('wystawiona bez wysyłki, z tokenem: „Wyślij do KSeF”', () => {
+        current = invoice({ ksefStatus: 'NOT_SENT', ksefNumber: null, visitId: null });
+        renderModal();
+
+        expect(screen.getByText('Tej faktury nie wysłano do KSeF. Wyślij ją albo pobierz XML i wgraj go do KSeF.')).toBeInTheDocument();
+        expect(screen.getByRole('button', { name: /Wyślij do KSeF/ })).toBeInTheDocument();
+    });
+
+    it('wystawiona bez wysyłki, bez tokenu: najpierw token, przycisk wysyłki znika', () => {
+        ksefConfigured = false;
+        current = invoice({ ksefStatus: 'NOT_SENT', ksefNumber: null, visitId: null });
+        renderModal();
+
+        expect(screen.getByText(/Studio nie ma tokenu KSeF: dodaj go/)).toBeInTheDocument();
+        expect(screen.queryByRole('button', { name: /Wyślij do KSeF/ })).toBeNull();
     });
 });

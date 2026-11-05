@@ -785,6 +785,8 @@ export interface IssueInvoiceRequest {
   visitId?:             string;
   customerId?:          string;
   description?:         string;
+  /** false - faktura wystawiona bez wysyłki (NOT_SENT); brak pola serwer czyta jako true. */
+  sendToKsef?:          boolean;
 }
 
 /**

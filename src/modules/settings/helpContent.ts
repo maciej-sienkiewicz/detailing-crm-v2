@@ -374,9 +374,10 @@ export const INVOICES_HELP: HelpContent = {
         {
             id: 'auto-send-default',
             label: 'Domyślna wysyłka faktur do KSeF',
-            description: 'Tak ustawi się przełącznik „Wyślij fakturę do KSeF" przy wydaniu pojazdu, ale przy każdej fakturze możesz go zmienić. Niewysłaną fakturę wyślesz później z listy dokumentów przychodowych.',
+            description: 'Dotyczy faktury dla konsumenta przy wydaniu pojazdu i w oknie „Wystaw fakturę" w Finansach. Faktura na firmę domyślnie idzie do KSeF. Wybór możesz zmienić przy każdej fakturze, a niewysłaną fakturę wyślesz później z listy dokumentów przychodowych.',
             usedIn: [
                 'Wydanie pojazdu',
+                'Finanse: okno „Wystaw fakturę"',
                 'Dokumenty przychodowe: status „Poza KSeF"',
             ],
         },

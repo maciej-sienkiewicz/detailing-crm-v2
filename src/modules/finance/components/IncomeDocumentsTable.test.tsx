@@ -10,6 +10,12 @@ import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
 import { ToastProvider } from '@/common/components/Toast';
 import { IncomeDocumentsTable } from './IncomeDocumentsTable';
+
+const media = vi.hoisted(() => ({ mobile: false }));
+vi.mock('@/common/hooks', async (importOriginal) => ({
+    ...(await importOriginal<typeof import('@/common/hooks')>()),
+    useMediaQuery: () => media.mobile,
+}));
 import type { IncomeDocument } from '../types';
 
 const doc = (patch: Partial<IncomeDocument> = {}): IncomeDocument => ({
@@ -113,5 +119,24 @@ describe('IncomeDocumentsTable - status płatności', () => {
         expect(screen.getByRole('columnheader', { name: 'Płatność' })).toBeInTheDocument();
         expect(screen.getAllByText('Karta').length).toBeGreaterThan(0);
         expect(screen.queryByText('Opłacony')).toBeNull();
+    });
+});
+
+// Audyt 05.11: faktura na firmę wystawiona bez nazwy nabywcy (pole „Nazwa firmy” można
+// pominąć) była na liście w telefonie „Konsumentem”, choć ma NIP.
+describe('IncomeDocumentsTable - karta na telefonie', () => {
+    afterEach(() => { cleanup(); media.mobile = false; });
+
+    it('faktura z NIP bez nazwy: karta pokazuje NIP, nie „Konsument”', () => {
+        media.mobile = true;
+        renderTable([doc({ counterpartyName: null, counterpartyNip: '5213017228', ksefStatus: 'NOT_SENT' })]);
+        expect(screen.getByText('NIP 5213017228')).toBeInTheDocument();
+        expect(screen.queryByText('Konsument')).toBeNull();
+    });
+
+    it('faktura bez NIP i bez nazwy zostaje „Konsumentem”', () => {
+        media.mobile = true;
+        renderTable([doc({ counterpartyName: null, counterpartyNip: null, ksefStatus: 'NOT_SENT' })]);
+        expect(screen.getByText('Konsument')).toBeInTheDocument();
     });
 });

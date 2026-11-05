@@ -110,6 +110,21 @@
       ],
       "port": 5197,
       "url": "http://after.localhost:5197"
+    },
+    {
+      "name": "vite-ksefmodal",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": [
+        "vite",
+        "--config",
+        ".claude/vite.ksefmodal.config.ts",
+        "--host",
+        "127.0.0.1",
+        "--port",
+        "5201",
+        "--strictPort"
+      ],
+      "port": 5201
     }
   ]
 }

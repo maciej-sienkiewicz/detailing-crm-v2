@@ -22,13 +22,16 @@ import {
   Select,
 } from '@/common/components/Form';
 import { useIssueRevenueInvoice } from '../hooks/useKsefRevenue';
+import { useKsefAutomation } from '../hooks/useKsef';
+import { useToast } from '@/common/components/Toast';
 import { formatMoney, inputValueToGrosze } from '../utils/formatters';
 import { invoiceDraftTotals, type InvoicePriceMode } from '../utils/invoiceDraftTotals';
 import { handleZeroAwareKeyDown } from '@/common/utils/moneyInput';
 import { validatePolishNip } from '@/common/utils/validators';
 import { localIsoDate } from '@/common/utils/localDate';
-import { Segmented } from '@/common/components/ui';
+import { Notice, Segmented } from '@/common/components/ui';
 import type { RevenueVatRate } from '../types';
+import { issueResultToast, KSEF_BLOCK_TEXT, type KsefBlock } from '../utils/issueResultToast';
 import { problemDetail } from '@/core/problem';
 
 // ─── Styles ───────────────────────────────────────────────────────────────────
@@ -197,12 +200,17 @@ interface IssueInvoiceModalProps {
 }
 
 /**
- * Wystawianie faktury przychodowej: dokument trafia bezpośrednio do KSeF.
- * B2B (NIP) lub B2C (konsument, bez NIP, poza obowiązkiem KSeF, ale wysyłana
- * dobrowolnie, żeby ledger był kompletny).
+ * Wystawianie faktury przychodowej: B2B (NIP) lub B2C (konsument, bez NIP).
+ *
+ * Wysyłka do KSeF to osobna decyzja przy każdej fakturze, jak przy wydaniu pojazdu:
+ * fakturę można wystawić i od razu wysłać albo wystawić bez wysyłki (NOT_SENT) i wysłać
+ * później z listy. Dawniej okno wysyłało zawsze, także w studiu bez tokenu KSeF - faktura
+ * lądowała wtedy w kolejce ponowień z komunikatem „KSeF nie działał”, z której nie wychodziła.
  */
 export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({ isOpen, onClose }) => {
   const issueMutation = useIssueRevenueInvoice();
+  const ksef = useKsefAutomation({ enabled: isOpen });
+  const toast = useToast();
 
   const [buyerType, setBuyerType]   = useState<'B2B' | 'B2C'>('B2B');
   const [nip, setNip]               = useState('');
@@ -223,6 +231,16 @@ export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({ isOpen, on
   const priceMode: InvoicePriceMode = priceModeChoice ?? (buyerType === 'B2B' ? 'NET' : 'GROSS');
   const [exemptionBasis, setExemptionBasis] = useState('');
   const [error, setError]             = useState<string | null>(null);
+  // Wysyłka do KSeF: dopóki użytkownik nie wybierze sam, faktura na firmę idzie do KSeF
+  // (obowiązek), dla konsumenta według „Domyślnie wysyłaj fakturę do KSeF” w ustawieniach.
+  // Bez tokenu albo z tokenem bez prawa wystawiania wyboru nie ma: wysyłka by nie przeszła.
+  const [sendChoice, setSendChoice] = useState<boolean | null>(null);
+  const ksefBlock: KsefBlock = !ksef.moduleEnabled || ksef.isLoading
+    ? null
+    : !ksef.configured
+      ? 'no-token'
+      : ksef.lacksIssuePermission ? 'no-permission' : null;
+  const sendToKsef = ksefBlock === null && (sendChoice ?? (buyerType === 'B2B' || (ksef.autoSendDefault ?? true)));
 
   // Sumy liczone tym samym wzorem co na serwerze (utils/invoiceDraftTotals).
   const totals = useMemo(
@@ -239,7 +257,7 @@ export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({ isOpen, on
     setBuyerType('B2B'); setNip(''); setBuyerName(''); setAddress1(''); setAddress2('');
     setEmail(''); setItems([emptyItem()]); setPaymentForm('GOTOWKA'); setIsPaid(true);
     setDueDate(''); setSaleDate(''); setIssueDate(localIsoDate()); setPriceModeChoice(null);
-    setExemptionBasis(''); setError(null);
+    setExemptionBasis(''); setError(null); setSendChoice(null);
   };
 
   const handleClose = () => { reset(); onClose(); };
@@ -272,7 +290,7 @@ export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({ isOpen, on
     setError(null);
 
     try {
-      await issueMutation.mutateAsync({
+      const invoice = await issueMutation.mutateAsync({
         buyer: {
           nip:          buyerType === 'B2B' ? nip.replace(/[^0-9]/g, '') : undefined,
           name:         buyerName.trim() || undefined,
@@ -296,7 +314,10 @@ export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({ isOpen, on
         isPaid,
         paymentDueDate:      !isPaid && dueDate ? dueDate : undefined,
         exemptionLegalBasis: hasExempt ? exemptionBasis.trim() : undefined,
+        sendToKsef,
       });
+      const result = issueResultToast(invoice, sendToKsef);
+      toast.showToast({ variant: result.tone, title: result.title, message: result.message });
       handleClose();
     } catch (e: unknown) {
       setError(problemDetail(e, 'Nie udało się wystawić faktury. Spróbuj ponownie.'));
@@ -311,7 +332,7 @@ export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({ isOpen, on
         <ModalTitleGroup>
           <ModalTitle>Wystaw fakturę</ModalTitle>
           <ModalSubtitle>
-            Faktura od razu trafi do KSeF
+            {sendToKsef ? 'Faktura trafi do KSeF zaraz po wystawieniu' : 'Faktura powstanie bez wysyłki do KSeF'}
           </ModalSubtitle>
         </ModalTitleGroup>
         <CloseBtn onClick={handleClose} />
@@ -369,7 +390,7 @@ export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({ isOpen, on
           <FormField>
             <FieldLabel>E-mail</FieldLabel>
             <InputShell>
-              <BareInput value={email} onChange={(e) => setEmail(e.target.value)} placeholder="opcjonalnie" type="email" />
+              <BareInput value={email} onChange={(e) => setEmail(e.target.value)} placeholder="można pominąć" type="email" />
             </InputShell>
           </FormField>
           <FormField>
@@ -524,6 +545,35 @@ export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({ isOpen, on
           Zapłacono przy wystawieniu
         </PaidToggleRow>
 
+        <SectionLabel>Wysyłka do KSeF</SectionLabel>
+        {ksefBlock ? (
+          <Notice tone="warn" title="Faktura powstanie bez wysyłki do KSeF">
+            {KSEF_BLOCK_TEXT[ksefBlock]}
+          </Notice>
+        ) : (
+          <>
+            <PriceModeRow>
+              <Segmented
+                label="Wysyłka do KSeF"
+                size="sm"
+                options={[{ value: 'SEND', label: 'Wyślij do KSeF' }, { value: 'SKIP', label: 'Bez wysyłki' }]}
+                value={sendToKsef ? 'SEND' : 'SKIP'}
+                onChange={(choice) => setSendChoice(choice === 'SEND')}
+              />
+              {!sendToKsef && buyerType === 'B2C' && (
+                <span>Do KSeF wyślesz ją później z listy dokumentów przychodowych.</span>
+              )}
+            </PriceModeRow>
+            {/* Ostrzeżenie, nie blokada: fakturę bywa trzeba wystawić, zanim da się ją wysłać
+                (np. KSeF w przerwie technicznej), a wysyłka z listy jest o jedno kliknięcie. */}
+            {!sendToKsef && buyerType === 'B2B' && (
+              <Notice tone="warn">
+                Fakturę na firmę trzeba wysłać do KSeF. Wyślesz ją później z listy dokumentów przychodowych.
+              </Notice>
+            )}
+          </>
+        )}
+
         <SummaryBox>
           <span>Netto: <strong>{formatMoney(totals.net)}</strong></span>
           <span>VAT: <strong>{formatMoney(totals.vat)}</strong></span>
@@ -536,7 +586,9 @@ export const IssueInvoiceModal: React.FC<IssueInvoiceModalProps> = ({ isOpen, on
           Anuluj
         </SharedButton>
         <SharedButton $variant="primary" onClick={handleSubmit} disabled={issueMutation.isPending}>
-          {issueMutation.isPending ? 'Wysyłanie do KSeF…' : 'Wystaw i wyślij do KSeF'}
+          {issueMutation.isPending
+            ? (sendToKsef ? 'Wysyłanie do KSeF…' : 'Wystawianie…')
+            : (sendToKsef ? 'Wystaw i wyślij do KSeF' : 'Wystaw bez wysyłki')}
         </SharedButton>
       </ModalFooter>
     </ModalShell>

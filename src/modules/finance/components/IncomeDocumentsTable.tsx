@@ -638,7 +638,9 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
     return (
       <EmptyState>
         <strong>Brak dokumentów przychodowych</strong>
-        Wystaw fakturę albo dodaj paragon. Faktury wystawione poza CRM pobierzemy z KSeF same.
+        {/* Bez zdania o pobieraniu faktur spoza CRM z KSeF: od V230 CRM ich nie pobiera
+            (przychodem jest zapis płatności z wydania), a obietnica zostawała w pustym widoku. */}
+        Wystaw fakturę albo dodaj paragon.
       </EmptyState>
     );
   }
@@ -678,7 +680,9 @@ export const IncomeDocumentsTable: React.FC<IncomeDocumentsTableProps> = ({
                     onClick={() => onSelect(doc)}
                   >
                     <CardTop>
-                      <CardParty>{doc.counterpartyName ?? 'Konsument'}</CardParty>
+                      {/* Faktura na firmę bez wpisanej nazwy (okno „Wystaw fakturę” jej nie wymaga)
+                          była na telefonie „Konsumentem”, choć ma NIP - na komputerze NIP widać. */}
+                      <CardParty>{doc.counterpartyName ?? (doc.counterpartyNip ? `NIP ${doc.counterpartyNip}` : 'Konsument')}</CardParty>
                       <CardAmount $negative={doc.totalGross < 0} $void={!!settled}>{formatMoney(doc.totalGross)}</CardAmount>
                     </CardTop>
 
