@@ -26,6 +26,16 @@ const AreaScroller = styled.div`
     &::-webkit-scrollbar { display: none; }
 `;
 
+/*
+ * Okres w tym samym przewijanym pasku co obszary. Pięć opcji to ok. 410 px, a na
+ * telefonie w wierszu jest 343: „Zakres dat" wystawał za ekran, a po jego kliknięciu
+ * przeglądarka przewijała do niego cały układ i strona zostawała przesunięta w bok
+ * (audyt RWD 07.11.2026).
+ */
+const PeriodScroller = styled(AreaScroller)`
+    min-width: 0;
+`;
+
 const Controls = styled.div`
     display: flex;
     align-items: center;
@@ -266,12 +276,14 @@ export const ActivityFilterBar = ({
                     </Select>
                 </Labelled>
 
-                <Segmented<PeriodValue>
-                    label="Okres"
-                    options={periodOptions}
-                    value={preset as PeriodValue}
-                    onChange={onPresetChange}
-                />
+                <PeriodScroller>
+                    <Segmented<PeriodValue>
+                        label="Okres"
+                        options={periodOptions}
+                        value={preset as PeriodValue}
+                        onChange={onPresetChange}
+                    />
+                </PeriodScroller>
 
                 {preset === 'CUSTOM' && (
                     <RangeRow>

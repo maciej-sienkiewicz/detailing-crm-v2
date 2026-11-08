@@ -20,7 +20,7 @@ import { Button, ui } from '@/common/components/ui';
 import { useUpdateVehicle } from '../hooks/useUpdateVehicle';
 import { updateVehicleSchema, type UpdateVehicleFormData, type UpdateVehicleFormInput } from '../utils/vehicleValidation';
 import type { Vehicle } from '../types';
-import { normalizeVehicleKind } from '../vehicleKind';
+import { hasBrandCatalog, mileageUnit, normalizeVehicleKind } from '../vehicleKind';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import { VehicleKindSwitch } from './VehicleKindSwitch';
 import { VinInput } from './vin/VinInput';
@@ -149,7 +149,9 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
                                             value={field.value ?? undefined}
                                             onChange={(val) => {
                                                 field.onChange(val);
-                                                setValue('model', '');
+                                                // Model katalogu należy do marki. Wpisywana marka („Inny")
+                                                // zmienia się z każdą literą - model zostaje.
+                                                if (hasBrandCatalog(kind)) setValue('model', '');
                                             }}
                                         />
                                     )}
@@ -263,7 +265,7 @@ export const EditVehicleModal = ({ isOpen, onClose, vehicle }: EditVehicleModalP
                                         placeholder="45000"
                                         min="0"
                                     />
-                                    <Unit>km</Unit>
+                                    {mileageUnit(kind) && <Unit>{mileageUnit(kind)}</Unit>}
                                 </InputShell>
                                 {errors.currentMileage && (
                                     <FormErrorMsg>{errors.currentMileage.message}</FormErrorMsg>

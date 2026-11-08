@@ -59,6 +59,7 @@ import { visitApi } from '../api/visitApi';
 import { DeleteOperationModal } from '@/modules/operations/components/DeleteOperationModal';
 import { DoorToDoorModal } from '../components/DoorToDoorModal';
 import { DamageMapUpdateModal } from '../components/DamageMapUpdateModal';
+import { hasDamageMap } from '@/modules/vehicles/vehicleKind';
 import { VisitFilesQrModal } from '../components/VisitFilesQrModal';
 import { useVisitFilesMobileSession } from '../hooks/useVisitFilesMobileSession';
 import { EntityActivityTimeline } from '@/modules/activity';
@@ -643,6 +644,8 @@ export const VisitDetailView = () => {
     const canSeeProducts = productsFeatureEnabled && can('PRODUCTS_VIEW');
     const canSeeVisitProfit = costDocumentsEnabled && can('FINANCE_INVOICES');
     const canSeeCommunication = can('COMMUNICATION_SEND');
+    const canEditDamageMap = can('VISITS_CREATE') && hasDamageMap(visit.vehicle?.kind)
+        && visit.status !== 'COMPLETED' && visit.status !== 'REJECTED' && visit.status !== 'ARCHIVED';
     // Historia zmian to dziennik aktywności (/audit/feed) - osobne uprawnienie AUDIT_VIEW.
     const canSeeHistory = can('AUDIT_VIEW');
     const visibleCommentCount = comments.filter(c => !c.isDeleted).length;
@@ -792,9 +795,9 @@ export const VisitDetailView = () => {
                                     <PanelActions>
                                         {/* Mapa uszkodzeń jest edytowalna, dopóki pojazd jest w studiu.
                                             Po wydaniu (COMPLETED) i po odrzuceniu wizyty backend odmawia
-                                            zapisu, więc przycisk też nie może obiecywać, że się uda. */}
-                                        {can('VISITS_CREATE') && visit.status !== 'COMPLETED'
-                                            && visit.status !== 'REJECTED' && visit.status !== 'ARCHIVED' && !isPhone && (
+                                            zapisu, więc przycisk też nie może obiecywać, że się uda.
+                                            Pojazd „Inny" mapy nie ma - jego stan dokumentują zdjęcia. */}
+                                        {canEditDamageMap && !isPhone && (
                                             <Button
                                                 size="sm"
                                                 onClick={() => setIsDamageMapOpen(true)}
@@ -844,8 +847,7 @@ export const VisitDetailView = () => {
                                     onDelete={handleDeleteDocument}
                                     onDeletePhoto={handleDeletePhoto}
                                 />
-                                {isPhone && can('VISITS_CREATE') && visit.status !== 'COMPLETED'
-                                    && visit.status !== 'REJECTED' && visit.status !== 'ARCHIVED' && (
+                                {isPhone && canEditDamageMap && (
                                     <PanelBody>
                                         <Button block onClick={() => setIsDamageMapOpen(true)}><CarFront />Mapa uszkodzeń</Button>
                                     </PanelBody>

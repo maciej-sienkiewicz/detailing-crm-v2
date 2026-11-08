@@ -43,6 +43,25 @@ describe('MobilePhotoUploadView', () => {
         expect(screen.getByRole('button', { name: /Gotowe/ })).toBeDisabled();
     });
 
+    it('przyjęcie pojazdu „Inny": same zdjęcia, bez zakładki i pytania o uszkodzenia', async () => {
+        api.getMobileCheckinContext.mockResolvedValue({ checkinId: 'c', tenantId: 't', purpose: 'CHECKIN', damageMap: false });
+        api.getMobileStatus.mockResolvedValue(status());
+        render(<MobilePhotoUploadView token="tok" />);
+
+        expect(await screen.findByRole('button', { name: /Gotowe/ })).toBeInTheDocument();
+        expect(screen.queryByRole('tab', { name: /Uszkodzenia/ })).not.toBeInTheDocument();
+        expect(api.getMobileDamagePoints).not.toHaveBeenCalled();
+    });
+
+    it('przyjęcie auta ma obie zakładki', async () => {
+        api.getMobileCheckinContext.mockResolvedValue({ checkinId: 'c', tenantId: 't', purpose: 'CHECKIN' });
+        api.getMobileStatus.mockResolvedValue(status());
+        render(<MobilePhotoUploadView token="tok" />);
+
+        expect(await screen.findByRole('tab', { name: /Uszkodzenia/ })).toBeInTheDocument();
+        expect(screen.getByRole('tab', { name: /Zdjęcia/ })).toBeInTheDocument();
+    });
+
     it('kończy stronę, gdy komputer kliknie „Gotowe"', async () => {
         vi.useFakeTimers({ shouldAdvanceTime: true });
         api.getMobileCheckinContext.mockResolvedValue({ checkinId: 'v', tenantId: 't', purpose: 'VISIT_FILES' });

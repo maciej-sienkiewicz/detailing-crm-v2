@@ -509,10 +509,14 @@ const PagerControls = styled.div`
     gap: 8px;
 `;
 
+/* Na 320-380 px trzy elementy pagera (ok. 280 px) wychodziły za kartę. „Strona 1 z 2"
+   ustępuje - zakres „1–15 z 23" obok mówi to samo. */
 const PagerCurrent = styled.span`
     font-size: 13px;
     color: ${ui.textSecondary};
     white-space: nowrap;
+
+    @media (max-width: 380px) { display: none; }
 `;
 
 const DialogText = styled.p`

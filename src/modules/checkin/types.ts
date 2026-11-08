@@ -408,6 +408,8 @@ export interface MobileCheckinContext {
     studioName?: string | null;
     /** Auto, którego dotyczy sesja („BMW X3 · WJ79814"); brak przy przyjęciu i VIN. */
     subject?: string | null;
+    /** false - przyjęcie pojazdu „Inny", bez mapy uszkodzeń. Brak - mapa jest (starszy serwer). */
+    damageMap?: boolean;
 }
 
 // ─── Mobile Damage Points ─────────────────────────────────────────────────────

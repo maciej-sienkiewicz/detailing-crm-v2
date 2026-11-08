@@ -24,8 +24,20 @@ import { useTagSuggestions, useUpdatePhotoTags } from '@/modules/photos/hooks/us
 // miał trzy obrysowane przyciski - sekcja rosła na pół ekranu przy kilku plikach
 // i zagłuszała wykaz usług, który jest tematem okna.
 
-/** Poniżej tej szerokości panelu siatka ma 4 kolumny zamiast 8. */
-const NARROW_MAX_WIDTH = 520;
+/*
+ * Liczba kolumn z szerokości panelu, nie z dwóch sztywnych progów. Najwęższy kafelek
+ * to taki, na którym mieszczą się trzy akcje zdjęcia (3 × 26 px, odstępy i margines) -
+ * pod palcem są widoczne stale. Przy dawnych 4 kolumnach telefon dostawał kafelki
+ * 73 px i pierwsza akcja („Tagi") wystawała poza zdjęcie (audyt RWD 07.11.2026).
+ */
+const MIN_TILE = 92;
+const GRID_GAP = 8;
+const MIN_COLS = 3;
+const MAX_COLS = 8;
+
+const columnsFor = (width: number | null): number => (width === null
+    ? MAX_COLS
+    : Math.max(MIN_COLS, Math.min(MAX_COLS, Math.floor((width + GRID_GAP) / (MIN_TILE + GRID_GAP)))));
 
 const Wrap = styled.div`
     display: flex;
@@ -52,7 +64,7 @@ const FilterLabel = styled.span`
 const PhotoGrid = styled.ul<{ $cols: number }>`
     display: grid;
     grid-template-columns: repeat(${p => p.$cols}, minmax(0, 1fr));
-    gap: 8px;
+    gap: ${GRID_GAP}px;
     margin: 0;
     padding: 0;
     list-style: none;
@@ -108,11 +120,19 @@ const TileActions = styled.div`
     transition: opacity 150ms ease;
 
     @media (hover: none) { opacity: 1; }
+    /* 320-359 px: trzy kolumny dają kafelki ok. 80 px - akcje ciaśniej. */
+    @media (max-width: 359px) { gap: 2px; }
 `;
 
 const TileAction = styled.button<{ $danger?: boolean }>`
     width: 26px;
     height: 26px;
+
+    @media (max-width: 359px) {
+        width: 24px;
+        height: 24px;
+    }
+
     display: flex;
     align-items: center;
     justify-content: center;
@@ -410,7 +430,7 @@ export const DocumentGallery = ({
 
     const selectedPhoto = selectedPhotoIndex !== null ? filteredPhotos[selectedPhotoIndex] : null;
 
-    const cols = width !== null && width < NARROW_MAX_WIDTH ? 4 : 8;
+    const cols = columnsFor(width);
     const collapsed = !expanded && filteredPhotos.length > cols;
     const shownPhotos = collapsed ? filteredPhotos.slice(0, cols - 1) : filteredPhotos;
 

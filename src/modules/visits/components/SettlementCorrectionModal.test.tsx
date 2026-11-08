@@ -10,6 +10,7 @@ import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
 import { ToastProvider } from '@/common/components/Toast';
+import { localIsoDate } from '@/common/utils/localDate';
 import { SettlementCorrectionModal } from './SettlementCorrectionModal';
 import { settlementApi, type SettlementView } from '../api/settlementApi';
 
@@ -200,14 +201,20 @@ describe('SettlementCorrectionModal', () => {
     });
 
     it('podstawa zwolnienia i termin przelewu przechodzą z obowiązującej faktury', async () => {
+        // Termin liczony od dziś, a nie wpisany na sztywno: okno zamienia termin, który już
+        // minął, na dzisiejszy (dueDateNotBeforeToday, osobny test w localDate.test.ts),
+        // więc stała data przestała przechodzić z faktury z dniem, w którym minęła.
+        // 21 dni, nie 14: 14 to domyślny termin okna i test nie odróżniłby przeniesienia
+        // terminu z faktury od wartości domyślnej.
+        const dueDate = localIsoDate(new Date(Date.now() + 21 * 86_400_000));
         vi.mocked(settlementApi.get).mockResolvedValue({
             ...view, documentType: 'INVOICE', paymentMethod: 'TRANSFER',
             services: [{ id: 's-1', name: 'Szkolenie', vatRate: -1, netCents: 30_000, grossCents: 30_000, grossTyped: true }],
-            exemptionLegalBasis: 'art. 43 ust. 1 pkt 29 lit. c ustawy o VAT', paymentDueDate: '2026-10-30',
+            exemptionLegalBasis: 'art. 43 ust. 1 pkt 29 lit. c ustawy o VAT', paymentDueDate: dueDate,
         });
         renderModal();
         expect(await screen.findByDisplayValue('art. 43 ust. 1 pkt 29 lit. c ustawy o VAT')).toBeInTheDocument();
-        expect(screen.getByDisplayValue('2026-10-30')).toBeInTheDocument();
+        expect(screen.getByDisplayValue(dueDate)).toBeInTheDocument();
     });
 
     // Faktury przyjętej w KSeF nie da się usunąć, a korekty cofnąć: skutek dla faktury stoi

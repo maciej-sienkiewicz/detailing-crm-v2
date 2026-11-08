@@ -23,14 +23,22 @@ const Bar = styled.div`
     border: 1px solid ${st.border};
     border-radius: 14px;
     box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04), 0 4px 12px rgba(15, 23, 42, 0.05);
+    /* Gdy obok akcji na nazwę zostaje mniej niż 120 px (telefon 320 px), akcje
+       schodzą do drugiego wiersza - zamiast ucinać nazwę modułu do „Instag". */
+    flex-wrap: wrap;
+    row-gap: 10px;
+
+    @media (max-width: 380px) { gap: 10px; }
 `;
 
 const Left = styled.div`
     display: flex;
     align-items: center;
     gap: 12px;
-    min-width: 0;
+    min-width: 120px;
     flex: 1;
+
+    @media (max-width: 380px) { gap: 10px; }
 `;
 
 /** Kolorowa plakietka ikony - wzrokowa kotwica modułu i akcent marki bez
@@ -48,6 +56,14 @@ const Icon = styled.div`
     border: 1px solid rgba(3, 105, 161, 0.14);
 
     svg { width: 20px; height: 20px; stroke-width: 2; }
+
+    /* Węższa plakietka na małym telefonie: te kilka pikseli to cały licznik pod nazwą
+       („3 kontrahentów" zamiast „3 kontrahent..."). */
+    @media (max-width: 380px) {
+        width: 36px;
+        height: 36px;
+        border-radius: 10px;
+    }
 `;
 
 const Text = styled.div`
@@ -57,15 +73,19 @@ const Text = styled.div`
     min-width: 0;
 `;
 
+/* Do dwóch linii zamiast wielokropka: przy dwóch akcjach po prawej na nazwę modułu
+   zostaje ok. 90 px i „Zlecenia zbiorcze" stawały się „Zlecenia ..." (audyt RWD
+   07.11.2026). Druga linia mieści dwuwyrazową nazwę, dłuższa dalej się skraca. */
 const Title = styled.div`
     font-size: 15px;
     font-weight: 600;
     color: ${st.text};
     letter-spacing: -0.2px;
     line-height: 1.15;
-    white-space: nowrap;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
     overflow: hidden;
-    text-overflow: ellipsis;
 `;
 
 const Count = styled.div`
@@ -90,6 +110,7 @@ const Actions = styled.div`
     align-items: center;
     gap: 8px;
     flex-shrink: 0;
+    margin-left: auto;
 `;
 
 /** Primary CTA - głęboki błękit marki. Wewnątrz można dać znak "+" jako

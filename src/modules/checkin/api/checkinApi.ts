@@ -147,10 +147,13 @@ export const checkinApi = {
      * `vehicleType` to schemat mapy uszkodzeń widoczny na komputerze. Telefon nie zna
      * pojazdu, więc bez niego przy motocyklu otwierałby sedana; serwer zasiewa nim
      * sesję telefonu tylko wtedy, gdy telefon jeszcze niczego nie zapisał.
+     *
+     * `damageMap: false` - pojazd „Inny": telefon nie pokazuje zakładki mapy uszkodzeń.
+     * Brak parametru serwer czyta jako „mapa jest", więc powrót do auta ją przywraca.
      */
     generateQRToken: async (
         appointmentId: string,
-        options?: { rotate?: boolean; vehicleType?: string },
+        options?: { rotate?: boolean; vehicleType?: string; damageMap?: boolean },
     ): Promise<QRTokenResponse> => {
         const response = await apiClient.post(
             `${BASE_PATH}/${appointmentId}/upload-token`,
@@ -159,6 +162,7 @@ export const checkinApi = {
                 params: {
                     rotate: options?.rotate ?? false,
                     ...(options?.vehicleType ? { vehicleType: options.vehicleType } : {}),
+                    ...(options?.damageMap === false ? { damageMap: false } : {}),
                 },
             },
         );

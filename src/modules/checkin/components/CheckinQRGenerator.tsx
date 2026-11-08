@@ -307,6 +307,8 @@ interface CheckinQRGeneratorProps {
      * niego - inaczej przy motocyklu zaczynałby od sedana.
      */
     vehicleType?: string;
+    /** false - pojazd „Inny": telefon nie pokazuje zakładki mapy uszkodzeń. */
+    damageMap?: boolean;
     onDamageUpdated?: (points: DamagePoint[], vehicleType?: string | null) => void;
     /**
      * Zdjęcia z telefonu w kształcie zdjęć przyjęcia - żeby na komputerze dało się je
@@ -331,9 +333,9 @@ function formatCountdown(seconds: number): string {
 
 // ─── Component ────────────────────────────────────────────────────────────────
 
-export const CheckinQRGenerator = ({ appointmentId, vehicleType, onDamageUpdated, onPhotosChange }: CheckinQRGeneratorProps) => {
+export const CheckinQRGenerator = ({ appointmentId, vehicleType, damageMap = true, onDamageUpdated, onPhotosChange }: CheckinQRGeneratorProps) => {
     const { tokenData, qrUrl, secondsLeft, isExpired, isLoading, error, refresh, rotate } =
-        useCheckinQRToken(appointmentId, vehicleType);
+        useCheckinQRToken(appointmentId, vehicleType, damageMap);
 
     const [photos, setPhotos] = useState<QrPhoto[]>([]);
     const [deletingId, setDeletingId] = useState<string | null>(null);

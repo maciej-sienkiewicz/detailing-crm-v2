@@ -80,7 +80,8 @@ export function updateD2DBadge(badge: HTMLElement, entries: DoorToDoorCalendarEn
 /**
  * Pozycja znacznika w rogu dnia: na lewo od ludzika urlopowego, jeśli jest. Gdy obok
  * numeru dnia brakuje miejsca (wąska komórka, do tego ludzik), samochodziki stają jeden
- * pod drugim zamiast zasłaniać numer.
+ * pod drugim zamiast zasłaniać numer. Gdy i słupek wchodzi na numer (komórka ok. 110 px
+ * przy oknie 1024 px, audyt RWD 07.11.2026), staje pod ludzikiem, przy prawej krawędzi.
  */
 export function placeD2DBadge(frame: HTMLElement): void {
     const badge = frame.querySelector<HTMLElement>(':scope > .fc-d2d-badge');
@@ -88,9 +89,15 @@ export function placeD2DBadge(frame: HTMLElement): void {
     const leave = frame.querySelector<HTMLElement>(':scope > .fc-leave-badge');
     badge.style.right = leave ? `${leave.offsetWidth + 6}px` : '3px';
     badge.style.left = '';
+    badge.style.top = '';
     badge.classList.remove('fc-d2d-badge--stacked');
     const dayNumber = frame.querySelector<HTMLElement>('.fc-daygrid-day-number');
-    if (dayNumber && badge.getBoundingClientRect().left < dayNumber.getBoundingClientRect().right) {
-        badge.classList.add('fc-d2d-badge--stacked');
+    const coversNumber = () =>
+        !!dayNumber && badge.getBoundingClientRect().left < dayNumber.getBoundingClientRect().right;
+    if (!coversNumber()) return;
+    badge.classList.add('fc-d2d-badge--stacked');
+    if (leave && coversNumber()) {
+        badge.style.right = '3px';
+        badge.style.top = `${leave.offsetTop + leave.offsetHeight + 2}px`;
     }
 }

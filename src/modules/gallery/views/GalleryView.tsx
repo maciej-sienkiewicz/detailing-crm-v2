@@ -347,8 +347,16 @@ const CardTags = styled.div`
     overflow: hidden;
 `;
 
+/*
+ * Ostatni tag, który się nie mieści, kończy się wielokropkiem, a nie urwanym słowem
+ * na krawędzi karty („Wnę" na telefonie, audyt RWD 07.11.2026). Pierwszy tag ma
+ * pierwszeństwo, kolejne oddają miejsce, ale nie kurczą się do pustej pigułki.
+ */
 const CardTag = styled.span`
-    flex-shrink: 0;
+    flex: 0 1 auto;
+    min-width: 36px;
+    overflow: hidden;
+    text-overflow: ellipsis;
     padding: 1px 8px;
     border: 1px solid ${ui.line};
     border-radius: ${ui.radiusPill};
@@ -357,6 +365,8 @@ const CardTag = styled.span`
     font-size: 11px;
     font-weight: 500;
     white-space: nowrap;
+
+    &:first-child { flex-shrink: 0; max-width: 100%; }
 `;
 
 // ─── pagination ───────────────────────────────────────────────────────────────

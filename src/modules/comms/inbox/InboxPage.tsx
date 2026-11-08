@@ -640,6 +640,8 @@ export default function InboxPage({ scope = 'cases' }: { scope?: InboxScope }) {
                             query={query}
                             phone={phone}
                             hiddenId={leadId}
+                            onClearQuery={() => setQuery('')}
+                            onList={() => switchLayout(false)}
                             onOpen={(id, rect) => {
                                 setOpenedFrom({ id, rect });
                                 nav.openCase(id);

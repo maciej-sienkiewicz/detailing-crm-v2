@@ -339,6 +339,11 @@ const MobileDropItem = styled.button<{ $custom?: boolean }>`
     &:active { background: #f0f6f9; }
 `;
 
+/*
+ * Cena z cennika w podpowiedzi to brutto z podpisem - jak w cenniku i w tabeli wizyty
+ * („Kwota brutto"). Wcześniej stało tu gołe netto: usługa za 249,00 zł podpowiadała
+ * się jako „202,44 zł".
+ */
 const PriceHint = styled.span`
     font-size: 11px;
     color: ${st.textMuted};
@@ -798,7 +803,7 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
                                             <MobileDropItem key={svc.id} type="button" onClick={() => handleSelect(svc)}>
                                                 <span>{svc.name}</span>
                                                 {svc.basePriceNet > 0 && (
-                                                    <PriceHint>{formatCurrency(svc.basePriceNet / 100)}</PriceHint>
+                                                    <PriceHint>{formatCurrency(svc.basePriceGross / 100)} brutto</PriceHint>
                                                 )}
                                             </MobileDropItem>
                                         ))}
@@ -822,7 +827,7 @@ export const ServiceInlineRow = ({ row, onUpdate, onRemove, onAddCustom, onEdit,
                                         <DropItem key={svc.id} onClick={() => handleSelect(svc)}>
                                             <span>{svc.name}</span>
                                             {svc.basePriceNet > 0 && (
-                                                <PriceHint>{formatCurrency(svc.basePriceNet / 100)}</PriceHint>
+                                                <PriceHint>{formatCurrency(svc.basePriceGross / 100)} brutto</PriceHint>
                                             )}
                                         </DropItem>
                                     ))}

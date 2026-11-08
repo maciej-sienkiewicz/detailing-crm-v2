@@ -531,6 +531,8 @@ export const pl: TranslationKeys = {
             title: 'Dane przy odbiorze pojazdu',
             subtitle: 'Określ stan pojazdu przed rozpoczęciem prac',
             mileage: 'Przebieg (km)',
+            // Samolot czy skuter wodny liczy motogodziny, nie kilometry.
+            mileageNoUnit: 'Przebieg',
             mileagePlaceholder: 'np. 45230',
             mileageRequired: 'Przebieg jest wymagany',
             mileagePositive: 'Przebieg musi być większy od 0',

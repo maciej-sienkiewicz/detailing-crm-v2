@@ -102,13 +102,22 @@ const StageSection = styled.section`
     display: flex;
     flex-direction: column;
     gap: ${props => props.theme.spacing.md};
+    /* Element siatki domyślnie nie zwęża się poniżej treści - jedna szeroka karta
+       wypychała cały etap poza ekran telefonu. */
+    min-width: 0;
 `;
 
 const StageHeader = styled.div`
     display: flex;
     align-items: center;
     justify-content: space-between;
+    flex-wrap: wrap;
+    gap: ${props => props.theme.spacing.sm};
     padding: ${props => props.theme.spacing.md} ${props => props.theme.spacing.lg};
+
+    @media (max-width: ${props => props.theme.below.sm}) {
+        padding: ${props => props.theme.spacing.md};
+    }
     background: white;
     border-radius: ${props => props.theme.radii.lg};
     border: 1px solid ${props => props.theme.colors.border};

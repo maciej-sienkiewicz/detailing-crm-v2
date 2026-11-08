@@ -100,4 +100,33 @@ describe('znacznik w rogu dnia', () => {
         placeD2DBadge(frame);
         expect(badge.classList.contains('fc-d2d-badge--stacked')).toBe(true);
     });
+
+    it('gdy i słupek wchodzi na numer dnia, samochodziki stają pod ludzikiem', () => {
+        const frame = document.createElement('div');
+        const dayNumber = document.createElement('a');
+        dayNumber.className = 'fc-daygrid-day-number';
+        const leave = document.createElement('span');
+        leave.className = 'fc-leave-badge';
+        Object.defineProperty(leave, 'offsetWidth', { value: 29 });
+        Object.defineProperty(leave, 'offsetTop', { value: 3 });
+        Object.defineProperty(leave, 'offsetHeight', { value: 17 });
+        const badge = createD2DBadge();
+        frame.append(dayNumber, leave, badge);
+        const rect = (left: number, right: number) => () => ({ left, right, top: 0, bottom: 0, width: right - left, height: 0, x: left, y: 0, toJSON: () => ({}) });
+
+        dayNumber.getBoundingClientRect = rect(45, 65);
+        badge.getBoundingClientRect = rect(61, 75);
+        placeD2DBadge(frame);
+        expect(badge.classList.contains('fc-d2d-badge--stacked')).toBe(true);
+        expect(badge.style.right).toBe('3px');
+        expect(badge.style.top).toBe('22px');
+
+        // Ludzik zniknął, miejsce jest: znacznik wraca do rogu, bez przesunięcia w dół.
+        leave.remove();
+        badge.getBoundingClientRect = rect(90, 104);
+        placeD2DBadge(frame);
+        expect(badge.style.right).toBe('3px');
+        expect(badge.style.top).toBe('');
+        expect(badge.classList.contains('fc-d2d-badge--stacked')).toBe(false);
+    });
 });

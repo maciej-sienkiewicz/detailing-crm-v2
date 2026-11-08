@@ -24,6 +24,7 @@ import type { Lead } from '../../types';
 import {
     BOARD_COLUMNS,
     boardColumnMeta,
+    boardEmptyKind,
     buildBoard,
     canRemindByMail,
     leadAfterMove,
@@ -34,6 +35,7 @@ import {
 import { caseTitle, formatAmount } from '../caseModel';
 import { ix } from '../tokens';
 import { BoardCardView, CardSlot, DragLayer } from './BoardCard';
+import { BoardEmpty } from './BoardEmpty';
 import { EASE_SPRING, prefersReducedMotion } from './motion';
 import { useBoardDrag } from './useBoardDrag';
 import { useFlip } from './useFlip';
@@ -55,6 +57,11 @@ const Scroller = styled.div<{ $phone: boolean }>`
     /* Pasek przewijania tylko wtedy, gdy jest po co - jak w Finderze. */
     scrollbar-width: thin;
     scrollbar-color: rgba(15, 23, 42, 0.18) transparent;
+
+    /* Pusta tablica (BoardEmpty) chowa kolumny, ale ich nie odmontowuje: na tym węźle
+       wiszą obserwatory szerokości, przewijania i FLIP, a pierwszy lead ma wjechać
+       w gotowe kolumny. Bez tej linii display: flex przykrywa atrybut hidden. */
+    &[hidden] { display: none; }
 `;
 
 /**
@@ -264,9 +271,12 @@ interface LeadBoardProps {
     /** Sprawa otwarta w oknie - jej karta „staje się" oknem, więc na tablicy jej nie ma. */
     hiddenId: string | null;
     onOpen: (leadId: string, from: DOMRect) => void;
+    onClearQuery: () => void;
+    /** Przełączenie na listę - tam stoją otwarte leady z rezerwacją. */
+    onList: () => void;
 }
 
-export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, onOpen }: LeadBoardProps) {
+export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, onOpen, onClearQuery, onList }: LeadBoardProps) {
     const { showError } = useToast();
     const thresholds = useStagnationThresholds();
     const now = useMinuteClock();
@@ -421,13 +431,14 @@ export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, o
     };
 
     const total = board.reduce((sum, column) => sum + column.cards.length, 0);
+    const emptyKind = boardEmptyKind({ loading, dragging: Boolean(session), onBoard: total, openLeads: leads.length, query });
 
     return (
         <>
             {truncated && (
                 <Notice>Tablica pokazuje pierwsze 100 leadów w każdym statusie. Starsze znajdziesz w zamkniętych leadach.</Notice>
             )}
-            {paged && (
+            {paged && !emptyKind && (
                 <LaneChips ref={chipsRef} $phone={phone} role="navigation" aria-label="Kolumny tablicy">
                     {shown.map((column) => (
                         <button key={column.key} type="button" aria-current={visibleLane === column.key} onClick={() => showLane(column.key)}>
@@ -438,7 +449,10 @@ export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, o
                     ))}
                 </LaneChips>
             )}
-            <Scroller ref={boardRef} $phone={phone} aria-label="Tablica leadów" aria-describedby="board-help">
+            {emptyKind && (
+                <BoardEmpty kind={emptyKind} phone={phone} query={query} onClearQuery={onClearQuery} onList={onList} />
+            )}
+            <Scroller ref={boardRef} hidden={Boolean(emptyKind)} $phone={phone} aria-label="Tablica leadów" aria-describedby="board-help">
                 {shown.map((column) => {
                     const isOver = Boolean(session && !session.landing && session.over === column.key && session.from !== column.key);
                     return (

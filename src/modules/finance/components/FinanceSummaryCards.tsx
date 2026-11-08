@@ -53,8 +53,12 @@ const CardsGrid = styled.div<{ $tiles?: 3 | 4 }>`
   /* Trzy kafle (bez należności) w dwóch kolumnach: zysk na całą szerokość pod spodem. */
   ${p => p.$tiles === 3 && '& > :last-child { grid-column: 1 / -1; }'}
 
+  /* Na telefonie nad kaflami stoją zakładki (FinanceMobileTabs), a odstęp widoku (32 px)
+     plus ten margines dawały 48 px pustego pasa między zakładką a kaflami, które od
+     niej zależą. */
   @media (max-width: 639px) {
     gap: ${p => p.theme.spacing.sm};
+    margin-top: 0;
   }
 
   @media (min-width: ${p => p.theme.breakpoints.lg}) {

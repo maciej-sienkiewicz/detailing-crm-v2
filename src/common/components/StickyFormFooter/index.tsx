@@ -5,7 +5,7 @@
 // stopki i własne przyciski, przez co te same akcje wyglądały inaczej w
 // zależności od ekranu. Stylistyka pochodzi z kreatora check-inu.
 
-import React from 'react';
+import React, { useLayoutEffect, useRef } from 'react';
 import styled from 'styled-components';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
@@ -28,7 +28,9 @@ const FooterShell = styled.footer<{ $sidebarWidth: number }>`
     z-index: 50;
     transition: left 0.2s ease;
 
-    @media (max-width: 768px) {
+    /* Ta sama granica co dolny pasek (767.98 px): przy max-width: 768px stopka na
+       iPadzie w pionie wisiała 56 px nad krawędzią, nad paskiem, którego tam nie ma. */
+    @media (max-width: 767.98px) {
         left: 0;
         right: 0;
         /* Ponad dolnym paskiem nawigacji – przyciski muszą zostać klikalne. */
@@ -155,9 +157,30 @@ interface StickyFormFooterProps {
 export const StickyFormFooter = ({ children, actions }: StickyFormFooterProps) => {
     const { isCollapsed } = useSidebar();
     const sidebarWidth = isCollapsed ? 64 : 248;
+    const shellRef = useRef<HTMLElement>(null);
+
+    /*
+     * Stopka mówi stronie, ile miejsca zajmuje na dole ekranu - jak dolny pasek
+     * (--bottom-nav-space). Chmurka instruktażu stała w prawym dolnym rogu dokładnie
+     * na „Dalej" / „Zapisz zmiany" i zasłaniała krok następny, dopóki ktoś jej nie
+     * zamknął (audyt RWD 07.11.2026). Teraz staje nad stopką.
+     */
+    useLayoutEffect(() => {
+        const shell = shellRef.current;
+        if (!shell) return;
+        const root = document.documentElement;
+        const publish = () => root.style.setProperty('--sticky-footer-space', `${shell.offsetHeight}px`);
+        publish();
+        const observer = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(publish);
+        observer?.observe(shell);
+        return () => {
+            observer?.disconnect();
+            root.style.removeProperty('--sticky-footer-space');
+        };
+    }, []);
 
     return (
-        <FooterShell $sidebarWidth={sidebarWidth}>
+        <FooterShell ref={shellRef} $sidebarWidth={sidebarWidth}>
             <FooterInner>
                 {children}
                 <FooterActions>{actions}</FooterActions>

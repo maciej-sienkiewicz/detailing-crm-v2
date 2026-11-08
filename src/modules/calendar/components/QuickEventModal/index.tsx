@@ -30,7 +30,7 @@ import { ColorDropdown } from '@/common/components/ColorDropdown';
 import { useQuickEventForm } from './useQuickEventForm';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import { VehicleKindSwitch } from '@/modules/vehicles/components/VehicleKindSwitch';
-import { DEFAULT_VEHICLE_KIND, normalizeVehicleKind } from '@/modules/vehicles/vehicleKind';
+import { DEFAULT_VEHICLE_KIND, hasBrandCatalog, normalizeVehicleKind } from '@/modules/vehicles/vehicleKind';
 import { ServicesTable } from '@/common/components/ServicesTable';
 import type { ServiceLineItem, SaveServiceData } from '@/common/components/ServicesTable';
 import { buildServicesAsLineItems, withRenamedTempServices } from './servicesAsLineItems';
@@ -619,17 +619,20 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             if (mode === 'edit') form.handleConfirmVehicleEdit();
             else form.handleAddNewVehicleDirectly();
         };
+        // Bez katalogu („Inny") marka i model są wpisywane: każda litera zmienia wartość,
+        // więc model zostaje, a fokus nie przeskakuje do następnego pola w pół słowa.
+        const catalog = hasBrandCatalog(form.vehicleKind);
         const onBrand = (brand: string) => {
             form.setVehicleBrand(brand);
-            form.setVehicleModel('');
+            if (catalog) form.setVehicleModel('');
             form.setFocusedField('vehicle');
-            setAutoOpenModel(true);
+            setAutoOpenModel(catalog);
         };
         const onModel = (model: string) => {
             form.setVehicleModel(model);
             form.setFocusedField('vehicle');
             setAutoOpenModel(false);
-            if (!isMobile) setTimeout(() => form.vehicleYearInputRef.current?.focus(), 0);
+            if (catalog && !isMobile) setTimeout(() => form.vehicleYearInputRef.current?.focus(), 0);
         };
         const onYear = (value: string) => form.setVehicleYear(value.replace(/\D/g, ''));
 
@@ -1602,7 +1605,9 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
                                                             </S.DropdownItemMeta>
                                                         </S.DropdownItem>
                                                     ))}
-                                                    <S.DropdownSeparator>Inny pojazd?</S.DropdownSeparator>
+                                                    {/* Dawniej „Inny pojazd?" - od rodzaju „Inny" czytało się to jak
+                                                        lista pojazdów tego rodzaju, a nie „pojazd, którego tu nie ma". */}
+                                                    <S.DropdownSeparator>Pojazd spoza listy</S.DropdownSeparator>
                                                     <S.DropdownAddButton
                                                         type="button"
                                                         onMouseDown={(e) => e.preventDefault()}

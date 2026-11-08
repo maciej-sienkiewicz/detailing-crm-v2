@@ -18,6 +18,8 @@ const Card = styled.article`
   box-shadow: ${st.shadowXs};
   transition: box-shadow ${st.transition}, border-color ${st.transition};
   cursor: pointer;
+  /* Karta stoi w siatce listy - bez tego długi e-mail rozpychał ją poza ekran. */
+  min-width: 0;
 
   &:hover {
     border-color: ${st.borderHover};
@@ -29,7 +31,10 @@ const CardHeader = styled.header`
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
+  gap: ${props => props.theme.spacing.sm};
   margin-bottom: ${props => props.theme.spacing.sm};
+
+  > div { min-width: 0; }
 `;
 
 const CustomerName = styled.h3`
@@ -61,6 +66,7 @@ const VehicleBadge = styled.span`
   border-radius: ${st.radiusFull};
   font-weight: 600;
   white-space: nowrap;
+  flex-shrink: 0;
 
   svg { width: 12px; height: 12px; color: ${st.textMuted}; }
 `;
@@ -73,6 +79,14 @@ const ContactInfo = styled.div`
     margin-bottom: ${props => props.theme.spacing.sm};
     font-size: ${props => props.theme.fontSizes.sm};
     color: ${st.textSecondary};
+
+    /* Adres e-mail nie ma gdzie się złamać: na 320 px
+       „daniel.rutkowski@carrentalexpress.pl" wypychał kartę o 22 px poza ekran,
+       razem z liczbą pojazdów i kwotą (audyt RWD 07.11.2026). */
+    > span {
+        max-width: 100%;
+        overflow-wrap: anywhere;
+    }
 `;
 
 /* Numer telefonu na telefonie to nie napis, tylko akcja: odnośnik tel:, który

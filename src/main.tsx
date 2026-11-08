@@ -15,6 +15,15 @@ import './index.css';
 // renderem). Bez tego taki błąd kończył się wpisem w konsoli i martwą zakładką.
 installChunkErrorHandler();
 
+// Skrót „Lead głosem" (/m/voice) ma własny manifest, który dokłada useVoiceShortcutManifest
+// dopiero po sprawdzeniu tokenu. Do tego czasu w <head> stoi manifest CRM z index.html
+// (`start_url` /dashboard) - a Safari pobiera manifest raz na dokument, więc gdy sięgnął
+// po niego wcześniej, ikona z ekranu głównego otwierała Tablicę zamiast skrótu. Zdejmujemy
+// go, zanim cokolwiek wystartuje; inline w index.html się nie da - CSP: script-src 'self'.
+if (window.location.pathname.startsWith('/m/voice')) {
+    document.head.querySelector('link[rel="manifest"]')?.remove();
+}
+
 // Aplikacja ze sklepu (Capacitor): pliki, linki i „Wstecz" przez system. W przeglądarce nic nie robi.
 installNativeShell();
 

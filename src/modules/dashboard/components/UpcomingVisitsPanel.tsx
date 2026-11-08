@@ -267,19 +267,37 @@ const PencilBtn = styled.button`
   transition: opacity 140ms ease, color 140ms ease;
   svg { width: 11px; height: 11px; }
   &:hover { color: #475569; }
+
+  /* Bez kursora ołówek był niewidoczny, ale klikalny: dotknięcie końca tytułu
+     otwierało edycję zamiast menu wiersza. Na dotyku nazwę zmienia się z menu
+     (Edytuj / Otwórz wizytę). */
+  @media (hover: none) { display: none; }
 `;
 
+/*
+ * Klient i auto w jednym wierszu, każde z własnym wielokropkiem. text-overflow na
+ * samym kontenerze flex nic nie robi - nazwa auta była ucinana w pół słowa
+ * („BMW X", „Merce") na telefonie (audyt RWD 07.11.2026).
+ */
 const VisitMeta = styled.div`
   font-size: 11px;
   color: #64748b;
-  display: inline-flex;
+  display: flex;
   gap: 6px;
   align-items: center;
   overflow: hidden;
   white-space: nowrap;
-  text-overflow: ellipsis;
+  min-width: 0;
   max-width: 100%;
   svg { width: 12px; height: 12px; stroke-width: 2; flex-shrink: 0; }
+`;
+
+const MetaText = styled.span<{ $primary?: boolean }>`
+  flex: ${p => p.$primary ? '0 0 auto' : '0 1 auto'};
+  min-width: 0;
+  max-width: ${p => p.$primary ? '60%' : 'none'};
+  overflow: hidden;
+  text-overflow: ellipsis;
 `;
 
 /**
@@ -490,13 +508,17 @@ const VisitRowItem = ({
       )}
       <VisitMeta>
         <User />
-        {visit.customerName
-          ? <PiiValue value={visit.customerName} kind="name" />
-          : <MetaMissing>{NO_CUSTOMER}</MetaMissing>}
+        <MetaText $primary>
+          {visit.customerName
+            ? <PiiValue value={visit.customerName} kind="name" />
+            : <MetaMissing>{NO_CUSTOMER}</MetaMissing>}
+        </MetaText>
         <MetaSeparator aria-hidden="true">–</MetaSeparator>
-        {visit.vehicleName
-          ? <span>{visit.vehicleName}</span>
-          : <MetaMissing>{NO_VEHICLE}</MetaMissing>}
+        <MetaText>
+          {visit.vehicleName
+            ? visit.vehicleName
+            : <MetaMissing>{NO_VEHICLE}</MetaMissing>}
+        </MetaText>
       </VisitMeta>
     </div>
     <StatusBadge $kind={visit.statusKind}>{visit.statusLabel}</StatusBadge>

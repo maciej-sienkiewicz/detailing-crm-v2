@@ -16,7 +16,7 @@ import { FormGrid, FormField, FieldLabel, InputShell, BareInput } from '@/common
 import { Button, Notice, ui } from '@/common/components/ui';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import { VehicleKindSwitch } from '@/modules/vehicles/components/VehicleKindSwitch';
-import { DEFAULT_VEHICLE_KIND, type VehicleKind } from '@/modules/vehicles/vehicleKind';
+import { DEFAULT_VEHICLE_KIND, hasBrandCatalog, mileageUnit, type VehicleKind } from '@/modules/vehicles/vehicleKind';
 import { useAddVehicle } from '../hooks/useAddVehicle';
 
 const Form = styled.form`
@@ -48,7 +48,8 @@ export const AddVehicleModal = ({ customerId, customerName, onClose }: Props) =>
     const [mileage, setMileage] = useState('');
     const { addVehicle, isSubmitting, error } = useAddVehicle(customerId);
 
-    const ready = !!make && !!model;
+    // Same spacje w polu do wpisania („Inny") to nadal brak marki.
+    const ready = !!make.trim() && !!model.trim();
 
     const changeKind = (next: VehicleKind) => {
         // Klik w już wybrany rodzaj nie może kasować marki.
@@ -64,8 +65,8 @@ export const AddVehicleModal = ({ customerId, customerName, onClose }: Props) =>
         if (!ready) return;
         const ok = await addVehicle({
             kind,
-            make,
-            model,
+            make: make.trim(),
+            model: model.trim(),
             // Wyczyszczony rok to „nie wiem", a nie bieżący rok wpisany za użytkownika.
             year: Number(year) || null,
             licensePlate: licensePlate.trim(),
@@ -94,7 +95,12 @@ export const AddVehicleModal = ({ customerId, customerName, onClose }: Props) =>
                         </FormField>
                         <FormField>
                             <FieldLabel>Marka</FieldLabel>
-                            <BrandSelect kind={kind} value={make} onChange={brand => { setMake(brand); setModel(''); }} />
+                            <BrandSelect
+                                kind={kind}
+                                value={make}
+                                // Wpisywana marka („Inny") zmienia się z każdą literą - model zostaje.
+                                onChange={brand => { setMake(brand); if (hasBrandCatalog(kind)) setModel(''); }}
+                            />
                         </FormField>
                         <FormField>
                             <FieldLabel>Model</FieldLabel>
@@ -138,7 +144,7 @@ export const AddVehicleModal = ({ customerId, customerName, onClose }: Props) =>
                                     onChange={e => setMileage(e.target.value)}
                                     placeholder="45000"
                                 />
-                                <Unit>km</Unit>
+                                {mileageUnit(kind) && <Unit>{mileageUnit(kind)}</Unit>}
                             </InputShell>
                         </FormField>
                     </FormGrid>
@@ -150,7 +156,7 @@ export const AddVehicleModal = ({ customerId, customerName, onClose }: Props) =>
             <ModalFooter>
                 <Button onClick={onClose} disabled={isSubmitting}>Anuluj</Button>
                 <Button type="submit" form="add-customer-vehicle-form" variant="primary" disabled={!ready || isSubmitting}>
-                    {isSubmitting ? 'Zapisywanie…' : ready ? 'Dodaj pojazd' : 'Wybierz markę i model'}
+                    {isSubmitting ? 'Zapisywanie…' : ready ? 'Dodaj pojazd' : hasBrandCatalog(kind) ? 'Wybierz markę i model' : 'Wpisz markę i model'}
                 </Button>
             </ModalFooter>
         </ModalShell>

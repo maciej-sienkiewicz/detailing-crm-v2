@@ -82,6 +82,12 @@ const responses = (options: Required<AppApiOptions>): Array<[RegExp, unknown]> =
     [/^\/v1\/comms\/threads$/, { items: [], page: { number: 1, size: 30, totalItems: 0, totalPages: 1 }, totalUnread: 0 }],
     [/^\/v1\/comms\/accounts$/, []],
     [/^\/v1\/me\/tasks\/summary$/, { total: 0, unread: 0 }],
+    // Chmurka instruktażu (TutorialTip) na każdym widoku z lekcją: bez tej odpowiedzi
+    // zapytanie dostawało `{}`, `dismissedViews` było undefined i React Query pisał błąd do konsoli.
+    [/^\/v1\/me\/tutorial-tips$/, { dismissedViews: [] }],
+    // Menu pyta, czy studio korzysta ze stanowisk (pozycja „Stanowiska"). Bez godzin hali -
+    // tak odpowiada serwer sprzed V222 i aplikacja zostaje przy domyślnych.
+    [/^\/v1\/bays\/settings$/, { enabled: false, trackPeople: false }],
 
     // Pulpit.
     [/^\/v1\/dashboard\/stats$/, {

@@ -24,6 +24,14 @@ const CardHeader = styled.div`
     align-items: flex-start;
     justify-content: space-between;
     gap: 1rem;
+
+    /* Na telefonie trzy przyciski obok opisu ściskały go do kolumny na jedno słowo,
+       a karta wychodziła poza ekran razem z przyciskiem „Usuń" (audyt RWD 07.11.2026).
+       Akcje schodzą pod opis. */
+    @media (max-width: ${p => p.theme.below.sm}) {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
 `;
 
 const TitleSection = styled.div`
@@ -88,6 +96,7 @@ const Badge = styled.span<{ $variant: 'global' | 'service' }>`
 
 const Actions = styled.div`
     display: flex;
+    flex-wrap: wrap;
     gap: 0.5rem;
     align-items: center;
     flex-shrink: 0;
@@ -119,15 +128,18 @@ const IconButton = styled.button<{ $variant?: 'primary' | 'danger' }>`
             background: rgb(29, 78, 216);
         }
     ` : props.$variant === 'danger' ? `
-        background: rgb(239, 68, 68);
-        color: white;
+        /* Odcień bez wypełnienia: przy dwóch etapach i kilku regułach pełna czerwień
+           dawała kilka wypełnionych bloków w jednym oknie (CLAUDE.md §2). */
+        background: rgb(254, 242, 242);
+        color: rgb(185, 28, 28);
+        box-shadow: inset 0 0 0 1px rgb(254, 202, 202);
 
         &:hover {
-            background: rgb(220, 38, 38);
+            background: rgb(254, 226, 226);
         }
 
         &:active {
-            background: rgb(185, 28, 28);
+            background: rgb(254, 202, 202);
         }
     ` : `
         background: rgb(241, 245, 249);

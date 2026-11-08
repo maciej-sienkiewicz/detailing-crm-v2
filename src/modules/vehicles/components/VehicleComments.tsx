@@ -89,8 +89,11 @@ const VisitLink = styled.button`
     font-weight: 600;
     color: ${ui.brandInk};
     cursor: pointer;
+    /* Przycisk domyślnie centruje tekst - na telefonie długi tytuł wizyty łamał się
+       w wyśrodkowany blok ze strzałką odklejoną na prawej krawędzi. */
+    text-align: left;
 
-    svg { width: 13px; height: 13px; }
+    svg { width: 13px; height: 13px; flex-shrink: 0; }
     &:hover { text-decoration: underline; }
 `;
 

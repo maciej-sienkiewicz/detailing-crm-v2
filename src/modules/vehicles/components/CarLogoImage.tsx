@@ -1,6 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, type ComponentType } from 'react';
 import styled, { keyframes } from 'styled-components';
-import { Motorbike } from 'lucide-react';
+import { Motorbike, Shapes } from 'lucide-react';
 import { getCarLogoUrl } from '../services/carLogos';
 import { trimmedLogoUrl, trimmedLogoUrlSync } from '../services/logoTrim';
 import type { VehicleKind } from '../vehicleKind';
@@ -9,7 +9,7 @@ type Size = 'xs' | 'sm' | 'md' | 'lg';
 
 interface CarLogoImageProps {
     brand: string | null | undefined;
-    /** Rodzaj pojazdu - wybiera ikonę zastępczą (auto albo motocykl), gdy logo brak. */
+    /** Rodzaj pojazdu - wybiera ikonę zastępczą (auto, motocykl, „Inny"), gdy logo brak. */
     kind?: VehicleKind;
     size?: Size;
     className?: string;
@@ -76,21 +76,30 @@ const FallbackBubble = styled.div<{ $h: number }>`
     }
 `;
 
-// Motocykl bez logo marki dostaje sylwetkę motocykla - ikona auta przy Yamasze
-// mówiłaby nieprawdę o tym, co stoi na stanowisku.
-const VehicleFallbackIcon = ({ h, kind }: { h: number; kind?: VehicleKind }) => (
-    <FallbackBubble $h={h} data-kind={kind ?? 'CAR'}>
-        {kind === 'MOTORCYCLE' ? (
-            <Motorbike strokeWidth={1.75} aria-hidden="true" />
-        ) : (
-            <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
-                <path d="M19 17H5a2 2 0 0 1-2-2V9l2-4h10l4 4v4a2 2 0 0 1-2 2Z" />
-                <circle cx="7.5" cy="17" r="1.5" />
-                <circle cx="16.5" cy="17" r="1.5" />
-            </svg>
-        )}
-    </FallbackBubble>
+const CarSilhouette = () => (
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.75" aria-hidden="true">
+        <path d="M19 17H5a2 2 0 0 1-2-2V9l2-4h10l4 4v4a2 2 0 0 1-2 2Z" />
+        <circle cx="7.5" cy="17" r="1.5" />
+        <circle cx="16.5" cy="17" r="1.5" />
+    </svg>
 );
+
+// Pojazd bez logo marki dostaje ikonę swojego rodzaju - ikona auta przy Yamasze czy
+// śmigłowcu mówiłaby nieprawdę o tym, co stoi na stanowisku.
+const FALLBACK_ICON: Record<VehicleKind, ComponentType> = {
+    CAR: CarSilhouette,
+    MOTORCYCLE: () => <Motorbike strokeWidth={1.75} aria-hidden="true" />,
+    OTHER: () => <Shapes strokeWidth={1.75} aria-hidden="true" />,
+};
+
+const VehicleFallbackIcon = ({ h, kind = 'CAR' }: { h: number; kind?: VehicleKind }) => {
+    const Icon = FALLBACK_ICON[kind];
+    return (
+        <FallbackBubble $h={h} data-kind={kind}>
+            <Icon />
+        </FallbackBubble>
+    );
+};
 
 type ImgState = 'loading' | 'loaded' | 'error';
 

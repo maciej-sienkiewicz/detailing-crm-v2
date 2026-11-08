@@ -22,7 +22,16 @@ const LayoutContainer = styled.div`
     display: flex;
     min-height: 100vh;
     background-color: ${props => props.theme.colors.background};
+    /*
+     * clip, nie hidden (jak #root w ThemeProvider). Przy hidden kontener był
+     * kontenerem przewijania: position: sticky w widokach przyklejało się do niego,
+     * a nie do okna, więc nie działało nigdzie (nawigacja Ustawień uciekała z treścią),
+     * a element wystający za prawą krawędź dało się do niego przewinąć - fokus albo
+     * kliknięcie przesuwały cały widok w bok i zostawał przesunięty (Aktywność → „Zakres
+     * dat", audyt RWD 07.11.2026). hidden zostaje dla przeglądarek bez clip (Safari < 16).
+     */
     overflow-x: hidden;
+    overflow-x: clip;
 
     /* Rama (frame.ts): na komputerze tło okna ma kolor menu, treść leży w panelu. */
     @media (min-width: ${props => props.theme.breakpoints.md}) {
@@ -68,7 +77,7 @@ const ContentWrapper = styled.div<{ $isCollapsed: boolean }>`
         transition: margin-left 200ms cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    @media (max-width: ${props => props.theme.breakpoints.md}) {
+    @media (max-width: ${props => props.theme.below.md}) {
         margin-left: 0;
         /* Treść kończy się nad dolnym paskiem nawigacji – razem z safe-area iOS,
            żeby po doscrollowaniu na sam dół pasek niczego nie zasłaniał. */

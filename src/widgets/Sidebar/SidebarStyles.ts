@@ -20,7 +20,7 @@ const S = {
 export const Overlay = styled.div<{ $isVisible: boolean }>`
     display: none;
 
-    @media (max-width: ${p => p.theme.breakpoints.md}) {
+    @media (max-width: ${p => p.theme.below.md}) {
         display: ${p => p.$isVisible ? 'block' : 'none'};
         position: fixed;
         inset: 0;
@@ -63,7 +63,7 @@ export const SidebarContainer = styled.aside<{ $isCollapsed: boolean; $isMobileO
         transition: width 260ms cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    @media (max-width: ${p => p.theme.breakpoints.md}) {
+    @media (max-width: ${p => p.theme.below.md}) {
         width: 272px;
         transform: ${p => p.$isMobileOpen ? 'translateX(0)' : 'translateX(-100%)'};
         transition: transform 300ms cubic-bezier(0.4, 0, 0.2, 1);
@@ -86,7 +86,7 @@ export const SidebarHeader = styled.div<{ $isCollapsed: boolean }>`
         justify-content: ${p => p.$isCollapsed ? 'center' : 'space-between'};
     }
 
-    @media (max-width: ${p => p.theme.breakpoints.md}) {
+    @media (max-width: ${p => p.theme.below.md}) {
         /* Push header content below the status bar / notch on iOS */
         padding-top: max(20px, env(safe-area-inset-top, 20px));
     }
@@ -177,7 +177,7 @@ export const LogoCornerActions = styled.div<{ $isCollapsed: boolean }>`
     top: 10px;
     right: 10px;
 
-    @media (max-width: ${p => p.theme.breakpoints.md}) {
+    @media (max-width: ${p => p.theme.below.md}) {
         top: max(10px, env(safe-area-inset-top, 10px));
     }
 
@@ -330,7 +330,7 @@ export const MenuItemLink = styled(Link)<{ $isActive: boolean; $isCollapsed: boo
         justify-content: ${p => p.$isCollapsed ? 'center' : 'flex-start'};
     }
 
-    @media (max-width: ${p => p.theme.breakpoints.md}) {
+    @media (max-width: ${p => p.theme.below.md}) {
         padding: 10px 12px;
         font-size: 14px;
         margin-bottom: 2px;
@@ -391,7 +391,7 @@ export const MenuItemButton = styled.button<{ $isCollapsed: boolean }>`
         justify-content: ${p => p.$isCollapsed ? 'center' : 'flex-start'};
     }
 
-    @media (max-width: ${p => p.theme.breakpoints.md}) {
+    @media (max-width: ${p => p.theme.below.md}) {
         padding: 10px 12px;
         font-size: 14px;
         margin-bottom: 2px;
@@ -427,7 +427,7 @@ export const MenuItemText = styled.span<{ $isCollapsed: boolean }>`
         transition: opacity 200ms ease, max-width 260ms cubic-bezier(0.4, 0, 0.2, 1);
     }
 
-    @media (max-width: ${p => p.theme.breakpoints.md}) {
+    @media (max-width: ${p => p.theme.below.md}) {
         font-size: 14px;
     }
 `;
@@ -578,7 +578,7 @@ export const ExpandButton = styled.button`
 
     svg { width: 13px; height: 13px; }
 
-    @media (max-width: ${p => p.theme.breakpoints.md}) { display: none; }
+    @media (max-width: ${p => p.theme.below.md}) { display: none; }
 
     &:hover {
         background: #334155;

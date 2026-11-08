@@ -1,5 +1,10 @@
-import { createContext, useCallback, useContext, useRef, useState, useEffect, ReactNode } from 'react';
+import { createContext, useCallback, useContext, useLayoutEffect, useRef, useState, useEffect, ReactNode } from 'react';
 import { acquireScrollLock } from '@/common/utils/scrollLock';
+import { useMediaQuery } from '@/common/hooks/useMediaQuery';
+import { below, breakpoints } from '@/common/theme/breakpoints';
+
+/** Tablet: menu boczne już stoi, ale rozwinięte zabiera treści jedną trzecią ekranu. */
+const TABLET_QUERY = `(min-width: ${breakpoints.md}) and (max-width: ${below.lg})`;
 
 interface SidebarContextValue {
     isCollapsed: boolean;
@@ -94,6 +99,15 @@ export const SidebarProvider = ({ children }: SidebarProviderProps) => {
             if (requestsRef.current === 0) setExpandedOverride(false);
         };
     }, []);
+
+    // Na tablecie (768-1023 px) rozwinięty pasek (248 px) zostawiał treści ok. 500 px -
+    // mniej niż telefon w poziomie - i kafelki, nagłówki widoków oraz tabele ucinały się
+    // (audyt RWD 07.11.2026). Pasek startuje tu zwinięty do ikon tym samym mechanizmem,
+    // którego używa skrzynka Poczty: zapamiętany wybór zostaje, a ręczne rozwinięcie
+    // wygrywa. Efekt układu, nie zwykły - inaczej pierwsza klatka pokazywała rozwinięty
+    // pasek, który od razu się zwijał.
+    const tablet = useMediaQuery(TABLET_QUERY);
+    useLayoutEffect(() => (tablet ? requestCompact() : undefined), [tablet, requestCompact]);
     const toggleMobileMenu = () => setIsMobileOpen(prev => !prev);
     const closeMobileMenu = () => setIsMobileOpen(false);
 

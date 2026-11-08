@@ -28,7 +28,12 @@ export interface UseCheckinQRTokenResult {
  * the phone could no longer upload ("Błąd podczas przesyłania zdjęcia"). Only [rotate]
  * replaces the code.
  */
-export function useCheckinQRToken(appointmentId: string | undefined, vehicleType?: string): UseCheckinQRTokenResult {
+export function useCheckinQRToken(
+    appointmentId: string | undefined,
+    vehicleType?: string,
+    /** false - pojazd „Inny", telefon bez zakładki mapy uszkodzeń. */
+    damageMap = true,
+): UseCheckinQRTokenResult {
     const [tokenData, setTokenData] = useState<QRTokenResponse | null>(null);
     /*
      * Schemat mapy czytany w chwili pobrania tokena, a nie zależność efektu: serwer
@@ -37,6 +42,9 @@ export function useCheckinQRToken(appointmentId: string | undefined, vehicleType
      */
     const vehicleTypeRef = useRef(vehicleType);
     vehicleTypeRef.current = vehicleType;
+    // Tak samo: rodzaj zmienia się w kroku weryfikacji, a krok zdjęć montuje się od nowa.
+    const damageMapRef = useRef(damageMap);
+    damageMapRef.current = damageMap;
     const [secondsLeft, setSecondsLeft] = useState(Number.MAX_SAFE_INTEGER);
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -84,6 +92,7 @@ export function useCheckinQRToken(appointmentId: string | undefined, vehicleType
             const data = await checkinApi.generateQRToken(appointmentId, {
                 rotate: rotateToken,
                 vehicleType: vehicleTypeRef.current,
+                ...(damageMapRef.current ? {} : { damageMap: false }),
             });
             setTokenData(data);
             startCountdown(data.expiresAt);

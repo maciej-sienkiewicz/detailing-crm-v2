@@ -9,6 +9,7 @@ import type { CheckInFormData, DamagePoint, PhotoSlot } from '../types';
 import { VehicleDamageMapper } from './VehicleDamageMapper';
 import { CheckinQRGenerator } from './CheckinQRGenerator';
 import { defaultSchematicForKind } from '../utils/vehicleSchematics';
+import { hasDamageMap } from '@/modules/vehicles/vehicleKind';
 import { TagChip } from '@/modules/photos/components/TagChip';
 import { PhotoTagEditModal } from '@/modules/photos/components/PhotoTagEditModal';
 import { useTagSuggestions, useUpdatePhotoTags } from '@/modules/photos/hooks/usePhotoTags';
@@ -443,6 +444,8 @@ export const PhotoDocumentationStep = ({ formData, photoSessionScope, reservatio
      * punkty na rysunku, który pracownik widział.
      */
     const damageVehicleType = formData.damageVehicleType ?? defaultSchematicForKind(formData.vehicleData?.kind);
+    // Pojazd „Inny" nie ma mapy uszkodzeń - jego stan dokumentują same zdjęcia.
+    const withDamageMap = hasDamageMap(formData.vehicleData?.kind);
 
     /*
      * Do usterki można podpiąć zdjęcie zrobione na komputerze ALBO telefonem. Zdjęcia
@@ -589,6 +592,7 @@ export const PhotoDocumentationStep = ({ formData, photoSessionScope, reservatio
                             <CheckinQRGenerator
                                 appointmentId={qrCheckinId}
                                 vehicleType={damageVehicleType}
+                                damageMap={withDamageMap}
                                 onDamageUpdated={handleDamagePointsChange}
                                 onPhotosChange={setPhonePhotos}
                             />
@@ -668,7 +672,7 @@ export const PhotoDocumentationStep = ({ formData, photoSessionScope, reservatio
             </SectionCard>
 
             {/* ── 2. Dokumentacja uszkodzeń ──────────────────────────── */}
-            <SectionCard>
+            {withDamageMap && <SectionCard>
                 <SectionHead>
                     <SectionTitleRow>
                         <SectionNum>2</SectionNum>
@@ -700,7 +704,7 @@ export const PhotoDocumentationStep = ({ formData, photoSessionScope, reservatio
                         />
                     </SectionBody>
                 )}
-            </SectionCard>
+            </SectionCard>}
 
             {/* Tag edit modal */}
             {editingPhoto && (

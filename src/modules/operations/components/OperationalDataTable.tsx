@@ -287,6 +287,10 @@ const PencilIconBtn = styled.button`
     transition: opacity 140ms ease, color 140ms ease;
     svg { width: 12px; height: 12px; }
     &:hover { color: ${st.text}; }
+
+    /* Tabela stoi też na tablecie, a tam nie ma najechania: ołówek był niewidoczny,
+       ale klikalny i dotknięcie obok tytułu otwierało jego edycję. */
+    @media (hover: none) { opacity: 1; }
 `;
 
 const RowMeta = styled.div`

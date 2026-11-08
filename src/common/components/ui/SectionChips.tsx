@@ -19,9 +19,10 @@ const Slot = styled.div`
 `;
 
 /*
- * Przypięcie przez `position: fixed`, nie `sticky`: główny kontener aplikacji ma
- * `overflow-x: hidden`, a to robi z niego kontener przewijania - `sticky` przykleja
- * się wtedy do niego, a nie do okna, czyli nie przykleja się wcale.
+ * Przypięcie przez `position: fixed`, nie `sticky`. Powstało, gdy body i główny
+ * kontener aplikacji miały `overflow-x: hidden` i `sticky` przyklejało się do nich,
+ * a nie do okna, czyli wcale. Od audytu RWD 07.11.2026 mają `clip` i sticky działa;
+ * przypięcie z miejscem w układzie (Slot) zostaje, bo pasek wychodzi poza marginesy karty.
  */
 const Bar = styled.nav<{ $pinned: boolean }>`
     position: ${p => p.$pinned ? 'fixed' : 'relative'};

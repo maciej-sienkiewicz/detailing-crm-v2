@@ -148,6 +148,68 @@ describe('CreateVehicleModal - rodzaj pojazdu', () => {
         expect(api.createVehicle.mock.calls[0][0]).toMatchObject({ brand: 'Mazda', model: '3' });
     });
 
+    it('„Inny": marka i model z ręki, a wpisywana marka nie kasuje modelu', async () => {
+        api.createVehicle.mockResolvedValue({ id: 'v-1' });
+        renderModal();
+
+        fireEvent.click(kindButton('Inny'));
+        expect(brand().dataset.kind).toBe('OTHER');
+
+        fireEvent.change(brand(), { target: { value: 'Robinso' } });
+        fireEvent.change(model(), { target: { value: 'R44' } });
+        // Poprawka literówki w marce - przy katalogu wyczyściłaby model.
+        fireEvent.change(brand(), { target: { value: 'Robinson' } });
+        expect(model().value).toBe('R44');
+
+        // Znaki samolotu mają myślnik - tablica samochodowa by go odrzuciła.
+        fireEvent.change(screen.getByLabelText(/Numer rejestracyjny/), { target: { value: 'SP-KAT' } });
+        fireEvent.change(screen.getByLabelText(t.vehicles.form.color), { target: { value: 'Biały' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Właściciele' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Wybierz właściciela' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Dane pojazdu' }));
+        submit();
+
+        await waitFor(() => expect(api.createVehicle).toHaveBeenCalledTimes(1));
+        expect(api.createVehicle.mock.calls[0][0]).toMatchObject({
+            kind: 'OTHER', brand: 'Robinson', model: 'R44', licensePlate: 'SP-KAT',
+        });
+    });
+
+    it('„Inny" bez numeru (skuter wodny bez tablicy) zapisuje się bez numeru', async () => {
+        api.createVehicle.mockResolvedValue({ id: 'v-1' });
+        renderModal();
+        fireEvent.click(kindButton('Inny'));
+        fireEvent.change(brand(), { target: { value: 'Sea-Doo' } });
+        fireEvent.change(model(), { target: { value: 'Spark' } });
+        fireEvent.change(screen.getByLabelText(t.vehicles.form.color), { target: { value: 'Żółty' } });
+        fireEvent.click(screen.getByRole('button', { name: 'Właściciele' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Wybierz właściciela' }));
+        fireEvent.click(screen.getByRole('button', { name: 'Dane pojazdu' }));
+        submit();
+
+        await waitFor(() => expect(api.createVehicle).toHaveBeenCalledTimes(1));
+        expect(api.createVehicle.mock.calls[0][0].licensePlate).toBeUndefined();
+    });
+
+    it('samochód bez numeru dalej nie przechodzi', async () => {
+        renderModal();
+        fillRequired('Audi', 'A4');
+        fireEvent.change(screen.getByLabelText(t.vehicles.form.licensePlate), { target: { value: '' } });
+        submit();
+
+        expect(await screen.findByText(t.vehicles.validation.licensePlateRequired)).toBeInTheDocument();
+        expect(api.createVehicle).not.toHaveBeenCalled();
+    });
+
+    it('„Inny" bez marki mówi „Wpisz markę" - pola się wpisuje, nie wybiera', async () => {
+        renderModal();
+        fireEvent.click(kindButton('Inny'));
+        submit();
+
+        expect(await screen.findByText('Wpisz markę')).toBeInTheDocument();
+        expect(screen.getByText('Wpisz model')).toBeInTheDocument();
+    });
+
     it('bez marki i modelu (np. po zmianie rodzaju) zapis stoi i mówi, czego brakuje', async () => {
         renderModal();
         fillRequired('Honda', 'Civic');

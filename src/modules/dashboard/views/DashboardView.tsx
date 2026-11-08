@@ -226,12 +226,18 @@ const StatsToggle = styled.button<{ $open: boolean }>`
 
 // ─── Two-column panels grid ───────────────────────────────────────────────────
 
+/*
+ * Dwie kolumny dopiero od 1200 px okna. Od 768 px kolumna zadań (1/3) miała na
+ * tablecie i przy 1024 px z rozwiniętym menu ok. 220 px: tytuł „Do zrobienia" łamał
+ * się w dwie linie, „Dodaj" wychodziło za kartę, a treść zadań szła po jednym słowie
+ * w linii (audyt RWD 07.11.2026). Poniżej progu panele stoją jeden pod drugim.
+ */
 const TwoColGrid = styled.div<{ $single?: boolean }>`
   display: grid;
   grid-template-columns: ${p => (p.$single ? '1fr' : '2fr 1fr')};
   gap: 20px;
 
-  @media (max-width: ${p => p.theme.breakpoints.md}) {
+  @media (max-width: 1199.98px) {
     grid-template-columns: 1fr;
   }
 `;

@@ -216,6 +216,14 @@ const TaskActions = styled.div`
   @media (max-width: 639px) {
     opacity: 1;
   }
+
+  /* Tablet też nie ma najechania: ołówek i kosz były niewidoczne, ale klikalne -
+     dotknięcie prawego końca zadania kasowało je bez śladu (audyt RWD 07.11.2026).
+     Pod palcem większe pola i szerszy odstęp, bo „Usuń" nie pyta o potwierdzenie. */
+  @media (hover: none) and (pointer: coarse) {
+    opacity: 1;
+    gap: 6px;
+  }
 `;
 
 const ActionBtn = styled.button<{ $danger?: boolean }>`
@@ -238,6 +246,12 @@ const ActionBtn = styled.button<{ $danger?: boolean }>`
   }
 
   svg { width: 13px; height: 13px; stroke-width: 2; }
+
+  @media (hover: none) and (pointer: coarse) {
+    width: 34px;
+    height: 34px;
+    svg { width: 15px; height: 15px; }
+  }
 `;
 
 const EmptyState = styled.div`

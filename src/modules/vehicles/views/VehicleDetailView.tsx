@@ -48,7 +48,7 @@ import {
     StatusPill, SummaryStrip, ui, type PillTone,
 } from '@/common/components/ui';
 import type { VehicleOwner } from '../types';
-import { normalizeVehicleKind, VEHICLE_KIND_LABEL } from '../vehicleKind';
+import { formatMileage, normalizeVehicleKind, VEHICLE_KIND_LABEL } from '../vehicleKind';
 import { toCalendarDate } from '../utils/calendarDeepLink';
 
 // ─── Układ ────────────────────────────────────────────────────────────────────
@@ -744,7 +744,7 @@ export const VehicleDetailView = () => {
                                         {vehicle.yearOfProduction && <FieldRow label="Rocznik">{vehicle.yearOfProduction}</FieldRow>}
                                         {vehicle.color && <FieldRow label="Kolor">{vehicle.color}</FieldRow>}
                                         {vehicle.currentMileage ? (
-                                            <FieldRow label="Przebieg"><strong>{vehicle.currentMileage.toLocaleString('pl-PL')} km</strong></FieldRow>
+                                            <FieldRow label="Przebieg"><strong>{formatMileage(vehicle.currentMileage, vehicle.kind)}</strong></FieldRow>
                                         ) : null}
                                         {/* Ostatnia wizyta stała w nagłówku jako jedyny fakt, którego nie ma
                                             nigdzie indziej - dla jednej daty nie warto było rozciągać ciemnego

@@ -1,6 +1,7 @@
 // src/modules/operations/components/OperationFilterBar.tsx
 
 import styled from 'styled-components';
+import { touch } from '@/common/components/ui';
 import { st } from '@/modules/statistics/components/StatisticsTheme';
 import { OPS_LIST_CONTAINER, opsCards, opsTable } from './opsListLayout';
 import type { FilterStatus } from '../types';
@@ -125,6 +126,8 @@ const DateChipWrap = styled.div<{ $active: boolean }>`
     }
 
     svg { width: 12px; height: 12px; stroke-width: 2; flex-shrink: 0; }
+
+    ${touch} { min-height: 34px; }
 `;
 
 /** Niewidoczny <input type="date"> na wierzchu chipa - tap wywołuje natywny
@@ -224,6 +227,10 @@ const Chip = styled.button<{ $active: boolean; $color: string }>`
         color: ${props => props.$color};
         background: ${props => `${props.$color}10`};
     }
+
+    /* Pod palcem pigułka miała 24 px wysokości - obok siebie, w przewijanym rzędzie,
+       łatwo trafić w sąsiednią (audyt RWD 07.11.2026). */
+    ${touch} { min-height: 34px; }
 `;
 
 const ChipDot = styled.span<{ $color: string }>`
@@ -262,6 +269,8 @@ const ClearAllBtn = styled.button`
         color: #DC2626;
         background: rgba(220, 38, 38, 0.08);
     }
+
+    ${touch} { min-height: 34px; }
 `;
 
 // ─── Filter definitions ───────────────────────────────────────────────────────

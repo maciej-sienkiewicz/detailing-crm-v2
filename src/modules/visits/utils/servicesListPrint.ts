@@ -17,6 +17,7 @@ import interLatinUrl from '@fontsource-variable/inter/files/inter-latin-wght-nor
 import interLatinExtUrl from '@fontsource-variable/inter/files/inter-latin-ext-wght-normal.woff2?url';
 import type { DamagePoint, ServiceLineItem, Visit, VisitDamageMapResponse } from '../types';
 import { vehicleSchematicImageUrl } from '@/modules/checkin/utils/vehicleSchematics';
+import { hasDamageMap, mileageUnit } from '@/modules/vehicles/vehicleKind';
 
 export interface ServicesListPrintData {
     visitNumber: string;
@@ -28,8 +29,10 @@ export interface ServicesListPrintData {
     brand: string;
     model: string;
     licensePlate: string;
-    /** Przebieg przy przyjęciu, km. */
+    /** Przebieg przy przyjęciu. */
     mileage: number | null;
+    /** „km"; null - pojazd „Inny", przebieg bez jednostki (samolot liczy motogodziny). */
+    mileageUnit: string | null;
     company: {
         name: string | null;
         street: string | null;
@@ -40,7 +43,7 @@ export interface ServicesListPrintData {
     services: ServiceLineItem[];
     /** Notatka techniczna wizyty; pusta = sekcja się nie drukuje. */
     technicalNotes: string | null;
-    /** Mapa uszkodzeń; null albo brak punktów = sekcja się nie drukuje. */
+    /** Mapa uszkodzeń; null, brak punktów albo pojazd „Inny" = sekcja się nie drukuje. */
     damageMap: {
         /** Sylwetka nadwozia - ta sama grafika co w edytorze mapy. */
         imageUrl: string;
@@ -85,8 +88,10 @@ const formatInstant = (iso: string | null, withTime: boolean): string => {
 /** Daty przyjęcia i wydania drukujemy bez godzin. */
 const formatDate = (iso: string | null): string => formatInstant(iso, false);
 
-const formatMileage = (km: number | null): string =>
-    typeof km === 'number' && km > 0 ? `${new Intl.NumberFormat('pl-PL').format(km)} km` : '—';
+const formatMileage = (value: number | null, unit: string | null): string =>
+    typeof value === 'number' && value > 0
+        ? `${new Intl.NumberFormat('pl-PL').format(value)}${unit ? ` ${unit}` : ''}`
+        : '—';
 
 /** Pozycja w procentach, przycięta do obrazka - punkt poza kartką nic nie mówi. */
 const pct = (value: number): string => `${Math.min(100, Math.max(0, Number(value) || 0))}%`;
@@ -549,7 +554,7 @@ export const buildServicesListHtml = (data: ServicesListPrintData, fontUrls?: { 
       <div class="field-row brand"><label>Marka</label><div class="box">${escapeHtml(data.brand || '—')}</div></div>
       <div class="field-row model"><label>Model</label><div class="box">${escapeHtml(data.model || '—')}</div></div>
       <div class="field-row plate"><label>Nr rej.</label><div class="box">${escapeHtml(data.licensePlate || '—')}</div></div>
-      <div class="field-row mileage"><label>Przebieg</label><div class="box">${escapeHtml(formatMileage(data.mileage))}</div></div>
+      <div class="field-row mileage"><label>Przebieg</label><div class="box">${escapeHtml(formatMileage(data.mileage, data.mileageUnit))}</div></div>
     </div>
   </div>
 
@@ -603,10 +608,11 @@ export const servicesListPrintData = (
     model: visit.vehicle?.model ?? '',
     licensePlate: visit.vehicle?.licensePlate ?? '',
     mileage: visit.mileageAtArrival ?? null,
+    mileageUnit: mileageUnit(visit.vehicle?.kind),
     company,
     services: visit.services ?? [],
     technicalNotes: visit.technicalNotes ?? null,
-    damageMap: damageMap && damageMap.damagePoints.length > 0
+    damageMap: damageMap && damageMap.damagePoints.length > 0 && hasDamageMap(visit.vehicle?.kind)
         ? {
             imageUrl: resolveUrl(damageMapImagePath(damageMap.vehicleType)),
             points: damageMap.damagePoints.map(p => ({ x: p.x, y: p.y, note: p.note })),

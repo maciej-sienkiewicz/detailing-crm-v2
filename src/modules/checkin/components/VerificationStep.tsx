@@ -30,7 +30,7 @@ import { SharedButton } from '@/common/styles';
 import { PhoneInput } from '@/common/components/PhoneInput';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import { VehicleKindSwitch } from '@/modules/vehicles/components/VehicleKindSwitch';
-import { normalizeVehicleKind, type VehicleKind } from '@/modules/vehicles/vehicleKind';
+import { hasBrandCatalog, mileageUnit, normalizeVehicleKind, type VehicleKind } from '@/modules/vehicles/vehicleKind';
 import { VinCameraButton } from '@/modules/vehicles/components/vin/VinCameraButton';
 import { cleanVin, VIN_MAX_LENGTH } from '@/modules/vehicles/components/vin/vinFormat';
 import { vehicleApi } from '@/modules/vehicles/api/vehicleApi';
@@ -1926,7 +1926,10 @@ export const VerificationStep = ({
                             <BrandSelect
                                 kind={vehicleKind}
                                 value={(pendingVehicleUpdates?.brand ?? formData.vehicleData?.brand) || ''}
-                                onChange={(val) => handleVehicleFieldChange({ brand: val, model: '' })}
+                                // Wpisywana marka („Inny") zmienia się z każdą literą - model zostaje.
+                                onChange={(val) => handleVehicleFieldChange(
+                                    hasBrandCatalog(vehicleKind) ? { brand: val, model: '' } : { brand: val },
+                                )}
                                 onBlur={handleVehicleFieldBlur}
                             />
                         </FieldGroup>
@@ -1965,7 +1968,7 @@ export const VerificationStep = ({
 
                         {showMileage && (
                             <FieldGroup>
-                                <Label>{t.checkin.technical.mileage}</Label>
+                                <Label>{mileageUnit(vehicleKind) ? t.checkin.technical.mileage : t.checkin.technical.mileageNoUnit}</Label>
                                 <Input
                                     type="number"
                                     value={formData.technicalState.mileage || ''}

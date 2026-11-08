@@ -22,24 +22,25 @@ const VIEWPORTS = [
     { name: 'Desktop', width: 1280, height: 720  },
 ] as const;
 
-/** Poniżej tej szerokości widok rozkłada się na zakładki sekcji. */
+/** Poniżej tej szerokości nad kartą wizyty stoją skróty do sekcji („Sekcje wizyty”). */
 const MOBILE_NAV_MAX_WIDTH = 767;
 
 /**
- * Sekcje, po które użytkownik wchodzi na ten ekran. `mobileTab` jest tu
- * konieczne: poniżej 768px nie leżą one obok siebie, tylko każda pod swoją
- * zakładką, więc nie da się ich sprawdzić jednym przebiegiem.
+ * Sekcje, po które użytkownik wchodzi na ten ekran. Na telefonie karta jest jedną
+ * kolumną, a skróty pod nagłówkiem (SectionChips) przewijają do sekcji - test idzie
+ * tą samą drogą co palec, zamiast przewijać stronę sam. Dawniej sekcje leżały pod
+ * dolnymi zakładkami i bez kliknięcia w zakładkę karty w ogóle nie było.
  */
 const KEY_SECTIONS = [
     {
         name: 'podsumowanie wyceny',
         mobileTab: 'Usługi',
-        locate: (page: Page) => page.getByText('Razem do zapłaty'),
+        locate: (page: Page) => page.getByText('Do zapłaty', { exact: true }),
     },
     {
-        name: 'dane auta (stan przy przyjęciu)',
+        name: 'karta klienta i auta',
         mobileTab: 'Klient',
-        locate: (page: Page) => page.getByRole('heading', { name: 'Stan przy przyjęciu' }),
+        locate: (page: Page) => page.getByRole('heading', { name: 'Arkadiusz Wróbel-Zielonka' }),
     },
 ] as const;
 
@@ -64,7 +65,7 @@ async function openVisitDetail(page: Page): Promise<void> {
     await expect(page.locator('header').first()).toBeVisible();
     // Wycena przychodzi osobnym zapytaniem i jest ostatnim dużym blokiem strony;
     // dopiero gdy stoi, układ jest ten, o który chodzi w teście.
-    await expect(page.getByText('Razem do zapłaty')).toBeVisible();
+    await expect(page.getByText('Do zapłaty', { exact: true })).toBeVisible();
 }
 
 /**
@@ -116,11 +117,24 @@ async function measureTitleFit(title: Locator) {
  *
  * Pomijamy wnętrza `<svg>` (dekoracyjne tło „plastra miodu" celowo jest większe
  * od okna i leży pod treścią) oraz elementy niewidoczne / o zerowej powierzchni.
+ *
+ * Pomijamy też treść przewijanego w bok paska, który sam mieści się w oknie (skróty
+ * „Sekcje wizyty" na telefonie): tę treść przesuwa się palcem, nic nie jest ucięte.
+ * Pasek, który sam wyjeżdża za okno, dalej jest zgłaszany.
  */
 async function elementsPastRightEdge(page: Page) {
     return page.evaluate((eps) => {
         const viewportWidth = document.documentElement.clientWidth;
         const escapees: { tag: string; text: string; right: number; width: number }[] = [];
+
+        const insideScroller = (el: Element) => {
+            for (let p = el.parentElement; p && p !== document.body; p = p.parentElement) {
+                if (/(auto|scroll)/.test(getComputedStyle(p).overflowX)) {
+                    return p.getBoundingClientRect().right <= viewportWidth + eps;
+                }
+            }
+            return false;
+        };
 
         for (const el of Array.from(document.body.querySelectorAll('*'))) {
             if (el instanceof SVGElement) continue;
@@ -128,7 +142,7 @@ async function elementsPastRightEdge(page: Page) {
             if (rect.width === 0 || rect.height === 0) continue;
             const style = getComputedStyle(el);
             if (style.visibility === 'hidden' || style.display === 'none') continue;
-            if (rect.right > viewportWidth + eps) {
+            if (rect.right > viewportWidth + eps && !insideScroller(el)) {
                 escapees.push({
                     tag: el.tagName.toLowerCase(),
                     text: (el.textContent ?? '').trim().replace(/\s+/g, ' ').slice(0, 60),
@@ -236,14 +250,13 @@ for (const viewport of VIEWPORTS) {
 
             for (const section of KEY_SECTIONS) {
                 /*
-                 * Poniżej 768px widok rozkłada się na zakładki sekcji, a kolumna
-                 * boczna (klient, stan pojazdu) chowa się za jedną z nich - taki
-                 * jest projekt, nie usterka. Test otwiera więc właściwą zakładkę,
-                 * zamiast udawać, że karty nie ma.
+                 * Poniżej 768px kolumna boczna (klient, auto) leży pod usługami, daleko
+                 * w dół karty. Test dochodzi do niej skrótem z paska „Sekcje wizyty",
+                 * tak jak użytkownik - przy okazji sprawdza, że skrót istnieje.
                  */
                 if (viewport.width <= MOBILE_NAV_MAX_WIDTH) {
                     await page
-                        .getByRole('navigation', { name: 'Nawigacja sekcji wizyty' })
+                        .getByRole('navigation', { name: 'Sekcje wizyty' })
                         .getByRole('button', { name: section.mobileTab })
                         .click();
                 }
@@ -272,7 +285,7 @@ for (const viewport of VIEWPORTS) {
 
 /*
  * Najszersza możliwa szyna akcji. Wizyta zakończona paragonem pokazuje
- * „Wystaw fakturę konsumencką" - etykietę o połowę dłuższą od „Oznacz jako
+ * „Wystaw fakturę do paragonu" - etykietę o połowę dłuższą od „Oznacz jako
  * gotowe", w przycisku z `white-space: nowrap`. To właśnie ten wariant
  * najmocniej napiera na tytuł, więc dostaje własny test, na najciaśniejszej
  * szerokości, przy której nagłówek stoi jeszcze w układzie poziomym.
@@ -289,7 +302,7 @@ test.describe('Szczegóły wizyty - najdłuższa akcja w nagłówku (800x750)', 
 
         const header = page.locator('header').first();
         const title = header.locator('h1');
-        const action = header.getByRole('button', { name: /Wystaw fakturę konsumencką/ });
+        const action = header.getByRole('button', { name: /Wystaw fakturę do paragonu/ });
 
         await expect(action).toBeVisible();
 

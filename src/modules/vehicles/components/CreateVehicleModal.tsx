@@ -31,7 +31,7 @@ import { createVehicleSchema, type CreateVehicleFormData } from '../utils/vehicl
 import { OwnerSelect } from './OwnerSelect';
 import { BrandSelect, ModelSelect } from './BrandModelSelectors';
 import { VehicleKindSwitch } from './VehicleKindSwitch';
-import { DEFAULT_VEHICLE_KIND } from '../vehicleKind';
+import { DEFAULT_VEHICLE_KIND, hasBrandCatalog } from '../vehicleKind';
 import { t } from '@/common/i18n';
 import type { CreateVehiclePayload } from '../types';
 
@@ -88,7 +88,8 @@ export const CreateVehicleModal = ({ isOpen, onClose, onSuccess }: CreateVehicle
     const handleFormSubmit = useCallback((data: CreateVehicleFormData) => {
         const payload: CreateVehiclePayload = {
             kind: data.kind,
-            licensePlate: data.licensePlate,
+            // Pojazd „Inny" bywa bez numeru - pusty napis to brak numeru, a nie numer „".
+            licensePlate: data.licensePlate.trim() || undefined,
             brand: data.brand,
             model: data.model,
             yearOfProduction: data.yearOfProduction,
@@ -185,7 +186,9 @@ export const CreateVehicleModal = ({ isOpen, onClose, onSuccess }: CreateVehicle
                                             value={field.value}
                                             onChange={(val) => {
                                                 field.onChange(val);
-                                                setValue('model', '');
+                                                // Model katalogu należy do marki. Wpisywana marka („Inny")
+                                                // zmienia się z każdą literą - model zostaje.
+                                                if (hasBrandCatalog(kind)) setValue('model', '');
                                             }}
                                         />
                                     )}
@@ -217,6 +220,8 @@ export const CreateVehicleModal = ({ isOpen, onClose, onSuccess }: CreateVehicle
                             <FormField>
                                 <FieldLabel htmlFor="cv-licensePlate">
                                     {t.vehicles.form.licensePlate}
+                                    {/* Skuter wodny czy laweta na placu bywają bez tablicy. */}
+                                    {kind === 'OTHER' && ' (można pominąć)'}
                                 </FieldLabel>
                                 <InputShell $hasError={!!errors.licensePlate}>
                                     <BareInput

@@ -139,6 +139,11 @@ const RemoveTagButton = styled.button`
 
     &:hover { color: ${p => p.theme.colors.error}; }
     &:focus-visible { opacity: 1; }
+
+    /* Bez najechania (tablet, telefon) kosz był niewidoczny, ale klikalny: dotknięcie
+       prawego końca wiersza usuwało tag ze słownika zamiast go zaznaczyć. Pod palcem
+       kosz jest widoczny, wygaszony do odcienia tekstu pomocniczego. */
+    @media (hover: none) { opacity: 1; }
 `;
 
 const MenuFooter = styled.div`

@@ -424,6 +424,37 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
         .fc-d2d-badge .fc-d2d-count { font-size: 9px; }
     }
 
+    /* Telefon: komórka ma ~53 px, a dwucyfrowy numer dnia na środku sięga ~34 px.
+       Ludzik z liczbą (29 px od prawej) zasłaniał drugą cyfrę, a samochodziki
+       stawiane na lewo od niego wychodziły za komórkę albo wchodziły na numer
+       (audyt RWD 07.11.2026). Oba znaczniki stają w jednej kolumnie przy prawej
+       krawędzi, węższe o kilka pikseli: ludzik na górze, samochodziki pod nim.
+       !important, bo placeD2DBadge ustawia odstęp od ludzika w stylu inline. */
+    @media (max-width: 639px) {
+        .fc-leave-badge {
+            top: 2px;
+            right: 1px;
+            gap: 1px;
+            padding: 1px;
+        }
+        .fc-leave-badge svg { width: 9px; height: 9px; }
+        .fc-leave-badge .fc-leave-count { font-size: 9px; }
+
+        .fc-d2d-badge,
+        .fc-d2d-badge.fc-d2d-badge--stacked {
+            right: 1px !important;
+            padding: 1px;
+        }
+        .fc-d2d-badge svg { width: 9px; height: 9px; }
+        .fc-daygrid-day-frame:has(> .fc-leave-badge) > .fc-d2d-badge { top: 14px; }
+    }
+
+    /* Na 320-359 px kolumna z liczbą dalej sięgała cyfr - zostają same ikony. */
+    @media (max-width: 359px) {
+        .fc-leave-badge .fc-leave-count,
+        .fc-d2d-badge .fc-d2d-count { display: none; }
+    }
+
     /* ===================== EVENTS ===================== */
     .fc-event {
         border-radius: 5px !important;
@@ -1065,10 +1096,18 @@ const MobileAddBtn = styled.button`
 
 /* ===================== DESKTOP PAGE HEADER ===================== */
 
+/*
+ * Przyciski po prawej to ok. 950 px. Na tablecie i wąskim oknie (treść 700-950 px)
+ * „Wydarzenie", „Rezerwacja" i „Wizyta" wychodziły za prawą krawędź i nie dało się
+ * ich kliknąć (audyt RWD 07.11.2026). Nagłówek się zawija: tytuł w pierwszym wierszu,
+ * przyciski pod nim, a gdy i tak się nie mieszczą - w dwóch rzędach.
+ */
 const DesktopPageHeader = styled.div`
     display: flex;
+    flex-wrap: wrap;
     align-items: flex-end;
     justify-content: space-between;
+    gap: 12px 16px;
     padding: 20px 24px 16px;
     flex-shrink: 0;
     background: #fff;
@@ -1098,8 +1137,10 @@ const PageTitle = styled.h1`
 
 const PageHeaderRight = styled.div`
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: 10px;
+    margin-left: auto;
 `;
 
 const MonthNavGroup = styled.div`

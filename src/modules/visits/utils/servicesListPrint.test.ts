@@ -139,6 +139,22 @@ describe('buildServicesListHtml', () => {
     it('skips the damage map section when the map has no points', () => {
         expect(html(visit(), { vehicleType: 'sedan', damagePoints: [] })).not.toContain('MAPA USZKODZEŃ');
     });
+
+    /*
+     * Pojazd „Inny" (śmigłowiec, betoniarka) nie ma mapy uszkodzeń ani kilometrów. Punkty
+     * postawione, zanim ktoś zmienił rodzaj, nie drukują się na sylwetce sedana.
+     */
+    it('„Inny": mileage without a unit and no damage map', () => {
+        const other = visit({
+            mileageAtArrival: 12500,
+            vehicle: { id: 'v2', kind: 'OTHER', licensePlate: 'SP-HXA', brand: 'Robinson', model: 'R44', yearOfProduction: 2015, color: 'Biały' },
+        });
+        const out = html(other, { vehicleType: 'sedan', damagePoints: [{ id: 1, x: 10, y: 10, note: 'Rysa' }] });
+
+        expect(out).toMatch(/Przebieg<\/label><div class="box">12\s500</);
+        expect(out).not.toMatch(/12\s500 km/);
+        expect(out).not.toContain('MAPA USZKODZEŃ');
+    });
 });
 
 describe('damageMapImagePath', () => {

@@ -918,7 +918,7 @@ const StickySubmitBar = styled.div`
     border-top: 1px solid #e2e8f0;
     z-index: 50;
 
-    @media (max-width: ${p => p.theme.breakpoints.md}) {
+    @media (max-width: ${p => p.theme.below.md}) {
         /* Ponad dolnym paskiem nawigacji; safe-area obsługuje już sam pasek. */
         bottom: ${BOTTOM_NAV_SPACE};
         padding-bottom: 12px;

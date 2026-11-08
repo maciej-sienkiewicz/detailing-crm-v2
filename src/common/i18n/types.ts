@@ -657,6 +657,8 @@ export interface TranslationKeys {
             title: string;
             subtitle: string;
             mileage: string;
+            /** Etykieta przebiegu pojazdu „Inny" - bez jednostki. */
+            mileageNoUnit: string;
             mileagePlaceholder: string;
             mileageRequired: string;
             mileagePositive: string;

@@ -3,7 +3,7 @@ import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { checkinApi } from '../api/checkinApi';
 import { DASHBOARD_STATS_KEY } from '@/modules/dashboard/hooks/useDashboard';
 import { toApiServiceLineItem } from '@/common/utils/priceAdjustment';
-import { normalizeVehicleKind } from '@/modules/vehicles/vehicleKind';
+import { hasDamageMap, normalizeVehicleKind } from '@/modules/vehicles/vehicleKind';
 import { defaultSchematicForKind } from '../utils/vehicleSchematics';
 import type {
     CheckInFormData,
@@ -263,7 +263,9 @@ export const useCheckInWizard = (reservationId: string | undefined, initialData:
             } : undefined,
             technicalState: formData.technicalState,
             photoIds: formData.photos.map(p => p.id),
-            damagePoints: formData.damagePoints || [],
+            // Pojazd „Inny" nie ma mapy uszkodzeń. Punkty postawione, zanim ktoś zmienił
+            // rodzaj, nie idą do protokołu - leżałyby tam na sylwetce sedana.
+            damagePoints: hasDamageMap(formData.vehicleData.kind) ? formData.damagePoints || [] : [],
             /*
              * Schemat, który pracownik WIDZIAŁ: bez ręcznego wyboru to domyślny dla rodzaju
              * pojazdu (motocykl - motocykl). Puste pole kazało serwerowi brać ogólny

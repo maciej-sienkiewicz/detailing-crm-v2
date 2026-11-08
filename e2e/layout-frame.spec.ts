@@ -51,3 +51,41 @@ test.describe('Telefon (bez ramy)', () => {
         expect(style.background).not.toBe(FRAME_RGB);
     });
 });
+
+/**
+ * Na każdej szerokości jest DOKŁADNIE JEDNA nawigacja: menu boczne albo dolny pasek.
+ *
+ * Skąd: na 768 px (iPad w pionie) reguły telefonu `max-width: 768px` i komputera
+ * `min-width: 768px` działały naraz - menu boczne chowało się jak na telefonie, dolny
+ * pasek jak na komputerze i aplikacja zostawała bez żadnej nawigacji (audyt RWD
+ * 07.11.2026). Reguły telefonu idą teraz po `theme.below.md` (767.98 px).
+ */
+async function navigationState(page: Page) {
+    await page.goto(`/visits/${VISIT_ID}`);
+    await expect(page.locator('header').first()).toBeVisible();
+    return page.evaluate(() => {
+        const aside = document.querySelector('aside');
+        const bar = document.querySelector('nav[aria-label="Nawigacja główna"]');
+        const box = aside?.getBoundingClientRect();
+        return {
+            sidebar: !!box && box.width > 0 && box.left >= 0 && box.right <= window.innerWidth,
+            bottomBar: !!bar && getComputedStyle(bar).display !== 'none',
+        };
+    });
+}
+
+for (const width of [767, 768, 1023, 1024]) {
+    test.describe(`Nawigacja przy ${width} px`, () => {
+        test.use({ viewport: { width, height: 1024 } });
+
+        test.beforeEach(async ({ context }) => {
+            await stubVisitDetailApi(context);
+        });
+
+        test('widać menu boczne albo dolny pasek, nigdy oba i nigdy żadnego', async ({ page }) => {
+            const nav = await navigationState(page);
+            expect(nav.sidebar !== nav.bottomBar, JSON.stringify(nav)).toBe(true);
+            expect(nav.bottomBar).toBe(width < 768);
+        });
+    });
+}

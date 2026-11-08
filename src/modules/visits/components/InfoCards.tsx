@@ -15,6 +15,7 @@ import { ArrowUpRight, Check, IdCard, MessageSquare, Pencil, Phone, TriangleAler
 import { CustomerContactModal } from './CustomerContactModal';
 import { MileageModal } from './MileageModal';
 import { VinEditModal } from '@/modules/vehicles/components/vin/VinEditModal';
+import { formatMileage } from '@/modules/vehicles/vehicleKind';
 import { PiiValue, joinPiiName, isPiiMasked } from '@/common/pii';
 import type { VehicleInfo, CustomerInfo } from '../types';
 import { VisitCardLinkModal } from '@/modules/visit-card';
@@ -314,7 +315,7 @@ export const VehicleInfoCard = ({
         <>
             <FieldRow label="Przebieg">
                 {hasMileage
-                    ? <strong style={{ fontVariantNumeric: 'tabular-nums' }}>{mileageAtArrival!.toLocaleString('pl-PL')} km</strong>
+                    ? <strong style={{ fontVariantNumeric: 'tabular-nums' }}>{formatMileage(mileageAtArrival!, vehicle?.kind)}</strong>
                     : <Missing>Nie podano</Missing>}
                 {canEdit && (
                     <IconButton
@@ -377,6 +378,7 @@ export const VehicleInfoCard = ({
                 <MileageModal
                     isOpen
                     mileage={mileageAtArrival}
+                    vehicleKind={vehicle?.kind}
                     onSave={onMileageChange}
                     onClose={() => setMileageModalOpen(false)}
                 />

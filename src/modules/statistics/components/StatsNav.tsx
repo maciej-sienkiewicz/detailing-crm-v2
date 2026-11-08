@@ -13,8 +13,10 @@ const Nav = styled.nav`
     padding: 4px;
     width: fit-content;
 
+    /* Telefon: własny wiersz pod wyborem okresu (HdrBtns się zawija), na całą szerokość. */
     @media (max-width: 639px) {
         padding: 3px;
+        width: 100%;
     }
 `;
 
@@ -38,11 +40,20 @@ const Tab = styled(NavLink)`
         flex-shrink: 0;
     }
 
+    /* Wcześniej na telefonie zostawały same ikony (font-size: 0): wykres, banknot
+       i kartka nie mówiły, która zakładka to koszty, a która raporty (audyt RWD
+       07.11.2026). Podpisy wracają, zakładki dzielą wiersz po równo. */
     @media (max-width: 639px) {
-        font-size: 0;
-        gap: 0;
-        padding: 8px 10px;
-        svg { width: 16px; height: 16px; }
+        flex: 1 1 0;
+        min-width: 0;
+        justify-content: center;
+        gap: 6px;
+        padding: 8px 6px;
+    }
+
+    /* Na 320-359 px trzy podpisy z ikonami się nie mieszczą - ikony ustępują. */
+    @media (max-width: 359px) {
+        svg { display: none; }
     }
 
     &:hover {

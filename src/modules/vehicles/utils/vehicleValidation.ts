@@ -1,31 +1,47 @@
 import { z } from 'zod';
 import { t } from '@/common/i18n';
-import type { VehicleKind } from '../vehicleKind';
+import { VEHICLE_KINDS, hasBrandCatalog, type VehicleKind } from '../vehicleKind';
 
 const currentYear = new Date().getFullYear();
 
-const vehicleKindSchema = z.enum(['CAR', 'MOTORCYCLE']) satisfies z.ZodType<VehicleKind>;
+const vehicleKindSchema = z.enum(VEHICLE_KINDS) satisfies z.ZodType<VehicleKind>;
+
+/*
+ * Numer pojazdu „Inny" nie jest tablicą samochodową: samolot ma znaki „SP-KAT", skuter
+ * wodny często nie ma żadnego. Dlatego jest opcjonalny i dopuszcza myślnik; 20 znaków
+ * to szerokość kolumny license_plate w bazie.
+ */
+const OTHER_PLATE = /^[A-Z0-9][A-Z0-9\s-]{0,19}$/i;
+
+/*
+ * Marka i model: z katalogu się je wybiera, dla „Inny" wpisuje - komunikat mówi, co
+ * zrobić w polu, które jest na ekranie. Pusty napis bierze się z wyczyszczenia przy
+ * zmianie rodzaju albo marki; same spacje w polu do wpisania to też brak marki.
+ */
+const requireBrandAndModel = (
+    data: { kind: VehicleKind; brand?: string; model?: string },
+    ctx: z.RefinementCtx,
+) => {
+    const verb = hasBrandCatalog(data.kind) ? 'Wybierz' : 'Wpisz';
+    if (data.brand !== undefined && !data.brand.trim()) {
+        ctx.addIssue({ code: 'custom', path: ['brand'], message: `${verb} markę` });
+    }
+    if (data.model !== undefined && !data.model.trim()) {
+        ctx.addIssue({ code: 'custom', path: ['model'], message: `${verb} model` });
+    }
+};
 
 export const createVehicleSchema = z.object({
     kind: vehicleKindSchema,
 
-    licensePlate: z
-        .string()
-        .min(1, t.vehicles.validation.licensePlateRequired)
-        .regex(/^[A-Z0-9\s]{4,10}$/i, t.vehicles.validation.licensePlateFormat),
+    // Reguła zależy od rodzaju - pilnuje jej superRefine pod obiektem.
+    licensePlate: z.string(),
 
-    // Marka i model są wybierane z katalogu, więc wystarczy, że są wybrane. Dawne
-    // „co najmniej 2 znaki" pochodziło z czasów wpisywania z ręki i odrzucałoby
-    // prawdziwe pozycje katalogu: Mazda 3, Tesla Y, motocykl BMW R.
-    brand: z
-        .string()
-        .min(1, 'Wybierz markę')
-        .max(50),
+    // Wystarczy, że marka i model są (requireBrandAndModel). Dawne „co najmniej 2 znaki"
+    // odrzucałoby prawdziwe pozycje katalogu: Mazda 3, Tesla Y, motocykl BMW R.
+    brand: z.string().max(50),
 
-    model: z
-        .string()
-        .min(1, 'Wybierz model')
-        .max(50),
+    model: z.string().max(50),
 
     yearOfProduction: z
         .number()
@@ -50,6 +66,21 @@ export const createVehicleSchema = z.object({
     ownerIds: z
         .array(z.string())
         .min(1, t.vehicles.validation.ownerRequired),
+}).superRefine((data, ctx) => {
+    requireBrandAndModel(data, ctx);
+
+    const plate = data.licensePlate.trim();
+    if (data.kind === 'OTHER') {
+        if (plate && !OTHER_PLATE.test(plate)) {
+            ctx.addIssue({ code: 'custom', path: ['licensePlate'], message: 'Numer rejestracyjny: litery, cyfry i myślnik, do 20 znaków' });
+        }
+        return;
+    }
+    if (!plate) {
+        ctx.addIssue({ code: 'custom', path: ['licensePlate'], message: t.vehicles.validation.licensePlateRequired });
+    } else if (!/^[A-Z0-9\s]{4,10}$/i.test(data.licensePlate)) {
+        ctx.addIssue({ code: 'custom', path: ['licensePlate'], message: t.vehicles.validation.licensePlateFormat });
+    }
 });
 
 export type CreateVehicleFormData = z.infer<typeof createVehicleSchema>;
@@ -67,11 +98,10 @@ export const updateVehicleSchema = z.object({
 
     licensePlate: z.preprocess(nullToUndefinedStr, z.string().optional()),
 
-    // Puste pole bierze się tu z wyczyszczenia przy zmianie rodzaju albo marki -
-    // komunikat mówi, co zrobić, a nie ile znaków brakuje.
-    brand: z.preprocess(nullToUndefinedStr, z.string().min(1, 'Wybierz markę')),
+    // Pustej marki i modelu pilnuje requireBrandAndModel - komunikat zależy od rodzaju.
+    brand: z.preprocess(nullToUndefinedStr, z.string().max(50)),
 
-    model: z.preprocess(nullToUndefinedStr, z.string().min(1, 'Wybierz model')),
+    model: z.preprocess(nullToUndefinedStr, z.string().max(50)),
 
     yearOfProduction: z.preprocess(nullToUndefinedNum, z.number().optional()),
 
@@ -90,7 +120,7 @@ export const updateVehicleSchema = z.object({
     status: z
         .enum(['active', 'sold', 'archived'])
         .optional(),
-});
+}).superRefine(requireBrandAndModel);
 
 export type UpdateVehicleFormData = z.infer<typeof updateVehicleSchema>;
 /** Wartości pól przed walidacją - z API przychodzi też null. */

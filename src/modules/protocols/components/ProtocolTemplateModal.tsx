@@ -57,6 +57,11 @@ const TemplateList = styled.div`
 const TemplateCard = styled.div`
     position: relative;
     padding: 1.25rem;
+
+    @media (max-width: ${p => p.theme.below.sm}) {
+        padding: 1rem;
+    }
+
     background: white;
     border: 1px solid rgb(226, 232, 240);
     border-radius: 0.75rem;
@@ -73,6 +78,13 @@ const TemplateCardHeader = styled.div`
     align-items: flex-start;
     justify-content: space-between;
     gap: 1rem;
+
+    /* Na telefonie „Podgląd", „Edytuj" i „Usuń" obok opisu ściskały go do kolumny na
+       jedno słowo, a „Podgląd" wjeżdżał na nazwę szablonu (audyt RWD 07.11.2026). */
+    @media (max-width: ${p => p.theme.below.sm}) {
+        flex-direction: column;
+        gap: 0.75rem;
+    }
 `;
 
 const TemplateInfo = styled.div`
@@ -125,6 +137,7 @@ const TemplateDescription = styled.div`
 
 const TemplateActions = styled.div`
     display: flex;
+    flex-wrap: wrap;
     gap: 0.5rem;
     align-items: center;
     flex-shrink: 0;
@@ -150,10 +163,12 @@ const ActionBtn = styled.button<{ $variant?: 'primary' | 'danger' }>`
         &:hover { background: rgb(37, 99, 235); }
         &:active { background: rgb(29, 78, 216); }
     ` : props.$variant === 'danger' ? `
-        background: rgb(239, 68, 68);
-        color: white;
-        &:hover { background: rgb(220, 38, 38); }
-        &:active { background: rgb(185, 28, 28); }
+        /* Odcień bez wypełnienia: każdy szablon na liście miał pełną czerwień (CLAUDE.md §2). */
+        background: rgb(254, 242, 242);
+        color: rgb(185, 28, 28);
+        box-shadow: inset 0 0 0 1px rgb(254, 202, 202);
+        &:hover { background: rgb(254, 226, 226); }
+        &:active { background: rgb(254, 202, 202); }
     ` : `
         background: rgb(241, 245, 249);
         color: rgb(51, 65, 85);

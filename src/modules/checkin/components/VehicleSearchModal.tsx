@@ -1,7 +1,7 @@
 // src/modules/checkin/components/VehicleSearchModal.tsx
-import { useState } from 'react';
+import { useState, type ComponentType } from 'react';
 import { keepPreviousData, useQuery } from '@tanstack/react-query';
-import { Motorbike } from 'lucide-react';
+import { Motorbike, Shapes } from 'lucide-react';
 import { useDebounce } from '@/common/hooks';
 import {
     ModalShell,
@@ -45,7 +45,7 @@ import { vehicleKeys } from '@/modules/vehicles/api/vehicleKeys';
 import type { VehicleListItem } from '@/modules/vehicles/types';
 import { BrandSelect, ModelSelect } from '@/modules/vehicles/components/BrandModelSelectors';
 import { VehicleKindSwitch } from '@/modules/vehicles/components/VehicleKindSwitch';
-import { DEFAULT_VEHICLE_KIND, type VehicleKind } from '@/modules/vehicles/vehicleKind';
+import { DEFAULT_VEHICLE_KIND, hasBrandCatalog, normalizeVehicleKind, type VehicleKind } from '@/modules/vehicles/vehicleKind';
 
 // Tablica, rok i właściciel to osobne atrybuty, więc osobne elementy z odstępem,
 // a nie ciąg sklejony kropką (CLAUDE.md §4).
@@ -66,13 +66,18 @@ const CarIcon = () => (
     </svg>
 );
 
-// Na liście obok siebie stoją auta i motocykle klienta - ikona mówi, który jest który,
-// zanim ktoś doczyta model. Brak rodzaju w danych to samochód.
-const VehicleKindIcon = ({ kind }: { kind?: VehicleKind | null }) => (
-    kind === 'MOTORCYCLE'
-        ? <Motorbike strokeWidth={1.8} aria-hidden="true" data-kind="MOTORCYCLE" />
-        : <CarIcon />
-);
+// Na liście obok siebie stoją auta, motocykle i pojazdy „Inny" klienta - ikona mówi, który
+// jest który, zanim ktoś doczyta model. Brak rodzaju w danych to samochód.
+const KIND_ICON: Record<VehicleKind, ComponentType> = {
+    CAR: CarIcon,
+    MOTORCYCLE: () => <Motorbike strokeWidth={1.8} aria-hidden="true" data-kind="MOTORCYCLE" />,
+    OTHER: () => <Shapes strokeWidth={1.8} aria-hidden="true" data-kind="OTHER" />,
+};
+
+const VehicleKindIcon = ({ kind }: { kind?: VehicleKind | null }) => {
+    const Icon = KIND_ICON[normalizeVehicleKind(kind)];
+    return <Icon />;
+};
 
 export interface SelectedVehicle {
     id?: string;
@@ -375,7 +380,12 @@ export const VehicleSearchModal = ({
                                     <BrandSelect
                                         kind={formData.kind}
                                         value={formData.brand}
-                                        onChange={(val) => setFormData({ ...formData, brand: val, model: '' })}
+                                        // Wpisywana marka („Inny") zmienia się z każdą literą - model zostaje.
+                                        onChange={(val) => setFormData({
+                                            ...formData,
+                                            brand: val,
+                                            model: hasBrandCatalog(formData.kind) ? '' : formData.model,
+                                        })}
                                         onBlur={() => {}}
                                     />
                                     {errors.brand && <FormErrorMsg>{errors.brand}</FormErrorMsg>}

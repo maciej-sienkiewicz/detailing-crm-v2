@@ -14,7 +14,8 @@ vi.mock('./VehicleDamageMapper', () => ({
     VehicleDamageMapper: ({ vehicleType }: { vehicleType?: string }) => <div data-testid="damage-mapper">{vehicleType}</div>,
 }));
 vi.mock('./CheckinQRGenerator', () => ({
-    CheckinQRGenerator: ({ vehicleType }: { vehicleType?: string }) => <div data-testid="qr">{vehicleType}</div>,
+    CheckinQRGenerator: ({ vehicleType, damageMap }: { vehicleType?: string; damageMap?: boolean }) =>
+        <div data-testid="qr" data-damage-map={String(damageMap)}>{vehicleType}</div>,
 }));
 vi.mock('../hooks/usePhotoUpload', () => ({
     usePhotoUpload: () => ({
@@ -92,5 +93,30 @@ describe('PhotoDocumentationStep - schemat mapy uszkodzeń', () => {
 
         expect(screen.getByTestId('damage-mapper').textContent).toBe('jetski');
         expect(screen.getByTestId('qr').textContent).toBe('jetski');
+    });
+});
+
+describe('PhotoDocumentationStep - pojazd „Inny"', () => {
+    it('nie ma sekcji mapy uszkodzeń, a telefon dostaje kod bez niej', () => {
+        render(
+            <ThemeProvider theme={theme}>
+                <PhotoDocumentationStep
+                    formData={formData({ vehicleData: { id: 'heli-1', kind: 'OTHER', brand: 'Robinson', model: 'R44' } })}
+                    photoSessionScope="scope-1"
+                    qrCheckinId="chk-1"
+                    onChange={vi.fn()}
+                />
+            </ThemeProvider>,
+        );
+
+        expect(screen.queryByText(/Dokumentacja uszkodzeń/)).not.toBeInTheDocument();
+        expect(screen.queryByRole('switch', { name: 'Rozwiń' })).not.toBeInTheDocument();
+        expect(screen.getByTestId('qr').dataset.damageMap).toBe('false');
+    });
+
+    it('samochód ma mapę i telefon z mapą', async () => {
+        await renderStep(formData({ vehicleData: { id: 'car-1', kind: 'CAR', brand: 'Toyota', model: 'Corolla' } }));
+        expect(screen.getByTestId('damage-mapper')).toBeInTheDocument();
+        expect(screen.getByTestId('qr').dataset.damageMap).toBe('true');
     });
 });

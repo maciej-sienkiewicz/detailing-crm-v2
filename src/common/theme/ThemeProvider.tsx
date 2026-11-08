@@ -42,7 +42,13 @@ const GlobalStyles = createGlobalStyle`
     min-height: 100dvh;
     width: 100%;
     max-width: 100%;
+    /* clip, not hidden. html already has overflow-x: hidden, so body's overflow is
+       not handed over to the viewport - with hidden, body itself became a scroll
+       container and every position: sticky in the app stuck to body instead of the
+       window, i.e. never stuck at all (RWD audit 07.11.2026). hidden stays as the
+       fallback for browsers without clip (Safari < 16). */
     overflow-x: hidden;
+    overflow-x: clip;
     /* No rubber-band sideways drag when a child does overflow by a pixel. */
     overscroll-behavior-x: none;
   }

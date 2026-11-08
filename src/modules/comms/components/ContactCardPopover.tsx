@@ -17,8 +17,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { createPortal } from 'react-dom';
 import { Link, useNavigate } from 'react-router-dom';
 import styled from 'styled-components';
-import { Car, Link2, Loader2, Motorbike, Search, UserPlus, X } from 'lucide-react';
+import { Link2, Loader2, Search, UserPlus, X } from 'lucide-react';
 import { normalizeVehicleKind } from '@/modules/vehicles/vehicleKind';
+import { VEHICLE_KIND_ICON } from '@/modules/vehicles/components/vehicleKindIcon';
 import { useQueryClient } from '@tanstack/react-query';
 import { customerApi } from '@/modules/customers/api/customerApi';
 import { customerEditApi } from '@/modules/customers/api/customerEditApi';
@@ -364,6 +365,11 @@ function splitName(full: string | null): { firstName: string; lastName: string }
 }
 
 /** Nad skrzynką wystarczy 120; otwarta z okna musi przebić jego 1000. */
+const VehicleKindIcon = ({ kind }: { kind?: string | null }) => {
+    const Icon = VEHICLE_KIND_ICON[normalizeVehicleKind(kind)];
+    return <Icon size={13} />;
+};
+
 const DEFAULT_Z_INDEX = 120;
 
 interface ContactCardPopoverProps {
@@ -597,10 +603,8 @@ export function ContactCardPopover({
                                                 );
                                             }}
                                         >
-                                            {/* Ikona wg rodzaju - motocykl w kartotece nie udaje auta. */}
-                                            {normalizeVehicleKind(vehicle.kind) === 'MOTORCYCLE'
-                                                ? <Motorbike size={13} />
-                                                : <Car size={13} />}
+                                            {/* Ikona wg rodzaju - motocykl ani „Inny" w kartotece nie udają auta. */}
+                                            <VehicleKindIcon kind={vehicle.kind} />
                                             <span>
                                                 {vehicle.brand} {vehicle.model}
                                                 {vehicle.year && ` (${vehicle.year})`}

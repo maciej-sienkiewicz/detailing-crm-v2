@@ -351,7 +351,18 @@ const Controls = styled.div`
         width: 100%;
 
         > * { display: flex; width: 100%; }
-        > * > button { flex: 1 1 0; min-width: 0; padding: 0 8px; }
+        /* Podpis łamie się w dwie linie zamiast wychodzić za połowę paska
+           („Typowy wynik z 6 okresów" na 375 px, audyt RWD 07.11.2026). */
+        > * > button {
+            flex: 1 1 0;
+            min-width: 0;
+            height: auto;
+            min-height: 40px;
+            padding: 4px 8px;
+            white-space: normal;
+            line-height: 1.2;
+            text-align: center;
+        }
     }
 `;
 

@@ -6,7 +6,6 @@
 // po potwierdzeniu. Na telefonie nie ma kodu QR - telefon od razu przechodzi na skrót.
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { cleanup, render, screen } from '@testing-library/react';
-import { MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import userEvent from '@testing-library/user-event';
 import { ThemeProvider } from 'styled-components';
 import { theme } from '@/common/theme';
@@ -29,6 +28,7 @@ const renderIn = (ui: React.ReactNode) => render(<ThemeProvider theme={theme}>{u
 
 afterEach(() => {
     cleanup();
+    vi.unstubAllGlobals();
     vi.clearAllMocks();
     state.phone = false;
     state.token = 'tok-1';
@@ -56,23 +56,30 @@ describe('VoiceShortcutSetup', () => {
 
     // Zgłoszenie z 27.10: strona ustawień dodana do ekranu głównego otwierała się na
     // logowaniu. Na telefonie od razu przechodzimy na sam skrót - to on działa bez sesji.
-    it('na telefonie przechodzi od razu na skrót z tokenem we fragmencie', () => {
+    // Zgłoszenie z 07.11: przejście w aplikacji zostawiało Safari manifest CRM pobrany
+    // na stronie ustawień, więc skrót ma się wczytać jako nowy dokument.
+    it('na telefonie wczytuje od nowa stronę skrótu z tokenem we fragmencie', () => {
         state.phone = true;
-        const Shortcut = () => {
-            const { hash } = useLocation();
-            return <output data-testid="shortcut">{hash}</output>;
-        };
-        renderIn(
-            <MemoryRouter initialEntries={['/settings?tab=phone&view=voice']}>
-                <Routes>
-                    <Route path="/settings" element={<VoiceShortcutSetup />} />
-                    <Route path="/m/voice" element={<Shortcut />} />
-                </Routes>
-            </MemoryRouter>,
-        );
+        const replace = vi.fn();
+        vi.stubGlobal('location', { ...window.location, origin: 'https://crm.example', replace });
+
+        renderIn(<VoiceShortcutSetup />);
 
         expect(screen.queryByTestId('qr')).toBeNull();
-        expect(screen.getByTestId('shortcut').textContent).toBe('#token=tok-1');
+        expect(replace).toHaveBeenCalledTimes(1);
+        expect(replace).toHaveBeenCalledWith('https://crm.example/m/voice#token=tok-1');
+    });
+
+    it('na telefonie bez tokenu nie przekierowuje, tylko mówi, że skrótów nie ma', () => {
+        state.phone = true;
+        state.token = null;
+        const replace = vi.fn();
+        vi.stubGlobal('location', { ...window.location, replace });
+
+        renderIn(<VoiceShortcutSetup />);
+
+        expect(replace).not.toHaveBeenCalled();
+        expect(screen.getByText('Skróty głosowe nie są dostępne dla tego konta.')).toBeTruthy();
     });
 
     it('bez tokenu mówi, że skrótów nie ma, i nie daje ich unieważnić', () => {

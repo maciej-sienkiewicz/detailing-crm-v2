@@ -8,9 +8,8 @@
 // aplikacji przyszły z dawnej strony „Skróty mobilne" (/mobile-shortcuts), do której
 // nic w aplikacji nie linkowało.
 
-import { useState, type ReactNode } from 'react';
+import { useEffect, useState, type ReactNode } from 'react';
 import styled from 'styled-components';
-import { Navigate } from 'react-router-dom';
 import { QRCodeSVG } from 'qrcode.react';
 import { ConfirmationModal } from '@/common/components/ConfirmationModal';
 import { Button, Notice, Panel, SectionTitle, Segmented, ui } from '@/common/components/ui';
@@ -119,24 +118,28 @@ export function VoiceShortcutSetup() {
     const rotate = useRotateMobileShortcutToken();
     const [confirmRotate, setConfirmRotate] = useState(false);
 
-    if (isLoading) return <Placeholder aria-busy="true" />;
-    if (!token) {
-        return <Notice tone="info">Skróty głosowe nie są dostępne dla tego konta.</Notice>;
-    }
-
     // Token we fragmencie (#), nie w query stringu: fragment nie trafia do serwera,
     // więc ani do logów proxy, ani do nagłówka Referer.
-    const hash = `#token=${encodeURIComponent(token)}`;
-    const url = `${window.location.origin}/m/voice${hash}`;
+    const url = token ? `${window.location.origin}/m/voice#token=${encodeURIComponent(token)}` : null;
 
     // Na telefonie ta strona przekierowuje od razu na sam skrót (jak dawne „Skróty
     // mobilne"). Dodana do ekranu głównego wprost z ustawień ikona startowała z manifestu
     // CRM - na Tablicy, a w aplikacji z ekranu głównego iPhone'a nie ma sesji z Safari,
     // więc kończyło się logowaniem (zgłoszenie z 27.10). Działa bez logowania wyłącznie
-    // `/m/voice` z tokenem i własnym manifestem, więc to ją telefon ma dodać - a dawny
-    // przycisk „Otwórz skrót" łatwo było przeoczyć i dodać stronę ustawień.
-    if (isMobileDevice()) {
-        return <Navigate to={{ pathname: '/m/voice', hash }} replace />;
+    // `/m/voice` z tokenem i własnym manifestem, więc to ją telefon ma dodać.
+    //
+    // Pełne wczytanie strony, nie przejście w aplikacji (zgłoszenie z 07.11: ikona dalej
+    // otwierała Tablicę). Safari pobiera manifest raz na dokument i pamięta go do jego
+    // końca - podmiana linku po przejściu w aplikacji nic nie zmienia, gdy manifest CRM
+    // został już pobrany na stronie ustawień. Nowy dokument zaczyna od czystej karty.
+    const redirect = isMobileDevice() && url !== null;
+    useEffect(() => {
+        if (redirect) window.location.replace(url);
+    }, [redirect, url]);
+
+    if (isLoading || redirect) return <Placeholder aria-busy="true" />;
+    if (!url) {
+        return <Notice tone="info">Skróty głosowe nie są dostępne dla tego konta.</Notice>;
     }
 
     return (

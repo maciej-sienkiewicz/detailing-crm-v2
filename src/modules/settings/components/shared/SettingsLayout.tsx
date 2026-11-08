@@ -225,8 +225,8 @@ export function HelpModal({ content, onClose }: { content: HelpContent; onClose:
 // ─── Pasek zapisu ─────────────────────────────────────────────────────────────
 
 /*
- * Stały przy dolnej krawędzi okna, bo `position: sticky` nie działa pod kontenerem
- * aplikacji z `overflow-x: hidden`. Na telefonie stoi nad dolną nawigacją.
+ * Stały przy dolnej krawędzi okna (fixed), niezależnie od tego, gdzie w treści stoi
+ * edytowana sekcja. Na telefonie stoi nad dolną nawigacją.
  * Ciemny, żeby nie zlewał się z białymi kartami sekcji; jedyne wypełnienie to
  * „Zapisz zmiany" - otwarty edytor przejmuje okno (CLAUDE.md §2, wyjątek edytora).
  */

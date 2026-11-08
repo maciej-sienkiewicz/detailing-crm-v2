@@ -10,6 +10,7 @@
  */
 
 import { useState } from 'react';
+import { mileageUnit, type VehicleKind } from '@/modules/vehicles/vehicleKind';
 import styled from 'styled-components';
 import {
     ModalShell, ModalHeader, ModalTitleGroup, ModalTitle,
@@ -123,11 +124,14 @@ const MAX_MILEAGE = 1_000_000;
 interface MileageModalProps {
     isOpen: boolean;
     mileage?: number;
+    /** Rodzaj pojazdu - „Inny" (samolot, skuter wodny) liczy motogodziny, więc bez „km". */
+    vehicleKind?: VehicleKind;
     onSave: (mileage: number) => void;
     onClose: () => void;
 }
 
-export const MileageModal = ({ isOpen, mileage, onSave, onClose }: MileageModalProps) => {
+export const MileageModal = ({ isOpen, mileage, vehicleKind, onSave, onClose }: MileageModalProps) => {
+    const unit = mileageUnit(vehicleKind);
     const hasMileage = typeof mileage === 'number' && mileage > 0;
     /* Okno montuje się dopiero przy otwarciu (patrz InfoCards), więc stan
        startowy bierzemy z propsów przy pierwszym renderze. Efekt, który
@@ -145,8 +149,8 @@ export const MileageModal = ({ isOpen, mileage, onSave, onClose }: MileageModalP
     const valid = isNumeric && !tooBig;
 
     const error = isEmpty ? 'Podaj przebieg'
-        : !isNumeric ? 'Przebieg to liczba kilometrów, bez liter'
-        : tooBig ? 'Sprawdź wartość - to więcej niż milion kilometrów'
+        : !isNumeric ? (unit ? 'Przebieg to liczba kilometrów, bez liter' : 'Przebieg to liczba, bez liter')
+        : tooBig ? (unit ? 'Sprawdź wartość - to więcej niż milion kilometrów' : 'Sprawdź wartość - to więcej niż milion')
         : null;
 
     const handleSubmit = (e: React.FormEvent) => {
@@ -183,7 +187,7 @@ export const MileageModal = ({ isOpen, mileage, onSave, onClose }: MileageModalP
                                 onChange={e => setDraft(e.target.value)}
                                 placeholder="np. 124 000"
                             />
-                            <Unit>km</Unit>
+                            {unit && <Unit>{unit}</Unit>}
                         </InputRow>
                         {touched && error && <FieldError>{error}</FieldError>}
                     </Field>

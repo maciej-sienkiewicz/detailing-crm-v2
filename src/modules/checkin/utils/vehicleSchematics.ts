@@ -42,13 +42,21 @@ export const DEFAULT_VEHICLE_SCHEMATIC: VehicleSchematicType = 'sedan';
 export const isVehicleSchematicType = (value: string | null | undefined): value is VehicleSchematicType =>
     VEHICLE_SCHEMATICS.some(option => option.value === value);
 
+const DEFAULT_SCHEMATIC_FOR_KIND: Record<VehicleKind, VehicleSchematicType> = {
+    CAR: DEFAULT_VEHICLE_SCHEMATIC,
+    MOTORCYCLE: 'motorcycle',
+    // „Inny" nie ma mapy uszkodzeń (hasDamageMap). Sedan tylko po to, żeby odpowiedź
+    // istniała - tak samo jak w backendzie.
+    OTHER: DEFAULT_VEHICLE_SCHEMATIC,
+};
+
 /**
  * Schemat, od którego startuje mapa uszkodzeń, dopóki pracownik nie wybierze innego.
  * Musi zgadzać się z `VehicleSchematics.defaultFor` w backendzie: raport PDF rysuje
  * punkty bez wybranego typu właśnie na tym rysunku.
  */
 export const defaultSchematicForKind = (kind: VehicleKind | null | undefined): VehicleSchematicType =>
-    kind === 'MOTORCYCLE' ? 'motorcycle' : DEFAULT_VEHICLE_SCHEMATIC;
+    DEFAULT_SCHEMATIC_FOR_KIND[kind ?? 'CAR'];
 
 /** Typ do narysowania: nieznany albo pusty (stara mapa, ręcznie zmieniony adres) = sedan. */
 export const resolveVehicleSchematic = (value: string | null | undefined): VehicleSchematicType =>

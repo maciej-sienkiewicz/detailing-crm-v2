@@ -187,10 +187,10 @@ const dockIn = keyframes`
  *
  * Po przewinięciu za zakładki pasek przypina się do góry ekranu: „Konta" mają kilka
  * ekranów, „Inspiracje" kilkanaście, a powrót na górę tylko po to, żeby zmienić zakładkę,
- * był najczęstszym ruchem kciuka w tym module. `position: sticky` tu nie działa - kontener
- * układu aplikacji ma `overflow-x: hidden` i to on, a nie dokument, jest dla sticky
- * przewijanym rodzicem. Zmiana tego w powłoce przestawiłaby sticky w całej aplikacji,
- * więc przypinamy sam ten pasek.
+ * był najczęstszym ruchem kciuka w tym module. Pasek przypinamy sam (fixed), bo powstał,
+ * gdy `position: sticky` w aplikacji nie działało: body i kontener układu miały
+ * `overflow-x: hidden` i to one były dla sticky przewijanym rodzicem. Od audytu RWD
+ * 07.11.2026 oba mają `clip` i sticky działa, ale przypięcie z animacją wjazdu zostaje.
  */
 const TabsDock = styled.div<{ $docked: boolean }>`
     > nav { gap: 0; }

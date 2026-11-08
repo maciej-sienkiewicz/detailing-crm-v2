@@ -132,7 +132,8 @@ const slideDown = keyframes`
 const Card = styled.div<{ $leaving: boolean }>`
     position: fixed;
     right: 28px;
-    bottom: 28px;
+    /* Nad przyklejoną stopką formularza, jeśli widok ją ma (StickyFormFooter). */
+    bottom: calc(28px + var(--sticky-footer-space, 0px));
     /* Nad treścią i dolnym paskiem (97), pod oknami (1000) - jak zachęta do powiadomień. */
     z-index: 98;
     width: min(392px, calc(100vw - 56px));
@@ -146,7 +147,10 @@ const Card = styled.div<{ $leaving: boolean }>`
     animation: ${slideUp} 520ms cubic-bezier(0.16, 1, 0.3, 1) both;
     ${p => p.$leaving && css`animation: ${slideDown} ${LEAVE_MS}ms ease-in both;`}
 
-    @media (max-width: ${props => props.theme.breakpoints.md}) { display: none; }
+    @media (max-width: ${props => props.theme.below.md}) { display: none; }
+    /* Telefon w poziomie ma szerokość komputera, ale ok. 390 px wysokości: chmurka
+       zasłaniała pół ekranu, łącznie z siatką kalendarza. */
+    @media (max-height: 560px) { display: none; }
     @media (prefers-reduced-motion: reduce) { animation: none; }
 `;
 

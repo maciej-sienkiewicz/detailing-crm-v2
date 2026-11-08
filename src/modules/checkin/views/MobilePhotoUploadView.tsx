@@ -118,10 +118,12 @@ export const MobilePhotoUploadView = ({ token }: Props) => {
     const damageLogic = useMobileDamageLogic(
         token,
         photoLogic.isOnline,
-        // Sesje plików wizyty i odczytu VIN nie mają mapy uszkodzeń - nie pytamy o nią serwera.
+        // Sesje plików wizyty i odczytu VIN, a także przyjęcie pojazdu „Inny", nie mają mapy
+        // uszkodzeń - nie pytamy o nią serwera.
         photoLogic.sessionState === 'active'
             && photoLogic.context?.purpose !== 'VISIT_FILES'
-            && photoLogic.context?.purpose !== 'VIN_SCAN',
+            && photoLogic.context?.purpose !== 'VIN_SCAN'
+            && photoLogic.context?.damageMap !== false,
     );
 
     // ─── Loading ──────────────────────────────────────────────────────────────
@@ -248,7 +250,12 @@ export const MobilePhotoUploadView = ({ token }: Props) => {
      * do galerii wizyty. Mapa uszkodzeń ma tam własny kod QR i własne okno.
      */
     const photosOnly = context?.purpose === 'VISIT_FILES';
-    const currentTab: ActiveTab = damageOnly ? 'damage' : photosOnly ? 'photos' : activeTab;
+    /*
+     * Przyjęcie pojazdu „Inny": komputer nie pokazuje mapy uszkodzeń, więc telefon też
+     * nie - zostają same zdjęcia. W odróżnieniu od plików wizyty „Gotowe" działa bez nich.
+     */
+    const withoutDamageMap = !damageOnly && context?.damageMap === false;
+    const currentTab: ActiveTab = damageOnly ? 'damage' : photosOnly || withoutDamageMap ? 'photos' : activeTab;
     // Przy plikach wizyty „Gotowe" bez żadnego zdjęcia nic by nie znaczyło.
     const nothingSent = photosOnly && doneCount === 0;
 
@@ -257,7 +264,7 @@ export const MobilePhotoUploadView = ({ token }: Props) => {
             <PageHeader context={context} title={title} />
 
             {/* Tab navigation */}
-            {!damageOnly && !photosOnly && <TabBar role="tablist">
+            {!damageOnly && !photosOnly && !withoutDamageMap && <TabBar role="tablist">
                 <Tab
                     role="tab"
                     aria-selected={activeTab === 'photos'}

@@ -533,6 +533,7 @@ const KIND_OPTIONS: { value: VehicleKindFilter; label: string }[] = [
     { value: 'ALL', label: 'Wszystkie' },
     { value: 'CAR', label: 'Samochody' },
     { value: 'MOTORCYCLE', label: 'Motocykle' },
+    { value: 'OTHER', label: 'Inne' },
 ];
 
 // ─── Props ────────────────────────────────────────────────────────────────────

@@ -73,6 +73,8 @@ export interface BoardColumnMeta {
     title: string;
     /** Jedno zdanie w pustej kolumnie - co tu trafia. */
     empty: string;
+    /** Krok przepływu na pustej tablicy: kiedy lead stoi w tej kolumnie. */
+    flow: string;
     /** Odcień kolumny: kropka przy nagłówku i plakietka licznika (bez wypełnień, CLAUDE.md §2). */
     tone: { dot: string; tint: string; ink: string };
     /** Czy suma wycen ma tu sens - wyłącznie tam, gdzie sprawy przeszły już przez wycenę. */
@@ -84,6 +86,7 @@ export const BOARD_COLUMNS: BoardColumnMeta[] = [
         key: 'AWAITING_REPLY',
         title: 'Czeka na nas',
         empty: 'Nikt nie czeka na naszą odpowiedź.',
+        flow: 'Klient napisał i czeka na odpowiedź.',
         tone: { dot: '#0369a1', tint: '#e7f6fd', ink: '#0e6fa0' },
         showsValue: false,
     },
@@ -91,6 +94,7 @@ export const BOARD_COLUMNS: BoardColumnMeta[] = [
         key: 'REPLIED',
         title: 'Czeka na klienta',
         empty: 'Tu trafiają leady, w których piłka jest u klienta.',
+        flow: 'Studio odpisało. Klient ma odpowiedzieć.',
         tone: { dot: '#8b5cf6', tint: '#f3effe', ink: '#6d28d9' },
         showsValue: true,
     },
@@ -98,6 +102,7 @@ export const BOARD_COLUMNS: BoardColumnMeta[] = [
         key: 'NEEDS_REMINDER',
         title: 'Do przypomnienia',
         empty: `Tu trafiają leady po ${REMIND_AFTER_DAYS} dniach ciszy klienta.`,
+        flow: `Klient milczy od ${REMIND_AFTER_DAYS} dni.`,
         tone: { dot: '#f59e0b', tint: '#fef6e4', ink: '#b45309' },
         showsValue: true,
     },
@@ -105,6 +110,7 @@ export const BOARD_COLUMNS: BoardColumnMeta[] = [
         key: 'LAPSED',
         title: 'Ucichło',
         empty: `Tu trafiają leady po ${LAPSE_AFTER_DAYS} dniach ciszy klienta. Zostają, dopóki ich nie zamkniesz.`,
+        flow: `Klient milczy od ${LAPSE_AFTER_DAYS} dni. Lead zostaje do zamknięcia.`,
         // Szarość, nie czerwień: sprawa ucichła, ale nie przepadła - jej status się nie zmienia.
         tone: { dot: '#94a3b8', tint: '#f1f5f9', ink: '#475569' },
         showsValue: true,
@@ -236,6 +242,32 @@ export function buildBoard(
         const cards = buckets.get(meta.key)!.sort(byWaiting);
         return { ...meta, cards, value: cards.reduce((sum, card) => sum + quoteTotal(card.lead), 0) };
     });
+}
+
+// ── Pusta tablica (inbox/board/BoardEmpty.tsx) ───────────────────────────────
+
+export type BoardEmptyKind =
+    /** Nie ma ani jednego otwartego leada. */
+    | 'none'
+    /** Otwarte leady są, ale wszystkie mają rezerwację - te stoją tylko na liście. */
+    | 'booked'
+    /** Nic nie pasuje do szukanego tekstu. */
+    | 'search';
+
+/**
+ * Który pusty stan pokazać; null - tablica ma karty albo jeszcze się ładuje.
+ * W trakcie przeciągania nigdy: karta w ręce stoi na tablicy, choćby jedyna.
+ */
+export function boardEmptyKind(state: {
+    loading: boolean;
+    dragging: boolean;
+    onBoard: number;
+    openLeads: number;
+    query: string;
+}): BoardEmptyKind | null {
+    if (state.loading || state.dragging || state.onBoard > 0) return null;
+    if (state.query.trim()) return 'search';
+    return state.openLeads === 0 ? 'none' : 'booked';
 }
 
 /**

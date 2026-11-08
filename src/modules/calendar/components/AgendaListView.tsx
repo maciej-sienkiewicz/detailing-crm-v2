@@ -299,6 +299,13 @@ const EventMetaRow = styled(EventMeta)`
         overflow: hidden;
         text-overflow: ellipsis;
     }
+
+    /* Tablica (u wizyty druga po aucie) nie skraca się: na telefonie obok kolumny
+       usług zostawało z niej „WI7W..." - a po tablicy szuka się auta na placu.
+       Wielokropek dostaje nazwa modelu (audyt RWD 07.11.2026). */
+    & > span:nth-child(2) {
+        flex-shrink: 0;
+    }
 `;
 
 /*
@@ -322,6 +329,12 @@ const ServicesAside = styled.ul`
     justify-content: center;
     align-items: flex-end;
     gap: 3px;
+
+    /* Karta telefonu (~350 px): 45% na usługi zostawiało nazwie klienta i tytułowi
+       ok. 190 px. Usługi i tak są ucinane, więc oddają część miejsca lewej stronie. */
+    @container agenda-card (max-width: 420px) {
+        max-width: 38%;
+    }
 
     @container agenda-card (max-width: 300px) {
         display: none;

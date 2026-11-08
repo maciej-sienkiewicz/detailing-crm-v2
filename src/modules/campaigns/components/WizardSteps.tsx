@@ -90,6 +90,25 @@ const Line = styled.span`
     background: ${p => p.theme.colors.border};
 `;
 
+/*
+ * Na telefonie cztery nazwy to ok. 400 px na 343: listwa łamała się w dwie linie,
+ * a druga zaczynała się od osieroconej kreski (audyt RWD 07.11.2026). Nazwę ma tylko
+ * krok bieżący, pozostałe zostają znacznikami - numer kroku stoi w nagłówku
+ * („Krok 1 z 4"). Ukryte nazwy dalej czyta czytnik ekranu.
+ */
+const StepLabel = styled.span<{ $state: 'done' | 'current' | 'todo' }>`
+    @media (max-width: ${p => p.theme.below.sm}) {
+        ${p => p.$state !== 'current' && `
+            position: absolute;
+            width: 1px;
+            height: 1px;
+            overflow: hidden;
+            clip: rect(0 0 0 0);
+            white-space: nowrap;
+        `}
+    }
+`;
+
 export interface WizardStep {
     id: string;
     label: string;
@@ -118,7 +137,7 @@ export function WizardSteps({ steps, currentStepId, onStepClick }: Props) {
                             onClick={() => state !== 'current' && onStepClick(step.id)}
                         >
                             <Mark $state={state}>{state === 'done' && <Check />}</Mark>
-                            {step.label}
+                            <StepLabel $state={state}>{step.label}</StepLabel>
                         </Item>
                     </span>
                 );

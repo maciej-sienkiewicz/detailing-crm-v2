@@ -1,31 +1,32 @@
 // src/modules/vehicles/components/VehicleKindSwitch.tsx
 //
-// „Samochód / Motocykl" w każdym formularzu, w którym powstaje albo zmienia się pojazd.
-// Stoi nad marką, bo to on decyduje, z którego katalogu podpowiadamy marki i modele.
-// Zbudowany na Segmented: wybrana opcja leży na białym klawiszu, bez wypełnienia -
-// to stan pola, a nie krok następny (CLAUDE.md §2).
+// „Samochód / Motocykl / Inny" w każdym formularzu, w którym powstaje albo zmienia się
+// pojazd. Stoi nad marką, bo to on decyduje, z którego katalogu podpowiadamy marki
+// i modele (dla „Inny" - żadnego, pola są do wpisania). Zbudowany na Segmented:
+// wybrana opcja leży na białym klawiszu, bez wypełnienia - to stan pola, a nie krok
+// następny (CLAUDE.md §2).
 
-import { Car, Motorbike } from 'lucide-react';
 import styled from 'styled-components';
 import { Segmented, touch } from '@/common/components/ui';
-import { VEHICLE_KIND_LABEL, type VehicleKind } from '../vehicleKind';
+import { VEHICLE_KINDS, VEHICLE_KIND_LABEL, type VehicleKind } from '../vehicleKind';
+import { VEHICLE_KIND_ICON } from './vehicleKindIcon';
 
 const ICON_SIZE = 15;
 
-const OPTIONS = [
-    { value: 'CAR' as const, label: <><Car size={ICON_SIZE} aria-hidden="true" />{VEHICLE_KIND_LABEL.CAR}</> },
-    { value: 'MOTORCYCLE' as const, label: <><Motorbike size={ICON_SIZE} aria-hidden="true" />{VEHICLE_KIND_LABEL.MOTORCYCLE}</> },
-];
+const OPTIONS = VEHICLE_KINDS.map(kind => {
+    const Icon = VEHICLE_KIND_ICON[kind];
+    return { value: kind, label: <><Icon size={ICON_SIZE} aria-hidden="true" />{VEHICLE_KIND_LABEL[kind]}</> };
+});
 
 /*
  * Wariant przy etykiecie pola w gęstych formularzach (szybka rezerwacja z kalendarza):
  * większość pojazdów to auta, więc przełącznik ma być pod ręką, ale nie konkurować
  * z polami - same ikony, nazwa w dymku i dla czytnika.
  */
-const ICON_OPTIONS = [
-    { value: 'CAR' as const, label: <Car size={14} aria-hidden="true" />, ariaLabel: VEHICLE_KIND_LABEL.CAR },
-    { value: 'MOTORCYCLE' as const, label: <Motorbike size={14} aria-hidden="true" />, ariaLabel: VEHICLE_KIND_LABEL.MOTORCYCLE },
-];
+const ICON_OPTIONS = VEHICLE_KINDS.map(kind => {
+    const Icon = VEHICLE_KIND_ICON[kind];
+    return { value: kind, label: <Icon size={14} aria-hidden="true" />, ariaLabel: VEHICLE_KIND_LABEL[kind] };
+});
 
 const IconSegmented = styled(Segmented<VehicleKind>)`
     padding: 2px;

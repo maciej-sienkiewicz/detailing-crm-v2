@@ -128,7 +128,8 @@ export interface VehicleFilters {
 
 export interface CreateVehiclePayload {
     kind?: VehicleKind;
-    licensePlate: string;
+    /** Brak - pojazd bez numeru (tylko „Inny"). */
+    licensePlate?: string;
     brand: string;
     model: string;
     yearOfProduction: number;

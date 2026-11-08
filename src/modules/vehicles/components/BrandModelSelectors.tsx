@@ -4,7 +4,7 @@ import styled from 'styled-components';
 import { createPortal } from 'react-dom';
 import { useBreakpoint, useVisualViewportSheet } from '@/common/hooks';
 import { useVehicleMetadata } from '../hooks/useVehicleMetadata';
-import type { VehicleKindFilter } from '../vehicleKind';
+import { hasBrandCatalog, type VehicleKindFilter } from '../vehicleKind';
 
 // Reuse ColorDropdown-like styling
 const DropdownContainer = styled.div`
@@ -59,6 +59,67 @@ const Caret = styled.span`
   padding: 3px;
   transform: rotate(45deg);
 `;
+
+/*
+ * Pole marki i modelu pojazdu „Inny". Lawety, samoloty i skutery wodne nie mają
+ * katalogu, więc marka i model są do wpisania. Wygląda jak przycisk katalogu (ta sama
+ * ramka, w wariancie compact ten sam goły tekst) - formularz nie zmienia kształtu, gdy
+ * zmienia się rodzaj.
+ */
+const FreeTextInput = styled.input<{ $compact?: boolean }>`
+  width: 100%;
+  min-width: 0;
+  font-family: inherit;
+  font-size: 14px;
+  color: #0f172a;
+  ${props => props.$compact ? `
+    padding: 0;
+    border: none;
+    background: transparent;
+    line-height: 1.4;
+    &:focus { outline: none; }
+  ` : `
+    padding: 9px 12px;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #F8FAFC;
+    &:hover { border-color: #cbd5e1; background: #ffffff; }
+    &:focus {
+      outline: none;
+      background: #ffffff;
+      border-color: var(--brand-ink);
+      box-shadow: 0 0 0 3px rgba(3, 105, 161, 0.1);
+    }
+  `}
+  &::placeholder { color: ${props => props.theme.colors.textMuted}; }
+`;
+
+interface FreeTextFieldProps {
+  label: string;
+  value?: string;
+  onChange: (value: string) => void;
+  placeholder: string;
+  onBlur?: () => void;
+  compact?: boolean;
+}
+
+/*
+ * autoOpen i onDone celowo nie przechodzą: w katalogu otwierają listę następnego pola,
+ * a tu każda litera marki zmienia wartość - pole modelu kradłoby fokus w pół słowa.
+ */
+const FreeTextField = ({ label, value, onChange, placeholder, onBlur, compact }: FreeTextFieldProps) => (
+  <FreeTextInput
+    type="text"
+    aria-label={label}
+    value={value ?? ''}
+    onChange={e => onChange(e.target.value)}
+    onBlur={onBlur}
+    placeholder={placeholder}
+    maxLength={50}
+    autoComplete="off"
+    $compact={compact}
+  />
+);
 
 // Portal-based menu to escape clipping by modal scroll containers
 const PortalMenu = styled.div`
@@ -413,7 +474,7 @@ type MenuStyle = { top?: number; bottom?: number; left: number; width: number; m
 interface BrandSelectProps {
   value?: string;
   onChange: (brand: string) => void;
-  /** Katalog marek: samochody (domyślnie), motocykle albo oba naraz (filtry). */
+  /** Katalog marek: samochody (domyślnie), motocykle, oba naraz (filtry); „Inny" - pole do wpisania. */
   kind?: VehicleKindFilter;
   placeholder?: string;
   onBlur?: () => void;
@@ -422,7 +483,13 @@ interface BrandSelectProps {
   onDone?: () => void;
 }
 
-export const BrandSelect = ({ value, onChange, kind = 'CAR', placeholder = 'Wybierz markę', onBlur, autoOpen = false, compact = false, onDone }: BrandSelectProps) => {
+/** Marka z katalogu rodzaju; pojazd „Inny" katalogu nie ma i markę się wpisuje. */
+export const BrandSelect = (props: BrandSelectProps) =>
+  hasBrandCatalog(props.kind ?? 'CAR')
+    ? <CatalogBrandSelect {...props} />
+    : <FreeTextField label="Marka" value={props.value} onChange={props.onChange} placeholder="Wpisz markę" onBlur={props.onBlur} compact={props.compact} />;
+
+const CatalogBrandSelect = ({ value, onChange, kind = 'CAR', placeholder = 'Wybierz markę', onBlur, autoOpen = false, compact = false, onDone }: BrandSelectProps) => {
   const { data, isLoading } = useVehicleMetadata(kind);
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);
@@ -602,7 +669,13 @@ interface ModelSelectProps {
   onDone?: () => void;
 }
 
-export const ModelSelect = ({ brand, kind = 'CAR', value, onChange, placeholder = 'Wybierz model', onBlur, autoOpen = false, compact = false, onDone }: ModelSelectProps) => {
+/** Model z katalogu wybranej marki; pojazd „Inny" katalogu nie ma i model się wpisuje. */
+export const ModelSelect = (props: ModelSelectProps) =>
+  hasBrandCatalog(props.kind ?? 'CAR')
+    ? <CatalogModelSelect {...props} />
+    : <FreeTextField label="Model" value={props.value} onChange={props.onChange} placeholder="Wpisz model" onBlur={props.onBlur} compact={props.compact} />;
+
+const CatalogModelSelect = ({ brand, kind = 'CAR', value, onChange, placeholder = 'Wybierz model', onBlur, autoOpen = false, compact = false, onDone }: ModelSelectProps) => {
   const { data, isLoading } = useVehicleMetadata(kind);
   const [open, setOpen] = useState(false);
   const containerRef = useRef<HTMLDivElement | null>(null);

@@ -1,7 +1,8 @@
-import { breakpoints } from './breakpoints';
+import { below, breakpoints } from './breakpoints';
 
 export const theme = {
     breakpoints,
+    below,
 
     colors: {
         background: '#eef2f7',

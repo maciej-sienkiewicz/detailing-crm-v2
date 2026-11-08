@@ -108,6 +108,22 @@ const RangeGroup = styled.div`
   border-radius: 9px;
   padding: 2px;
   gap: 2px;
+
+  /* Trzy opcje to ok. 365 px, a na telefonie w pasku jest 311: „Własny zakres"
+     wychodził za ekran (audyt RWD 07.11.2026). Grupa zajmuje cały wiersz, a podpisy
+     łamią się w dwie linie zamiast wystawać. */
+  @media (max-width: ${p => p.theme.below.sm}) {
+    display: flex;
+    width: 100%;
+
+    > button {
+      flex: 1 1 0;
+      min-width: 0;
+      padding: 6px 8px;
+      white-space: normal;
+      line-height: 1.25;
+    }
+  }
 `;
 
 const DateInput = styled.input`
