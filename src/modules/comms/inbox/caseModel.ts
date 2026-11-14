@@ -157,7 +157,10 @@ export const caseTitle = (lead: Lead): string =>
 
 /** Linia pod tytułem rozmowy: „Jan Kowalski, jan.k@wp.pl". */
 export const caseSubtitle = (lead: Lead): string => {
+    // Nadawca bez podpisu przychodzi z adresem w miejscu imienia. To nie jest
+    // osobne imię, więc nie piszemy tego samego adresu dwa razy po przecinku.
     const name = lead.customerName?.trim();
-    if (!lead.vehicleBrand) return name && name !== lead.contactIdentifier ? lead.contactIdentifier : '';
-    return name ? `${name}, ${lead.contactIdentifier}` : lead.contactIdentifier;
+    const ownName = name && name.toLowerCase() !== lead.contactIdentifier.toLowerCase() ? name : '';
+    if (!lead.vehicleBrand) return ownName ? lead.contactIdentifier : '';
+    return ownName ? `${ownName}, ${lead.contactIdentifier}` : lead.contactIdentifier;
 };

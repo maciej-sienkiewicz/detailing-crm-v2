@@ -413,6 +413,7 @@ export function MailDetail({ threadId, listThread, phone, onBack, onArchived, on
                     onOpenFull={setFullMessageId}
                     alignBottom={false}
                     before={notices}
+                    threadSubject={thread.subject}
                 />
             ) : (
             <Reader ref={readerRef} $phone={phone}>

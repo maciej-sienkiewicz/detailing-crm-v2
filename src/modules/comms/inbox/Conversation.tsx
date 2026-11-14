@@ -14,7 +14,7 @@ import styled from 'styled-components';
 import { ArrowLeft, ChevronLeft, Paperclip } from 'lucide-react';
 import type { CommAttachment, CommMessage } from '../types';
 import { MessageBody } from '../components/MessageBody';
-import { isPreviewableAttachment, messageMoment, withEvents, type ConversationEvent } from './messageFormat';
+import { isPreviewableAttachment, messageMoment, topicChanges, withEvents, type ConversationEvent } from './messageFormat';
 import { followLatestMessage } from './latestMessageScroll';
 
 export type { ConversationEvent } from './messageFormat';
@@ -22,6 +22,7 @@ import { ix } from './tokens';
 
 const Header = styled.header<{ $phone: boolean }>`
     display: flex;
+    flex-wrap: wrap;
     align-items: center;
     gap: ${p => (p.$phone ? 4 : 12)}px;
     flex-shrink: 0;
@@ -39,6 +40,17 @@ const Header = styled.header<{ $phone: boolean }>`
         text-overflow: ellipsis;
         white-space: nowrap;
     }
+    /* Na telefonie tytułem Poczty jest temat, a w jednej linii mieściło się ok. 25
+       znaków - „Oklejanie folią PPF - Audi …" gubiło akurat auto. Dwie linie. */
+    ${p => p.$phone && `
+        h2 {
+            white-space: normal;
+            overflow-wrap: anywhere;
+            display: -webkit-box;
+            -webkit-box-orient: vertical;
+            -webkit-line-clamp: 2;
+        }
+    `}
     p {
         margin: ${p => (p.$phone ? 0 : '2px 0 0')};
         font-size: ${p => (p.$phone ? 13 : 14)}px;
@@ -46,6 +58,25 @@ const Header = styled.header<{ $phone: boolean }>`
         overflow: hidden;
         text-overflow: ellipsis;
         white-space: nowrap;
+    }
+    /* Temat to słowa klienta, nie nasz opis sprawy - stąd kolor treści, a etykieta
+       przygaszona jak podpis. Łamie się do dwóch linii: ucięty wielokropkiem gubił
+       końcówkę, w której klienci zwykle piszą auto. */
+    p.topic {
+        color: ${ix.ink};
+        white-space: normal;
+        overflow-wrap: anywhere;
+        display: -webkit-box;
+        -webkit-box-orient: vertical;
+        -webkit-line-clamp: 2;
+    }
+    p.topic span { color: ${ix.muted}; }
+    /* Telefon: kolumna tytułu ma obok przyciski i mieści ok. 25 znaków, więc temat
+       dostaje własny wiersz na całą szerokość, wyrównany do tytułu (za przyciskiem wstecz). */
+    > p.topic {
+        flex-basis: 100%;
+        margin: 0;
+        padding: 0 8px 0 ${p => (p.$phone ? 48 : 0)}px;
     }
     .actions { display: flex; align-items: center; gap: 8px; flex: none; }
 `;
@@ -72,13 +103,16 @@ const Back = styled.button.attrs({ type: 'button' })`
 interface ConversationHeaderProps {
     title: string;
     subtitle?: string;
+    /** Temat maila, gdy tytuł rozmowy go nie pokazuje (lead nosi nazwę auta albo osoby). */
+    topic?: string | null;
     phone: boolean;
     onBack?: () => void;
     children?: ReactNode;
     titleId?: string;
 }
 
-export function ConversationHeader({ title, subtitle, phone, onBack, children, titleId }: ConversationHeaderProps) {
+export function ConversationHeader({ title, subtitle, topic, phone, onBack, children, titleId }: ConversationHeaderProps) {
+    const topicLine = <p className="topic" title={topic ?? undefined}><span>Temat:</span> {topic}</p>;
     return (
         <Header $phone={phone}>
             {onBack && (
@@ -89,8 +123,10 @@ export function ConversationHeader({ title, subtitle, phone, onBack, children, t
             <div className="titles">
                 <h2 id={titleId} title={title}>{title}</h2>
                 {subtitle && <p title={subtitle}>{subtitle}</p>}
+                {topic && !phone && topicLine}
             </div>
             {children && <div className="actions">{children}</div>}
+            {topic && phone && topicLine}
         </Header>
     );
 }
@@ -150,6 +186,8 @@ const Section = styled.article<{ $out: boolean; $phone: boolean }>`
     }
     .who { font-size: 13px; font-weight: 600; color: ${p => (p.$out ? ix.accentInk : ix.inkSoft)}; }
     .when { margin-left: auto; font-size: 12px; color: ${ix.muted}; font-variant-numeric: tabular-nums; }
+    .topic { margin: -2px 0 8px; font-size: 13px; color: ${ix.ink}; overflow-wrap: anywhere; }
+    .topic span { color: ${ix.muted}; }
     .text { color: ${ix.ink}; overflow-wrap: anywhere; }
     .failed { margin-top: 6px; font-size: 12px; color: ${ix.late}; }
 `;
@@ -270,11 +308,17 @@ interface MailThreadProps {
      * rezerwacji. Wątek pokazuje wtedy całego leada, a nie tylko maile.
      */
     events?: ConversationEvent[];
+    /**
+     * Temat wątku, który rozmowa pokazuje już nad sobą. Wiadomość pokazuje własny
+     * temat tylko wtedy, gdy jest inny (bez „Re:") niż ten i niż temat poprzedniej.
+     */
+    threadSubject?: string | null;
 }
 
 /** Wątek maila jako sekcje: kto i kiedy w nagłówku, treść pod spodem. Otwiera się na ostatniej wiadomości. */
-export function MailThread({ messages, phone, onDownload, onPreview, onOpenFull, before, loading, alignBottom = true, events = [] }: MailThreadProps) {
+export function MailThread({ messages, phone, onDownload, onPreview, onOpenFull, before, loading, alignBottom = true, events = [], threadSubject }: MailThreadProps) {
     const scrollRef = useRef<HTMLDivElement>(null);
+    const topics = topicChanges(messages, threadSubject);
     const lastId = messages[messages.length - 1]?.id;
 
     // Nowa wiadomość albo otwarcie rozmowy - ostatnia wiadomość w całości, od jej początku.
@@ -300,6 +344,7 @@ export function MailThread({ messages, phone, onDownload, onPreview, onOpenFull,
                             <span className="who">{out ? 'Ty' : message.fromName ?? message.fromEmail}</span>
                             <span className="when">{messageMoment(message.sentAt)}</span>
                         </p>
+                        {topics.has(message.id) && <p className="topic"><span>Temat:</span> {topics.get(message.id)}</p>}
                         <div className="text">
                             <MessageBody
                                 html={message.bodyHtml ?? ''}

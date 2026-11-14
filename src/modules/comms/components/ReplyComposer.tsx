@@ -84,6 +84,8 @@ import { ix } from '../inbox/tokens';
 import { problemDetail } from '@/core/problem';
 import { useCapabilityGate } from '@/modules/subscription/hooks/useCapabilityGate';
 import { useAuth } from '@/core/context/AuthContext';
+import { discardUnsentReply, loadUnsentReply, saveUnsentReply, unsentReplyKey } from '../utils/unsentReplies';
+import { messageMoment } from '../inbox/messageFormat';
 
 /*
  * Rozsunięcie z przycisku „Odpisz": karta odsłania się od prawego dolnego rogu,
@@ -495,6 +497,16 @@ const DraftNote = styled.div`
        poprawki (ReplyDraftRevise) zawija się pod notkę na całą szerokość karty. */
     .side { display: contents; }
 
+    button.discard {
+        padding: 0 2px;
+        border: none;
+        background: none;
+        font: inherit;
+        color: ${ix.muted};
+        cursor: pointer;
+        &:hover { color: ${ix.ink}; text-decoration: underline; }
+    }
+
     button.close {
         display: inline-flex;
         align-items: center;
@@ -615,16 +627,23 @@ export function ReplyComposer({
     preparedHint = null,
 }: ReplyComposerProps) {
     const { user } = useAuth();
+    // Wersja robocza tej rozmowy (utils/unsentReplies): przejście do kalendarza odmontowuje
+    // okno i zabierało ze sobą wszystko, co ktoś zaczął pisać. Czytana raz, przy otwarciu -
+    // zmiana osoby PIN-em i tak montuje widok od nowa (ProtectedRoute, klucz po userId).
+    const userId = user?.userId ?? null;
+    const unsentKey = unsentReplyKey({ threadId, leadId, accountId });
+    const [unsent] = useState(() => (userId && unsentKey ? loadUnsentReply(userId, unsentKey) : null));
+    const [unsentSavedAt, setUnsentSavedAt] = useState(unsent?.reply.savedAt ?? null);
     const [expanded, setExpanded] = useState(false);
     const sheet = collapsible && expanded;
     // Pod kompozytorem na cały ekran wątek nie może się przewijać razem z palcem (CLAUDE.md §3).
     useEffect(() => (sheet ? acquireScrollLock() : undefined), [sheet]);
-    const [to, setTo] = useState(initialTo ?? '');
-    const [subject, setSubject] = useState('');
+    const [to, setTo] = useState(unsent?.reply.to ?? initialTo ?? '');
+    const [subject, setSubject] = useState(unsent?.reply.subject ?? '');
     // Surowy innerHTML edytora - normalizacja dopiero przy wysyłce i korekcie.
-    const [body, setBody] = useState('');
-    const [attachments, setAttachments] = useState<File[]>([]);
-    const [galleryPhotos, setGalleryPhotos] = useState<GalleryPhoto[]>([]);
+    const [body, setBody] = useState(unsent?.reply.body ?? '');
+    const [attachments, setAttachments] = useState<File[]>(unsent?.attachments ?? []);
+    const [galleryPhotos, setGalleryPhotos] = useState<GalleryPhoto[]>(unsent?.reply.galleryPhotos ?? []);
     const [galleryOpen, setGalleryOpen] = useState(false);
     const [dragging, setDragging] = useState(false);
     const [uploadProgress, setUploadProgress] = useState<number | null>(null);
@@ -636,13 +655,13 @@ export function ReplyComposer({
     const [signatureSettingsOpen, setSignatureSettingsOpen] = useState(false);
     // Ręczna decyzja użytkownika wygrywa z ustawieniem domyślnym stopki; dopóki jej
     // nie podjął, przełącznik pokazuje to, co sam skonfigurował w ustawieniach.
-    const [signatureChoice, setSignatureChoice] = useState<boolean | null>(null);
+    const [signatureChoice, setSignatureChoice] = useState<boolean | null>(unsent?.reply.signatureChoice ?? null);
     // Treść sprzed korekty albo szkicu - dopóki użytkownik jej nie tknął, można wrócić
     // jednym kliknięciem.
     const [undoSnapshot, setUndoSnapshot] = useState<{ body: string; title: string } | null>(null);
-    const [draft, setDraft] = useState<ReplyDraft | null>(null);
+    const [draft, setDraft] = useState<ReplyDraft | null>(unsent?.reply.aiDraft ?? null);
     // Gotowa odmowa zamyka zapytanie po wysłaniu - dopóki użytkownik tego nie odwoła.
-    const [closeReason, setCloseReason] = useState<string | null>(null);
+    const [closeReason, setCloseReason] = useState<string | null>(unsent?.reply.closeReason ?? null);
     const changeLeadStatus = useChangeLeadStatus();
     const contextLeadId = leadId ?? threadLeadId ?? null;
     const proofread = useProofread();
@@ -652,7 +671,7 @@ export function ReplyComposer({
     const appendSignature = hasSignature && (signatureChoice ?? signature?.enabledByDefault ?? false);
     // W wątku odbiorca jest oczywisty - pokazujemy go dopiero na żądanie.
     const replyInThread = Boolean(threadId) && Boolean(initialTo);
-    const [recipientShown, setRecipientShown] = useState(!replyInThread);
+    const [recipientShown, setRecipientShown] = useState(!replyInThread || Boolean(unsent?.reply.to));
     // Odpowiedź w wątku, dla którego serwer nie ustalił klienta (np. stary wątek
     // formularza) - zamiast podstawiać adres robota każemy go wpisać.
     const recipientUnknown = Boolean(threadId) && !initialTo;
@@ -671,9 +690,9 @@ export function ReplyComposer({
     // Przygotowana odpowiedź trafia do edytora dopiero na „Otwórz odpowiedź" w karcie pod
     // rozmową (PreparedReplyOffer). Dawniej wskakiwała sama i rozsuwała kompozytor - rozmowie
     // zostawało kilka centymetrów, a w polu stał tekst, którego nikt nie napisał.
-    const [appliedPrepared, setAppliedPrepared] = useState<string | null>(null);
+    const [appliedPrepared, setAppliedPrepared] = useState<string | null>(unsent?.reply.appliedPrepared ?? null);
     // Czy w edytorze stoi właśnie przygotowana odpowiedź (a nie szybka odpowiedź po przełączeniu).
-    const [preparedInEditor, setPreparedInEditor] = useState(false);
+    const [preparedInEditor, setPreparedInEditor] = useState(unsent?.reply.preparedInEditor ?? false);
     // „Napiszę od zera" chowa kartę do końca wizyty w sprawie.
     const [preparedDismissed, setPreparedDismissed] = useState(false);
     const preparedText = prepared && signature !== undefined
@@ -681,6 +700,45 @@ export function ReplyComposer({
         : null;
     const pendingPlaceholders = findPendingPlaceholders(draft, draft ? composerHtmlToText(body) : '');
     const totalAttachmentBytes = attachments.reduce((sum, file) => sum + file.size, 0);
+
+    // Każda zmiana od razu do wersji roboczej, bez opóźnienia: odświeżenie strony tuż po
+    // ostatnim słowie nie może go zgubić. Puste okno nie zostawia po sobie wersji.
+    useEffect(() => {
+        if (!userId || !unsentKey) return;
+        const customTo = to.trim() && to !== (initialTo ?? '') ? to : null;
+        if (bodyEmpty && !subject.trim() && !customTo && attachments.length === 0 && galleryPhotos.length === 0) {
+            discardUnsentReply(userId, unsentKey);
+            return;
+        }
+        saveUnsentReply(userId, unsentKey, {
+            to: customTo,
+            subject,
+            body,
+            galleryPhotos,
+            signatureChoice,
+            closeReason,
+            aiDraft: draft,
+            appliedPrepared,
+            preparedInEditor,
+            savedAt: new Date().toISOString(),
+        }, attachments);
+    }, [userId, unsentKey, initialTo, to, subject, body, bodyEmpty, attachments, galleryPhotos, signatureChoice, closeReason, draft, appliedPrepared, preparedInEditor]);
+
+    /** „Odrzuć" przy wersji roboczej: czyste okno; samą treść da się jeszcze przywrócić. */
+    const discardUnsent = () => {
+        setUndoSnapshot(bodyEmpty ? null : { body, title: 'Przywróć wersję roboczą' });
+        setBody('');
+        setSubject('');
+        setTo(initialTo ?? '');
+        setAttachments([]);
+        setGalleryPhotos([]);
+        setDraft(null);
+        setCloseReason(null);
+        setPreparedInEditor(false);
+        setAppliedPrepared(null);
+        setUnsentSavedAt(null);
+        if (userId && unsentKey) discardUnsentReply(userId, unsentKey);
+    };
 
     /**
      * Dokłada pliki z dowolnego źródła (okno wyboru, upuszczenie, schowek),
@@ -855,10 +913,16 @@ export function ReplyComposer({
             {
                 onSuccess: (result) => {
                     setBody('');
+                    setSubject('');
+                    setTo(initialTo ?? '');
                     setAttachments([]);
                     setGalleryPhotos([]);
                     setUndoSnapshot(null);
                     setDraft(null);
+                    setUnsentSavedAt(null);
+                    // Wprost, nie tylko przez efekt zapisu: okno mogło zniknąć w trakcie
+                    // wysyłki (ktoś przeszedł dalej), a wysłana wiadomość nie jest już wersją roboczą.
+                    if (userId && unsentKey) discardUnsentReply(userId, unsentKey);
                     // Wycena wysłana z przygotowanej odpowiedzi: jej sugestie przechodzą do
                     // wyceny leada - inaczej lead pokazywałby inną kwotę niż mail.
                     if (preparedInEditor && prepared?.kind === 'QUOTE' && contextLeadId) {
@@ -1033,6 +1097,17 @@ export function ReplyComposer({
                     </button>
                     <span className="who">{recipientLabel ?? initialTo ?? 'Nowa wiadomość'}</span>
                 </SheetTop>
+            )}
+
+            {unsentSavedAt && !nothingWritten && !sendMail.isPending && (
+                <DraftNote role="status">
+                    <div className="lines">
+                        <span>Wersja robocza, zapisana {messageMoment(unsentSavedAt).toLowerCase()}.</span>
+                    </div>
+                    <span className="side">
+                        <button type="button" className="discard" onClick={discardUnsent}>Odrzuć</button>
+                    </span>
+                </DraftNote>
             )}
 
             {draft && !(preparedHeader && otherPlaceholders.length === 0 && draft.unverifiedAmounts.length === 0) && (

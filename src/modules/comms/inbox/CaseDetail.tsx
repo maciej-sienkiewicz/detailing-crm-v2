@@ -82,7 +82,7 @@ import { ClientEditor } from './ClientEditor';
 import { BookingNote } from './BookingNote';
 import { confirmationDraft } from './bookingNoteModel';
 import { MailThread, ConversationHeader, ConversationScroll, type ConversationEvent } from './Conversation';
-import { downloadAttachmentFile } from './messageFormat';
+import { downloadAttachmentFile, mailTopic } from './messageFormat';
 import { useAttachmentPreview } from '../components/useAttachmentPreview';
 import { FooterPrimary, IconBtn, StatusChip } from './primitives';
 import { ix } from './tokens';
@@ -395,8 +395,16 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
     };
     const total = quoteTotal(lead);
 
+    // Tytuł leada to auto albo osoba, więc temat maila musi stać osobno - klient pisze
+    // „tak jak w tytule" i odpowiadający ma to widzieć bez przewijania do pierwszej
+    // wiadomości. Temat wątku z formularza to tekst robota strony, nie słowa klienta.
+    const topic = thread && thread.kind !== 'FORM' ? mailTopic(thread.subject) : null;
+    // Na telefonie pod tytułem stoi samo imię - ale bez auta tytułem jest już ta osoba
+    // i nagłówek powtarzał „Andrzej Reklewski" dwa razy jedno pod drugim.
+    const phoneSubtitle = lead.vehicleBrand ? lead.customerName ?? undefined : undefined;
+
     const header = (
-        <ConversationHeader title={caseTitle(lead)} subtitle={phone ? lead.customerName ?? undefined : caseSubtitle(lead)} phone={phone} onBack={onBack} titleId="case-title">
+        <ConversationHeader title={caseTitle(lead)} subtitle={phone ? phoneSubtitle : caseSubtitle(lead)} topic={topic} phone={phone} onBack={onBack} titleId="case-title">
             {!railBeside ? (
                 <AmountChip ref={amountRef} type="button" onClick={() => setSheetOpen(true)} aria-label={total > 0 ? `Wycena: ${formatAmount(total)}` : 'Wycena i klient'}>
                     {total > 0 ? formatAmount(total) : 'Wycena'}
@@ -496,6 +504,7 @@ export function CaseDetail({ leadId, phone, railBeside, onBack, onAdvance, onClo
                         onPreview={attachmentPreview.open}
                         onOpenFull={setFullMessageId}
                         events={bookingEvents}
+                        threadSubject={thread?.subject}
                         // Rozmowa czyta się od góry, jak w Poczcie. Dosunięta do dołu krótka
                         // rozmowa zostawiała nad jedyną wiadomością pół ekranu pustki (na
                         // telefonie ponad 1000 px). Długi wątek i tak otwiera się na końcu.

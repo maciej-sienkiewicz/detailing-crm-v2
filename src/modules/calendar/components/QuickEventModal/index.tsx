@@ -202,6 +202,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
     onSave,
     initialData,
     allowRecurrence = true,
+    coverSidebar = false,
 }, ref) => {
     const form = useQuickEventForm({ isOpen, eventData, onClose, onSave, ref, initialData });
 
@@ -745,7 +746,7 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
 
     return (
         <>
-            <S.Overlay $isOpen={isOpen} $contentLeft={sidebarWidth} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
+            <S.Overlay $isOpen={isOpen} $contentLeft={coverSidebar ? 0 : sidebarWidth} onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
                 <S.ModalWithPanel>
                 <S.ModalContainer $isOpen={isOpen}>
                     <form

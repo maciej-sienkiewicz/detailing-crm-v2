@@ -40,6 +40,8 @@ import { EASE_SPRING, prefersReducedMotion } from './motion';
 import { useBoardDrag } from './useBoardDrag';
 import { useFlip } from './useFlip';
 import { problemDetail } from '@/core/problem';
+import { useAuth } from '@/core/context/AuthContext';
+import { leadUnsentReplyKey, useUnsentReplyKeys } from '../../utils/unsentReplies';
 
 const Scroller = styled.div<{ $phone: boolean }>`
     flex: 1;
@@ -284,6 +286,8 @@ export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, o
     const overlayRef = useRef<HTMLDivElement>(null);
     const moveOnBoard = useMoveLeadOnBoard();
     const moveMenu = useActionMenu<BoardCard>();
+    const { user } = useAuth();
+    const unsentReplies = useUnsentReplyKeys(user?.userId);
 
     /*
      * Przesunięcia w drodze do serwera. Pamięć podręczna dostaje lead po przesunięciu
@@ -527,6 +531,7 @@ export function LeadBoard({ leads, loading, truncated, query, phone, hiddenId, o
                                             <BoardCardView
                                                 key={card.lead.id}
                                                 card={card}
+                                                hasUnsentReply={unsentReplies.has(leadUnsentReplyKey(card.lead))}
                                                 data-flip={card.lead.id}
                                                 role="button"
                                                 tabIndex={0}

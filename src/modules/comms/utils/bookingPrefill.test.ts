@@ -204,6 +204,21 @@ describe('leadToBookingPrefill - klient i auto', () => {
         expect(prefill.customerEditing).toBe(true);
     });
 
+    it('adres w miejscu imienia nie trafia do pola „Imię"', () => {
+        const address = 'andrzej-reklewski@wp.pl';
+        const prefill = leadToBookingPrefill(lead({ customerName: address, contactIdentifier: address }));
+
+        expect(prefill.customer).toMatchObject({ firstName: '', lastName: '', email: address, isNew: true });
+        expect(leadToBookingPrefill(lead({ customerName: 'Jan Nowak <jan@wp.pl>' })).customer)
+            .toMatchObject({ firstName: 'Jan', lastName: 'Nowak' });
+    });
+
+    it('adres w miejscu imienia ustępuje imieniu z kartoteki', () => {
+        const prefill = leadToBookingPrefill(lead({ customerName: 'jan@example.com' }), card());
+
+        expect(prefill.customer).toMatchObject({ id: 'cust-1', firstName: 'Jan', lastName: 'Kowalski' });
+    });
+
     it('auto z kartoteki pasujące marką i modelem (bez względu na wielkość liter)', () => {
         const prefill = leadToBookingPrefill(lead({ vehicleBrand: 'bmw', vehicleModel: 'x5' }), card());
 
@@ -299,5 +314,11 @@ describe('contactToBookingPrefill', () => {
         expect(prefill.customer).toMatchObject({ firstName: 'Anna', lastName: 'Nowak', email: 'anna@example.com', isNew: true });
         expect(prefill.customerEditing).toBe(true);
         expect(prefill.vehicle).toBeUndefined();
+    });
+
+    it('kontakt spoza kartoteki podpisany samym adresem: imię puste', () => {
+        const prefill = contactToBookingPrefill({ email: 'anna@example.com', participantName: 'anna@example.com' });
+
+        expect(prefill.customer).toMatchObject({ firstName: '', lastName: '', email: 'anna@example.com' });
     });
 });

@@ -21,6 +21,8 @@ import { LeadStatusPicker } from '../components/LeadStatusPicker';
 import { LeadLostReasonDialog } from '../components/LeadLostReasonDialog';
 import type { Worklist, WorklistEntry, WorklistSection } from '../utils/leadWorklist';
 import { caseSentence, caseTitle, rowAge } from './caseModel';
+import { useAuth } from '@/core/context/AuthContext';
+import { leadUnsentReplyKey, useUnsentReplyKeys } from '../utils/unsentReplies';
 import { ix } from './tokens';
 
 const Scroll = styled.div<{ $phone: boolean }>`
@@ -93,6 +95,7 @@ const Row = styled.button<{ $phone: boolean; $active: boolean }>`
     /* Klient odpisał - pogrubione, ale w kolorze tekstu: niebieskie i pogrubione
        „Obiecaliśmy: …" wyglądało jak link, a nim nie jest. */
     .hot { font-weight: 600; color: ${ix.ink}; }
+    .unsent { font-weight: 600; color: ${ix.accentInk}; }
     input { flex: none; width: 16px; height: 16px; margin: 0; accent-color: ${ix.accentInk}; }
 `;
 
@@ -191,6 +194,8 @@ export function CaseList({ worklist, query, loading, truncated, activeId, onOpen
     const [confirm, setConfirm] = useState<null | 'delete' | 'appointments' | 'lost'>(null);
     const bulkDelete = useBulkDeleteLeads();
     const bulkStatus = useBulkChangeLeadStatus();
+    const { user } = useAuth();
+    const unsentReplies = useUnsentReplyKeys(user?.userId);
 
     const needle = query.trim().toLowerCase();
     const filter = (section: WorklistSection) => (needle ? section.entries.filter((entry) => matches(entry, needle)) : section.entries);
@@ -235,7 +240,9 @@ export function CaseList({ worklist, query, loading, truncated, activeId, onOpen
         // Osoba obok auta: właściciel myśli „pan Kwiatkowski od BMW", a dwa „BMW Seria 3
         // Touring" pod sobą bez nazwiska były nie do rozróżnienia. Bez auta tytułem jest osoba.
         const who = lead.vehicleBrand ? (lead.customerName?.trim() || lead.contactIdentifier) : null;
-        const text = who ? sentence.text.replace(/^\p{Lu}/u, (first) => first.toLowerCase()) : sentence.text;
+        // Zaczęta i niewysłana odpowiedź - pierwsza rzecz w linii, bo to praca, którą ktoś przerwał.
+        const unsent = unsentReplies.has(leadUnsentReplyKey(lead));
+        const text = who || unsent ? sentence.text.replace(/^\p{Lu}/u, (first) => first.toLowerCase()) : sentence.text;
         return (
             <Row
                 key={lead.id}
@@ -267,6 +274,7 @@ export function CaseList({ worklist, query, loading, truncated, activeId, onOpen
                     </span>
                 </span>
                 <span className="sub">
+                    {unsent && <><span className="unsent">Wersja robocza</span>, </>}
                     {who && <>{who}, </>}
                     <span className={sentence.hot ? 'hot' : undefined}>{text}</span>
                 </span>

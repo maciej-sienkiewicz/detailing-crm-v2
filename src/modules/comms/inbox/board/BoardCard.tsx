@@ -131,6 +131,7 @@ export const CardSurface = styled.div<{ $phone?: boolean }>`
         font-weight: 600;
     }
     .reminded { background: #f3effe; color: #6d28d9; }
+    .unsent { background: ${ix.accentTint}; color: ${ix.accentInk}; }
 `;
 
 /** Puste miejsce, które czeka na kartę w ręce - w odcieniu kolumny, z jej wysokością. */
@@ -180,9 +181,11 @@ function sentence(card: BoardCardModel): { text: string; hot: boolean } {
 
 interface BoardCardProps extends HTMLAttributes<HTMLDivElement> {
     card: BoardCardModel;
+    /** Ktoś z tej sesji zaczął odpowiedź i jej nie wysłał (utils/unsentReplies). */
+    hasUnsentReply?: boolean;
 }
 
-export const BoardCardView = forwardRef<HTMLDivElement, BoardCardProps>(function BoardCardView({ card, ...rest }, ref) {
+export const BoardCardView = forwardRef<HTMLDivElement, BoardCardProps>(function BoardCardView({ card, hasUnsentReply = false, ...rest }, ref) {
     const { lead, urgency } = card;
     const Icon = SOURCE_ICON[lead.source] ?? Mail;
     const title = caseTitle(lead);
@@ -205,6 +208,12 @@ export const BoardCardView = forwardRef<HTMLDivElement, BoardCardProps>(function
             </div>
             <p className={`sentence${line.hot ? ' hot' : ''}`}>{line.text}</p>
             <div className="meta">
+                {hasUnsentReply && (
+                    <span className="badge unsent" title="Zaczęta odpowiedź czeka w oknie leada">
+                        <PenLine aria-hidden="true" />
+                        Wersja robocza
+                    </span>
+                )}
                 {card.silence?.reminded && (
                     <span className="badge reminded" title="Ostatnia nasza wiadomość była przypomnieniem - drugiego tablica nie zaproponuje">
                         <BellRing aria-hidden="true" />

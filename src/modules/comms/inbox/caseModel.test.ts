@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import type { Lead, LeadServiceItem } from '../types';
 import { describeLeadUrgency } from '../utils/leadUrgency';
-import { caseNextStep, caseSentence, caseStatusChip, chipRepeatsStatus, clientLine, formatAmount, quoteTotal, rowAge } from './caseModel';
+import { caseNextStep, caseSentence, caseStatusChip, caseSubtitle, chipRepeatsStatus, clientLine, formatAmount, quoteTotal, rowAge } from './caseModel';
 
 const NOW = Date.UTC(2026, 9, 8, 12);
 const H = 3_600_000;
@@ -112,5 +112,18 @@ describe('chipRepeatsStatus - plakietka nie powtarza statusu z panelu', () => {
         expect(chipRepeatsStatus(lead({ status: 'COMPLETED' }))).toBe(true);
         expect(chipRepeatsStatus(lead({ ...replied, services: [service(42000)] }))).toBe(false);
         expect(chipRepeatsStatus(lead({ ...replied, appointmentId: 'a1' }))).toBe(false);
+    });
+});
+
+describe('caseSubtitle - linia pod tytułem', () => {
+    it('imię i adres, a gdy imieniem jest sam adres - adres raz', () => {
+        expect(caseSubtitle(lead())).toBe('Jan, jan@wp.pl');
+        expect(caseSubtitle(lead({ customerName: 'Jan@WP.pl' }))).toBe('jan@wp.pl');
+        expect(caseSubtitle(lead({ customerName: null }))).toBe('jan@wp.pl');
+    });
+
+    it('bez auta tytułem jest osoba, więc adres tylko wtedy, gdy jest czymś innym', () => {
+        expect(caseSubtitle(lead({ vehicleBrand: null }))).toBe('jan@wp.pl');
+        expect(caseSubtitle(lead({ vehicleBrand: null, customerName: 'jan@wp.pl' }))).toBe('');
     });
 });

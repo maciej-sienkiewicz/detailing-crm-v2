@@ -117,4 +117,11 @@ export interface QuickEventModalProps {
      * powtarzania ginęła po cichu i powstawała pojedyncza rezerwacja.
      */
     allowRecurrence?: boolean;
+    /**
+     * Nakładka na cały ekran, razem z sidebarem. Domyślnie okno zaczyna się za
+     * sidebarem, bo w kalendarzu sidebar zostaje widoczny obok. Otwarte nad innym
+     * oknem (rezerwacja z leada) musi zakryć je całe: tamto okno jest wyśrodkowane
+     * na całym ekranie i jego lewy brzeg wystawałby spod przyciemnienia.
+     */
+    coverSidebar?: boolean;
 }

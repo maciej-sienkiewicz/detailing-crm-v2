@@ -18,12 +18,21 @@ const DEFAULT_VAT_RATE = 23;
 const MAX_EXPANDED_ROWS = 50;
 
 /**
+ * Człony imienia i nazwiska, bez adresów e-mail. Nadawca bez podpisu przychodzi
+ * z samym adresem w miejscu imienia. Adres to nie imię: w formularzu stawał w polu
+ * „Imię" („Andrzej-reklewski@wp.pl"), a rezerwacja zakładała klienta o takim imieniu.
+ */
+function nameParts(fullName: string | null | undefined): string[] {
+    return (fullName ?? '').trim().split(/\s+/).filter((part) => part && !part.includes('@'));
+}
+
+/**
  * „Jan Kowalski" → { firstName: 'Jan', lastName: 'Kowalski' }.
  * Kartoteka trzyma imię i nazwisko osobno, a lead i wątek - jednym ciągiem.
  * Ostatni człon traktujemy jako nazwisko: „Anna Maria Nowak" to Anna Maria + Nowak.
  */
 function splitName(fullName: string | null | undefined): { firstName: string; lastName: string } {
-    const parts = (fullName ?? '').trim().split(/\s+/).filter(Boolean);
+    const parts = nameParts(fullName);
     if (parts.length === 0) return { firstName: '', lastName: '' };
     if (parts.length === 1) return { firstName: parts[0], lastName: '' };
     return { firstName: parts.slice(0, -1).join(' '), lastName: parts[parts.length - 1] };
@@ -173,9 +182,11 @@ function buildVehicle(
 
 /** Panel leada → wypełniony formularz rezerwacji. */
 export function leadToBookingPrefill(lead: Lead, contactCard?: ContactCard | null): QuickEventInitialData {
+    // Sam adres w miejscu imienia nie zasłania imienia z kartoteki.
+    const leadName = nameParts(lead.customerName).length > 0 ? lead.customerName : null;
     const { customer, customerEditing } = buildCustomer({
         customerId: lead.customerId ?? contactCard?.customer?.id ?? null,
-        fullName: lead.customerName ?? contactCard?.customer?.fullName ?? null,
+        fullName: leadName ?? contactCard?.customer?.fullName ?? null,
         email: lead.contactIdentifier,
         phone: contactCard?.customer?.phone ?? null,
     });

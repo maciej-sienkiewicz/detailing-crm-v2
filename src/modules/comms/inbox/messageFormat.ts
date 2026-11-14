@@ -13,6 +13,43 @@ export function messageMoment(iso: string): string {
     return `${day}, ${time}`;
 }
 
+/**
+ * Przedrostki odpowiedzi i przekazania - ta sama lista co SUBJECT_PREFIXES na serwerze
+ * (CommsIngestService), który po niej skleja wiadomości w wątki. „Re[2]:" to zapis
+ * niektórych programów pocztowych przy kolejnej odpowiedzi.
+ */
+const REPLY_PREFIX = /^(re|odp\.?|fwd?|pd)(\[\d+\])?\s*:\s*/i;
+
+/**
+ * Temat maila bez „Re:", „Odp:", „Fwd:" z przodu; null, gdy nic nie zostaje.
+ *
+ * Temat bywa jedynym miejscem, w którym klient napisał, o co chodzi („Oklejanie folią
+ * Audi Q5", treść: „dzień dobry, kiedy macie termin?"). Bez niego rozmowa w CRM-ie
+ * nie mówiła, o jakie auto chodzi, a studio dopytywało o rzecz, którą klient już podał.
+ */
+export function mailTopic(subject: string | null | undefined): string | null {
+    let value = (subject ?? '').trim();
+    while (REPLY_PREFIX.test(value)) value = value.replace(REPLY_PREFIX, '').trim();
+    return value || null;
+}
+
+/**
+ * Wiadomości, przy których trzeba pokazać temat, bo zmienił się względem poprzedniego.
+ * Temat wątku stoi w nagłówku rozmowy, więc odpowiedzi z „Re: …" go nie powtarzają.
+ * Klient, który w środku rozmowy zmienia temat, często tylko tam pisze rzecz nową.
+ */
+export function topicChanges(messages: CommMessage[], threadSubject: string | null | undefined): Map<string, string> {
+    const changes = new Map<string, string>();
+    let current = mailTopic(threadSubject)?.toLocaleLowerCase('pl') ?? null;
+    for (const message of messages) {
+        const topic = mailTopic(message.subject);
+        if (!topic || topic.toLocaleLowerCase('pl') === current) continue;
+        changes.set(message.id, topic);
+        current = topic.toLocaleLowerCase('pl');
+    }
+    return changes;
+}
+
 /** Pobranie załącznika przez API (sesja), a nie przez `<a href>`. */
 export async function downloadAttachmentFile(
     load: (id: string) => Promise<Blob>,

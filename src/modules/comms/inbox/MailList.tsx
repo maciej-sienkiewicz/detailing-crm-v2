@@ -13,6 +13,8 @@ import { Archive, Bell } from 'lucide-react';
 import type { CommThread, MailFolder } from '../types';
 import { buildMailListRows } from '../utils/mailListRows';
 import { ix } from './tokens';
+import { useAuth } from '@/core/context/AuthContext';
+import { unsentReplyKey, useUnsentReplyKeys } from '../utils/unsentReplies';
 
 const Scroll = styled.div<{ $phone: boolean }>`
     flex: 1;
@@ -225,12 +227,14 @@ interface MailRowProps {
     onArchive: () => void;
     onContextMenu: (event: React.MouseEvent) => void;
     onPrefetch: () => void;
+    /** Zaczęta i niewysłana odpowiedź w tym wątku (utils/unsentReplies). */
+    hasUnsentReply: boolean;
 }
 
 /** Ile pikseli przesunięcia w lewo wystarczy, żeby puszczenie palca zarchiwizowało wątek. */
 const SWIPE_ARCHIVE_PX = 110;
 
-function MailRow({ thread, folder, phone, active, nested, isForm, onOpen, onArchive, onContextMenu, onPrefetch }: MailRowProps) {
+function MailRow({ thread, folder, phone, active, nested, isForm, onOpen, onArchive, onContextMenu, onPrefetch, hasUnsentReply }: MailRowProps) {
     const [dx, setDx] = useState(0);
     const start = useRef<{ x: number; y: number; horizontal: boolean | null } | null>(null);
 
@@ -288,6 +292,7 @@ function MailRow({ thread, folder, phone, active, nested, isForm, onOpen, onArch
                 </span>
                 <span className="subj">
                     <span className="subj-t" title={subject}>{subject}</span>
+                    {hasUnsentReply && <Tag $sale>Wersja robocza</Tag>}
                     {thread.screening && <Tag $warn title={thread.screeningReason ?? undefined}>{thread.screening === 'SPAM' ? 'Spam' : 'Test ze studia'}</Tag>}
                     {isForm && !thread.leadId && <Tag>Formularz</Tag>}
                     {folder === 'SENT' && thread.inboundCount === 0 && <Tag>Bez odpowiedzi</Tag>}
@@ -326,6 +331,8 @@ interface MailListProps {
 
 export function MailList({ threads, folder, query, loaded, hasMore, onMore, activeId, phone, formSenders, onOpen, onArchive, onContextMenu, onPrefetch }: MailListProps) {
     const [bundleOpen, setBundleOpen] = useState(false);
+    const { user } = useAuth();
+    const unsentReplies = useUnsentReplyKeys(user?.userId);
     // Automaty zwijamy tylko w Odebranych i bez szukania - kto szuka „faktura Allegro",
     // ma ją dostać wprost, a nie w zwiniętym wierszu.
     const rows = buildMailListRows(threads, { bundleAutomated: folder === 'INBOX' && !query.trim(), bundleOpen });
@@ -382,6 +389,7 @@ export function MailList({ threads, folder, query, loaded, hasMore, onMore, acti
                         onArchive={() => onArchive(thread)}
                         onContextMenu={(event) => onContextMenu(event, thread)}
                         onPrefetch={() => onPrefetch(thread.id)}
+                        hasUnsentReply={unsentReplies.has(unsentReplyKey({ threadId: thread.id }) ?? '')}
                     />
                 );
             })}

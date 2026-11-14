@@ -17,26 +17,26 @@ import styled from 'styled-components';
 import { X } from 'lucide-react';
 import { useToast } from '@/common/components/Toast';
 import { acquireScrollLock } from '@/common/utils/scrollLock';
-import { useSidebar } from '@/widgets/Sidebar/context/SidebarContext';
 import { CalendarView, type CalendarRangeSelection } from './CalendarView';
 import { QuickEventModal, type QuickEventFormData, type QuickEventInitialData } from './QuickEventModal';
 import { useQuickEventCreation } from '../hooks/useQuickEventCreation';
 import type { EventCreationData } from '../types';
 import { problemDetail } from '@/core/problem';
 
-const Overlay = styled.div<{ $contentLeft: number }>`
+const Overlay = styled.div`
     position: fixed;
+    /* Cały ekran, razem z sidebarem. Kreator otwiera się nad oknem, z którego
+       wyszedł - panelem leada albo podglądem rozmowy - a to okno (ModalShell)
+       jest wyśrodkowane na całym ekranie. Nakładka zaczynająca się za sidebarem
+       zostawiała jego lewy brzeg nieprzyciemniony obok kalendarza. Formularz
+       rezerwacji dostaje tę samą geometrię (coverSidebar), żeby przejście między
+       krokami nie przeskakiwało. */
     inset: 0;
     height: 100vh;
     height: 100dvh;
     /* Ta sama warstwa co formularz rezerwacji (QuickEventModalStyles.Overlay):
-       oba kroki kreatora otwierają się nad oknem, z którego wyszły - panelem
-       leada albo podglądem rozmowy - więc muszą leżeć nad warstwą ModalKit (1000). */
+       nad oknami ModalKit (1000). */
     z-index: 1300;
-    /* I ta sama geometria: formularz rezerwacji zaczyna się za sidebarem, więc
-       kalendarz też. Inaczej przejście między krokami przeskakuje o szerokość
-       sidebara, a przyciemnienie mruga na tym pasku. */
-    left: ${p => p.$contentLeft}px;
     display: flex;
     align-items: center;
     justify-content: center;
@@ -46,7 +46,6 @@ const Overlay = styled.div<{ $contentLeft: number }>`
 
     @media (max-width: 640px) {
         padding: 0;
-        left: 0;
     }
 `;
 
@@ -147,7 +146,6 @@ export function BookingFlowModal({
     onBooked,
 }: BookingFlowModalProps) {
     const [range, setRange] = useState<EventCreationData | null>(null);
-    const { isCollapsed } = useSidebar();
     const { createBookingAsync } = useQuickEventCreation();
     const { showSuccess, showError } = useToast();
 
@@ -187,22 +185,27 @@ export function BookingFlowModal({
 
     // Krok 2: formularz rezerwacji. Kalendarz jest odmontowany - dwa nałożone
     // modale to dwie warstwy do zamknięcia i pytanie, którą właśnie zamykam.
+    // Portal jak w kroku 1: kreator jest zamontowany wewnątrz okna leada, którego
+    // pudełko ma transform, a transform przodka zamienia position: fixed w pozycję
+    // względem tego pudełka. Formularz lądował wtedy przesunięty o szerokość
+    // sidebara od lewej krawędzi okna leada i przycięty do jego granic.
     if (range) {
-        return (
+        return createPortal(
             <QuickEventModal
                 isOpen
+                coverSidebar
                 eventData={range}
                 initialData={prefill}
                 onClose={onClose}
                 onSave={handleSave}
                 allowRecurrence={!leadId}
-            />
+            />,
+            document.body
         );
     }
 
     return createPortal(
         <Overlay
-            $contentLeft={isCollapsed ? 64 : 248}
             onMouseDown={(event) => { if (event.target === event.currentTarget) onClose(); }}
         >
             <Sheet onMouseDown={(event) => event.stopPropagation()}>
