@@ -46,6 +46,7 @@ interface ServicePrefill {
     serviceVatRates: { [lineId: string]: number };
     serviceNotes: { [lineId: string]: string };
     tempServices: { [serviceId: string]: { name: string; basePriceNet: number; vatRate: number } };
+    catalogFallbacks: { [serviceId: string]: { name: string; basePriceNet: number; vatRate: number } };
 }
 
 /**
@@ -67,6 +68,7 @@ function servicesToPrefill(items: LeadServiceItem[]): ServicePrefill {
         serviceVatRates: {},
         serviceNotes: {},
         tempServices: {},
+        catalogFallbacks: {},
     };
 
     // Do rezerwacji wchodzą tylko pozycje przyjęte. Nieodrzucone sugestie są
@@ -88,6 +90,12 @@ function servicesToPrefill(items: LeadServiceItem[]): ServicePrefill {
                     basePriceNet: priceNet,
                     vatRate,
                 };
+            }
+            // Pozycja z cennika: cennik formularza może jej nie zawierać (usługa nieaktywna
+            // albo usunięta po wycenie) - wtedy wiersz znikał z tabeli. Nazwa z leada
+            // zostaje na wypadek takiego braku i nie zmienia sposobu zapisu pozycji.
+            if (item.serviceId) {
+                prefill.catalogFallbacks[catalogId] = { name: item.name, basePriceNet: priceNet, vatRate };
             }
             prefill.serviceIds.push(lineId);
             prefill.serviceRefs[lineId] = catalogId;

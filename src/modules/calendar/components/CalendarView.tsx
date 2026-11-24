@@ -131,8 +131,13 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
         border: none !important;
     }
 
+    /* Dni dzielą kreski pionowe, tygodnie - poziome. Poprzedni #f1f5f9 był niemal biały na
+       białym tle i dni oraz tygodnie zlewały się w jedną plamę. Tygodnie są mocniejsze od
+       dni, bo to one wyznaczają rząd, w którym czyta się grafik. */
     .fc-daygrid-day {
-        border-color: #f1f5f9 !important;
+        border-color: #dde3ea !important;
+        border-top-color: #c3ccd8 !important;
+        border-bottom-color: #c3ccd8 !important;
     }
 
     /* Weekend column tint */
@@ -142,11 +147,11 @@ const CalendarContainer = styled.div<{ $compact?: boolean }>`
     }
 
     .fc-scrollgrid-sync-inner {
-        border-color: #f1f5f9 !important;
+        border-color: #dde3ea !important;
     }
 
     .fc-timegrid-slot {
-        border-color: rgba(15, 23, 42, 0.06) !important;
+        border-color: rgba(15, 23, 42, 0.12) !important;
     }
 
     /* Today highlighting */

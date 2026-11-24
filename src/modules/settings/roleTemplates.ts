@@ -24,7 +24,7 @@ export const ROLE_TEMPLATES: RoleTemplate[] = [
         id: 'detailer',
         name: 'Detailer',
         summary: 'Wykonuje wizyty, bez cen, finansów i ustawień',
-        permissions: ['VISITS_VIEW', 'CUSTOMERS_VIEW', 'VISITS_CREATE', 'TASKS_VIEW'],
+        permissions: ['VISITS_VIEW', 'CUSTOMERS_VIEW', 'VISITS_CREATE', 'VISITS_NOTES_MANAGE', 'TASKS_VIEW'],
         trackWorkTime: true,
     },
     {
@@ -32,7 +32,7 @@ export const ROLE_TEMPLATES: RoleTemplate[] = [
         name: 'Recepcja',
         summary: 'Umawia wizyty, obsługuje klientów i wysyła wiadomości',
         permissions: [
-            'VISITS_VIEW', 'CUSTOMERS_VIEW', 'VISITS_CREATE',
+            'VISITS_VIEW', 'CUSTOMERS_VIEW', 'VISITS_CREATE', 'VISITS_NOTES_MANAGE',
             'VISITS_SERVICE_PRICES_VIEW', 'COMMUNICATION_SEND', 'LEADS_MANAGE', 'TASKS_VIEW',
         ],
         trackWorkTime: true,
@@ -45,7 +45,7 @@ export const ROLE_TEMPLATES: RoleTemplate[] = [
         // nie wynika z EMPLOYEES_MANAGE).
         summary: 'Prowadzi studio: zespół, urlopy, raporty i marketing',
         permissions: [
-            'VISITS_VIEW', 'CUSTOMERS_VIEW', 'VISITS_CREATE', 'VISITS_SERVICE_PRICES_VIEW',
+            'VISITS_VIEW', 'CUSTOMERS_VIEW', 'VISITS_CREATE', 'VISITS_SERVICE_PRICES_VIEW', 'VISITS_NOTES_MANAGE',
             'BATCH_ORDERS', 'COMMUNICATION_SEND', 'MARKETING_MANAGE',
             'EMPLOYEES_MANAGE', 'EMPLOYEES_LEAVES_APPROVE', 'FINANCE_VIEW_REPORTS', 'STATISTICS_VIEW',
             'TASKS_MANAGE',

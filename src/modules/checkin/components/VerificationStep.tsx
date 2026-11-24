@@ -47,6 +47,7 @@ import { APPOINTMENT_COLORS_KEY } from '@/modules/appointment-colors/api/appoint
 import { appointmentApi } from '@/modules/appointments/api/appointmentApi';
 import { customerVehiclesQuery } from '@/modules/customers/api/customerVehiclesQuery';
 import { useDebounce } from '@/common/hooks';
+import { usePermissions } from '@/core/permissions';
 
 // ─── Section Card ─────────────────────────────────────────────────────────────
 
@@ -722,6 +723,9 @@ export const VerificationStep = ({
     subject = 'visit',
 }: VerificationStepProps) => {
     const subjectWord = subject === 'reservation' ? 'rezerwacji' : 'wizyty';
+    // Bez VISITS_NOTES_MANAGE serwer nie zwraca notatki wewnętrznej, więc pole byłoby puste
+    // i wyglądało jak brak notatki. Chowamy je; zapis nie rusza zapisanej wartości.
+    const canManageNotes = usePermissions().can('VISITS_NOTES_MANAGE');
     const queryClient = useQueryClient();
     const [isCustomerModalOpen, setIsCustomerModalOpen] = useState(false);
     const [isCustomerDetailsModalOpen, setIsCustomerDetailsModalOpen] = useState(false);
@@ -2081,17 +2085,19 @@ export const VerificationStep = ({
                     </SectionTitleRow>
                 </SectionHead>
                 <SectionBody style={{ display: 'flex', flexDirection: 'column', gap: '16px' }}>
-                    <div>
-                        <Label style={{ display: 'block', marginBottom: '6px' }}>
-                            {t.checkin.technical.inspectionNotes}
-                        </Label>
-                        <TextArea
-                            value={formData.technicalState.inspectionNotes}
-                            onChange={(e) => onChange({ technicalState: { ...formData.technicalState, inspectionNotes: capitalizeFirst(e.target.value) } })}
-                            placeholder={t.checkin.technical.inspectionNotesPlaceholder}
-                            style={{ width: '100%', boxSizing: 'border-box', minHeight: '100px' }}
-                        />
-                    </div>
+                    {canManageNotes && (
+                        <div>
+                            <Label style={{ display: 'block', marginBottom: '6px' }}>
+                                {t.checkin.technical.inspectionNotes}
+                            </Label>
+                            <TextArea
+                                value={formData.technicalState.inspectionNotes}
+                                onChange={(e) => onChange({ technicalState: { ...formData.technicalState, inspectionNotes: capitalizeFirst(e.target.value) } })}
+                                placeholder={t.checkin.technical.inspectionNotesPlaceholder}
+                                style={{ width: '100%', boxSizing: 'border-box', minHeight: '100px' }}
+                            />
+                        </div>
+                    )}
                     <div>
                         <Label style={{ display: 'block', marginBottom: '6px' }}>
                             {t.checkin.technical.protocolNotes}

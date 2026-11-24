@@ -12,6 +12,8 @@ export interface ServicesAsLineItemsInput {
     serviceRefs: { [lineId: string]: string };
     services: Service[];
     tempServices: { [catalogId: string]: { name: string; basePriceNet: number; vatRate: number } };
+    /** Rezerwowa nazwa i stawka usług z cennika, których cennik formularza nie zwrócił (tylko do wyświetlenia). */
+    catalogFallbacks?: { [catalogId: string]: { name: string; basePriceNet: number; vatRate: number } };
     /** lineId → base gross price in ZŁOTYCH, exact as typed/stored (see PriceInput / QuickServiceModal). */
     servicePrices: { [lineId: string]: number };
     /** lineId → base net price in GROSZACH, exact as typed/stored - the counterpart to `servicePrices`. */
@@ -46,6 +48,9 @@ export function buildServicesAsLineItems(input: ServicesAsLineItemsInput): Servi
             let svc = input.services.find(s => s.id === catalogId);
             if (!svc && input.tempServices[catalogId]) {
                 svc = { id: catalogId, ...input.tempServices[catalogId] } as Service;
+            }
+            if (!svc && input.catalogFallbacks?.[catalogId]) {
+                svc = { id: catalogId, ...input.catalogFallbacks[catalogId] } as Service;
             }
             if (!svc) return null;
 

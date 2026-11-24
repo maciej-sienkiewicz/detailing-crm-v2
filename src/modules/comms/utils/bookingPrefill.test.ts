@@ -86,6 +86,7 @@ const formLines = (prefill: QuickEventInitialData, services: Parameters<typeof b
         serviceRefs: prefill.serviceRefs ?? {},
         services,
         tempServices: prefill.tempServices ?? {},
+        catalogFallbacks: prefill.catalogFallbacks,
         servicePrices: prefill.servicePrices ?? {},
         serviceBasePrices: prefill.serviceBasePrices ?? {},
         serviceAdjustments: {},
@@ -113,6 +114,19 @@ describe('leadToBookingPrefill - wycena', () => {
         expect(row).toMatchObject({ basePriceGross: 190_000, basePriceNet: 154_472, vatRate: 23 });
         // Rabat jest już „wypalony" w kwocie - drugi raz go nie ma.
         expect(row.adjustment).toEqual({ type: 'PERCENT', value: 0 });
+    });
+
+    it('usługa z cennika, której cennik formularza nie zwrócił, nie znika z tabeli', () => {
+        // Usługa dezaktywowana albo usunięta po wycenie: bez nazwy z leada wiersz był pomijany po cichu.
+        const [row] = formLines(leadToBookingPrefill(lead()), []);
+
+        expect(row).toMatchObject({ serviceId: 'svc-1', serviceName: 'Powłoka ceramiczna', basePriceGross: 190_000 });
+    });
+
+    it('rezerwowa nazwa nie zamienia usługi z cennika w jednorazową', () => {
+        const prefill = leadToBookingPrefill(lead());
+
+        expect(prefill.tempServices).toEqual({});
     });
 
     it('rabat z wyceny nie jedzie do formularza osobno, bo jest już w kwocie', () => {

@@ -275,7 +275,8 @@ const Board = styled.div`
 const DayCol = styled.div<{ $isToday: boolean }>`
     display: flex;
     flex-direction: column;
-    border-right: 1px solid rgba(15, 23, 42, 0.06);
+    /* Kolumny dni zlewały się z tłem (6% czerni); 16% daje wyraźną kreskę bez ciężkiej ramki. */
+    border-right: 1px solid rgba(15, 23, 42, 0.16);
     background: ${p => p.$isToday ? 'rgba(99, 102, 241, 0.02)' : 'transparent'};
     min-height: 0;
     overflow: hidden;
@@ -288,7 +289,7 @@ const DayHeader = styled.div<{ $isToday: boolean }>`
     align-items: center;
     gap: 8px;
     padding: 10px 12px 9px;
-    border-bottom: 2px solid ${p => p.$isToday ? '#6366f1' : 'rgba(15, 23, 42, 0.07)'};
+    border-bottom: 2px solid ${p => p.$isToday ? '#6366f1' : 'rgba(15, 23, 42, 0.16)'};
     flex-shrink: 0;
     background: ${p => p.$isToday ? 'rgba(99, 102, 241, 0.04)' : '#fff'};
     position: sticky;

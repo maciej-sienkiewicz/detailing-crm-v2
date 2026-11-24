@@ -407,13 +407,14 @@ export const QuickEventModal = forwardRef<QuickEventModalRef, QuickEventModalPro
             serviceRefs: form.serviceRefs,
             services: form.services,
             tempServices: form.tempServices,
+            catalogFallbacks: form.catalogFallbacks,
             servicePrices: form.servicePrices,
             serviceBasePrices: form.serviceBasePrices,
             serviceAdjustments: form.serviceAdjustments,
             serviceNotes: form.serviceNotes,
             serviceVatRates: form.serviceVatRates,
         }),
-        [form.selectedServiceIds, form.serviceRefs, form.services, form.tempServices, form.servicePrices, form.serviceBasePrices, form.serviceAdjustments, form.serviceNotes, form.serviceVatRates]
+        [form.selectedServiceIds, form.serviceRefs, form.services, form.tempServices, form.catalogFallbacks, form.servicePrices, form.serviceBasePrices, form.serviceAdjustments, form.serviceNotes, form.serviceVatRates]
     );
 
     const handleServicesChange = useCallback((newItems: ServiceLineItem[]) => {

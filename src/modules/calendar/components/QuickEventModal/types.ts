@@ -36,6 +36,14 @@ export interface QuickEventInitialData {
   serviceVatRates?: { [lineId: string]: number };
   serviceNotes?: { [lineId: string]: string };
   tempServices?: { [serviceId: string]: { name: string; basePriceNet: number; vatRate: number } };
+  /**
+   * Nazwa i cena usług z katalogu, na które wskazują [serviceRefs]. Służą WYŁĄCZNIE do
+   * wyświetlenia wiersza, gdy cennik formularza nie zawiera tej usługi (jest nieaktywna,
+   * usunięta albo jeszcze się pobiera). Bez tego pozycja z leada znikała z tabeli po cichu,
+   * choć była na liście. Nie wchodzą do payloadu: w przeciwieństwie do [tempServices] nie
+   * zamieniają usługi z cennika w jednorazową.
+   */
+  catalogFallbacks?: { [serviceId: string]: { name: string; basePriceNet: number; vatRate: number } };
 }
 
 export interface ServicePackageItem {

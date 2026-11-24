@@ -12,6 +12,8 @@ export const PERMISSIONS = {
     VISITS_DELETE: 'VISITS_DELETE',
     VISITS_SERVICE_PRICES_VIEW: 'VISITS_SERVICE_PRICES_VIEW',
     VISITS_MEDIA_DELETE: 'VISITS_MEDIA_DELETE',
+    // Notatki wewnętrzne (przyjęcie pojazdu, rezerwacja). Notatka na protokół jest poza bramką.
+    VISITS_NOTES_MANAGE: 'VISITS_NOTES_MANAGE',
     // Klienci i pojazdy: sekcja modułu „Wizyty i kalendarz” (nie osobny moduł)
     CUSTOMERS_VIEW: 'CUSTOMERS_VIEW',
     CUSTOMERS_DELETE: 'CUSTOMERS_DELETE',

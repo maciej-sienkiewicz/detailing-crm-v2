@@ -21,6 +21,11 @@ const apis = vi.hoisted(() => ({
     getVehicleDetail: vi.fn(),
 }));
 
+// Pole notatek wewnętrznych zależy od uprawnienia; tu liczy się wybór pojazdu.
+vi.mock('@/core/permissions/usePermissions', () => ({
+    usePermissions: () => ({ can: () => true, isOwner: true, defaultRoute: '/' }),
+}));
+
 vi.mock('@/modules/appointments/api/appointmentApi', () => ({
     appointmentApi: { searchCustomers: apis.searchCustomers },
 }));

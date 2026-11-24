@@ -167,6 +167,7 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref, initialData 
     const [serviceSearch, setServiceSearch] = useState('');
     const [showServiceDropdown, setShowServiceDropdown] = useState(false);
     const [tempServices, setTempServices] = useState<{ [key: string]: { name: string; basePriceNet: number; vatRate: number } }>({});
+    const [catalogFallbacks, setCatalogFallbacks] = useState<{ [key: string]: { name: string; basePriceNet: number; vatRate: number } }>({});
 
     // ─── Customer edit mode ────────────────────────────────────────────────────
     const [customerEditMode, setCustomerEditMode] = useState(false);
@@ -426,6 +427,7 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref, initialData 
         setServiceNotes({});
         setServiceVatRates({});
         setServiceBasePrices({});
+        setCatalogFallbacks({});
         setExpandedServiceNote(null);
         setServiceSearch('');
         setCustomerFirstName('');
@@ -614,6 +616,9 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref, initialData 
         }
         if (initialData.tempServices) {
             setTempServices(initialData.tempServices);
+        }
+        if (initialData.catalogFallbacks) {
+            setCatalogFallbacks(initialData.catalogFallbacks);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isOpen]);
@@ -1420,6 +1425,7 @@ export function useQuickEventForm({ isOpen, eventData, onSave, ref, initialData 
         filteredServices,
         hasSearchQuery,
         tempServices, setTempServices,
+        catalogFallbacks,
 
         // Colors
         appointmentColors,
